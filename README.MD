@@ -288,7 +288,11 @@ pnpm dev
   - Query liste : `includeArchived`, `cursor`, `limit`
   - CRUD : `POST|GET|PATCH|DELETE /api/v1/programs`, `POST .../restore`
   - Modèles vides : `POST|PATCH|DELETE /api/v1/programs/:programId/workout-templates/...`
-  - Réordonnancement : `PUT /api/v1/programs/:programId/workout-templates/order`
+  - Réordonnancement modèles : `PUT /api/v1/programs/:programId/workout-templates/order`
+  - Exercices du modèle : `POST|PATCH|DELETE .../workout-templates/:id/exercises/...`
+  - Réordonnancement exercices : `PUT .../exercises/order`
+  - Séries cibles : `POST|PATCH|DELETE .../exercises/:id/sets/...`
+  - Réordonnancement séries : `PUT .../sets/order`
 - Mailpit : http://localhost:8025 (`docker compose up -d mailpit`)
 
 Compose complet (profil `full`) :

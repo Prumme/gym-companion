@@ -158,6 +158,63 @@ export type WorkoutTemplateSummary = {
   updatedAt: string;
 };
 
+export type WorkoutSetType =
+  | 'WARMUP'
+  | 'WORKING'
+  | 'BACKOFF'
+  | 'DROP_SET'
+  | 'AMRAP'
+  | 'FAILURE_OPTIONAL';
+
+/** Référence catalogue compacte dans un modèle (sans préférences personnelles). */
+export type WorkoutTemplateExerciseRef = {
+  id: string;
+  source: ExerciseSource;
+  name: string;
+  measurementType: ExerciseMeasurementType;
+  primaryMuscleGroup: MuscleGroupReference;
+  defaultEquipmentType: EquipmentTypeReference | null;
+  archivedAt: string | null;
+};
+
+export type WorkoutTemplateSetTarget = {
+  id: string;
+  position: number;
+  setType: WorkoutSetType;
+  targetRepMin: number | null;
+  targetRepMax: number | null;
+  targetDurationSeconds: number | null;
+  targetDistanceMeters: number | null;
+  targetWeightKg: number | null;
+  targetIntensityPercent: number | null;
+  targetRir: number | null;
+  targetRpe: number | null;
+  restSeconds: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type WorkoutTemplateExercisePermissions = {
+  canEdit: boolean;
+  canDelete: boolean;
+  canReorder: boolean;
+};
+
+export type WorkoutTemplateExerciseDetail = {
+  id: string;
+  position: number;
+  exercise: WorkoutTemplateExerciseRef;
+  equipmentType: EquipmentTypeReference | null;
+  restSecondsOverride: number | null;
+  notes: string | null;
+  sets: WorkoutTemplateSetTarget[];
+  permissions: WorkoutTemplateExercisePermissions;
+};
+
+export type WorkoutTemplateDetail = WorkoutTemplateSummary & {
+  exercises: WorkoutTemplateExerciseDetail[];
+};
+
 export type ProgramListItem = {
   id: string;
   name: string;
@@ -174,7 +231,7 @@ export type ProgramListItem = {
 export type ProgramListResponse = ApiCursorListResponse<ProgramListItem>;
 
 export type ProgramDetail = ProgramListItem & {
-  workoutTemplates: WorkoutTemplateSummary[];
+  workoutTemplates: WorkoutTemplateDetail[];
 };
 
 export function createSuccessResponse<T>(data: T): ApiSuccessResponse<T> {

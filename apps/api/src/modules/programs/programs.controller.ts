@@ -139,7 +139,7 @@ export class ProgramsController {
 
   @Delete(':programId/workout-templates/:workoutTemplateId')
   @ApiOperation({
-    summary: 'Supprimer un modèle de séance vide et compacter les positions',
+    summary: 'Supprimer un modèle de séance et compacter les positions',
   })
   async deleteTemplate(
     @CurrentUser() user: AuthenticatedUser,
@@ -150,6 +150,166 @@ export class ProgramsController {
       user.id,
       programId,
       workoutTemplateId,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Post(':programId/workout-templates/:workoutTemplateId/exercises')
+  @ApiOperation({ summary: 'Ajouter un exercice accessible à un modèle' })
+  async addExercise(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('programId', ParseUUIDPipe) programId: string,
+    @Param('workoutTemplateId', ParseUUIDPipe) workoutTemplateId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.programsService.addExercise(
+      user.id,
+      programId,
+      workoutTemplateId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Put(':programId/workout-templates/:workoutTemplateId/exercises/order')
+  @ApiOperation({ summary: 'Réordonner les exercices d’un modèle' })
+  async reorderExercises(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('programId', ParseUUIDPipe) programId: string,
+    @Param('workoutTemplateId', ParseUUIDPipe) workoutTemplateId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.programsService.reorderExercises(
+      user.id,
+      programId,
+      workoutTemplateId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Patch(
+    ':programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId',
+  )
+  @ApiOperation({ summary: 'Modifier la configuration d’un exercice du modèle' })
+  async updateExercise(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('programId', ParseUUIDPipe) programId: string,
+    @Param('workoutTemplateId', ParseUUIDPipe) workoutTemplateId: string,
+    @Param('templateExerciseId', ParseUUIDPipe) templateExerciseId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.programsService.updateExercise(
+      user.id,
+      programId,
+      workoutTemplateId,
+      templateExerciseId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Delete(
+    ':programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId',
+  )
+  @ApiOperation({ summary: 'Retirer un exercice du modèle et ses séries' })
+  async removeExercise(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('programId', ParseUUIDPipe) programId: string,
+    @Param('workoutTemplateId', ParseUUIDPipe) workoutTemplateId: string,
+    @Param('templateExerciseId', ParseUUIDPipe) templateExerciseId: string,
+  ) {
+    const data = await this.programsService.removeExercise(
+      user.id,
+      programId,
+      workoutTemplateId,
+      templateExerciseId,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Post(
+    ':programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId/sets',
+  )
+  @ApiOperation({ summary: 'Ajouter une série cible à la fin' })
+  async createSet(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('programId', ParseUUIDPipe) programId: string,
+    @Param('workoutTemplateId', ParseUUIDPipe) workoutTemplateId: string,
+    @Param('templateExerciseId', ParseUUIDPipe) templateExerciseId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.programsService.createSet(
+      user.id,
+      programId,
+      workoutTemplateId,
+      templateExerciseId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Put(
+    ':programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId/sets/order',
+  )
+  @ApiOperation({ summary: 'Réordonner les séries cibles' })
+  async reorderSets(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('programId', ParseUUIDPipe) programId: string,
+    @Param('workoutTemplateId', ParseUUIDPipe) workoutTemplateId: string,
+    @Param('templateExerciseId', ParseUUIDPipe) templateExerciseId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.programsService.reorderSets(
+      user.id,
+      programId,
+      workoutTemplateId,
+      templateExerciseId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Patch(
+    ':programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId/sets/:setId',
+  )
+  @ApiOperation({ summary: 'Modifier une série cible' })
+  async updateSet(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('programId', ParseUUIDPipe) programId: string,
+    @Param('workoutTemplateId', ParseUUIDPipe) workoutTemplateId: string,
+    @Param('templateExerciseId', ParseUUIDPipe) templateExerciseId: string,
+    @Param('setId', ParseUUIDPipe) setId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.programsService.updateSet(
+      user.id,
+      programId,
+      workoutTemplateId,
+      templateExerciseId,
+      setId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Delete(
+    ':programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId/sets/:setId',
+  )
+  @ApiOperation({ summary: 'Supprimer une série cible et compacter les positions' })
+  async deleteSet(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('programId', ParseUUIDPipe) programId: string,
+    @Param('workoutTemplateId', ParseUUIDPipe) workoutTemplateId: string,
+    @Param('templateExerciseId', ParseUUIDPipe) templateExerciseId: string,
+    @Param('setId', ParseUUIDPipe) setId: string,
+  ) {
+    const data = await this.programsService.deleteSet(
+      user.id,
+      programId,
+      workoutTemplateId,
+      templateExerciseId,
+      setId,
     );
     return createSuccessResponse(data);
   }

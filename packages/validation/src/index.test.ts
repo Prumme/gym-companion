@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  addWorkoutTemplateExerciseSchema,
   buildExerciseCursorFilter,
+  compactOrderedPositions,
   compactWorkoutTemplatePositions,
+  computeNextOrderedPosition,
   computeNextWorkoutTemplatePosition,
   createExerciseSchema,
   createProgramSchema,
   createWorkoutTemplateSchema,
+  createWorkoutTemplateSetSchema,
   decodeExerciseCursor,
   encodeExerciseCursor,
   isDefaultExercisePreferenceInput,
@@ -18,6 +22,7 @@ import {
   toUpdateProfilePayload,
   updateExercisePreferenceSchema,
   validateWorkoutTemplateReorder,
+  validateWorkoutTemplateSetTargets,
 } from './index';
 
 const validEnv = {
@@ -468,5 +473,159 @@ describe('workout template order helpers', () => {
       ok: false,
       code: 'WORKOUT_TEMPLATE_INVALID_ORDER',
     });
+  });
+});
+
+describe('addWorkoutTemplateExerciseSchema', () => {
+  const exerciseId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+
+  it('parses and normalizes notes', () => {
+    expect(
+      addWorkoutTemplateExerciseSchema.parse({
+        exerciseId,
+        equipmentTypeId: null,
+        restSecondsOverride: 90,
+        notes: '  ',
+      }),
+    ).toEqual({
+      exerciseId,
+      equipmentTypeId: null,
+      restSecondsOverride: 90,
+      notes: null,
+    });
+  });
+
+  it('rejects invalid rest seconds', () => {
+    expect(
+      addWorkoutTemplateExerciseSchema.safeParse({
+        exerciseId,
+        equipmentTypeId: null,
+        restSecondsOverride: 1801,
+        notes: null,
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('validateWorkoutTemplateSetTargets', () => {
+  const base = {
+    targetRepMin: null,
+    targetRepMax: null,
+    targetDurationSeconds: null,
+    targetDistanceMeters: null,
+    targetWeightKg: null,
+    targetIntensityPercent: null,
+    targetRir: null,
+    targetRpe: null,
+    restSeconds: null,
+  };
+
+  it('accepts WEIGHT_REPS with reps and optional weight', () => {
+    expect(
+      validateWorkoutTemplateSetTargets('WEIGHT_REPS', {
+        ...base,
+        targetRepMin: 8,
+        targetRepMax: 10,
+        targetWeightKg: 60,
+      }),
+    ).toEqual({ ok: true });
+  });
+
+  it('requires reps for REPS_ONLY', () => {
+    expect(
+      validateWorkoutTemplateSetTargets('REPS_ONLY', base).ok,
+    ).toBe(false);
+  });
+
+  it('requires duration for DURATION and WEIGHT_DURATION', () => {
+    expect(validateWorkoutTemplateSetTargets('DURATION', base).ok).toBe(false);
+    expect(
+      validateWorkoutTemplateSetTargets('WEIGHT_DURATION', {
+        ...base,
+        targetDurationSeconds: 30,
+        targetWeightKg: 20,
+      }),
+    ).toEqual({ ok: true });
+  });
+
+  it('requires distance for DISTANCE_DURATION', () => {
+    expect(
+      validateWorkoutTemplateSetTargets('DISTANCE_DURATION', {
+        ...base,
+        targetDistanceMeters: 1000,
+        targetDurationSeconds: 300,
+      }),
+    ).toEqual({ ok: true });
+    expect(
+      validateWorkoutTemplateSetTargets('DISTANCE_DURATION', {
+        ...base,
+        targetDurationSeconds: 300,
+      }).ok,
+    ).toBe(false);
+  });
+
+  it('rejects invalid rep range', () => {
+    expect(
+      validateWorkoutTemplateSetTargets('WEIGHT_REPS', {
+        ...base,
+        targetRepMin: 10,
+        targetRepMax: 5,
+      }).code,
+    ).toBe('WORKOUT_TEMPLATE_SET_INVALID_REP_RANGE');
+  });
+
+  it('rejects simultaneous RIR and RPE', () => {
+    expect(
+      validateWorkoutTemplateSetTargets('WEIGHT_REPS', {
+        ...base,
+        targetRepMin: 5,
+        targetRepMax: 5,
+        targetRir: 2,
+        targetRpe: 8,
+      }).code,
+    ).toBe('WORKOUT_TEMPLATE_SET_CONFLICTING_INTENSITY_TARGETS');
+  });
+
+  it('rejects invalid RIR/RPE via schema', () => {
+    expect(
+      createWorkoutTemplateSetSchema.safeParse({
+        setType: 'WORKING',
+        ...base,
+        targetRepMin: 5,
+        targetRepMax: 5,
+        targetRir: 11,
+      }).success,
+    ).toBe(false);
+    expect(
+      createWorkoutTemplateSetSchema.safeParse({
+        setType: 'WORKING',
+        ...base,
+        targetRepMin: 5,
+        targetRepMax: 5,
+        targetRpe: 0.5,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects invalid intensity percent via schema', () => {
+    expect(
+      createWorkoutTemplateSetSchema.safeParse({
+        setType: 'WORKING',
+        ...base,
+        targetRepMin: 5,
+        targetRepMax: 5,
+        targetIntensityPercent: 0,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('compacts ordered positions generically', () => {
+    const idA = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    const idB = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+    expect(computeNextOrderedPosition([])).toBe(0);
+    expect(compactOrderedPositions([idA, idB])).toEqual([
+      { id: idA, position: 0 },
+      { id: idB, position: 1 },
+    ]);
   });
 });

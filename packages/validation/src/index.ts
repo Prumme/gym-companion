@@ -633,21 +633,58 @@ export function buildProgramCursorFilter(cursor: ProgramCursorPayload): {
 }
 
 /**
- * Positions des modèles de séance : convention 0-based (0, 1, 2, …).
+ * Positions ordonnées : convention 0-based (0, 1, 2, …).
+ * Réutilisé pour modèles, exercices de modèle et séries cibles.
  */
-export function computeNextWorkoutTemplatePosition(
-  existingPositions: number[],
-): number {
+export function computeNextOrderedPosition(existingPositions: number[]): number {
   if (existingPositions.length === 0) {
     return 0;
   }
   return Math.max(...existingPositions) + 1;
 }
 
-export function compactWorkoutTemplatePositions(
+export function compactOrderedPositions(
   orderedIds: string[],
 ): Array<{ id: string; position: number }> {
   return orderedIds.map((id, position) => ({ id, position }));
+}
+
+export type OrderedIdsValidationReason =
+  | 'DUPLICATE'
+  | 'INCOMPLETE'
+  | 'INVALID';
+
+export function validateOrderedIds(
+  requestedIds: string[],
+  existingIds: string[],
+): { ok: true } | { ok: false; reason: OrderedIdsValidationReason } {
+  if (new Set(requestedIds).size !== requestedIds.length) {
+    return { ok: false, reason: 'DUPLICATE' };
+  }
+  if (requestedIds.length !== existingIds.length) {
+    return { ok: false, reason: 'INCOMPLETE' };
+  }
+  const existing = new Set(existingIds);
+  for (const id of requestedIds) {
+    if (!existing.has(id)) {
+      return { ok: false, reason: 'INVALID' };
+    }
+  }
+  return { ok: true };
+}
+
+/** @deprecated Prefer computeNextOrderedPosition */
+export function computeNextWorkoutTemplatePosition(
+  existingPositions: number[],
+): number {
+  return computeNextOrderedPosition(existingPositions);
+}
+
+/** @deprecated Prefer compactOrderedPositions */
+export function compactWorkoutTemplatePositions(
+  orderedIds: string[],
+): Array<{ id: string; position: number }> {
+  return compactOrderedPositions(orderedIds);
 }
 
 export type ReorderValidationResult =
@@ -664,17 +701,304 @@ export function validateWorkoutTemplateReorder(
   requestedIds: string[],
   existingIds: string[],
 ): ReorderValidationResult {
-  if (new Set(requestedIds).size !== requestedIds.length) {
-    return { ok: false, code: 'WORKOUT_TEMPLATE_DUPLICATE_IN_ORDER' };
+  const result = validateOrderedIds(requestedIds, existingIds);
+  if (result.ok) {
+    return { ok: true };
   }
-  if (requestedIds.length !== existingIds.length) {
-    return { ok: false, code: 'WORKOUT_TEMPLATE_ORDER_INCOMPLETE' };
+  const codeByReason = {
+    DUPLICATE: 'WORKOUT_TEMPLATE_DUPLICATE_IN_ORDER',
+    INCOMPLETE: 'WORKOUT_TEMPLATE_ORDER_INCOMPLETE',
+    INVALID: 'WORKOUT_TEMPLATE_INVALID_ORDER',
+  } as const;
+  return { ok: false, code: codeByReason[result.reason] };
+}
+
+export const workoutSetTypeSchema = z.enum([
+  'WARMUP',
+  'WORKING',
+  'BACKOFF',
+  'DROP_SET',
+  'AMRAP',
+  'FAILURE_OPTIONAL',
+]);
+
+const restSecondsSchema = z
+  .number()
+  .int()
+  .min(0)
+  .max(1800)
+  .nullable();
+
+const notesSchema = z
+  .string()
+  .max(2000)
+  .nullable()
+  .optional()
+  .transform((value) => (value === undefined ? undefined : emptyToNull(value) ?? null));
+
+export const addWorkoutTemplateExerciseSchema = z
+  .object({
+    exerciseId: z.string().uuid(),
+    equipmentTypeId: z.preprocess(
+      (value) => (value === '' ? null : value),
+      z.string().uuid().nullable(),
+    ),
+    restSecondsOverride: restSecondsSchema,
+    notes: z
+      .string()
+      .max(2000)
+      .nullable()
+      .transform((value) => emptyToNull(value) ?? null),
+  })
+  .strict();
+
+export type AddWorkoutTemplateExerciseInput = z.infer<
+  typeof addWorkoutTemplateExerciseSchema
+>;
+
+export const updateWorkoutTemplateExerciseSchema = z
+  .object({
+    equipmentTypeId: z.preprocess(
+      (value) => (value === '' ? null : value),
+      z.string().uuid().nullable(),
+    ).optional(),
+    restSecondsOverride: restSecondsSchema.optional(),
+    notes: notesSchema,
+  })
+  .strict();
+
+export type UpdateWorkoutTemplateExerciseInput = z.infer<
+  typeof updateWorkoutTemplateExerciseSchema
+>;
+
+export const reorderWorkoutTemplateExercisesSchema = z
+  .object({
+    workoutTemplateExerciseIds: z
+      .array(z.string().uuid())
+      .min(1, 'La liste d’ordre ne peut pas être vide.'),
+  })
+  .strict();
+
+export type ReorderWorkoutTemplateExercisesInput = z.infer<
+  typeof reorderWorkoutTemplateExercisesSchema
+>;
+
+const nullablePositiveInt = z.number().int().positive().max(500).nullable();
+const nullableNonNegativeDecimal = z.number().finite().min(0).nullable();
+const nullablePositiveDuration = z.number().int().positive().max(86_400).nullable();
+const nullablePositiveDistance = z.number().finite().positive().max(1_000_000).nullable();
+
+export const workoutTemplateSetTargetsObjectSchema = z
+  .object({
+    setType: workoutSetTypeSchema,
+    targetRepMin: nullablePositiveInt,
+    targetRepMax: nullablePositiveInt,
+    targetDurationSeconds: nullablePositiveDuration,
+    targetDistanceMeters: nullablePositiveDistance,
+    targetWeightKg: nullableNonNegativeDecimal,
+    targetIntensityPercent: z.number().finite().gt(0).lte(100).nullable(),
+    targetRir: z.number().int().min(0).max(10).nullable(),
+    targetRpe: z.number().finite().min(1).max(10).nullable(),
+    restSeconds: restSecondsSchema,
+  })
+  .strict();
+
+export const createWorkoutTemplateSetSchema = workoutTemplateSetTargetsObjectSchema;
+export type CreateWorkoutTemplateSetInput = z.infer<
+  typeof createWorkoutTemplateSetSchema
+>;
+
+export const updateWorkoutTemplateSetSchema =
+  workoutTemplateSetTargetsObjectSchema.partial().strict();
+export type UpdateWorkoutTemplateSetInput = z.infer<
+  typeof updateWorkoutTemplateSetSchema
+>;
+
+export const reorderWorkoutTemplateSetsSchema = z
+  .object({
+    setIds: z.array(z.string().uuid()).min(1, 'La liste d’ordre ne peut pas être vide.'),
+  })
+  .strict();
+
+export type ReorderWorkoutTemplateSetsInput = z.infer<
+  typeof reorderWorkoutTemplateSetsSchema
+>;
+
+export type WorkoutTemplateSetTargetFields = {
+  targetRepMin: number | null;
+  targetRepMax: number | null;
+  targetDurationSeconds: number | null;
+  targetDistanceMeters: number | null;
+  targetWeightKg: number | null;
+  targetIntensityPercent: number | null;
+  targetRir: number | null;
+  targetRpe: number | null;
+  restSeconds: number | null;
+};
+
+export type WorkoutTemplateSetValidationResult =
+  | { ok: true }
+  | {
+      ok: false;
+      code:
+        | 'WORKOUT_TEMPLATE_SET_INVALID_TARGET'
+        | 'WORKOUT_TEMPLATE_SET_INVALID_REP_RANGE'
+        | 'WORKOUT_TEMPLATE_SET_CONFLICTING_INTENSITY_TARGETS';
+      message: string;
+    };
+
+/**
+ * Valide les cibles d’une série selon le type de mesure de l’exercice.
+ * Règle RIR/RPE : une seule des deux valeurs peut être renseignée.
+ */
+export function validateWorkoutTemplateSetTargets(
+  measurementType:
+    | 'WEIGHT_REPS'
+    | 'BODYWEIGHT_REPS'
+    | 'ASSISTED_BODYWEIGHT_REPS'
+    | 'REPS_ONLY'
+    | 'DURATION'
+    | 'DISTANCE_DURATION'
+    | 'WEIGHT_DURATION',
+  targets: WorkoutTemplateSetTargetFields,
+): WorkoutTemplateSetValidationResult {
+  if (targets.targetRir != null && targets.targetRpe != null) {
+    return {
+      ok: false,
+      code: 'WORKOUT_TEMPLATE_SET_CONFLICTING_INTENSITY_TARGETS',
+      message: 'Une série ne peut pas définir RIR et RPE simultanément.',
+    };
   }
-  const existing = new Set(existingIds);
-  for (const id of requestedIds) {
-    if (!existing.has(id)) {
-      return { ok: false, code: 'WORKOUT_TEMPLATE_INVALID_ORDER' };
-    }
+
+  if (
+    (targets.targetRepMin == null) !== (targets.targetRepMax == null) ||
+    (targets.targetRepMin != null &&
+      targets.targetRepMax != null &&
+      targets.targetRepMin > targets.targetRepMax)
+  ) {
+    return {
+      ok: false,
+      code: 'WORKOUT_TEMPLATE_SET_INVALID_REP_RANGE',
+      message: 'La plage de répétitions est invalide.',
+    };
   }
+
+  const hasReps = targets.targetRepMin != null && targets.targetRepMax != null;
+  const hasDuration = targets.targetDurationSeconds != null;
+  const hasDistance = targets.targetDistanceMeters != null;
+
+  switch (measurementType) {
+    case 'WEIGHT_REPS':
+    case 'BODYWEIGHT_REPS':
+    case 'ASSISTED_BODYWEIGHT_REPS':
+    case 'REPS_ONLY':
+      if (!hasReps) {
+        return {
+          ok: false,
+          code: 'WORKOUT_TEMPLATE_SET_INVALID_TARGET',
+          message: 'Une cible de répétitions est requise pour ce type de mesure.',
+        };
+      }
+      if (hasDuration || hasDistance) {
+        return {
+          ok: false,
+          code: 'WORKOUT_TEMPLATE_SET_INVALID_TARGET',
+          message: 'Durée et distance ne s’appliquent pas à ce type de mesure.',
+        };
+      }
+      break;
+    case 'DURATION':
+    case 'WEIGHT_DURATION':
+      if (!hasDuration) {
+        return {
+          ok: false,
+          code: 'WORKOUT_TEMPLATE_SET_INVALID_TARGET',
+          message: 'Une durée cible est requise pour ce type de mesure.',
+        };
+      }
+      if (hasReps || hasDistance) {
+        return {
+          ok: false,
+          code: 'WORKOUT_TEMPLATE_SET_INVALID_TARGET',
+          message: 'Répétitions et distance ne s’appliquent pas à ce type de mesure.',
+        };
+      }
+      break;
+    case 'DISTANCE_DURATION':
+      if (!hasDistance) {
+        return {
+          ok: false,
+          code: 'WORKOUT_TEMPLATE_SET_INVALID_TARGET',
+          message: 'Une distance cible est requise pour ce type de mesure.',
+        };
+      }
+      if (hasReps) {
+        return {
+          ok: false,
+          code: 'WORKOUT_TEMPLATE_SET_INVALID_TARGET',
+          message: 'Les répétitions ne s’appliquent pas à ce type de mesure.',
+        };
+      }
+      break;
+    default:
+      return {
+        ok: false,
+        code: 'WORKOUT_TEMPLATE_SET_INVALID_TARGET',
+        message: 'Type de mesure non supporté.',
+      };
+  }
+
   return { ok: true };
+}
+
+export type WorkoutTemplateExerciseReorderValidationResult =
+  | { ok: true }
+  | {
+      ok: false;
+      code:
+        | 'WORKOUT_TEMPLATE_EXERCISE_DUPLICATE_IN_ORDER'
+        | 'WORKOUT_TEMPLATE_EXERCISE_ORDER_INCOMPLETE'
+        | 'WORKOUT_TEMPLATE_EXERCISE_INVALID_ORDER';
+    };
+
+export function validateWorkoutTemplateExerciseReorder(
+  requestedIds: string[],
+  existingIds: string[],
+): WorkoutTemplateExerciseReorderValidationResult {
+  const result = validateOrderedIds(requestedIds, existingIds);
+  if (result.ok) {
+    return { ok: true };
+  }
+  const codeByReason = {
+    DUPLICATE: 'WORKOUT_TEMPLATE_EXERCISE_DUPLICATE_IN_ORDER',
+    INCOMPLETE: 'WORKOUT_TEMPLATE_EXERCISE_ORDER_INCOMPLETE',
+    INVALID: 'WORKOUT_TEMPLATE_EXERCISE_INVALID_ORDER',
+  } as const;
+  return { ok: false, code: codeByReason[result.reason] };
+}
+
+export type WorkoutTemplateSetReorderValidationResult =
+  | { ok: true }
+  | {
+      ok: false;
+      code:
+        | 'WORKOUT_TEMPLATE_SET_DUPLICATE_IN_ORDER'
+        | 'WORKOUT_TEMPLATE_SET_ORDER_INCOMPLETE'
+        | 'WORKOUT_TEMPLATE_SET_INVALID_ORDER';
+    };
+
+export function validateWorkoutTemplateSetReorder(
+  requestedIds: string[],
+  existingIds: string[],
+): WorkoutTemplateSetReorderValidationResult {
+  const result = validateOrderedIds(requestedIds, existingIds);
+  if (result.ok) {
+    return { ok: true };
+  }
+  const codeByReason = {
+    DUPLICATE: 'WORKOUT_TEMPLATE_SET_DUPLICATE_IN_ORDER',
+    INCOMPLETE: 'WORKOUT_TEMPLATE_SET_ORDER_INCOMPLETE',
+    INVALID: 'WORKOUT_TEMPLATE_SET_INVALID_ORDER',
+  } as const;
+  return { ok: false, code: codeByReason[result.reason] };
 }

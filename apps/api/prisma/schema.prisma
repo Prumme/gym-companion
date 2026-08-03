@@ -171,9 +171,10 @@ model EquipmentType {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  defaultForExercises Exercise[]                        @relation("ExerciseDefaultEquipment")
-  compatibleExercises ExerciseEquipmentCompatibility[]
-  preferredInPreferences UserExercisePreference[]
+  defaultForExercises      Exercise[]                        @relation("ExerciseDefaultEquipment")
+  compatibleExercises      ExerciseEquipmentCompatibility[]
+  preferredInPreferences   UserExercisePreference[]
+  workoutTemplateExercises WorkoutTemplateExercise[]
 
   @@index([isActive])
   @@map("equipment_types")
@@ -216,6 +217,7 @@ model Exercise {
   secondaryMuscles       ExerciseSecondaryMuscle[]
   compatibleEquipment    ExerciseEquipmentCompatibility[]
   userPreferences        UserExercisePreference[]
+  workoutTemplateExercises WorkoutTemplateExercise[]
 
   @@index([ownerUserId])
   @@index([source])
@@ -311,9 +313,66 @@ model WorkoutTemplate {
 
   owner   User    @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
   program Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+  exercises WorkoutTemplateExercise[]
 
   @@unique([programId, positionInProgram])
   @@index([ownerUserId])
   @@index([programId])
   @@map("workout_templates")
+}
+
+enum WorkoutSetType {
+  WARMUP
+  WORKING
+  BACKOFF
+  DROP_SET
+  AMRAP
+  FAILURE_OPTIONAL
+}
+
+model WorkoutTemplateExercise {
+  id                  String   @id @default(uuid()) @db.Uuid
+  workoutTemplateId   String   @db.Uuid
+  exerciseId          String   @db.Uuid
+  position            Int
+  equipmentTypeId     String?  @db.Uuid
+  restSecondsOverride Int?
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  workoutTemplate WorkoutTemplate      @relation(fields: [workoutTemplateId], references: [id], onDelete: Cascade)
+  exercise        Exercise             @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+  equipmentType   EquipmentType?       @relation(fields: [equipmentTypeId], references: [id], onDelete: SetNull)
+  sets            WorkoutTemplateSet[]
+
+  @@unique([workoutTemplateId, exerciseId])
+  @@unique([workoutTemplateId, position])
+  @@index([exerciseId])
+  @@index([equipmentTypeId])
+  @@map("workout_template_exercises")
+}
+
+model WorkoutTemplateSet {
+  id                        String         @id @default(uuid()) @db.Uuid
+  workoutTemplateExerciseId String         @db.Uuid
+  position                  Int
+  setType                   WorkoutSetType
+  targetRepMin              Int?
+  targetRepMax              Int?
+  targetDurationSeconds     Int?
+  targetDistanceMeters      Decimal?       @db.Decimal(10, 2)
+  targetWeightKg            Decimal?       @db.Decimal(8, 3)
+  targetIntensityPercent    Decimal?       @db.Decimal(5, 2)
+  targetRir                 Int?
+  targetRpe                 Decimal?       @db.Decimal(4, 1)
+  restSeconds               Int?
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+
+  workoutTemplateExercise WorkoutTemplateExercise @relation(fields: [workoutTemplateExerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([workoutTemplateExerciseId, position])
+  @@index([workoutTemplateExerciseId])
+  @@map("workout_template_sets")
 }
