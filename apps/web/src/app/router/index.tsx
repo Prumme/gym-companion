@@ -10,6 +10,8 @@ import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage';
 import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 import { ProfilePage } from '@/features/profile/pages/ProfilePage';
+import { ExercisesPage } from '@/features/exercises/pages/ExercisesPage';
+import { ExerciseDetailPage } from '@/features/exercises/pages/ExerciseDetailPage';
 
 export const router = createBrowserRouter([
   {
@@ -24,7 +26,11 @@ export const router = createBrowserRouter([
       { path: 'reset-password', element: <ResetPasswordPage /> },
       {
         element: <ProtectedRoute />,
-        children: [{ path: 'profile', element: <ProfilePage /> }],
+        children: [
+          { path: 'profile', element: <ProfilePage /> },
+          { path: 'exercises', element: <ExercisesPage /> },
+          { path: 'exercises/:exerciseId', element: <ExerciseDetailPage /> },
+        ],
       },
       { path: '*', element: <NotFoundPage /> },
     ],
