@@ -64,6 +64,7 @@ model User {
   sessions                AuthSession[]
   passwordResetTokens     PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
+  exercises               Exercise[]
 
   @@index([status])
   @@map("users")
@@ -151,6 +152,9 @@ model MuscleGroup {
   parent   MuscleGroup?  @relation("MuscleGroupHierarchy", fields: [parentId], references: [id])
   children MuscleGroup[] @relation("MuscleGroupHierarchy")
 
+  primaryExercises   Exercise[]                 @relation("ExercisePrimaryMuscle")
+  secondaryExercises ExerciseSecondaryMuscle[]
+
   @@index([parentId])
   @@index([isActive])
   @@map("muscle_groups")
@@ -164,6 +168,80 @@ model EquipmentType {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  defaultForExercises Exercise[]                        @relation("ExerciseDefaultEquipment")
+  compatibleExercises ExerciseEquipmentCompatibility[]
+
   @@index([isActive])
   @@map("equipment_types")
+}
+
+enum ExerciseSource {
+  SYSTEM
+  USER
+}
+
+enum ExerciseMeasurementType {
+  WEIGHT_REPS
+  BODYWEIGHT_REPS
+  ASSISTED_BODYWEIGHT_REPS
+  REPS_ONLY
+  DURATION
+  DISTANCE_DURATION
+  WEIGHT_DURATION
+}
+
+model Exercise {
+  id                     String                   @id @default(uuid()) @db.Uuid
+  ownerUserId            String?                  @db.Uuid
+  source                 ExerciseSource
+  name                   String
+  normalizedName         String
+  slug                   String?                  @unique
+  primaryMuscleGroupId   String                   @db.Uuid
+  measurementType        ExerciseMeasurementType
+  defaultEquipmentTypeId String?                  @db.Uuid
+  defaultRestSeconds     Int?
+  instructions           String?
+  archivedAt             DateTime?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+
+  owner                  User?                             @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  primaryMuscleGroup     MuscleGroup                       @relation("ExercisePrimaryMuscle", fields: [primaryMuscleGroupId], references: [id])
+  defaultEquipmentType   EquipmentType?                    @relation("ExerciseDefaultEquipment", fields: [defaultEquipmentTypeId], references: [id])
+  secondaryMuscles       ExerciseSecondaryMuscle[]
+  compatibleEquipment    ExerciseEquipmentCompatibility[]
+
+  @@index([ownerUserId])
+  @@index([source])
+  @@index([primaryMuscleGroupId])
+  @@index([archivedAt])
+  @@index([normalizedName])
+  @@map("exercises")
+}
+
+model ExerciseSecondaryMuscle {
+  exerciseId    String @db.Uuid
+  muscleGroupId String @db.Uuid
+
+  exercise    Exercise    @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  muscleGroup MuscleGroup @relation(fields: [muscleGroupId], references: [id])
+
+  @@id([exerciseId, muscleGroupId])
+  @@map("exercise_secondary_muscles")
+}
+
+model ExerciseEquipmentCompatibility {
+  id              String  @id @default(uuid()) @db.Uuid
+  exerciseId      String  @db.Uuid
+  equipmentTypeId String  @db.Uuid
+  isPreferred     Boolean @default(false)
+  notes           String?
+
+  exercise      Exercise      @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  equipmentType EquipmentType @relation(fields: [equipmentTypeId], references: [id])
+
+  @@unique([exerciseId, equipmentTypeId])
+  @@index([equipmentTypeId])
+  @@map("exercise_equipment_compatibilities")
 }

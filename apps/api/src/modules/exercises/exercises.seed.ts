@@ -1,75 +1,23 @@
-'use strict';
+import { normalizeExerciseName } from '@gym-companion/validation';
+import type { ExerciseMeasurementType, PrismaClient } from '@prisma/client';
 
-const { PrismaClient } = require('@prisma/client');
+import seedExercises from './exercises-seed-data.json';
 
-const referenceData = require('../src/modules/reference/reference-seed-data.json');
-const exerciseData = require('../src/modules/exercises/exercises-seed-data.json');
+type PrismaLike = Pick<
+  PrismaClient,
+  'muscleGroup' | 'equipmentType' | 'exercise' | 'exerciseSecondaryMuscle' | 'exerciseEquipmentCompatibility'
+>;
 
-const EQUIPMENT_TYPES = referenceData.equipmentTypes;
-const MUSCLE_GROUPS = referenceData.muscleGroups;
-const SYSTEM_EXERCISES = exerciseData;
+type SeedExercise = (typeof seedExercises)[number];
 
-function normalizeExerciseName(name) {
-  return name
-    .trim()
-    .replace(/\s+/g, ' ')
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-    .toLowerCase();
-}
+export const SYSTEM_EXERCISE_SEEDS = seedExercises;
 
-/**
- * @param {import('@prisma/client').PrismaClient} prisma
- */
-async function seedEquipmentTypes(prisma) {
-  for (const item of EQUIPMENT_TYPES) {
-    await prisma.equipmentType.upsert({
-      where: { code: item.code },
-      create: {
-        code: item.code,
-        name: item.name,
-        isActive: true,
-      },
-      update: {
-        name: item.name,
-      },
-    });
-  }
-}
-
-/**
- * @param {import('@prisma/client').PrismaClient} prisma
- */
-async function seedMuscleGroups(prisma) {
-  for (const item of MUSCLE_GROUPS) {
-    await prisma.muscleGroup.upsert({
-      where: { code: item.code },
-      create: {
-        code: item.code,
-        name: item.name,
-        parentId: null,
-        isActive: true,
-      },
-      update: {
-        name: item.name,
-      },
-    });
-  }
-}
-
-/**
- * @param {import('@prisma/client').PrismaClient} prisma
- * @param {string} exerciseId
- * @param {any} definition
- * @param {Map<string, string>} muscleByCode
- * @param {Map<string, string>} equipmentByCode
- */
 async function syncExerciseRelations(
-  prisma,
-  exerciseId,
-  definition,
-  muscleByCode,
-  equipmentByCode,
+  prisma: PrismaLike,
+  exerciseId: string,
+  definition: SeedExercise,
+  muscleByCode: Map<string, string>,
+  equipmentByCode: Map<string, string>,
 ) {
   await prisma.exerciseSecondaryMuscle.deleteMany({ where: { exerciseId } });
   await prisma.exerciseEquipmentCompatibility.deleteMany({ where: { exerciseId } });
@@ -87,6 +35,7 @@ async function syncExerciseRelations(
   }
 
   if (definition.compatibleEquipmentCodes.length > 0) {
+    const defaultCode = definition.defaultEquipmentCode;
     await prisma.exerciseEquipmentCompatibility.createMany({
       data: definition.compatibleEquipmentCodes.map((code) => {
         const equipmentTypeId = equipmentByCode.get(code);
@@ -96,7 +45,7 @@ async function syncExerciseRelations(
         return {
           exerciseId,
           equipmentTypeId,
-          isPreferred: code === definition.defaultEquipmentCode,
+          isPreferred: code === defaultCode,
           notes: null,
         };
       }),
@@ -104,16 +53,13 @@ async function syncExerciseRelations(
   }
 }
 
-/**
- * @param {import('@prisma/client').PrismaClient} prisma
- */
-async function seedSystemExercises(prisma) {
+export async function seedSystemExercises(prisma: PrismaLike): Promise<void> {
   const muscles = await prisma.muscleGroup.findMany();
   const equipment = await prisma.equipmentType.findMany();
   const muscleByCode = new Map(muscles.map((item) => [item.code, item.id]));
   const equipmentByCode = new Map(equipment.map((item) => [item.code, item.id]));
 
-  for (const definition of SYSTEM_EXERCISES) {
+  for (const definition of SYSTEM_EXERCISE_SEEDS) {
     const primaryMuscleGroupId = muscleByCode.get(definition.primaryMuscleCode);
     const defaultEquipmentTypeId = equipmentByCode.get(definition.defaultEquipmentCode);
 
@@ -139,7 +85,7 @@ async function seedSystemExercises(prisma) {
           normalizedName: normalizeExerciseName(definition.name),
           slug: definition.slug,
           primaryMuscleGroupId,
-          measurementType: definition.measurementType,
+          measurementType: definition.measurementType as ExerciseMeasurementType,
           defaultEquipmentTypeId,
           defaultRestSeconds: definition.defaultRestSeconds,
           instructions: definition.instructions,
@@ -155,13 +101,14 @@ async function seedSystemExercises(prisma) {
       continue;
     }
 
+    // Préserve archivedAt ; resynchronise la structure catalogue système.
     await prisma.exercise.update({
       where: { id: existing.id },
       data: {
         name: definition.name,
         normalizedName: normalizeExerciseName(definition.name),
         primaryMuscleGroupId,
-        measurementType: definition.measurementType,
+        measurementType: definition.measurementType as ExerciseMeasurementType,
         defaultEquipmentTypeId,
         defaultRestSeconds: definition.defaultRestSeconds,
         instructions: definition.instructions,
@@ -178,31 +125,3 @@ async function seedSystemExercises(prisma) {
     );
   }
 }
-
-async function main() {
-  const prisma = new PrismaClient();
-  try {
-    await seedEquipmentTypes(prisma);
-    await seedMuscleGroups(prisma);
-    await seedSystemExercises(prisma);
-  } finally {
-    await prisma.$disconnect();
-  }
-}
-
-if (require.main === module) {
-  main().catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
-}
-
-module.exports = {
-  EQUIPMENT_TYPES,
-  MUSCLE_GROUPS,
-  SYSTEM_EXERCISES,
-  seedEquipmentTypes,
-  seedMuscleGroups,
-  seedSystemExercises,
-  normalizeExerciseName,
-};

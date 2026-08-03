@@ -22,6 +22,18 @@ type ErrorBody = {
   };
 };
 
+function isZodError(exception: unknown): exception is ZodError {
+  if (exception instanceof ZodError) {
+    return true;
+  }
+  return (
+    typeof exception === 'object' &&
+    exception !== null &&
+    (exception as { name?: string }).name === 'ZodError' &&
+    Array.isArray((exception as { issues?: unknown }).issues)
+  );
+}
+
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(GlobalExceptionFilter.name);
@@ -60,7 +72,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     exception: unknown,
     requestId: string,
   ): { status: number; body: ErrorBody } {
-    if (exception instanceof ZodError) {
+    if (isZodError(exception)) {
       const fieldErrors: Record<string, string[]> = {};
       for (const issue of exception.issues) {
         const key = issue.path.join('.') || 'form';

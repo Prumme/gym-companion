@@ -1,0 +1,134 @@
+[
+  {
+    "slug": "developpe-couche-barre",
+    "name": "Développé couché à la barre",
+    "primaryMuscleCode": "chest",
+    "secondaryMuscleCodes": ["triceps", "shoulders"],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": ["barbell", "machine"],
+    "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "developpe-couche-halteres",
+    "name": "Développé couché avec haltères",
+    "primaryMuscleCode": "chest",
+    "secondaryMuscleCodes": ["triceps", "shoulders"],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": ["dumbbell"],
+    "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "squat-barre",
+    "name": "Squat à la barre",
+    "primaryMuscleCode": "quadriceps",
+    "secondaryMuscleCodes": ["glutes", "hamstrings", "core"],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": ["barbell"],
+    "defaultRestSeconds": 180,
+    "instructions": null
+  },
+  {
+    "slug": "souleve-de-terre",
+    "name": "Soulevé de terre",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": ["hamstrings", "glutes", "core"],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": ["barbell", "dumbbell"],
+    "defaultRestSeconds": 180,
+    "instructions": null
+  },
+  {
+    "slug": "tractions",
+    "name": "Tractions",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": ["biceps", "forearms"],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": ["bodyweight", "machine", "resistance-band"],
+    "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "tirage-vertical-poulie",
+    "name": "Tirage vertical à la poulie",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": ["biceps"],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": ["cable", "machine"],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "rowing-barre",
+    "name": "Rowing à la barre",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": ["biceps", "shoulders"],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": ["barbell", "dumbbell", "cable"],
+    "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "developpe-militaire-barre",
+    "name": "Développé militaire à la barre",
+    "primaryMuscleCode": "shoulders",
+    "secondaryMuscleCodes": ["triceps"],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": ["barbell", "dumbbell"],
+    "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "curl-halteres",
+    "name": "Curl avec haltères",
+    "primaryMuscleCode": "biceps",
+    "secondaryMuscleCodes": ["forearms"],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": ["dumbbell", "barbell", "cable"],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "extension-triceps-poulie",
+    "name": "Extension triceps à la poulie",
+    "primaryMuscleCode": "triceps",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": ["cable", "dumbbell"],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "presse-cuisses",
+    "name": "Presse à cuisses",
+    "primaryMuscleCode": "quadriceps",
+    "secondaryMuscleCodes": ["glutes", "hamstrings"],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": ["machine"],
+    "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "planche",
+    "name": "Planche",
+    "primaryMuscleCode": "core",
+    "secondaryMuscleCodes": [],
+    "measurementType": "DURATION",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": ["bodyweight"],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  }
+]
