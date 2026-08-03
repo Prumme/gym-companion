@@ -284,6 +284,11 @@ pnpm dev
   - Query : `search`, `muscleGroupId`, `equipmentTypeId`, `measurementType`, `source`, `includeArchived`, `favoriteOnly`, `cursor`, `limit` (défaut 20, max 100)
   - Réponse : `{ data, pagination: { nextCursor, hasMore } }` (chaque item inclut `userPreference`)
   - Préférences : `GET|PUT|DELETE /api/v1/exercises/:exerciseId/preference`
+- Programmes : http://localhost:3000/api/v1/programs
+  - Query liste : `includeArchived`, `cursor`, `limit`
+  - CRUD : `POST|GET|PATCH|DELETE /api/v1/programs`, `POST .../restore`
+  - Modèles vides : `POST|PATCH|DELETE /api/v1/programs/:programId/workout-templates/...`
+  - Réordonnancement : `PUT /api/v1/programs/:programId/workout-templates/order`
 - Mailpit : http://localhost:8025 (`docker compose up -d mailpit`)
 
 Compose complet (profil `full`) :

@@ -496,3 +496,185 @@ export function isDefaultExercisePreferenceInput(
     input.restSecondsOverride === null
   );
 }
+
+const optionalNullableText = (max: number) =>
+  z
+    .string()
+    .max(max)
+    .nullable()
+    .optional()
+    .transform((value) => (value === undefined ? undefined : emptyToNull(value) ?? null));
+
+export const createProgramSchema = z.object({
+  name: z.string().trim().min(1, 'Le nom est requis.').max(120),
+  description: optionalNullableText(2000),
+  goal: trainingGoalSchema,
+});
+
+export type CreateProgramInput = z.infer<typeof createProgramSchema>;
+
+export const updateProgramSchema = createProgramSchema.partial();
+export type UpdateProgramInput = z.infer<typeof updateProgramSchema>;
+
+export const createWorkoutTemplateSchema = z.object({
+  name: z.string().trim().min(1, 'Le nom est requis.').max(120),
+  description: optionalNullableText(2000),
+  estimatedDurationMinutes: z
+    .number()
+    .int()
+    .min(1, 'La durée doit être au moins 1 minute.')
+    .max(600, 'La durée ne peut pas dépasser 600 minutes.')
+    .nullable()
+    .optional(),
+});
+
+export type CreateWorkoutTemplateInput = z.infer<typeof createWorkoutTemplateSchema>;
+
+export const updateWorkoutTemplateSchema = createWorkoutTemplateSchema.partial();
+export type UpdateWorkoutTemplateInput = z.infer<typeof updateWorkoutTemplateSchema>;
+
+export const reorderWorkoutTemplatesSchema = z.object({
+  workoutTemplateIds: z
+    .array(z.string().uuid())
+    .min(1, 'La liste d’ordre ne peut pas être vide.'),
+});
+
+export type ReorderWorkoutTemplatesInput = z.infer<
+  typeof reorderWorkoutTemplatesSchema
+>;
+
+export const listProgramsLimitSchema = z.preprocess(
+  emptyQueryToUndefined,
+  z
+    .union([z.number(), z.string()])
+    .optional()
+    .transform((value, ctx) => {
+      if (value === undefined) {
+        return 20;
+      }
+      if (typeof value === 'number') {
+        return value;
+      }
+      const trimmed = value.trim();
+      if (!/^\d+$/.test(trimmed)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'limit doit être un entier.',
+        });
+        return z.NEVER;
+      }
+      return Number(trimmed);
+    })
+    .pipe(z.number().int().min(1).max(100)),
+);
+
+export const listProgramsQuerySchema = z.object({
+  includeArchived: queryBooleanSchema,
+  cursor: z.preprocess(emptyQueryToUndefined, z.string().min(1).optional()),
+  limit: listProgramsLimitSchema,
+});
+
+export type ListProgramsQuery = z.infer<typeof listProgramsQuerySchema>;
+
+export type ProgramCursorPayload = {
+  version: 1;
+  updatedAt: string;
+  id: string;
+};
+
+export function encodeProgramCursor(payload: ProgramCursorPayload): string {
+  return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+}
+
+export function decodeProgramCursor(cursor: string): ProgramCursorPayload {
+  let parsed: unknown;
+  try {
+    const json = Buffer.from(cursor, 'base64url').toString('utf8');
+    parsed = JSON.parse(json) as unknown;
+  } catch {
+    throw new Error('PROGRAM_INVALID_CURSOR');
+  }
+
+  if (
+    typeof parsed !== 'object' ||
+    parsed === null ||
+    (parsed as { version?: unknown }).version !== 1 ||
+    typeof (parsed as { updatedAt?: unknown }).updatedAt !== 'string' ||
+    typeof (parsed as { id?: unknown }).id !== 'string' ||
+    (parsed as { updatedAt: string }).updatedAt.length === 0 ||
+    (parsed as { id: string }).id.length === 0
+  ) {
+    throw new Error('PROGRAM_INVALID_CURSOR');
+  }
+
+  return {
+    version: 1,
+    updatedAt: (parsed as { updatedAt: string }).updatedAt,
+    id: (parsed as { id: string }).id,
+  };
+}
+
+/** Cursor sur tri `updatedAt desc, id desc`. */
+export function buildProgramCursorFilter(cursor: ProgramCursorPayload): {
+  OR: Array<
+    | { updatedAt: { lt: Date } }
+    | { AND: [{ updatedAt: Date }, { id: { lt: string } }] }
+  >;
+} {
+  const updatedAt = new Date(cursor.updatedAt);
+  return {
+    OR: [
+      { updatedAt: { lt: updatedAt } },
+      {
+        AND: [{ updatedAt }, { id: { lt: cursor.id } }],
+      },
+    ],
+  };
+}
+
+/**
+ * Positions des modèles de séance : convention 0-based (0, 1, 2, …).
+ */
+export function computeNextWorkoutTemplatePosition(
+  existingPositions: number[],
+): number {
+  if (existingPositions.length === 0) {
+    return 0;
+  }
+  return Math.max(...existingPositions) + 1;
+}
+
+export function compactWorkoutTemplatePositions(
+  orderedIds: string[],
+): Array<{ id: string; position: number }> {
+  return orderedIds.map((id, position) => ({ id, position }));
+}
+
+export type ReorderValidationResult =
+  | { ok: true }
+  | {
+      ok: false;
+      code:
+        | 'WORKOUT_TEMPLATE_DUPLICATE_IN_ORDER'
+        | 'WORKOUT_TEMPLATE_ORDER_INCOMPLETE'
+        | 'WORKOUT_TEMPLATE_INVALID_ORDER';
+    };
+
+export function validateWorkoutTemplateReorder(
+  requestedIds: string[],
+  existingIds: string[],
+): ReorderValidationResult {
+  if (new Set(requestedIds).size !== requestedIds.length) {
+    return { ok: false, code: 'WORKOUT_TEMPLATE_DUPLICATE_IN_ORDER' };
+  }
+  if (requestedIds.length !== existingIds.length) {
+    return { ok: false, code: 'WORKOUT_TEMPLATE_ORDER_INCOMPLETE' };
+  }
+  const existing = new Set(existingIds);
+  for (const id of requestedIds) {
+    if (!existing.has(id)) {
+      return { ok: false, code: 'WORKOUT_TEMPLATE_INVALID_ORDER' };
+    }
+  }
+  return { ok: true };
+}

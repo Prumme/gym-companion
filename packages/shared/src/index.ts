@@ -139,6 +139,44 @@ export type ExerciseDetail = {
   userPreference: ExerciseUserPreference;
 };
 
+export type ProgramStatus = 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+
+export type ProgramPermissions = {
+  canEdit: boolean;
+  canArchive: boolean;
+  canRestore: boolean;
+};
+
+export type WorkoutTemplateSummary = {
+  id: string;
+  name: string;
+  description: string | null;
+  position: number;
+  estimatedDurationMinutes: number | null;
+  exerciseCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ProgramListItem = {
+  id: string;
+  name: string;
+  description: string | null;
+  goal: TrainingGoal;
+  status: ProgramStatus;
+  workoutTemplateCount: number;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  permissions: ProgramPermissions;
+};
+
+export type ProgramListResponse = ApiCursorListResponse<ProgramListItem>;
+
+export type ProgramDetail = ProgramListItem & {
+  workoutTemplates: WorkoutTemplateSummary[];
+};
+
 export function createSuccessResponse<T>(data: T): ApiSuccessResponse<T> {
   return { data };
 }

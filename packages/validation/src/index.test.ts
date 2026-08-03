@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildExerciseCursorFilter,
+  compactWorkoutTemplatePositions,
+  computeNextWorkoutTemplatePosition,
   createExerciseSchema,
+  createProgramSchema,
+  createWorkoutTemplateSchema,
   decodeExerciseCursor,
   encodeExerciseCursor,
   isDefaultExercisePreferenceInput,
@@ -10,8 +14,10 @@ import {
   normalizeExerciseName,
   parseApiEnv,
   profileFormSchema,
+  reorderWorkoutTemplatesSchema,
   toUpdateProfilePayload,
   updateExercisePreferenceSchema,
+  validateWorkoutTemplateReorder,
 } from './index';
 
 const validEnv = {
@@ -363,5 +369,104 @@ describe('createExerciseSchema', () => {
       defaultEquipmentTypeId: '44444444-4444-4444-4444-444444444444',
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe('createProgramSchema', () => {
+  it('parses a valid program and normalizes empty description', () => {
+    const parsed = createProgramSchema.parse({
+      name: '  Force  ',
+      description: '   ',
+      goal: 'STRENGTH',
+    });
+    expect(parsed.name).toBe('Force');
+    expect(parsed.description).toBeNull();
+    expect(parsed.goal).toBe('STRENGTH');
+  });
+
+  it('rejects missing name', () => {
+    const result = createProgramSchema.safeParse({
+      name: ' ',
+      goal: 'HYPERTROPHY',
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('createWorkoutTemplateSchema', () => {
+  it('parses a valid empty template', () => {
+    expect(
+      createWorkoutTemplateSchema.parse({
+        name: 'Haut du corps',
+        description: null,
+        estimatedDurationMinutes: 60,
+      }),
+    ).toMatchObject({
+      name: 'Haut du corps',
+      estimatedDurationMinutes: 60,
+    });
+  });
+
+  it('rejects invalid duration', () => {
+    expect(
+      createWorkoutTemplateSchema.safeParse({
+        name: 'A',
+        estimatedDurationMinutes: 0,
+      }).success,
+    ).toBe(false);
+    expect(
+      createWorkoutTemplateSchema.safeParse({
+        name: 'A',
+        estimatedDurationMinutes: 601,
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('workout template order helpers', () => {
+  const a = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  const b = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  const c = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+
+  it('computes next 0-based position', () => {
+    expect(computeNextWorkoutTemplatePosition([])).toBe(0);
+    expect(computeNextWorkoutTemplatePosition([0, 1])).toBe(2);
+  });
+
+  it('compacts positions after deletion', () => {
+    expect(compactWorkoutTemplatePositions([c, a])).toEqual([
+      { id: c, position: 0 },
+      { id: a, position: 1 },
+    ]);
+  });
+
+  it('accepts a valid reorder payload', () => {
+    expect(reorderWorkoutTemplatesSchema.parse({ workoutTemplateIds: [a, b] })).toEqual({
+      workoutTemplateIds: [a, b],
+    });
+    expect(validateWorkoutTemplateReorder([b, a, c], [a, b, c])).toEqual({
+      ok: true,
+    });
+  });
+
+  it('rejects duplicate ids in order', () => {
+    expect(validateWorkoutTemplateReorder([a, a], [a, b])).toEqual({
+      ok: false,
+      code: 'WORKOUT_TEMPLATE_DUPLICATE_IN_ORDER',
+    });
+  });
+
+  it('rejects incomplete order', () => {
+    expect(validateWorkoutTemplateReorder([a], [a, b])).toEqual({
+      ok: false,
+      code: 'WORKOUT_TEMPLATE_ORDER_INCOMPLETE',
+    });
+  });
+
+  it('rejects foreign ids in order', () => {
+    expect(validateWorkoutTemplateReorder([a, c], [a, b])).toEqual({
+      ok: false,
+      code: 'WORKOUT_TEMPLATE_INVALID_ORDER',
+    });
   });
 });

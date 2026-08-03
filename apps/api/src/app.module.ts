@@ -7,6 +7,7 @@ import { PrismaModule } from './database/prisma/prisma.module';
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ExercisesModule } from './modules/exercises/exercises.module';
+import { ProgramsModule } from './modules/programs/programs.module';
 import { ReferenceModule } from './modules/reference/reference.module';
 import { UsersModule } from './modules/users/users.module';
 
@@ -20,6 +21,7 @@ import { UsersModule } from './modules/users/users.module';
     UsersModule,
     ReferenceModule,
     ExercisesModule,
+    ProgramsModule,
   ],
   providers: [
     {
