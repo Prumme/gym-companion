@@ -4,8 +4,10 @@ import type {
   ExerciseListResponse,
   ExerciseMeasurementType,
   ExerciseSource,
+  ExerciseUserPreference,
   MuscleGroupReference,
 } from '@gym-companion/shared';
+import type { UpdateExercisePreferenceInput } from '@gym-companion/validation';
 
 import { apiFetch } from '@/lib/api/client';
 
@@ -62,9 +64,46 @@ export async function listExercises(
 
 export async function getExercise(exerciseId: string): Promise<ExerciseDetail> {
   const response = await apiFetch<{ data: ExerciseDetail }>(
-    `/api/v1/exercises/${exerciseId}`,
+    `/api/v1/exercises/${encodeURIComponent(exerciseId)}`,
   );
   return response.data;
+}
+
+/** Alias explicite pour le détail (même contrat que `getExercise`). */
+export function getExerciseDetail(exerciseId: string): Promise<ExerciseDetail> {
+  return getExercise(exerciseId);
+}
+
+export async function getExercisePreference(
+  exerciseId: string,
+): Promise<ExerciseUserPreference> {
+  const response = await apiFetch<{ data: ExerciseUserPreference }>(
+    `/api/v1/exercises/${encodeURIComponent(exerciseId)}/preference`,
+  );
+  return response.data;
+}
+
+export async function updateExercisePreference(
+  exerciseId: string,
+  input: UpdateExercisePreferenceInput,
+): Promise<ExerciseUserPreference> {
+  const response = await apiFetch<{ data: ExerciseUserPreference }>(
+    `/api/v1/exercises/${encodeURIComponent(exerciseId)}/preference`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    },
+  );
+  return response.data;
+}
+
+export async function resetExercisePreference(
+  exerciseId: string,
+): Promise<void> {
+  await apiFetch<void>(
+    `/api/v1/exercises/${encodeURIComponent(exerciseId)}/preference`,
+    { method: 'DELETE' },
+  );
 }
 
 export async function listMuscleGroups(): Promise<MuscleGroupReference[]> {

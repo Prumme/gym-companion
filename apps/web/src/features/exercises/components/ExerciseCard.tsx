@@ -1,32 +1,67 @@
 import type { ExerciseListItem } from '@gym-companion/shared';
-import { Star } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { useState } from 'react';
 
+import { getApiErrorMessage } from '@/lib/api/client';
+
+import { useUpdateExercisePreferenceMutation } from '../hooks/use-exercise-preference-mutations';
 import { getMeasurementTypeLabel } from '../lib/exercise-labels';
+import { preferenceToUpdateInput } from '../lib/exercise-preference';
+import { ExerciseFavoriteButton } from './ExerciseFavoriteButton';
 import { ExerciseSourceBadge } from './ExerciseSourceBadge';
 
 type ExerciseCardProps = {
   exercise: ExerciseListItem;
+  onFeedback?: (message: string | null) => void;
 };
 
-export function ExerciseCard({ exercise }: ExerciseCardProps) {
+export function ExerciseCard({ exercise, onFeedback }: ExerciseCardProps) {
   const location = useLocation();
+  const mutation = useUpdateExercisePreferenceMutation();
+  const [localError, setLocalError] = useState<string | null>(null);
+
   const equipmentName =
     exercise.userPreference.preferredEquipmentType?.name ??
     exercise.defaultEquipmentType?.name ??
     'Sans équipement';
-  const isFavorite = exercise.userPreference.isFavorite;
   const isArchived = exercise.archivedAt !== null;
+  const isPending =
+    mutation.isPending && mutation.variables?.exerciseId === exercise.id;
+
+  async function handleToggleFavorite() {
+    setLocalError(null);
+    onFeedback?.(null);
+    const nextFavorite = !exercise.userPreference.isFavorite;
+    try {
+      await mutation.mutateAsync({
+        exerciseId: exercise.id,
+        input: preferenceToUpdateInput(exercise.userPreference, {
+          isFavorite: nextFavorite,
+        }),
+        optimisticPreference: {
+          ...exercise.userPreference,
+          isFavorite: nextFavorite,
+        },
+      });
+    } catch (error) {
+      const message = getApiErrorMessage(
+        error,
+        'Impossible de modifier ce favori. Réessaie.',
+      );
+      setLocalError(message);
+      onFeedback?.(message);
+    }
+  }
 
   return (
-    <Link
-      to={`/exercises/${exercise.id}`}
-      state={{ from: `${location.pathname}${location.search}` }}
-      className="block rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm transition hover:border-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
-      aria-label={`Voir le détail de ${exercise.name}`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
+    <article className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm">
+      <div className="flex items-start gap-2">
+        <Link
+          to={`/exercises/${exercise.id}`}
+          state={{ from: `${location.pathname}${location.search}` }}
+          className="min-w-0 flex-1 rounded-[var(--radius)] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
+          aria-label={`Voir le détail de ${exercise.name}`}
+        >
           <h2 className="text-base font-semibold leading-snug">{exercise.name}</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
             {exercise.primaryMuscleGroup.name} · {equipmentName}
@@ -34,13 +69,15 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
           <p className="mt-0.5 text-sm text-[var(--muted)]">
             {getMeasurementTypeLabel(exercise.measurementType)}
           </p>
-        </div>
-        {isFavorite ? (
-          <span className="inline-flex items-center gap-1 text-amber-600" title="Favori">
-            <Star className="size-4 fill-current" aria-hidden="true" />
-            <span className="sr-only">Favori</span>
-          </span>
-        ) : null}
+        </Link>
+
+        <ExerciseFavoriteButton
+          preference={exercise.userPreference}
+          pending={isPending}
+          onToggle={() => {
+            void handleToggleFavorite();
+          }}
+        />
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -56,6 +93,12 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
           </span>
         ) : null}
       </div>
-    </Link>
+
+      {localError ? (
+        <p className="mt-2 text-sm text-[var(--danger)]" role="alert">
+          {localError}
+        </p>
+      ) : null}
+    </article>
   );
 }

@@ -4,14 +4,15 @@ import { ExerciseCard } from './ExerciseCard';
 
 type ExerciseListProps = {
   exercises: ExerciseListItem[];
+  onFeedback?: (message: string | null) => void;
 };
 
-export function ExerciseList({ exercises }: ExerciseListProps) {
+export function ExerciseList({ exercises, onFeedback }: ExerciseListProps) {
   return (
     <ul className="flex flex-col gap-3">
       {exercises.map((exercise) => (
         <li key={exercise.id}>
-          <ExerciseCard exercise={exercise} />
+          <ExerciseCard exercise={exercise} onFeedback={onFeedback} />
         </li>
       ))}
     </ul>

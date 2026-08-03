@@ -48,6 +48,7 @@ export function ExercisesPage() {
   const debouncedSearch = useDebouncedValue(searchInput, 300);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState<ExerciseListFilters>(filters);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     setSearchInput(filters.search ?? '');
@@ -238,6 +239,12 @@ export function ExercisesPage() {
         ) : null}
       </div>
 
+      {feedback ? (
+        <div className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-3" role="alert">
+          <p className="text-sm text-[var(--danger)]">{feedback}</p>
+        </div>
+      ) : null}
+
       {listQuery.isError && !listQuery.data ? (
         <div className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4" role="alert">
           <p className="text-sm text-[var(--danger)]">
@@ -281,7 +288,7 @@ export function ExercisesPage() {
 
       {exercises.length > 0 ? (
         <>
-          <ExerciseList exercises={exercises} />
+          <ExerciseList exercises={exercises} onFeedback={setFeedback} />
 
           {listQuery.isFetchNextPageError ? (
             <div

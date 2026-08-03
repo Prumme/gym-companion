@@ -18,6 +18,9 @@ vi.mock('../api/exercise-api', () => ({
   listMuscleGroups: (...args: unknown[]) => listMuscleGroups(...args),
   listEquipmentTypes: (...args: unknown[]) => listEquipmentTypes(...args),
   getExercise: (...args: unknown[]) => getExercise(...args),
+  updateExercisePreference: vi.fn(),
+  resetExercisePreference: vi.fn(),
+  getExercisePreference: vi.fn(),
   buildExerciseListSearchParams: vi.fn(),
 }));
 

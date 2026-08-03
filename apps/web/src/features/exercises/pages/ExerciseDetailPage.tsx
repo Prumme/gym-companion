@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Star } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useLocation, useParams } from 'react-router-dom';
 
 import { ButtonLink } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { LoadingState } from '@/components/common/LoadingState';
 import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
 
 import { exerciseDetailQueryOptions } from '../api/exercise-query-options';
+import { ExercisePreferenceSection } from '../components/ExercisePreferenceSection';
 import { ExerciseSourceBadge } from '../components/ExerciseSourceBadge';
 import { getMeasurementTypeLabel } from '../lib/exercise-labels';
 
@@ -32,7 +33,7 @@ export function ExerciseDetailPage() {
     const status = (detailQuery.error as ApiRequestError | undefined)?.status;
     const message =
       status === 404
-        ? 'Exercice introuvable ou inaccessible.'
+        ? 'Cet exercice est introuvable ou inaccessible.'
         : getApiErrorMessage(
             detailQuery.error,
             'Impossible de charger cet exercice.',
@@ -59,7 +60,6 @@ export function ExerciseDetailPage() {
   }
 
   const exercise = detailQuery.data;
-  const preference = exercise.userPreference;
 
   return (
     <main className="flex flex-1 flex-col gap-6">
@@ -68,15 +68,7 @@ export function ExerciseDetailPage() {
           <ArrowLeft className="size-4" aria-hidden="true" />
           Retour au catalogue
         </ButtonLink>
-        <div className="flex items-start justify-between gap-3">
-          <h1 className="text-2xl font-bold tracking-tight">{exercise.name}</h1>
-          {preference.isFavorite ? (
-            <span className="inline-flex items-center gap-1 text-amber-600" title="Favori">
-              <Star className="size-5 fill-current" aria-hidden="true" />
-              <span className="sr-only">Favori</span>
-            </span>
-          ) : null}
-        </div>
+        <h1 className="text-2xl font-bold tracking-tight">{exercise.name}</h1>
         <div className="mt-2 flex flex-wrap gap-2">
           <ExerciseSourceBadge source={exercise.source} />
           {exercise.archivedAt ? (
@@ -146,34 +138,7 @@ export function ExerciseDetailPage() {
         </p>
       </section>
 
-      <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-4">
-        <h2 className="mb-3 text-sm font-semibold tracking-wide text-[var(--muted)] uppercase">
-          Préférences personnelles
-        </h2>
-        <dl className="grid gap-3 text-sm">
-          <div>
-            <dt className="text-[var(--muted)]">Favori</dt>
-            <dd className="font-medium">{preference.isFavorite ? 'Oui' : 'Non'}</dd>
-          </div>
-          <div>
-            <dt className="text-[var(--muted)]">Équipement préféré</dt>
-            <dd className="font-medium">
-              {preference.preferredEquipmentType?.name ?? 'Non défini'}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-[var(--muted)]">Repos personnel</dt>
-            <dd className="font-medium">
-              {preference.restSecondsOverride != null
-                ? `${preference.restSecondsOverride} s`
-                : 'Non défini'}
-            </dd>
-          </div>
-        </dl>
-        <p className="mt-3 text-xs text-[var(--muted)]">
-          Lecture seule — l’édition des préférences arrivera dans un prochain jalon.
-        </p>
-      </section>
+      <ExercisePreferenceSection exercise={exercise} />
     </main>
   );
 }
