@@ -65,6 +65,7 @@ model User {
   passwordResetTokens     PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
   exercises               Exercise[]
+  exercisePreferences     UserExercisePreference[]
 
   @@index([status])
   @@map("users")
@@ -170,6 +171,7 @@ model EquipmentType {
 
   defaultForExercises Exercise[]                        @relation("ExerciseDefaultEquipment")
   compatibleExercises ExerciseEquipmentCompatibility[]
+  preferredInPreferences UserExercisePreference[]
 
   @@index([isActive])
   @@map("equipment_types")
@@ -211,6 +213,7 @@ model Exercise {
   defaultEquipmentType   EquipmentType?                    @relation("ExerciseDefaultEquipment", fields: [defaultEquipmentTypeId], references: [id])
   secondaryMuscles       ExerciseSecondaryMuscle[]
   compatibleEquipment    ExerciseEquipmentCompatibility[]
+  userPreferences        UserExercisePreference[]
 
   @@index([ownerUserId])
   @@index([source])
@@ -244,4 +247,24 @@ model ExerciseEquipmentCompatibility {
   @@unique([exerciseId, equipmentTypeId])
   @@index([equipmentTypeId])
   @@map("exercise_equipment_compatibilities")
+}
+
+model UserExercisePreference {
+  id                        String   @id @default(uuid()) @db.Uuid
+  userId                    String   @db.Uuid
+  exerciseId                String   @db.Uuid
+  isFavorite                Boolean  @default(false)
+  isExcludedFromSuggestions Boolean  @default(false)
+  preferredEquipmentTypeId  String?  @db.Uuid
+  restSecondsOverride       Int?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  user                   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise               Exercise       @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  preferredEquipmentType EquipmentType? @relation(fields: [preferredEquipmentTypeId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, exerciseId])
+  @@index([userId, isFavorite])
+  @@map("user_exercise_preferences")
 }

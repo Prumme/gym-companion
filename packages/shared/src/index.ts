@@ -98,6 +98,14 @@ export type ExerciseCompatibleEquipment = {
   notes: string | null;
 };
 
+/** Préférences effectives de l’utilisateur authentifié pour un exercice. */
+export type ExerciseUserPreference = {
+  isFavorite: boolean;
+  isExcludedFromSuggestions: boolean;
+  preferredEquipmentType: EquipmentTypeReference | null;
+  restSecondsOverride: number | null;
+};
+
 export type ExerciseListItem = {
   id: string;
   source: ExerciseSource;
@@ -108,6 +116,7 @@ export type ExerciseListItem = {
   defaultRestSeconds: number | null;
   archivedAt: string | null;
   permissions: ExercisePermissions;
+  userPreference: ExerciseUserPreference;
 };
 
 export type ExerciseListResponse = ApiCursorListResponse<ExerciseListItem>;
@@ -127,6 +136,7 @@ export type ExerciseDetail = {
   createdAt: string;
   updatedAt: string;
   permissions: ExercisePermissions;
+  userPreference: ExerciseUserPreference;
 };
 
 export function createSuccessResponse<T>(data: T): ApiSuccessResponse<T> {

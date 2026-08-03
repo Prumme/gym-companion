@@ -462,8 +462,37 @@ export const listExercisesQuerySchema = z.object({
   ),
   source: z.preprocess(emptyQueryToUndefined, exerciseSourceSchema.optional()),
   includeArchived: queryBooleanSchema,
+  favoriteOnly: queryBooleanSchema,
   cursor: z.preprocess(emptyQueryToUndefined, z.string().min(1).optional()),
   limit: listExercisesLimitSchema,
 });
 
 export type ListExercisesQuery = z.infer<typeof listExercisesQuerySchema>;
+
+export const updateExercisePreferenceSchema = z
+  .object({
+    isFavorite: z.boolean(),
+    isExcludedFromSuggestions: z.boolean(),
+    preferredEquipmentTypeId: z.preprocess(
+      (value) => (value === '' ? null : value),
+      z.string().uuid().nullable(),
+    ),
+    restSecondsOverride: z.number().int().min(0).max(1800).nullable(),
+  })
+  .strict();
+
+export type UpdateExercisePreferenceInput = z.infer<
+  typeof updateExercisePreferenceSchema
+>;
+
+/** True si le payload correspond aux préférences effectives par défaut. */
+export function isDefaultExercisePreferenceInput(
+  input: UpdateExercisePreferenceInput,
+): boolean {
+  return (
+    input.isFavorite === false &&
+    input.isExcludedFromSuggestions === false &&
+    input.preferredEquipmentTypeId === null &&
+    input.restSecondsOverride === null
+  );
+}

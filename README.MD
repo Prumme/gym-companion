@@ -277,8 +277,9 @@ pnpm dev
 - OpenAPI : http://localhost:3000/docs
 - Références : http://localhost:3000/api/v1/reference/muscle-groups et `/equipment-types`
 - Exercices : http://localhost:3000/api/v1/exercises
-  - Query : `search`, `muscleGroupId`, `equipmentTypeId`, `measurementType`, `source`, `includeArchived`, `cursor`, `limit` (défaut 20, max 100)
-  - Réponse : `{ data, pagination: { nextCursor, hasMore } }`
+  - Query : `search`, `muscleGroupId`, `equipmentTypeId`, `measurementType`, `source`, `includeArchived`, `favoriteOnly`, `cursor`, `limit` (défaut 20, max 100)
+  - Réponse : `{ data, pagination: { nextCursor, hasMore } }` (chaque item inclut `userPreference`)
+  - Préférences : `GET|PUT|DELETE /api/v1/exercises/:exerciseId/preference`
 - Mailpit : http://localhost:8025 (`docker compose up -d mailpit`)
 
 Compose complet (profil `full`) :

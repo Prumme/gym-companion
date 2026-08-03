@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeExercisePermissions } from './exercises.mapper';
+import {
+  computeExercisePermissions,
+  DEFAULT_EXERCISE_USER_PREFERENCE,
+  toExerciseUserPreference,
+} from './exercises.mapper';
 
 describe('computeExercisePermissions', () => {
   const userId = 'user-1';
@@ -36,6 +40,37 @@ describe('computeExercisePermissions', () => {
       canEdit: false,
       canArchive: false,
       canRestore: false,
+    });
+  });
+});
+
+describe('toExerciseUserPreference', () => {
+  it('maps default values when preference is missing', () => {
+    expect(toExerciseUserPreference(null)).toEqual(DEFAULT_EXERCISE_USER_PREFERENCE);
+    expect(toExerciseUserPreference(undefined)).toEqual(DEFAULT_EXERCISE_USER_PREFERENCE);
+  });
+
+  it('maps an existing preference row', () => {
+    expect(
+      toExerciseUserPreference({
+        isFavorite: true,
+        isExcludedFromSuggestions: true,
+        restSecondsOverride: 90,
+        preferredEquipmentType: {
+          id: 'eq-1',
+          code: 'dumbbell',
+          name: 'Haltères',
+        },
+      }),
+    ).toEqual({
+      isFavorite: true,
+      isExcludedFromSuggestions: true,
+      restSecondsOverride: 90,
+      preferredEquipmentType: {
+        id: 'eq-1',
+        code: 'dumbbell',
+        name: 'Haltères',
+      },
     });
   });
 });

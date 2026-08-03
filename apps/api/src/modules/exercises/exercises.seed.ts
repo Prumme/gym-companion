@@ -31,6 +31,7 @@ async function syncExerciseRelations(
         }
         return { exerciseId, muscleGroupId };
       }),
+      skipDuplicates: true,
     });
   }
 
@@ -49,6 +50,7 @@ async function syncExerciseRelations(
           notes: null,
         };
       }),
+      skipDuplicates: true,
     });
   }
 }

@@ -4,17 +4,23 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { ExerciseListResponse } from '@gym-companion/shared';
+import type {
+  ExerciseListResponse,
+  ExerciseUserPreference,
+} from '@gym-companion/shared';
 import {
   buildExerciseCursorFilter,
   createExerciseSchema,
   decodeExerciseCursor,
   encodeExerciseCursor,
+  isDefaultExercisePreferenceInput,
   listExercisesQuerySchema,
   normalizeExerciseName,
+  updateExercisePreferenceSchema,
   updateExerciseSchema,
   type CreateExerciseInput,
   type UpdateExerciseInput,
+  type UpdateExercisePreferenceInput,
 } from '@gym-companion/validation';
 import type { Prisma } from '@prisma/client';
 
@@ -22,18 +28,30 @@ import { PrismaService } from '../../database/prisma/prisma.service';
 import {
   toExerciseDetail,
   toExerciseListItem,
+  toExerciseUserPreference,
   type ExerciseListRow,
   type ExerciseRow,
+  type PreferenceRow,
 } from './exercises.mapper';
 
-const exerciseDetailInclude = {
+function preferenceIncludeForUser(userId: string) {
+  return {
+    userPreferences: {
+      where: { userId },
+      include: { preferredEquipmentType: true },
+      take: 1,
+    },
+  } satisfies Prisma.ExerciseInclude;
+}
+
+const exerciseDetailIncludeBase = {
   primaryMuscleGroup: true,
   defaultEquipmentType: true,
   secondaryMuscles: { include: { muscleGroup: true } },
   compatibleEquipment: { include: { equipmentType: true } },
 } satisfies Prisma.ExerciseInclude;
 
-const exerciseListInclude = {
+const exerciseListIncludeBase = {
   primaryMuscleGroup: true,
   defaultEquipmentType: true,
 } satisfies Prisma.ExerciseInclude;
@@ -144,13 +162,24 @@ export class ExercisesService {
       );
     }
 
+    if (query.favoriteOnly) {
+      filters.push({
+        userPreferences: {
+          some: { userId, isFavorite: true },
+        },
+      });
+    }
+
     if (cursorFilter) {
       filters.push(cursorFilter);
     }
 
     const rows = await this.prisma.exercise.findMany({
       where: { AND: filters },
-      include: exerciseListInclude,
+      include: {
+        ...exerciseListIncludeBase,
+        ...preferenceIncludeForUser(userId),
+      },
       orderBy: [{ normalizedName: 'asc' }, { id: 'asc' }],
       take: query.limit + 1,
     });
@@ -183,6 +212,68 @@ export class ExercisesService {
     return toExerciseDetail(row as ExerciseRow, userId);
   }
 
+  async getPreference(
+    userId: string,
+    exerciseId: string,
+  ): Promise<ExerciseUserPreference> {
+    const row = await this.findAccessibleOrThrow(userId, exerciseId);
+    return toExerciseUserPreference(
+      (row as ExerciseRow).userPreferences?.[0] as PreferenceRow | undefined,
+    );
+  }
+
+  /**
+   * Upsert idempotent des préférences.
+   * Stratégie « ligne vide » : si toutes les valeurs sont les défauts,
+   * la ligne est supprimée (contrat API inchangé).
+   */
+  async upsertPreference(
+    userId: string,
+    exerciseId: string,
+    input: unknown,
+  ): Promise<ExerciseUserPreference> {
+    const data = updateExercisePreferenceSchema.parse(input);
+    await this.findAccessibleOrThrow(userId, exerciseId);
+    await this.assertPreferredEquipment(exerciseId, data.preferredEquipmentTypeId);
+
+    if (isDefaultExercisePreferenceInput(data)) {
+      await this.prisma.userExercisePreference.deleteMany({
+        where: { userId, exerciseId },
+      });
+      return toExerciseUserPreference(null);
+    }
+
+    const saved = await this.prisma.userExercisePreference.upsert({
+      where: {
+        userId_exerciseId: { userId, exerciseId },
+      },
+      create: {
+        userId,
+        exerciseId,
+        isFavorite: data.isFavorite,
+        isExcludedFromSuggestions: data.isExcludedFromSuggestions,
+        preferredEquipmentTypeId: data.preferredEquipmentTypeId,
+        restSecondsOverride: data.restSecondsOverride,
+      },
+      update: {
+        isFavorite: data.isFavorite,
+        isExcludedFromSuggestions: data.isExcludedFromSuggestions,
+        preferredEquipmentTypeId: data.preferredEquipmentTypeId,
+        restSecondsOverride: data.restSecondsOverride,
+      },
+      include: { preferredEquipmentType: true },
+    });
+
+    return toExerciseUserPreference(saved as PreferenceRow);
+  }
+
+  async deletePreference(userId: string, exerciseId: string): Promise<void> {
+    await this.findAccessibleOrThrow(userId, exerciseId);
+    await this.prisma.userExercisePreference.deleteMany({
+      where: { userId, exerciseId },
+    });
+  }
+
   async create(userId: string, input: unknown) {
     const data = createExerciseSchema.parse(input);
     await this.assertRelations(data);
@@ -213,7 +304,10 @@ export class ExercisesService {
             })),
           },
         },
-        include: exerciseDetailInclude,
+        include: {
+          ...exerciseDetailIncludeBase,
+          ...preferenceIncludeForUser(userId),
+        },
       });
       return exercise;
     });
@@ -251,7 +345,6 @@ export class ExercisesService {
         data.instructions !== undefined ? data.instructions : existing.instructions,
     };
 
-    // Re-validate merged payload (defaults + partial patch).
     const validated = createExerciseSchema.parse(merged);
     await this.assertRelations(validated);
 
@@ -282,7 +375,10 @@ export class ExercisesService {
             })),
           },
         },
-        include: exerciseDetailInclude,
+        include: {
+          ...exerciseDetailIncludeBase,
+          ...preferenceIncludeForUser(userId),
+        },
       });
     });
 
@@ -294,7 +390,10 @@ export class ExercisesService {
     const archived = await this.prisma.exercise.update({
       where: { id: exerciseId },
       data: { archivedAt: new Date() },
-      include: exerciseDetailInclude,
+      include: {
+        ...exerciseDetailIncludeBase,
+        ...preferenceIncludeForUser(userId),
+      },
     });
     return toExerciseDetail(archived as ExerciseRow, userId);
   }
@@ -311,7 +410,10 @@ export class ExercisesService {
     const restored = await this.prisma.exercise.update({
       where: { id: exerciseId },
       data: { archivedAt: null },
-      include: exerciseDetailInclude,
+      include: {
+        ...exerciseDetailIncludeBase,
+        ...preferenceIncludeForUser(userId),
+      },
     });
     return toExerciseDetail(restored as ExerciseRow, userId);
   }
@@ -322,7 +424,10 @@ export class ExercisesService {
         id: exerciseId,
         OR: [{ source: 'SYSTEM' }, { source: 'USER', ownerUserId: userId }],
       },
-      include: exerciseDetailInclude,
+      include: {
+        ...exerciseDetailIncludeBase,
+        ...preferenceIncludeForUser(userId),
+      },
     });
     if (!row) {
       throw new NotFoundException({
@@ -336,7 +441,10 @@ export class ExercisesService {
   private async findOwnedOrThrow(userId: string, exerciseId: string) {
     const row = await this.prisma.exercise.findFirst({
       where: { id: exerciseId },
-      include: exerciseDetailInclude,
+      include: {
+        ...exerciseDetailIncludeBase,
+        ...preferenceIncludeForUser(userId),
+      },
     });
 
     if (!row) {
@@ -372,6 +480,35 @@ export class ExercisesService {
       });
     }
     return row;
+  }
+
+  private async assertPreferredEquipment(
+    exerciseId: string,
+    preferredEquipmentTypeId: string | null,
+  ) {
+    if (preferredEquipmentTypeId === null) {
+      return;
+    }
+
+    const equipment = await this.prisma.equipmentType.findFirst({
+      where: { id: preferredEquipmentTypeId, isActive: true },
+    });
+    if (!equipment) {
+      throw new BadRequestException({
+        code: 'EXERCISE_PREFERRED_EQUIPMENT_NOT_COMPATIBLE',
+        message: 'Type d’équipement préféré invalide ou inactif.',
+      });
+    }
+
+    const compatible = await this.prisma.exerciseEquipmentCompatibility.findFirst({
+      where: { exerciseId, equipmentTypeId: preferredEquipmentTypeId },
+    });
+    if (!compatible) {
+      throw new BadRequestException({
+        code: 'EXERCISE_PREFERRED_EQUIPMENT_NOT_COMPATIBLE',
+        message: 'Le type d’équipement préféré n’est pas compatible avec cet exercice.',
+      });
+    }
   }
 
   private async assertRelations(data: CreateExerciseInput) {
@@ -431,4 +568,4 @@ export class ExercisesService {
   }
 }
 
-export type { UpdateExerciseInput };
+export type { UpdateExerciseInput, UpdateExercisePreferenceInput };

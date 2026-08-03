@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -38,6 +39,7 @@ export class ExercisesController {
   @ApiQuery({ name: 'measurementType', required: false, type: String })
   @ApiQuery({ name: 'source', required: false, enum: ['SYSTEM', 'USER'] })
   @ApiQuery({ name: 'includeArchived', required: false, type: Boolean })
+  @ApiQuery({ name: 'favoriteOnly', required: false, type: Boolean })
   @ApiQuery({ name: 'cursor', required: false, type: String })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   async list(
@@ -45,6 +47,41 @@ export class ExercisesController {
     @Query() query: Record<string, string | undefined>,
   ) {
     return this.exercisesService.list(user.id, query);
+  }
+
+  @Get(':exerciseId/preference')
+  @ApiOperation({ summary: 'Préférences effectives de l’utilisateur pour un exercice' })
+  async getPreference(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
+  ) {
+    const data = await this.exercisesService.getPreference(user.id, exerciseId);
+    return createSuccessResponse(data);
+  }
+
+  @Put(':exerciseId/preference')
+  @ApiOperation({ summary: 'Créer ou remplacer les préférences utilisateur' })
+  async putPreference(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.exercisesService.upsertPreference(
+      user.id,
+      exerciseId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Delete(':exerciseId/preference')
+  @HttpCode(204)
+  @ApiOperation({ summary: 'Réinitialiser les préférences (suppression idempotente)' })
+  async deletePreference(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
+  ) {
+    await this.exercisesService.deletePreference(user.id, exerciseId);
   }
 
   @Get(':exerciseId')

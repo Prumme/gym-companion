@@ -5,11 +5,13 @@ import {
   createExerciseSchema,
   decodeExerciseCursor,
   encodeExerciseCursor,
+  isDefaultExercisePreferenceInput,
   listExercisesQuerySchema,
   normalizeExerciseName,
   parseApiEnv,
   profileFormSchema,
   toUpdateProfilePayload,
+  updateExercisePreferenceSchema,
 } from './index';
 
 const validEnv = {
@@ -233,6 +235,76 @@ describe('exercise cursor', () => {
         },
       ],
     });
+  });
+});
+
+describe('updateExercisePreferenceSchema', () => {
+  const valid = {
+    isFavorite: true,
+    isExcludedFromSuggestions: false,
+    preferredEquipmentTypeId: '33333333-3333-3333-3333-333333333333',
+    restSecondsOverride: 90,
+  };
+
+  it('accepts a valid preference payload', () => {
+    expect(updateExercisePreferenceSchema.parse(valid)).toEqual(valid);
+  });
+
+  it('rejects negative rest seconds', () => {
+    expect(
+      updateExercisePreferenceSchema.safeParse({
+        ...valid,
+        restSecondsOverride: -1,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects rest seconds above maximum', () => {
+    expect(
+      updateExercisePreferenceSchema.safeParse({
+        ...valid,
+        restSecondsOverride: 1801,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('normalizes empty preferred equipment id to null', () => {
+    expect(
+      updateExercisePreferenceSchema.parse({
+        ...valid,
+        preferredEquipmentTypeId: '',
+      }).preferredEquipmentTypeId,
+    ).toBeNull();
+  });
+
+  it('rejects non-boolean favorites', () => {
+    expect(
+      updateExercisePreferenceSchema.safeParse({
+        ...valid,
+        isFavorite: 'true',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('detects default preference input for empty-row cleanup', () => {
+    expect(
+      isDefaultExercisePreferenceInput({
+        isFavorite: false,
+        isExcludedFromSuggestions: false,
+        preferredEquipmentTypeId: null,
+        restSecondsOverride: null,
+      }),
+    ).toBe(true);
+    expect(isDefaultExercisePreferenceInput(valid)).toBe(false);
+  });
+
+  it('parses favoriteOnly like includeArchived', () => {
+    expect(listExercisesQuerySchema.parse({ favoriteOnly: 'true' }).favoriteOnly).toBe(
+      true,
+    );
+    expect(listExercisesQuerySchema.parse({ favoriteOnly: 'false' }).favoriteOnly).toBe(
+      false,
+    );
   });
 });
 

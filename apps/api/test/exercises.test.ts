@@ -59,6 +59,12 @@ type ListItem = {
   defaultEquipmentType: { id: string; code: string } | null;
   archivedAt: string | null;
   permissions: unknown;
+  userPreference: {
+    isFavorite: boolean;
+    isExcludedFromSuggestions: boolean;
+    preferredEquipmentType: unknown;
+    restSecondsOverride: number | null;
+  };
 };
 
 describe('Exercises catalog API', () => {
@@ -92,7 +98,6 @@ describe('Exercises catalog API', () => {
     prisma = app.get(PrismaService);
 
     await seedReferenceData(prisma);
-    await seedSystemExercises(prisma);
     await seedSystemExercises(prisma);
 
     const chest = await prisma.muscleGroup.findUniqueOrThrow({ where: { code: 'chest' } });
@@ -181,6 +186,11 @@ describe('Exercises catalog API', () => {
       expect(item).not.toHaveProperty('normalizedName');
       expect(item).not.toHaveProperty('ownerUserId');
       expect(item.permissions).toBeDefined();
+      expect(item).toHaveProperty('userPreference');
+      expect(item.userPreference).toMatchObject({
+        isFavorite: expect.any(Boolean),
+        isExcludedFromSuggestions: expect.any(Boolean),
+      });
     }
   });
 
@@ -554,6 +564,12 @@ describe('Exercises catalog API', () => {
     });
     expect(response.body.data.primaryMuscleGroup.code).toBe('chest');
     expect(response.body.data.defaultEquipmentType.code).toBe('barbell');
+    expect(response.body.data.userPreference).toEqual({
+      isFavorite: false,
+      isExcludedFromSuggestions: false,
+      preferredEquipmentType: null,
+      restSecondsOverride: null,
+    });
     expect(response.body.data).not.toHaveProperty('normalizedName');
     expect(response.body.data).not.toHaveProperty('ownerUserId');
   });

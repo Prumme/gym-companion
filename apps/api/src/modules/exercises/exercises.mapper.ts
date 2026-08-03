@@ -5,6 +5,7 @@ import type {
   ExerciseListItem,
   ExercisePermissions,
   ExerciseSource,
+  ExerciseUserPreference,
   MuscleGroupReference,
 } from '@gym-companion/shared';
 
@@ -21,6 +22,13 @@ type EquipmentRef = {
   name: string;
 };
 
+export type PreferenceRow = {
+  isFavorite: boolean;
+  isExcludedFromSuggestions: boolean;
+  restSecondsOverride: number | null;
+  preferredEquipmentType: EquipmentRef | null;
+};
+
 export type ExerciseListRow = {
   id: string;
   source: ExerciseSource;
@@ -31,6 +39,7 @@ export type ExerciseListRow = {
   ownerUserId: string | null;
   primaryMuscleGroup: MuscleRef;
   defaultEquipmentType: EquipmentRef | null;
+  userPreferences?: PreferenceRow[];
 };
 
 export type ExerciseRow = ExerciseListRow & {
@@ -43,6 +52,13 @@ export type ExerciseRow = ExerciseListRow & {
     notes: string | null;
     equipmentType: EquipmentRef;
   }>;
+};
+
+export const DEFAULT_EXERCISE_USER_PREFERENCE: ExerciseUserPreference = {
+  isFavorite: false,
+  isExcludedFromSuggestions: false,
+  preferredEquipmentType: null,
+  restSecondsOverride: null,
 };
 
 function toMuscleGroupReference(row: MuscleRef): MuscleGroupReference {
@@ -80,6 +96,29 @@ export function computeExercisePermissions(
   };
 }
 
+export function toExerciseUserPreference(
+  row: PreferenceRow | null | undefined,
+): ExerciseUserPreference {
+  if (!row) {
+    return { ...DEFAULT_EXERCISE_USER_PREFERENCE };
+  }
+
+  return {
+    isFavorite: row.isFavorite,
+    isExcludedFromSuggestions: row.isExcludedFromSuggestions,
+    preferredEquipmentType: row.preferredEquipmentType
+      ? toEquipmentTypeReference(row.preferredEquipmentType)
+      : null,
+    restSecondsOverride: row.restSecondsOverride,
+  };
+}
+
+function preferenceFromExerciseRow(
+  row: Pick<ExerciseListRow, 'userPreferences'>,
+): ExerciseUserPreference {
+  return toExerciseUserPreference(row.userPreferences?.[0]);
+}
+
 export function toExerciseListItem(
   row: ExerciseListRow,
   viewerUserId: string,
@@ -101,6 +140,7 @@ export function toExerciseListItem(
       viewerUserId,
       row.ownerUserId,
     ),
+    userPreference: preferenceFromExerciseRow(row),
   };
 }
 
@@ -136,5 +176,6 @@ export function toExerciseDetail(row: ExerciseRow, viewerUserId: string): Exerci
       viewerUserId,
       row.ownerUserId,
     ),
+    userPreference: preferenceFromExerciseRow(row),
   };
 }
