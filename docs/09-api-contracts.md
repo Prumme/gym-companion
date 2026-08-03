@@ -62,6 +62,17 @@ Les identifiants sont opaques.
 
 Le client ne doit pas déduire de signification depuis leur format.
 
+### 2.6 Statut d’implémentation
+
+À la clôture de la phase 2 :
+
+- les contrats d’authentification et de profil de la phase 0 sont disponibles ;
+- le catalogue d’exercices et les préférences de la phase 1 sont disponibles ;
+- les programmes, modèles, exercices de modèles, séries cibles, activation et planification hebdomadaire de la phase 2 sont disponibles ;
+- les séances actives, performances, records, partage temps réel, nutrition, notifications et IA restent des contrats cibles futurs.
+
+Un endpoint décrit dans une section future ne doit pas être considéré comme disponible tant que la roadmap, le README et l’implémentation ne le confirment pas.
+
 ## 3. Authentification des requêtes
 
 Les routes privées nécessitent un access token valide.
@@ -458,13 +469,15 @@ DELETE /api/v1/me/restrictions/:restrictionId
 
 ## 13. Exercices
 
+Toutes les routes de cette section nécessitent un access token valide, sauf décision explicite différente pour les données de référence.
+
 ### 13.1 Lister
 
 ```text
 GET /api/v1/exercises
 ```
 
-Paramètres possibles :
+Paramètres :
 
 ```text
 search
@@ -472,11 +485,18 @@ muscleGroupId
 equipmentTypeId
 measurementType
 source
-favorite
-archived
+favoriteOnly
+includeArchived
 cursor
 limit
 ```
+
+Règles principales :
+
+- `favoriteOnly` et `includeArchived` utilisent un parsing booléen strict ;
+- les exercices archivés sont exclus par défaut ;
+- la recherche est normalisée côté serveur ;
+- la pagination utilise un cursor opaque et un ordre stable.
 
 ### 13.2 Détail
 
@@ -484,7 +504,7 @@ limit
 GET /api/v1/exercises/:exerciseId
 ```
 
-Réponse :
+Réponse conceptuelle :
 
 ```json
 {
@@ -506,15 +526,28 @@ Réponse :
       "code": "barbell",
       "name": "Barre"
     },
+    "compatibleEquipmentTypes": [],
+    "archivedAt": null,
     "userPreference": {
       "isFavorite": true,
-      "isExcluded": false,
-      "preferredEquipmentId": "equipment-id",
-      "defaultRestSeconds": 150
+      "isExcludedFromSuggestions": false,
+      "preferredEquipmentType": {
+        "id": "barbell-id",
+        "code": "barbell",
+        "name": "Barre"
+      },
+      "restSecondsOverride": 150
+    },
+    "permissions": {
+      "canEdit": false,
+      "canArchive": false,
+      "canRestore": false
     }
   }
 }
 ```
+
+Un exercice personnel appartenant à un autre utilisateur doit rester indiscernable d’un exercice inexistant.
 
 ### 13.3 Créer
 
@@ -522,7 +555,9 @@ Réponse :
 POST /api/v1/exercises
 ```
 
-Requête :
+Uniquement pour créer un exercice personnel.
+
+Requête conceptuelle :
 
 ```json
 {
@@ -531,10 +566,19 @@ Requête :
   "secondaryMuscleGroupIds": [],
   "measurementType": "WEIGHT_REPS",
   "defaultEquipmentTypeId": "equipment-type-id",
+  "compatibleEquipmentTypes": [
+    {
+      "equipmentTypeId": "equipment-type-id",
+      "isPreferred": true,
+      "notes": null
+    }
+  ],
   "defaultRestSeconds": 120,
   "instructions": null
 }
 ```
+
+Le client ne transmet pas `source`, `ownerUserId`, `normalizedName`, `archivedAt` ou les permissions.
 
 ### 13.4 Modifier
 
@@ -542,7 +586,7 @@ Requête :
 PATCH /api/v1/exercises/:exerciseId
 ```
 
-Uniquement pour un exercice personnel.
+Uniquement pour un exercice personnel actif appartenant à l’utilisateur.
 
 ### 13.5 Archiver
 
@@ -558,21 +602,47 @@ La suppression réalise un archivage logique.
 POST /api/v1/exercises/:exerciseId/restore
 ```
 
-### 13.7 Préférences
+### 13.7 Lire les préférences
 
 ```text
-PUT /api/v1/exercises/:exerciseId/preferences
+GET /api/v1/exercises/:exerciseId/preference
+```
+
+L’absence de ligne persistée retourne les valeurs effectives par défaut.
+
+### 13.8 Mettre à jour les préférences
+
+```text
+PUT /api/v1/exercises/:exerciseId/preference
 ```
 
 Requête :
 
 ```json
 {
-  "preferredEquipmentId": "equipment-id",
-  "defaultRestSeconds": 150,
   "isFavorite": true,
-  "isExcluded": false,
-  "notes": null
+  "isExcludedFromSuggestions": false,
+  "preferredEquipmentTypeId": "equipment-type-id",
+  "restSecondsOverride": 150
+}
+```
+
+Le `PUT` remplace l’état complet des préférences. Un simple changement de favori doit donc conserver explicitement les autres valeurs courantes.
+
+### 13.9 Réinitialiser les préférences
+
+```text
+DELETE /api/v1/exercises/:exerciseId/preference
+```
+
+L’action est idempotente et restaure les valeurs effectives suivantes :
+
+```json
+{
+  "isFavorite": false,
+  "isExcludedFromSuggestions": false,
+  "preferredEquipmentType": null,
+  "restSecondsOverride": null
 }
 ```
 
@@ -636,19 +706,60 @@ GET /api/v1/exercises/:exerciseId/strength-reference/current
 
 ## 17. Programmes
 
+Toutes les routes de cette section utilisent `JwtAuthGuard`.
+
+Le propriétaire est toujours déduit de la session. Le client ne transmet jamais `ownerUserId`.
+
 ### 17.1 Lister
 
 ```text
 GET /api/v1/programs
 ```
 
-Filtres :
+Paramètres :
 
 ```text
-status
-goal
+includeArchived
 cursor
 limit
+```
+
+Règles :
+
+- les programmes archivés sont exclus par défaut ;
+- `includeArchived` utilise un parsing booléen strict ;
+- la pagination utilise un cursor opaque et un ordre stable ;
+- seuls les programmes de l’utilisateur connecté sont retournés.
+
+Réponse conceptuelle :
+
+```json
+{
+  "data": [
+    {
+      "id": "program-id",
+      "name": "Programme force",
+      "description": null,
+      "goal": "STRENGTH",
+      "workoutTemplateCount": 3,
+      "archivedAt": null,
+      "createdAt": "2026-08-03T09:30:00.000Z",
+      "updatedAt": "2026-08-03T10:00:00.000Z",
+      "permissions": {
+        "canEdit": true,
+        "canArchive": true,
+        "canRestore": false,
+        "canActivate": true,
+        "canDeactivate": false,
+        "canEditSchedule": true
+      }
+    }
+  ],
+  "pagination": {
+    "nextCursor": null,
+    "hasMore": false
+  }
+}
 ```
 
 ### 17.2 Créer
@@ -667,13 +778,74 @@ Requête :
 }
 ```
 
-### 17.3 Détail
+### 17.3 Lire le programme courant
+
+```text
+GET /api/v1/programs/active
+```
+
+Cette route doit être déclarée avant la route dynamique `/:programId`.
+
+S’il n’existe aucun programme courant :
+
+```json
+{
+  "data": null
+}
+```
+
+Lorsqu’un programme est courant :
+
+```json
+{
+  "data": {
+    "activationId": "activation-id",
+    "startedOn": "2026-08-03",
+    "program": {
+      "id": "program-id",
+      "name": "Programme force",
+      "description": null,
+      "goal": "STRENGTH",
+      "workoutTemplateCount": 3,
+      "archivedAt": null,
+      "createdAt": "2026-08-03T09:30:00.000Z",
+      "updatedAt": "2026-08-03T10:00:00.000Z",
+      "permissions": {
+        "canEdit": true,
+        "canArchive": false,
+        "canRestore": false,
+        "canActivate": false,
+        "canDeactivate": true,
+        "canEditSchedule": true
+      }
+    },
+    "schedule": {
+      "entries": []
+    }
+  }
+}
+```
+
+### 17.4 Détail
 
 ```text
 GET /api/v1/programs/:programId
 ```
 
-### 17.4 Modifier
+Le détail contient les modèles ordonnés, leurs exercices ordonnés et les séries cibles ordonnées.
+
+Structure conceptuelle :
+
+```text
+program
+└── workoutTemplates
+    └── exercises
+        └── sets
+```
+
+Les réponses n’exposent pas `ownerUserId` ni d’objets Prisma bruts.
+
+### 17.5 Modifier
 
 ```text
 PATCH /api/v1/programs/:programId
@@ -685,54 +857,163 @@ Requête :
 {
   "name": "Programme force 2",
   "description": "Description",
-  "goal": "STRENGTH",
-  "expectedVersion": 3
+  "goal": "STRENGTH"
 }
 ```
 
-Le champ `version` doit être ajouté à l’entité si le contrôle de concurrence est utilisé.
+Un programme archivé n’est pas modifiable.
 
-### 17.5 Activer
-
-```text
-POST /api/v1/programs/:programId/activate
-```
-
-### 17.6 Dupliquer
-
-```text
-POST /api/v1/programs/:programId/duplicate
-```
-
-Requête facultative :
-
-```json
-{
-  "name": "Copie du programme"
-}
-```
-
-### 17.7 Archiver
+### 17.6 Archiver
 
 ```text
 DELETE /api/v1/programs/:programId
 ```
 
-### 17.8 Restaurer
+L’action renseigne `archivedAt`.
+
+Un programme courant doit d’abord être désactivé. Dans le cas contraire, l’API retourne une erreur métier telle que :
+
+```text
+PROGRAM_MUST_BE_INACTIVE_BEFORE_ARCHIVE
+```
+
+### 17.7 Restaurer
 
 ```text
 POST /api/v1/programs/:programId/restore
 ```
 
-## 18. Séances modèles
-
-### 18.1 Lister dans un programme
+### 17.8 Activer
 
 ```text
-GET /api/v1/programs/:programId/workout-templates
+POST /api/v1/programs/:programId/activate
 ```
 
-### 18.2 Créer
+Requête :
+
+```json
+{
+  "startedOn": "2026-08-03",
+  "replaceCurrentProgram": false
+}
+```
+
+Règles :
+
+- `startedOn` est une date locale `YYYY-MM-DD` ;
+- activer le programme déjà courant est idempotent ;
+- si un autre programme est courant et `replaceCurrentProgram=false`, l’API retourne `409 Conflict` ;
+- `replaceCurrentProgram=true` termine l’ancienne activation et crée la nouvelle dans une même transaction ;
+- un programme archivé ou étranger n’est pas activable ;
+- une contrainte PostgreSQL empêche deux activations courantes pour le même utilisateur.
+
+### 17.9 Désactiver
+
+```text
+POST /api/v1/programs/:programId/deactivate
+```
+
+Règles :
+
+- le programme doit appartenir à l’utilisateur ;
+- l’activation courante reçoit une date de fin ;
+- la planification du programme est conservée ;
+- une nouvelle désactivation reste idempotente ou retourne l’état courant sans effet destructeur.
+
+Après désactivation, le programme courant est représenté par :
+
+```json
+{
+  "data": null
+}
+```
+
+### 17.10 Lire la planification
+
+```text
+GET /api/v1/programs/:programId/schedule
+```
+
+Réponse :
+
+```json
+{
+  "data": {
+    "entries": [
+      {
+        "id": "schedule-entry-id",
+        "weekday": "MONDAY",
+        "position": 0,
+        "workoutTemplate": {
+          "id": "template-id",
+          "name": "Haut du corps",
+          "estimatedDurationMinutes": 60,
+          "exerciseCount": 6
+        }
+      }
+    ]
+  }
+}
+```
+
+### 17.11 Remplacer la planification
+
+```text
+PUT /api/v1/programs/:programId/schedule
+```
+
+Le body remplace toute la semaine type dans une transaction.
+
+```json
+{
+  "entries": [
+    {
+      "workoutTemplateId": "template-a",
+      "weekday": "MONDAY",
+      "position": 0
+    },
+    {
+      "workoutTemplateId": "template-b",
+      "weekday": "THURSDAY",
+      "position": 0
+    }
+  ]
+}
+```
+
+Règles :
+
+- une planification vide est valide ;
+- plusieurs séances sont possibles le même jour ;
+- un même modèle peut apparaître plusieurs fois ;
+- les positions sont complètes et compactes dans chaque journée ;
+- tous les modèles doivent appartenir au programme ;
+- le programme doit être actif au sens « non archivé », mais il n’a pas besoin d’être le programme courant pour être planifié ;
+- un programme archivé conserve sa planification en lecture seule.
+
+La planification ne crée aucune séance active.
+
+### 17.12 Duplication
+
+La duplication de programme reste une exigence future de priorité `SHOULD`.
+
+Elle n’est pas implémentée à la clôture de la phase 2.
+
+Aucun client ne doit appeler :
+
+```text
+POST /api/v1/programs/:programId/duplicate
+```
+
+tant qu’un jalon ultérieur n’a pas explicitement ajouté et testé cet endpoint.
+
+## 18. Constructeur de programmes
+
+Le contenu d’un programme est géré par des routes imbriquées.
+
+Le détail du programme constitue la lecture principale du constructeur. Aucun endpoint top-level `/workout-templates/:id` n’est nécessaire en phase 2.
+
+### 18.1 Créer un modèle de séance
 
 ```text
 POST /api/v1/programs/:programId/workout-templates
@@ -744,64 +1025,216 @@ Requête :
 {
   "name": "Haut du corps",
   "description": null,
-  "positionInProgram": 1,
-  "exercises": [
-    {
-      "exerciseId": "exercise-id",
-      "position": 1,
-      "preferredEquipmentId": "equipment-id",
-      "notes": null,
-      "sets": [
-        {
-          "setNumber": 1,
-          "setType": "WARMUP",
-          "targetWeightKg": 40,
-          "targetRepMin": 10,
-          "targetRepMax": 10,
-          "restSeconds": 60
-        },
-        {
-          "setNumber": 2,
-          "setType": "WORKING",
-          "targetWeightKg": 60,
-          "targetRepMin": 8,
-          "targetRepMax": 10,
-          "targetRir": 2,
-          "restSeconds": 120
-        }
-      ]
-    }
+  "estimatedDurationMinutes": 60
+}
+```
+
+Le modèle est ajouté à la fin.
+
+### 18.2 Modifier un modèle
+
+```text
+PATCH /api/v1/programs/:programId/workout-templates/:workoutTemplateId
+```
+
+### 18.3 Supprimer un modèle
+
+```text
+DELETE /api/v1/programs/:programId/workout-templates/:workoutTemplateId
+```
+
+En phase 2, cette action supprime le modèle et son contenu dépendant.
+
+Elle :
+
+- supprime les exercices associés et leurs séries cibles ;
+- supprime les entrées de planification référençant ce modèle ;
+- compacte les positions des modèles et des journées concernées ;
+- ne supprime aucun exercice du catalogue.
+
+Le champ `WorkoutTemplate.archivedAt` n’est pas exposé par un workflow d’archivage individuel.
+
+### 18.4 Réordonner les modèles
+
+```text
+PUT /api/v1/programs/:programId/workout-templates/order
+```
+
+Requête :
+
+```json
+{
+  "workoutTemplateIds": [
+    "template-3",
+    "template-1",
+    "template-2"
   ]
 }
 ```
 
-### 18.3 Détail
+La liste doit être complète, sans doublon et ne contenir que les modèles du programme.
+
+### 18.5 Ajouter un exercice au modèle
 
 ```text
-GET /api/v1/workout-templates/:templateId
+POST /api/v1/programs/:programId/workout-templates/:workoutTemplateId/exercises
 ```
 
-### 18.4 Modifier
+Requête :
+
+```json
+{
+  "exerciseId": "exercise-id",
+  "equipmentTypeId": "equipment-type-id",
+  "restSecondsOverride": 120,
+  "notes": null
+}
+```
+
+Règles :
+
+- l’exercice doit être accessible ;
+- un exercice archivé ne peut pas être ajouté ;
+- un exercice ne peut apparaître qu’une fois dans le même modèle ;
+- l’équipement doit être actif et compatible ;
+- la nouvelle association est ajoutée à la fin.
+
+### 18.6 Modifier la configuration d’un exercice
 
 ```text
-PUT /api/v1/workout-templates/:templateId
+PATCH /api/v1/programs/:programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId
 ```
 
-Un `PUT` complet est recommandé pour l’éditeur complexe.
+Champs modifiables :
 
-### 18.5 Dupliquer
+```json
+{
+  "equipmentTypeId": "equipment-type-id",
+  "restSecondsOverride": 150,
+  "notes": "Contrôler la descente."
+}
+```
+
+L’exercice associé n’est pas remplacé par cette route.
+
+### 18.7 Retirer un exercice du modèle
+
+```text
+DELETE /api/v1/programs/:programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId
+```
+
+L’action supprime les séries cibles dépendantes et compacte les positions.
+
+L’exercice reste disponible dans le catalogue.
+
+### 18.8 Réordonner les exercices
+
+```text
+PUT /api/v1/programs/:programId/workout-templates/:workoutTemplateId/exercises/order
+```
+
+Requête :
+
+```json
+{
+  "workoutTemplateExerciseIds": [
+    "template-exercise-3",
+    "template-exercise-1",
+    "template-exercise-2"
+  ]
+}
+```
+
+### 18.9 Créer une série cible
+
+```text
+POST /api/v1/programs/:programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId/sets
+```
+
+Requête conceptuelle :
+
+```json
+{
+  "setType": "WORKING",
+  "targetRepMin": 8,
+  "targetRepMax": 10,
+  "targetDurationSeconds": null,
+  "targetDistanceMeters": null,
+  "targetWeightKg": 60,
+  "targetIntensityPercent": null,
+  "targetRir": 2,
+  "targetRpe": null,
+  "restSeconds": 120
+}
+```
+
+La validation dépend du `measurementType` de l’exercice.
+
+### 18.10 Modifier une série cible
+
+```text
+PATCH /api/v1/programs/:programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId/sets/:setId
+```
+
+### 18.11 Supprimer une série cible
+
+```text
+DELETE /api/v1/programs/:programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId/sets/:setId
+```
+
+Les positions restantes sont compactées.
+
+### 18.12 Réordonner les séries
+
+```text
+PUT /api/v1/programs/:programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId/sets/order
+```
+
+Requête :
+
+```json
+{
+  "setIds": [
+    "set-2",
+    "set-1",
+    "set-3"
+  ]
+}
+```
+
+### 18.13 Règles communes des routes imbriquées
+
+Pour chaque route, l’API vérifie toute la chaîne :
+
+```text
+programme
+→ modèle
+→ exercice du modèle
+→ série
+```
+
+Un identifiant valide appartenant à un autre parent est traité comme inaccessible.
+
+Toutes les mutations sont interdites lorsque le programme est archivé.
+
+Les réordonnancements, suppressions avec compactage et mises à jour de plusieurs lignes sont transactionnels.
+
+### 18.14 Duplication et archivage individuel
+
+La duplication d’un modèle et son archivage individuel ne sont pas implémentés en phase 2.
+
+Aucun endpoint top-level de type :
 
 ```text
 POST /api/v1/workout-templates/:templateId/duplicate
-```
-
-### 18.6 Archiver
-
-```text
 DELETE /api/v1/workout-templates/:templateId
 ```
 
+ne doit être considéré comme disponible.
+
 ## 19. Séances individuelles
+
+> Statut : contrats cibles de phase 3, non implémentés à la clôture de la phase 2.
 
 ### 19.1 Séance active
 
@@ -1670,14 +2103,46 @@ EXERCISE_MEASUREMENT_INCOMPATIBLE
 EQUIPMENT_WEIGHT_UNAVAILABLE
 ```
 
-### Programmes
+### Programmes et constructeur
 
 ```text
 PROGRAM_NOT_FOUND
-PROGRAM_ALREADY_ACTIVE
+PROGRAM_NOT_EDITABLE
+PROGRAM_ALREADY_ARCHIVED
+PROGRAM_NOT_ARCHIVED
 PROGRAM_ARCHIVED
+PROGRAM_ALREADY_ACTIVE
+PROGRAM_ACTIVE_CONFLICT
+PROGRAM_NOT_ACTIVE
+PROGRAM_MUST_BE_INACTIVE_BEFORE_ARCHIVE
+
 WORKOUT_TEMPLATE_NOT_FOUND
-WORKOUT_TEMPLATE_INVALID
+WORKOUT_TEMPLATE_NOT_EDITABLE
+WORKOUT_TEMPLATE_INVALID_ORDER
+WORKOUT_TEMPLATE_DUPLICATE_IN_ORDER
+WORKOUT_TEMPLATE_ORDER_INCOMPLETE
+
+WORKOUT_TEMPLATE_EXERCISE_NOT_FOUND
+WORKOUT_TEMPLATE_EXERCISE_ALREADY_EXISTS
+WORKOUT_TEMPLATE_EXERCISE_NOT_EDITABLE
+WORKOUT_TEMPLATE_EXERCISE_INVALID_ORDER
+WORKOUT_TEMPLATE_EXERCISE_ORDER_INCOMPLETE
+WORKOUT_TEMPLATE_EXERCISE_DUPLICATE_IN_ORDER
+WORKOUT_TEMPLATE_EXERCISE_INVALID_EQUIPMENT
+
+WORKOUT_TEMPLATE_SET_NOT_FOUND
+WORKOUT_TEMPLATE_SET_INVALID_TARGET
+WORKOUT_TEMPLATE_SET_INVALID_REP_RANGE
+WORKOUT_TEMPLATE_SET_CONFLICTING_INTENSITY_TARGETS
+WORKOUT_TEMPLATE_SET_INVALID_ORDER
+WORKOUT_TEMPLATE_SET_ORDER_INCOMPLETE
+WORKOUT_TEMPLATE_SET_DUPLICATE_IN_ORDER
+
+PROGRAM_SCHEDULE_INVALID
+PROGRAM_SCHEDULE_TEMPLATE_NOT_FOUND
+PROGRAM_SCHEDULE_TEMPLATE_MISMATCH
+PROGRAM_SCHEDULE_INVALID_POSITION
+PROGRAM_SCHEDULE_DUPLICATE_POSITION
 ```
 
 ### Séances
@@ -1788,7 +2253,33 @@ L’API ne doit jamais retourner :
 
 ## 40. Implémentation progressive
 
-Les endpoints doivent être implémentés selon la roadmap.
+Les endpoints sont implémentés selon la roadmap.
+
+### Disponible à la clôture de la phase 2
+
+- authentification et profil de base ;
+- références musculaires et équipements ;
+- catalogue d’exercices ;
+- préférences et favoris ;
+- programmes ;
+- modèles de séance ;
+- exercices et séries cibles des modèles ;
+- activation du programme courant ;
+- planification hebdomadaire.
+
+### Non disponible à la clôture de la phase 2
+
+- duplication de programme ou de modèle ;
+- séance active ;
+- performance réelle ;
+- série effectuée ;
+- historique de séance ;
+- records et progression ;
+- synchronisation hors ligne des séances ;
+- partage Socket.IO ;
+- nutrition ;
+- notifications ;
+- coach IA.
 
 Créer toutes les routes à l’avance avec des réponses fictives est déconseillé.
 
@@ -1800,3 +2291,4 @@ Chaque endpoint implémenté doit posséder :
 - tests ;
 - gestion d’erreur ;
 - métriques ou logs adaptés.
+

@@ -109,7 +109,14 @@ type WorkoutSetType =
   | "AMRAP"
   | "FAILURE_OPTIONAL";
 
-type ProgramStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
+type Weekday =
+  | "MONDAY"
+  | "TUESDAY"
+  | "WEDNESDAY"
+  | "THURSDAY"
+  | "FRIDAY"
+  | "SATURDAY"
+  | "SUNDAY";
 
 type SharedRoomStatus =
   | "LOBBY"
@@ -459,7 +466,7 @@ type ExerciseEquipmentCompatibility = {
 
 ## 16. UserExercisePreference
 
-Préférences d’un utilisateur pour un exercice.
+Préférences privées d’un utilisateur pour un exercice accessible.
 
 ```ts
 type UserExercisePreference = {
@@ -467,26 +474,46 @@ type UserExercisePreference = {
   userId: string;
   exerciseId: string;
 
-  preferredEquipmentId: string | null;
-  defaultRestSeconds: number | null;
-  defaultSetCount: number | null;
-  notes: string | null;
-
   isFavorite: boolean;
-  isExcluded: boolean;
+  isExcludedFromSuggestions: boolean;
+
+  preferredEquipmentTypeId: string | null;
+  restSecondsOverride: number | null;
 
   createdAt: Date;
   updatedAt: Date;
 };
 ```
 
-### Contrainte
+### Contraintes
 
 Clé unique :
 
 ```text
 userId + exerciseId
 ```
+
+Règles :
+
+- les préférences sont isolées par utilisateur ;
+- l’exercice doit être un exercice système ou un exercice personnel appartenant à l’utilisateur ;
+- `preferredEquipmentTypeId` doit référencer un type d’équipement actif et compatible avec l’exercice ;
+- `restSecondsOverride` est un entier compris entre `0` et `1800` secondes ;
+- l’archivage d’un exercice personnel ne supprime pas les préférences existantes ;
+- l’absence de ligne correspond aux valeurs effectives par défaut.
+
+Valeurs effectives par défaut :
+
+```ts
+{
+  isFavorite: false,
+  isExcludedFromSuggestions: false,
+  preferredEquipmentTypeId: null,
+  restSecondsOverride: null
+}
+```
+
+Cette préférence globale est distincte de la configuration d’un exercice dans un programme.
 
 ## 17. ExerciseStrengthReference
 
@@ -524,6 +551,8 @@ Une stratégie pourra déterminer la référence actuellement utilisée.
 
 ## 18. Program
 
+Représente un programme d’entraînement appartenant à un utilisateur.
+
 ```ts
 type Program = {
   id: string;
@@ -532,9 +561,7 @@ type Program = {
   name: string;
   description: string | null;
   goal: TrainingGoal;
-  status: ProgramStatus;
 
-  activatedAt: Date | null;
   archivedAt: Date | null;
 
   createdAt: Date;
@@ -544,22 +571,99 @@ type Program = {
 
 ### Contraintes
 
-La première version limite à un programme principal actif par utilisateur.
+- un programme appartient toujours à un utilisateur ;
+- le propriétaire est déduit de la session et n’est jamais choisi par le client ;
+- plusieurs programmes d’un même utilisateur peuvent avoir le même nom ;
+- l’archivage est logique ;
+- un programme archivé reste consultable, mais ne peut plus être modifié, activé ou planifié ;
+- un programme courant doit être désactivé avant archivage ;
+- l’état « programme courant » n’est pas stocké dans un enum du programme : il est représenté par `ProgramActivation`.
 
-Cette contrainte peut être appliquée dans le service métier plutôt que par un index simple.
+### Relations
 
-## 19. WorkoutTemplate
+- plusieurs `WorkoutTemplate` ordonnés ;
+- plusieurs `ProgramActivation` historiques ;
+- plusieurs `ProgramScheduleEntry`.
+
+## 19. ProgramActivation
+
+Historise l’utilisation d’un programme comme programme courant.
+
+```ts
+type ProgramActivation = {
+  id: string;
+  userId: string;
+  programId: string;
+
+  startedOn: string;
+  endedOn: string | null;
+
+  createdAt: Date;
+  updatedAt: Date;
+};
+```
+
+`startedOn` et `endedOn` sont des dates locales au format `YYYY-MM-DD`, persistées avec un type PostgreSQL `date` ou une représentation équivalente ne contenant pas d’heure.
+
+### Signification
+
+- `endedOn = null` : activation courante ;
+- `endedOn != null` : activation terminée et conservée dans l’historique.
+
+### Contraintes
+
+- l’utilisateur et le propriétaire du programme doivent être identiques ;
+- un programme archivé ne peut pas être activé ;
+- une seule activation courante est autorisée par utilisateur ;
+- cette unicité est protégée par un index PostgreSQL partiel sur `userId` lorsque `endedOn IS NULL` ;
+- remplacer le programme courant termine l’ancienne activation et crée la nouvelle dans une transaction ;
+- réactiver ultérieurement un programme crée une nouvelle activation sans réécrire l’historique.
+
+## 20. ProgramScheduleEntry
+
+Représente une occurrence prévue d’un modèle de séance dans une semaine type.
+
+```ts
+type ProgramScheduleEntry = {
+  id: string;
+  programId: string;
+  workoutTemplateId: string;
+
+  weekday: Weekday;
+  position: number;
+
+  createdAt: Date;
+  updatedAt: Date;
+};
+```
+
+### Contraintes
+
+- le modèle doit appartenir au programme ;
+- un même modèle peut être planifié plusieurs fois dans la semaine ;
+- un même modèle peut être planifié plusieurs fois le même jour ;
+- les positions sont compactes et déterministes dans chaque journée ;
+- la combinaison `programId + weekday + position` est unique ;
+- la planification appartient au programme et reste conservée après désactivation ;
+- une planification vide est valide ;
+- supprimer un modèle supprime ses entrées de planification et compacte les positions restantes des journées concernées ;
+- un programme archivé conserve sa planification en lecture seule.
+
+La planification représente une intention hebdomadaire. Elle ne crée pas de `WorkoutSession`.
+
+## 21. WorkoutTemplate
+
+Conteneur ordonné représentant une séance modèle dans un programme.
 
 ```ts
 type WorkoutTemplate = {
   id: string;
-  ownerUserId: string;
-  programId: string | null;
+  programId: string;
 
   name: string;
   description: string | null;
 
-  positionInProgram: number | null;
+  position: number;
   estimatedDurationMinutes: number | null;
 
   archivedAt: Date | null;
@@ -569,7 +673,22 @@ type WorkoutTemplate = {
 };
 ```
 
-## 20. WorkoutTemplateExercise
+### Contraintes
+
+- un modèle appartient à un seul programme ;
+- la propriété utilisateur est déduite du programme ;
+- `position` est unique dans le programme ;
+- un nouveau modèle est ajouté à la fin ;
+- les positions sont compactées après suppression ;
+- un programme archivé rend ses modèles non modifiables ;
+- le champ `archivedAt` existe dans le schéma, mais aucun workflow d’archivage individuel n’est exposé en phase 2 ;
+- en phase 2, l’action de retrait d’un modèle effectue une suppression physique de ce conteneur et de son contenu dépendant.
+
+Le rôle futur de `archivedAt` doit être clarifié avant d’exposer un archivage individuel des modèles.
+
+## 22. WorkoutTemplateExercise
+
+Association ordonnée entre un modèle de séance et un exercice du catalogue.
 
 ```ts
 type WorkoutTemplateExercise = {
@@ -578,17 +697,47 @@ type WorkoutTemplateExercise = {
   exerciseId: string;
 
   position: number;
+
+  equipmentTypeId: string | null;
+  restSecondsOverride: number | null;
   notes: string | null;
 
-  preferredEquipmentId: string | null;
-  targetSetCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+```
+
+### Contraintes
+
+- la combinaison `workoutTemplateId + exerciseId` est unique ;
+- `position` est unique dans le modèle ;
+- l’exercice doit être accessible au propriétaire du programme ;
+- un exercice archivé ne peut pas être ajouté à un nouveau modèle ;
+- l’archivage ultérieur d’un exercice déjà associé ne supprime pas l’association ;
+- `equipmentTypeId` doit être actif et compatible avec l’exercice ;
+- `restSecondsOverride` est un entier compris entre `0` et `1800` secondes ;
+- retirer cette association ne supprime jamais l’exercice du catalogue ;
+- retirer cette association supprime ses `WorkoutTemplateSet` dépendants.
+
+`equipmentTypeId` représente l’équipement prévu dans ce modèle. Il est distinct de l’équipement par défaut de l’exercice et des préférences globales de l’utilisateur.
+
+## 23. WorkoutTemplateSet
+
+Représente une série cible distincte et ordonnée.
+
+```ts
+type WorkoutTemplateSet = {
+  id: string;
+  workoutTemplateExerciseId: string;
+
+  position: number;
+  setType: WorkoutSetType;
 
   targetRepMin: number | null;
   targetRepMax: number | null;
 
   targetDurationSeconds: number | null;
   targetDistanceMeters: Decimal | null;
-
   targetWeightKg: Decimal | null;
   targetIntensityPercent: Decimal | null;
 
@@ -604,45 +753,31 @@ type WorkoutTemplateExercise = {
 
 ### Contraintes
 
-- `position` unique dans une séance modèle ;
-- les cibles doivent être compatibles avec le type de mesure.
+- `position` est unique dans un `WorkoutTemplateExercise` ;
+- les positions sont compactées après suppression ;
+- les champs de cible doivent être compatibles avec `Exercise.measurementType` ;
+- `targetRepMin <= targetRepMax` ;
+- RIR est un entier compris entre `0` et `10` ;
+- RPE est compris entre `1` et `10` ;
+- RIR et RPE ne sont pas renseignés simultanément ;
+- `targetIntensityPercent` est strictement positif et inférieur ou égal à `100` ;
+- les durées et repos sont stockés en secondes ;
+- les distances sont stockées en mètres ;
+- les poids sont stockés en kilogrammes ;
+- les statuts de performance réelle ne s’appliquent pas à cette entité.
 
-## 21. WorkoutTemplateSet
+### Validation selon le type de mesure
 
-Cette entité est recommandée si chaque série doit disposer d’une cible distincte.
+- `WEIGHT_REPS`, `BODYWEIGHT_REPS`, `ASSISTED_BODYWEIGHT_REPS` et `REPS_ONLY` nécessitent une cible de répétitions ;
+- `DURATION` et `WEIGHT_DURATION` nécessitent une durée cible ;
+- `DISTANCE_DURATION` nécessite au minimum une distance cible et peut également définir une durée ;
+- la charge cible reste facultative dans les modèles où elle est autorisée.
 
-```ts
-type WorkoutTemplateSet = {
-  id: string;
-  workoutTemplateExerciseId: string;
+À l’issue de la phase 2, chaque série possède sa propre ligne. L’ancienne approche consistant à stocker uniquement un nombre de séries et des cibles globales sur `WorkoutTemplateExercise` n’est plus utilisée.
 
-  setNumber: number;
-  setType: WorkoutSetType;
+## 24. WorkoutSession
 
-  targetWeightKg: Decimal | null;
-  targetRepMin: number | null;
-  targetRepMax: number | null;
-
-  targetDurationSeconds: number | null;
-  targetDistanceMeters: Decimal | null;
-
-  targetRir: number | null;
-  targetRpe: Decimal | null;
-
-  restSeconds: number | null;
-};
-```
-
-### Décision d’implémentation
-
-Deux approches sont possibles :
-
-1. conserver uniquement `targetSetCount` sur `WorkoutTemplateExercise` lorsque toutes les séries sont identiques ;
-2. créer des lignes `WorkoutTemplateSet` pour une configuration détaillée.
-
-La seconde approche est plus flexible et recommandée pour le projet final.
-
-## 22. WorkoutSession
+> Statut : modèle cible de phase 3, non implémenté à la clôture de la phase 2.
 
 ```ts
 type WorkoutSession = {
@@ -677,7 +812,7 @@ type WorkoutSession = {
 - `version` augmente lors des changements nécessitant un contrôle de concurrence ;
 - une séance partagée peut produire une séance individuelle liée pour chaque participant.
 
-## 23. WorkoutSessionExercise
+## 25. WorkoutSessionExercise
 
 Snapshot d’un exercice dans une séance.
 
@@ -710,7 +845,7 @@ type WorkoutSessionExercise = {
 
 Les champs snapshot permettent de conserver une lecture correcte si l’exercice est renommé ou archivé.
 
-## 24. WorkoutSet
+## 26. WorkoutSet
 
 ```ts
 type WorkoutSet = {
@@ -758,7 +893,7 @@ type WorkoutSet = {
 - `clientCommandId` peut être unique par utilisateur ;
 - les valeurs réelles doivent respecter le type de mesure.
 
-## 25. WorkoutSessionEvent
+## 27. WorkoutSessionEvent
 
 Journal métier facultatif mais recommandé.
 
@@ -788,7 +923,7 @@ type WorkoutSessionEvent = {
 
 Cette table n’oblige pas à adopter un event sourcing complet.
 
-## 26. PersonalRecord
+## 28. PersonalRecord
 
 Cache ou matérialisation d’un record calculé.
 
@@ -826,7 +961,7 @@ type PersonalRecord = {
 
 Les records peuvent aussi être calculés à la demande. Cette table sert si les calculs deviennent coûteux ou si l’on souhaite notifier immédiatement un record.
 
-## 27. SharedWorkoutRoom
+## 29. SharedWorkoutRoom
 
 ```ts
 type SharedWorkoutRoom = {
@@ -860,7 +995,7 @@ type SharedWorkoutRoom = {
 
 Le code d’invitation peut être stocké sous forme hachée lorsque sa récupération en clair n’est pas nécessaire.
 
-## 28. SharedWorkoutParticipant
+## 30. SharedWorkoutParticipant
 
 ```ts
 type SharedWorkoutParticipant = {
@@ -895,7 +1030,7 @@ Clé unique :
 sharedWorkoutRoomId + userId
 ```
 
-## 29. SharedWorkoutStation
+## 31. SharedWorkoutStation
 
 Représente une station utilisable dans la rotation.
 
@@ -920,7 +1055,7 @@ type SharedWorkoutStation = {
 
 La capacité initiale sera généralement égale à 1.
 
-## 30. SharedParticipantExercisePlan
+## 32. SharedParticipantExercisePlan
 
 Plan personnalisé d’un participant dans la séance partagée.
 
@@ -951,7 +1086,7 @@ type SharedParticipantExercisePlan = {
 };
 ```
 
-## 31. SharedRotationAssignment
+## 33. SharedRotationAssignment
 
 Historise les affectations de rotation.
 
@@ -978,7 +1113,7 @@ type SharedRotationAssignment = {
 };
 ```
 
-## 32. RealtimeCommand
+## 34. RealtimeCommand
 
 Permet de suivre l’idempotence des commandes critiques.
 
@@ -1008,7 +1143,7 @@ type RealtimeCommand = {
 
 `commandId` doit être unique dans le périmètre défini.
 
-## 33. Food
+## 35. Food
 
 ```ts
 type Food = {
@@ -1043,7 +1178,7 @@ type Food = {
 
 Les valeurs correspondent à la quantité de référence.
 
-## 34. Recipe
+## 36. Recipe
 
 ```ts
 type Recipe = {
@@ -1061,7 +1196,7 @@ type Recipe = {
 };
 ```
 
-## 35. RecipeIngredient
+## 37. RecipeIngredient
 
 ```ts
 type RecipeIngredient = {
@@ -1080,7 +1215,7 @@ Les valeurs nutritionnelles d’une recette sont calculées depuis ses ingrédie
 
 Un snapshot peut être conservé lors de l’ajout au journal afin qu’une modification future de recette ne modifie pas les anciens repas.
 
-## 36. NutritionGoal
+## 38. NutritionGoal
 
 ```ts
 type NutritionGoal = {
@@ -1104,7 +1239,7 @@ type NutritionGoal = {
 
 Une modification crée une nouvelle période au lieu de réécrire l’objectif passé.
 
-## 37. FoodLogEntry
+## 39. FoodLogEntry
 
 ```ts
 type FoodLogEntry = {
@@ -1140,7 +1275,7 @@ type FoodLogEntry = {
 
 Les valeurs calculées sont enregistrées sous forme de snapshot.
 
-## 38. SavedMeal
+## 40. SavedMeal
 
 Repas réutilisable indépendant d’une recette.
 
@@ -1159,7 +1294,7 @@ type SavedMeal = {
 };
 ```
 
-## 39. SavedMealItem
+## 41. SavedMealItem
 
 ```ts
 type SavedMealItem = {
@@ -1176,7 +1311,7 @@ type SavedMealItem = {
 };
 ```
 
-## 40. BodyMeasurement
+## 42. BodyMeasurement
 
 ```ts
 type BodyMeasurement = {
@@ -1203,7 +1338,7 @@ type BodyMeasurement = {
 
 La première version utilise principalement `WEIGHT`.
 
-## 41. ExerciseEnergyEstimate
+## 43. ExerciseEnergyEstimate
 
 Estimation de dépense associée à une séance.
 
@@ -1227,7 +1362,7 @@ type ExerciseEnergyEstimate = {
 
 Cette valeur doit être affichée comme estimation.
 
-## 42. PushSubscription
+## 44. PushSubscription
 
 ```ts
 type PushSubscription = {
@@ -1253,7 +1388,7 @@ type PushSubscription = {
 
 Les clés doivent être protégées et ne jamais être exposées inutilement.
 
-## 43. NotificationPreference
+## 45. NotificationPreference
 
 ```ts
 type NotificationPreference = {
@@ -1287,7 +1422,7 @@ Clé unique :
 userId + category
 ```
 
-## 44. NotificationDelivery
+## 46. NotificationDelivery
 
 ```ts
 type NotificationDelivery = {
@@ -1312,7 +1447,7 @@ type NotificationDelivery = {
 };
 ```
 
-## 45. AiRequest
+## 47. AiRequest
 
 ```ts
 type AiRequest = {
@@ -1348,7 +1483,7 @@ type AiRequest = {
 
 Le prompt complet contenant des données sensibles ne doit pas nécessairement être conservé.
 
-## 46. AiProposal
+## 48. AiProposal
 
 ```ts
 type AiProposal = {
@@ -1381,7 +1516,7 @@ type AiProposal = {
 };
 ```
 
-## 47. OfflineCommand
+## 49. OfflineCommand
 
 Optionnel côté serveur pour les commandes synchronisées depuis la PWA.
 
@@ -1408,7 +1543,7 @@ type OfflineCommand = {
 };
 ```
 
-## 48. DataExport
+## 50. DataExport
 
 ```ts
 type DataExport = {
@@ -1426,7 +1561,7 @@ type DataExport = {
 };
 ```
 
-## 49. AuditLog
+## 51. AuditLog
 
 ```ts
 type AuditLog = {
@@ -1453,7 +1588,7 @@ L’audit ne doit pas contenir :
 - prompts complets sensibles ;
 - données inutiles.
 
-## 50. Index recommandés
+## 52. Index recommandés
 
 ### Utilisateurs
 
@@ -1466,13 +1601,24 @@ L’audit ne doit pas contenir :
 - `Exercise.ownerUserId` ;
 - `Exercise.normalizedName` ;
 - `Exercise.primaryMuscleGroupId` ;
-- `Exercise.archivedAt`.
+- `Exercise.archivedAt` ;
+- `UserExercisePreference.userId + exerciseId` unique.
 
-### Programmes
+### Programmes et planification
 
 - `Program.ownerUserId` ;
-- `Program.status` ;
-- `WorkoutTemplate.programId`.
+- `Program.ownerUserId + archivedAt` ;
+- `WorkoutTemplate.programId` ;
+- `WorkoutTemplate.programId + position` unique ;
+- `WorkoutTemplateExercise.workoutTemplateId + exerciseId` unique ;
+- `WorkoutTemplateExercise.workoutTemplateId + position` unique ;
+- `WorkoutTemplateExercise.exerciseId` ;
+- `WorkoutTemplateSet.workoutTemplateExerciseId + position` unique ;
+- `ProgramActivation.userId` ;
+- `ProgramActivation.programId` ;
+- index PostgreSQL partiel unique sur `ProgramActivation.userId` lorsque `endedOn IS NULL` ;
+- `ProgramScheduleEntry.programId + weekday + position` unique ;
+- `ProgramScheduleEntry.workoutTemplateId`.
 
 ### Séances
 
@@ -1503,32 +1649,44 @@ L’audit ne doit pas contenir :
 - `NotificationDelivery.status + scheduledAt` ;
 - `AiRequest.userId + createdAt`.
 
-## 51. Contraintes de suppression
+## 53. Contraintes de suppression
 
 ### Suppression en cascade possible
 
 - tokens d’authentification ;
 - sessions ;
 - préférences sans historique ;
-- brouillons non référencés.
+- `WorkoutTemplateSet` lors du retrait de son `WorkoutTemplateExercise` ;
+- `WorkoutTemplateExercise` lors de la suppression de son `WorkoutTemplate` ;
+- `ProgramScheduleEntry` référant un modèle supprimé.
 
-### Archivage recommandé
+### Comportement de phase 2
 
-- exercices ;
+- `Program` : archivage logique ;
+- `WorkoutTemplate` : suppression physique depuis le constructeur, car aucune séance historique ne le référence encore ;
+- `WorkoutTemplate.archivedAt` : champ réservé, sans workflow exposé ;
+- `ProgramActivation` : historique conservé ;
+- `ProgramScheduleEntry` : supprimé lors du retrait du modèle correspondant ;
+- exercices du catalogue : archivage logique ;
+- préférences utilisateur : conservées lors de l’archivage d’un exercice.
+
+### Archivage recommandé pour les modules futurs
+
 - équipements ;
-- programmes ;
-- modèles ;
 - aliments ;
 - recettes ;
 - repas sauvegardés.
 
 ### Conservation ou anonymisation
 
+- séances individuelles ;
 - séances partagées ;
 - événements d’audit ;
 - historiques nécessaires aux autres participants.
 
-## 52. Agrégats métier recommandés
+À partir de la phase 3, une séance réelle doit utiliser des snapshots afin qu’une modification ou suppression ultérieure d’un programme ne réécrive pas son historique.
+
+## 54. Agrégats métier recommandés
 
 Pour éviter des transactions trop larges, le domaine peut être séparé en agrégats.
 
@@ -1549,7 +1707,10 @@ Pour éviter des transactions trop larges, le domaine peut être séparé en agr
 - Program ;
 - WorkoutTemplate ;
 - WorkoutTemplateExercise ;
-- WorkoutTemplateSet.
+- WorkoutTemplateSet ;
+- ProgramScheduleEntry.
+
+L’activation courante utilise `ProgramActivation` et impose une contrainte d’unicité par utilisateur.
 
 ### Agrégat séance
 
@@ -1578,7 +1739,7 @@ Pour éviter des transactions trop larges, le domaine peut être séparé en agr
 - AiRequest ;
 - AiProposal.
 
-## 53. Modèle minimal pour commencer
+## 55. Modèle minimal pour commencer
 
 La totalité du modèle ne doit pas être implémentée dès la phase 0.
 
@@ -1594,17 +1755,21 @@ La totalité du modèle ne doit pas être implémentée dès la phase 0.
 
 - MuscleGroup ;
 - EquipmentType ;
-- Equipment ;
 - Exercise ;
 - ExerciseSecondaryMuscle ;
+- ExerciseEquipmentCompatibility ;
 - UserExercisePreference.
+
+Le modèle `Equipment` reste prévu pour une phase ultérieure consacrée aux équipements physiques ou personnels.
 
 ### Phase 2
 
 - Program ;
 - WorkoutTemplate ;
 - WorkoutTemplateExercise ;
-- WorkoutTemplateSet.
+- WorkoutTemplateSet ;
+- ProgramActivation ;
+- ProgramScheduleEntry.
 
 ### Phase 3
 
@@ -1612,6 +1777,8 @@ La totalité du modèle ne doit pas être implémentée dès la phase 0.
 - WorkoutSessionExercise ;
 - WorkoutSet ;
 - OfflineCommand ou mécanisme équivalent.
+
+La création d’une séance depuis un modèle doit copier un snapshot immuable des informations nécessaires : noms, ordre, type de mesure, équipement prévu, repos, notes et séries cibles.
 
 ### Phase 4
 
@@ -1649,7 +1816,7 @@ La totalité du modèle ne doit pas être implémentée dès la phase 0.
 - DataExport ;
 - AuditLog.
 
-## 54. Décisions à confirmer pendant l’implémentation
+## 56. Décisions à confirmer pendant l’implémentation
 
 Les points suivants restent volontairement ouverts :
 
@@ -1657,10 +1824,21 @@ Les points suivants restent volontairement ouverts :
 - refresh token en cookie ou autre stratégie sécurisée ;
 - conservation ou non d’un journal détaillé de tous les événements ;
 - calcul des records à la demande ou matérialisation ;
-- granularité exacte des séries modèles ;
+- stratégie d’archivage individuel de `WorkoutTemplate` et usage futur de `archivedAt` ;
+- stratégie de versionnement ou de concurrence des programmes sur plusieurs appareils ;
+- structure exacte des snapshots de séance en phase 3 ;
 - source initiale du catalogue alimentaire ;
 - durée de conservation des demandes IA ;
 - stratégie de suppression différée ;
 - précision décimale exacte des colonnes PostgreSQL.
 
-Ces décisions devront être prises avant l’implémentation du module concerné et documentées dans les fichiers techniques.
+Les décisions suivantes sont confirmées à la clôture de la phase 2 :
+
+- une série cible possède une ligne `WorkoutTemplateSet` distincte ;
+- un exercice ne peut apparaître qu’une fois dans un même modèle ;
+- RIR et RPE ne sont pas renseignés simultanément sur une série cible ;
+- une seule activation courante est autorisée par utilisateur ;
+- la planification hebdomadaire appartient au programme et ne crée aucune séance réelle.
+
+Les décisions encore ouvertes devront être prises avant l’implémentation du module concerné et documentées dans les fichiers techniques.
+
