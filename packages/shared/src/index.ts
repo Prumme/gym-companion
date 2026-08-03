@@ -24,6 +24,17 @@ export type ApiListResponse<T> = {
   pagination: PaginationMeta;
 };
 
+/** Métadonnées de pagination par cursor opaque (listes Phase 1+). */
+export type CursorPaginationMeta = {
+  nextCursor: string | null;
+  hasMore: boolean;
+};
+
+export type ApiCursorListResponse<T> = {
+  data: T[];
+  pagination: CursorPaginationMeta;
+};
+
 export type HealthStatus = 'ok' | 'degraded' | 'error';
 
 export type HealthCheckResult = {
@@ -48,6 +59,75 @@ export type TrainingGoal =
   | 'GENERAL_FITNESS';
 export type ExperienceLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
 export type EffortTrackingMode = 'NONE' | 'RIR' | 'RPE';
+
+/** Référence système d’un groupe musculaire (lecture seule). */
+export type MuscleGroupReference = {
+  id: string;
+  code: string;
+  name: string;
+  parentId: string | null;
+};
+
+/** Référence système d’un type d’équipement (lecture seule). */
+export type EquipmentTypeReference = {
+  id: string;
+  code: string;
+  name: string;
+};
+
+export type ExerciseSource = 'SYSTEM' | 'USER';
+
+export type ExerciseMeasurementType =
+  | 'WEIGHT_REPS'
+  | 'BODYWEIGHT_REPS'
+  | 'ASSISTED_BODYWEIGHT_REPS'
+  | 'REPS_ONLY'
+  | 'DURATION'
+  | 'DISTANCE_DURATION'
+  | 'WEIGHT_DURATION';
+
+export type ExercisePermissions = {
+  canEdit: boolean;
+  canArchive: boolean;
+  canRestore: boolean;
+};
+
+export type ExerciseCompatibleEquipment = {
+  equipmentType: EquipmentTypeReference;
+  isPreferred: boolean;
+  notes: string | null;
+};
+
+export type ExerciseListItem = {
+  id: string;
+  source: ExerciseSource;
+  name: string;
+  measurementType: ExerciseMeasurementType;
+  primaryMuscleGroup: MuscleGroupReference;
+  defaultEquipmentType: EquipmentTypeReference | null;
+  defaultRestSeconds: number | null;
+  archivedAt: string | null;
+  permissions: ExercisePermissions;
+};
+
+export type ExerciseListResponse = ApiCursorListResponse<ExerciseListItem>;
+
+export type ExerciseDetail = {
+  id: string;
+  source: ExerciseSource;
+  name: string;
+  measurementType: ExerciseMeasurementType;
+  primaryMuscleGroup: MuscleGroupReference;
+  secondaryMuscleGroups: MuscleGroupReference[];
+  defaultEquipmentType: EquipmentTypeReference | null;
+  compatibleEquipmentTypes: ExerciseCompatibleEquipment[];
+  defaultRestSeconds: number | null;
+  instructions: string | null;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  permissions: ExercisePermissions;
+};
 
 export function createSuccessResponse<T>(data: T): ApiSuccessResponse<T> {
   return { data };

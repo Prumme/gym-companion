@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseApiEnv, profileFormSchema, toUpdateProfilePayload } from './index';
+import {
+  buildExerciseCursorFilter,
+  createExerciseSchema,
+  decodeExerciseCursor,
+  encodeExerciseCursor,
+  listExercisesQuerySchema,
+  normalizeExerciseName,
+  parseApiEnv,
+  profileFormSchema,
+  toUpdateProfilePayload,
+} from './index';
 
 const validEnv = {
   NODE_ENV: 'development',
@@ -98,5 +108,188 @@ describe('profileFormSchema', () => {
       currentWeightKg: null,
       primaryGoal: 'STRENGTH',
     });
+  });
+});
+
+describe('normalizeExerciseName', () => {
+  it('trims, collapses spaces, lowercases and strips accents', () => {
+    expect(normalizeExerciseName('  Développé   Couché ')).toBe('developpe couche');
+  });
+
+  it('normalizes search variants to the same key', () => {
+    expect(normalizeExerciseName('developpe couche')).toBe('developpe couche');
+    expect(normalizeExerciseName('Développé couché')).toBe('developpe couche');
+    expect(normalizeExerciseName('  DÉVELOPPÉ   COUCHÉ')).toBe('developpe couche');
+  });
+});
+
+describe('listExercisesQuerySchema', () => {
+  it('parses includeArchived=true', () => {
+    expect(listExercisesQuerySchema.parse({ includeArchived: 'true' }).includeArchived).toBe(
+      true,
+    );
+  });
+
+  it('parses includeArchived=false', () => {
+    expect(listExercisesQuerySchema.parse({ includeArchived: 'false' }).includeArchived).toBe(
+      false,
+    );
+  });
+
+  it('defaults includeArchived to false when absent', () => {
+    expect(listExercisesQuerySchema.parse({}).includeArchived).toBe(false);
+  });
+
+  it('rejects an ambiguous boolean', () => {
+    const result = listExercisesQuerySchema.safeParse({ includeArchived: 'maybe' });
+    expect(result.success).toBe(false);
+  });
+
+  it('defaults limit to 20', () => {
+    expect(listExercisesQuerySchema.parse({}).limit).toBe(20);
+  });
+
+  it('accepts limit minimum 1', () => {
+    expect(listExercisesQuerySchema.parse({ limit: '1' }).limit).toBe(1);
+  });
+
+  it('accepts limit maximum 100', () => {
+    expect(listExercisesQuerySchema.parse({ limit: '100' }).limit).toBe(100);
+  });
+
+  it('rejects limit below minimum', () => {
+    expect(listExercisesQuerySchema.safeParse({ limit: '0' }).success).toBe(false);
+  });
+
+  it('rejects non-integer limit', () => {
+    expect(listExercisesQuerySchema.safeParse({ limit: 'abc' }).success).toBe(false);
+  });
+
+  it('rejects limit above maximum', () => {
+    expect(listExercisesQuerySchema.safeParse({ limit: '101' }).success).toBe(false);
+  });
+
+  it('rejects invalid measurementType', () => {
+    expect(
+      listExercisesQuerySchema.safeParse({ measurementType: 'NOT_A_TYPE' }).success,
+    ).toBe(false);
+  });
+
+  it('rejects invalid source', () => {
+    expect(listExercisesQuerySchema.safeParse({ source: 'COMMUNITY' }).success).toBe(false);
+  });
+
+  it('normalizes search and treats empty as absent', () => {
+    expect(listExercisesQuerySchema.parse({ search: '  Développé   Couché ' }).search).toBe(
+      'developpe couche',
+    );
+    expect(listExercisesQuerySchema.parse({ search: '   ' }).search).toBeUndefined();
+  });
+});
+
+describe('exercise cursor', () => {
+  it('encodes and decodes a cursor', () => {
+    const payload = {
+      version: 1 as const,
+      normalizedName: 'developpe couche',
+      id: '11111111-1111-1111-1111-111111111111',
+    };
+    const encoded = encodeExerciseCursor(payload);
+    expect(encoded).not.toContain('{');
+    expect(decodeExerciseCursor(encoded)).toEqual(payload);
+  });
+
+  it('rejects a malformed cursor', () => {
+    expect(() => decodeExerciseCursor('not-a-cursor')).toThrow('EXERCISE_INVALID_CURSOR');
+  });
+
+  it('rejects an unknown cursor version', () => {
+    const encoded = Buffer.from(
+      JSON.stringify({
+        version: 99,
+        normalizedName: 'x',
+        id: '11111111-1111-1111-1111-111111111111',
+      }),
+      'utf8',
+    ).toString('base64url');
+    expect(() => decodeExerciseCursor(encoded)).toThrow('EXERCISE_INVALID_CURSOR');
+  });
+
+  it('builds a stable pagination filter', () => {
+    expect(
+      buildExerciseCursorFilter({
+        version: 1,
+        normalizedName: 'curl',
+        id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      }),
+    ).toEqual({
+      OR: [
+        { normalizedName: { gt: 'curl' } },
+        {
+          AND: [
+            { normalizedName: 'curl' },
+            { id: { gt: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' } },
+          ],
+        },
+      ],
+    });
+  });
+});
+
+describe('createExerciseSchema', () => {
+  const primary = '11111111-1111-1111-1111-111111111111';
+  const secondary = '22222222-2222-2222-2222-222222222222';
+  const equipment = '33333333-3333-3333-3333-333333333333';
+
+  const valid = {
+    name: 'Curl personnalisé',
+    primaryMuscleGroupId: primary,
+    secondaryMuscleGroupIds: [secondary],
+    measurementType: 'WEIGHT_REPS' as const,
+    defaultEquipmentTypeId: equipment,
+    compatibleEquipmentTypes: [
+      { equipmentTypeId: equipment, isPreferred: true, notes: null },
+    ],
+    defaultRestSeconds: 60,
+    instructions: null,
+  };
+
+  it('accepts a valid payload', () => {
+    expect(createExerciseSchema.parse(valid).name).toBe('Curl personnalisé');
+  });
+
+  it('rejects primary muscle repeated as secondary', () => {
+    const result = createExerciseSchema.safeParse({
+      ...valid,
+      secondaryMuscleGroupIds: [primary],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects duplicate secondary muscles', () => {
+    const result = createExerciseSchema.safeParse({
+      ...valid,
+      secondaryMuscleGroupIds: [secondary, secondary],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects duplicate compatible equipment', () => {
+    const result = createExerciseSchema.safeParse({
+      ...valid,
+      compatibleEquipmentTypes: [
+        { equipmentTypeId: equipment, isPreferred: true, notes: null },
+        { equipmentTypeId: equipment, isPreferred: false, notes: null },
+      ],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects default equipment not in compatible list', () => {
+    const result = createExerciseSchema.safeParse({
+      ...valid,
+      defaultEquipmentTypeId: '44444444-4444-4444-4444-444444444444',
+    });
+    expect(result.success).toBe(false);
   });
 });

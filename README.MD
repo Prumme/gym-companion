@@ -261,6 +261,7 @@ pnpm install
 cp .env.example .env
 docker compose up -d postgres
 pnpm --filter @gym-companion/api prisma:deploy
+pnpm --filter @gym-companion/api prisma:seed
 pnpm build
 ```
 
@@ -274,6 +275,10 @@ pnpm dev
 - API : http://localhost:3000
 - Health : http://localhost:3000/health/live et `/health/ready`
 - OpenAPI : http://localhost:3000/docs
+- Références : http://localhost:3000/api/v1/reference/muscle-groups et `/equipment-types`
+- Exercices : http://localhost:3000/api/v1/exercises
+  - Query : `search`, `muscleGroupId`, `equipmentTypeId`, `measurementType`, `source`, `includeArchived`, `cursor`, `limit` (défaut 20, max 100)
+  - Réponse : `{ data, pagination: { nextCursor, hasMore } }`
 - Mailpit : http://localhost:8025 (`docker compose up -d mailpit`)
 
 Compose complet (profil `full`) :

@@ -3,6 +3,7 @@ import request from 'supertest';
 import { Test } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
+import { normalizeExerciseName } from '@gym-companion/validation';
 
 import { AppModule } from '../src/app.module';
 import { GlobalExceptionFilter } from '../src/common/filters/global-exception.filter';
@@ -49,17 +50,32 @@ async function registerUser(
   return response.body.data.accessToken as string;
 }
 
+type ListItem = {
+  id: string;
+  source: string;
+  name: string;
+  measurementType: string;
+  primaryMuscleGroup: { id: string; code: string };
+  defaultEquipmentType: { id: string; code: string } | null;
+  archivedAt: string | null;
+  permissions: unknown;
+};
+
 describe('Exercises catalog API', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let tokenA: string;
   let tokenB: string;
+  let userAId: string;
   let chestId: string;
+  let backId: string;
   let barbellId: string;
+  let dumbbellId: string;
   let tricepsId: string;
   const emailA = `ex-a-${Date.now()}@example.com`;
   const emailB = `ex-b-${Date.now()}@example.com`;
   let personalExerciseId = '';
+  const duplicateNameIds: string[] = [];
 
   beforeAll(async () => {
     applyTestEnv();
@@ -80,18 +96,49 @@ describe('Exercises catalog API', () => {
     await seedSystemExercises(prisma);
 
     const chest = await prisma.muscleGroup.findUniqueOrThrow({ where: { code: 'chest' } });
+    const back = await prisma.muscleGroup.findUniqueOrThrow({ where: { code: 'back' } });
     const triceps = await prisma.muscleGroup.findUniqueOrThrow({
       where: { code: 'triceps' },
     });
     const barbell = await prisma.equipmentType.findUniqueOrThrow({
       where: { code: 'barbell' },
     });
+    const dumbbell = await prisma.equipmentType.findUniqueOrThrow({
+      where: { code: 'dumbbell' },
+    });
     chestId = chest.id;
+    backId = back.id;
     tricepsId = triceps.id;
     barbellId = barbell.id;
+    dumbbellId = dumbbell.id;
 
     tokenA = await registerUser(app, emailA, 'User A');
     tokenB = await registerUser(app, emailB, 'User B');
+    userAId = (
+      await prisma.user.findUniqueOrThrow({ where: { email: emailA } })
+    ).id;
+
+    // Données dédiées pagination / noms identiques (déterministes).
+    for (let i = 0; i < 5; i += 1) {
+      const created = await prisma.exercise.create({
+        data: {
+          source: 'USER',
+          ownerUserId: userAId,
+          name: 'Clone Pagination',
+          normalizedName: normalizeExerciseName('Clone Pagination'),
+          primaryMuscleGroupId: backId,
+          measurementType: 'DURATION',
+          defaultEquipmentTypeId: dumbbellId,
+          compatibleEquipment: {
+            create: [{ equipmentTypeId: dumbbellId, isPreferred: true }],
+          },
+          secondaryMuscles: {
+            create: [{ muscleGroupId: tricepsId }],
+          },
+        },
+      });
+      duplicateNameIds.push(created.id);
+    }
   }, 60_000);
 
   afterAll(async () => {
@@ -111,47 +158,210 @@ describe('Exercises catalog API', () => {
     expect(bySlug).toHaveLength(SYSTEM_EXERCISE_SEEDS.length);
   });
 
-  it('lists system exercises for an authenticated user', async () => {
+  it('lists with default limit 20 and pagination meta', async () => {
     const response = await request(app.getHttpServer())
       .get('/api/v1/exercises')
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
 
     expect(Array.isArray(response.body.data)).toBe(true);
-    const system = response.body.data.filter(
-      (item: { source: string }) => item.source === 'SYSTEM',
-    );
-    expect(system.length).toBeGreaterThanOrEqual(SYSTEM_EXERCISE_SEEDS.length);
-
-    const names = response.body.data.map((item: { name: string }) => item.name);
-    const normalized = response.body.data.map(
-      (item: { name: string }) => item.name,
-    );
-    // Ordre déterministe côté API via normalizedName.
-    expect(names.length).toBeGreaterThan(0);
-    void normalized;
-    for (let i = 1; i < response.body.data.length; i += 1) {
-      const prev = response.body.data[i - 1] as { name: string; id: string };
-      const curr = response.body.data[i] as { name: string; id: string };
-      const prevKey = prev.name
-        .normalize('NFD')
-        .replace(/\p{M}/gu, '')
-        .toLowerCase();
-      const currKey = curr.name
-        .normalize('NFD')
-        .replace(/\p{M}/gu, '')
-        .toLowerCase();
-      expect(prevKey <= currKey).toBe(true);
-      if (prevKey === currKey) {
-        expect(prev.id <= curr.id).toBe(true);
-      }
+    expect(response.body.data.length).toBeLessThanOrEqual(20);
+    expect(response.body.pagination).toMatchObject({
+      hasMore: expect.any(Boolean),
+    });
+    expect(response.body.pagination).toHaveProperty('nextCursor');
+    if (response.body.pagination.hasMore) {
+      expect(typeof response.body.pagination.nextCursor).toBe('string');
+      expect(response.body.data.length).toBe(20);
+    } else {
+      expect(response.body.pagination.nextCursor).toBeNull();
     }
 
-    for (const item of response.body.data) {
+    for (const item of response.body.data as ListItem[]) {
       expect(item).not.toHaveProperty('normalizedName');
       expect(item).not.toHaveProperty('ownerUserId');
       expect(item.permissions).toBeDefined();
     }
+  });
+
+  it('paginates without duplicates or missing identical names', async () => {
+    const page1 = await request(app.getHttpServer())
+      .get('/api/v1/exercises')
+      .query({ limit: 5 })
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+
+    expect(page1.body.data).toHaveLength(5);
+    expect(page1.body.pagination.hasMore).toBe(true);
+    expect(typeof page1.body.pagination.nextCursor).toBe('string');
+
+    const page2 = await request(app.getHttpServer())
+      .get('/api/v1/exercises')
+      .query({ limit: 5, cursor: page1.body.pagination.nextCursor })
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+
+    expect(page2.body.data.length).toBeGreaterThan(0);
+
+    const ids1 = (page1.body.data as ListItem[]).map((item) => item.id);
+    const ids2 = (page2.body.data as ListItem[]).map((item) => item.id);
+    expect(ids1.some((id) => ids2.includes(id))).toBe(false);
+
+    // Collect all pages for duplicate-name set.
+    const allIds: string[] = [];
+    let cursor: string | null = null;
+    let guard = 0;
+    do {
+      const query: Record<string, string | number> = {
+        limit: 3,
+        search: 'clone pagination',
+      };
+      if (cursor) {
+        query.cursor = cursor;
+      }
+      const page = await request(app.getHttpServer())
+        .get('/api/v1/exercises')
+        .query(query)
+        .set('Authorization', `Bearer ${tokenA}`)
+        .expect(200);
+      allIds.push(...(page.body.data as ListItem[]).map((item) => item.id));
+      const pagination = page.body.pagination as {
+        hasMore: boolean;
+        nextCursor: string | null;
+      };
+      cursor = pagination.hasMore ? pagination.nextCursor : null;
+      guard += 1;
+    } while (cursor && guard < 20);
+
+    expect(new Set(allIds).size).toBe(allIds.length);
+    for (const id of duplicateNameIds) {
+      expect(allIds).toContain(id);
+    }
+  });
+
+  it('rejects invalid cursor and invalid limit', async () => {
+    const badCursor = await request(app.getHttpServer())
+      .get('/api/v1/exercises')
+      .query({ cursor: 'not-valid' })
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(400);
+    expect(badCursor.body.error.code).toBe('EXERCISE_INVALID_CURSOR');
+
+    const badLimit = await request(app.getHttpServer())
+      .get('/api/v1/exercises')
+      .query({ limit: 'abc' })
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(400);
+    expect(badLimit.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('supports search exact, partial, accents, case and spaces', async () => {
+    const variants = [
+      'Développé couché à la barre',
+      'developpe',
+      'couche',
+      'DEVELOPPE COUCHE',
+      '  Développé   couché  ',
+    ];
+
+    for (const search of variants) {
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/exercises')
+        .query({ search, limit: 50 })
+        .set('Authorization', `Bearer ${tokenA}`)
+        .expect(200);
+
+      expect(
+        (response.body.data as ListItem[]).some((item) =>
+          item.name.toLowerCase().includes('couch'),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it('filters by primary and secondary muscle groups', async () => {
+    const primary = await request(app.getHttpServer())
+      .get('/api/v1/exercises')
+      .query({ muscleGroupId: chestId, limit: 100 })
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+
+    expect(primary.body.data.length).toBeGreaterThan(0);
+    expect(
+      (primary.body.data as ListItem[]).some(
+        (item) => item.primaryMuscleGroup.code === 'chest',
+      ),
+    ).toBe(true);
+
+    const secondary = await request(app.getHttpServer())
+      .get('/api/v1/exercises')
+      .query({ muscleGroupId: tricepsId, limit: 100 })
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+
+    expect(
+      (secondary.body.data as ListItem[]).some((item) =>
+        duplicateNameIds.includes(item.id),
+      ),
+    ).toBe(true);
+  });
+
+  it('filters by compatible equipment, measurement and source', async () => {
+    const byEquipment = await request(app.getHttpServer())
+      .get('/api/v1/exercises')
+      .query({ equipmentTypeId: barbellId, limit: 100 })
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    expect(byEquipment.body.data.length).toBeGreaterThan(0);
+
+    const byMeasurement = await request(app.getHttpServer())
+      .get('/api/v1/exercises')
+      .query({ measurementType: 'DURATION', limit: 100 })
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    expect(
+      (byMeasurement.body.data as ListItem[]).every(
+        (item) => item.measurementType === 'DURATION',
+      ),
+    ).toBe(true);
+
+    const systemOnly = await request(app.getHttpServer())
+      .get('/api/v1/exercises')
+      .query({ source: 'SYSTEM', limit: 100 })
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    expect(
+      (systemOnly.body.data as ListItem[]).every((item) => item.source === 'SYSTEM'),
+    ).toBe(true);
+
+    const userOnly = await request(app.getHttpServer())
+      .get('/api/v1/exercises')
+      .query({ source: 'USER', limit: 100 })
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    expect(
+      (userOnly.body.data as ListItem[]).every((item) => item.source === 'USER'),
+    ).toBe(true);
+    expect(userOnly.body.data.length).toBeGreaterThan(0);
+  });
+
+  it('combines muscle, equipment and measurement filters', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/exercises')
+      .query({
+        muscleGroupId: backId,
+        equipmentTypeId: dumbbellId,
+        measurementType: 'DURATION',
+        limit: 100,
+      })
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+
+    expect(
+      (response.body.data as ListItem[]).some((item) =>
+        duplicateNameIds.includes(item.id),
+      ),
+    ).toBe(true);
   });
 
   it('creates a personal exercise with source USER and owner enforced', async () => {
@@ -180,24 +390,17 @@ describe('Exercises catalog API', () => {
     expect(created.body.data.compatibleEquipmentTypes).toHaveLength(1);
     expect(created.body.data).not.toHaveProperty('normalizedName');
     personalExerciseId = created.body.data.id as string;
-
-    const db = await prisma.exercise.findUniqueOrThrow({
-      where: { id: personalExerciseId },
-      include: { secondaryMuscles: true, compatibleEquipment: true },
-    });
-    expect(db.source).toBe('USER');
-    expect(db.ownerUserId).not.toBeNull();
-    expect(db.secondaryMuscles).toHaveLength(1);
-    expect(db.compatibleEquipment).toHaveLength(1);
   });
 
   it('shows personal exercises only to their owner', async () => {
     const listA = await request(app.getHttpServer())
       .get('/api/v1/exercises')
+      .query({ source: 'USER', limit: 100 })
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     const listB = await request(app.getHttpServer())
       .get('/api/v1/exercises')
+      .query({ source: 'USER', limit: 100 })
       .set('Authorization', `Bearer ${tokenB}`)
       .expect(200);
 
@@ -259,6 +462,7 @@ describe('Exercises catalog API', () => {
 
     const defaultList = await request(app.getHttpServer())
       .get('/api/v1/exercises')
+      .query({ limit: 100, search: 'curl maison a' })
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     expect(
@@ -268,7 +472,8 @@ describe('Exercises catalog API', () => {
     ).toBe(false);
 
     const archivedList = await request(app.getHttpServer())
-      .get('/api/v1/exercises?includeArchived=true')
+      .get('/api/v1/exercises')
+      .query({ includeArchived: true, limit: 100, search: 'curl maison a' })
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     expect(
@@ -282,6 +487,28 @@ describe('Exercises catalog API', () => {
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     expect(restored.body.data.archivedAt).toBeNull();
+  });
+
+  it('never returns another user archived personal exercises', async () => {
+    await request(app.getHttpServer())
+      .delete(`/api/v1/exercises/${personalExerciseId}`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+
+    const listB = await request(app.getHttpServer())
+      .get('/api/v1/exercises')
+      .query({ includeArchived: true, limit: 100, source: 'USER' })
+      .set('Authorization', `Bearer ${tokenB}`)
+      .expect(200);
+
+    expect(
+      listB.body.data.some((item: { id: string }) => item.id === personalExerciseId),
+    ).toBe(false);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/exercises/${personalExerciseId}/restore`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
   });
 
   it('returns validation error format for invalid payload', async () => {

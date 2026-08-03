@@ -11,6 +11,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { createSuccessResponse } from '@gym-companion/shared';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -20,20 +21,30 @@ import {
 } from '../../common/guards/jwt-auth.guard';
 import { ExercisesService } from './exercises.service';
 
+@ApiTags('exercises')
+@ApiBearerAuth()
 @Controller('api/v1/exercises')
 @UseGuards(JwtAuthGuard)
 export class ExercisesController {
   constructor(private readonly exercisesService: ExercisesService) {}
 
   @Get()
+  @ApiOperation({
+    summary: 'Liste paginée des exercices visibles (système + personnels)',
+  })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'muscleGroupId', required: false, type: String })
+  @ApiQuery({ name: 'equipmentTypeId', required: false, type: String })
+  @ApiQuery({ name: 'measurementType', required: false, type: String })
+  @ApiQuery({ name: 'source', required: false, enum: ['SYSTEM', 'USER'] })
+  @ApiQuery({ name: 'includeArchived', required: false, type: Boolean })
+  @ApiQuery({ name: 'cursor', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
   async list(
     @CurrentUser() user: AuthenticatedUser,
-    @Query('includeArchived') includeArchived?: string,
+    @Query() query: Record<string, string | undefined>,
   ) {
-    const include =
-      includeArchived === 'true' || includeArchived === '1' || includeArchived === 'yes';
-    const data = await this.exercisesService.list(user.id, include);
-    return createSuccessResponse(data);
+    return this.exercisesService.list(user.id, query);
   }
 
   @Get(':exerciseId')

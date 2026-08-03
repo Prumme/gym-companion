@@ -216,7 +216,7 @@ model Exercise {
   @@index([source])
   @@index([primaryMuscleGroupId])
   @@index([archivedAt])
-  @@index([normalizedName])
+  @@index([normalizedName, id])
   @@map("exercises")
 }
 

@@ -4,8 +4,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import type { ExerciseListResponse } from '@gym-companion/shared';
 import {
+  buildExerciseCursorFilter,
   createExerciseSchema,
+  decodeExerciseCursor,
+  encodeExerciseCursor,
+  listExercisesQuerySchema,
   normalizeExerciseName,
   updateExerciseSchema,
   type CreateExerciseInput,
@@ -17,10 +22,9 @@ import { PrismaService } from '../../database/prisma/prisma.service';
 import {
   toExerciseDetail,
   toExerciseListItem,
+  type ExerciseListRow,
   type ExerciseRow,
 } from './exercises.mapper';
-
-const LIST_LIMIT = 500;
 
 const exerciseDetailInclude = {
   primaryMuscleGroup: true,
@@ -29,26 +33,149 @@ const exerciseDetailInclude = {
   compatibleEquipment: { include: { equipmentType: true } },
 } satisfies Prisma.ExerciseInclude;
 
+const exerciseListInclude = {
+  primaryMuscleGroup: true,
+  defaultEquipmentType: true,
+} satisfies Prisma.ExerciseInclude;
+
 @Injectable()
 export class ExercisesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(userId: string, includeArchived: boolean) {
-    const rows = await this.prisma.exercise.findMany({
-      where: {
-        AND: [
-          {
-            OR: [{ source: 'SYSTEM' }, { source: 'USER', ownerUserId: userId }],
-          },
-          includeArchived ? {} : { archivedAt: null },
+  /**
+   * Liste paginée des exercices visibles.
+   *
+   * Convention filtres de référence :
+   * - `muscleGroupId` / `equipmentTypeId` inconnus ou inactifs → erreur 400
+   *   (`EXERCISE_INVALID_*_FILTER`), pas une liste vide silencieuse.
+   */
+  async list(userId: string, rawQuery: unknown): Promise<ExerciseListResponse> {
+    let query;
+    try {
+      query = listExercisesQuerySchema.parse(rawQuery);
+    } catch (error) {
+      if (error && typeof error === 'object' && (error as { name?: string }).name === 'ZodError') {
+        throw error;
+      }
+      throw new BadRequestException({
+        code: 'EXERCISE_INVALID_LIST_QUERY',
+        message: 'Paramètres de liste invalides.',
+      });
+    }
+
+    if (query.muscleGroupId) {
+      const muscle = await this.prisma.muscleGroup.findFirst({
+        where: { id: query.muscleGroupId, isActive: true },
+      });
+      if (!muscle) {
+        throw new BadRequestException({
+          code: 'EXERCISE_INVALID_MUSCLE_GROUP_FILTER',
+          message: 'Groupe musculaire de filtre invalide ou inactif.',
+        });
+      }
+    }
+
+    if (query.equipmentTypeId) {
+      const equipment = await this.prisma.equipmentType.findFirst({
+        where: { id: query.equipmentTypeId, isActive: true },
+      });
+      if (!equipment) {
+        throw new BadRequestException({
+          code: 'EXERCISE_INVALID_EQUIPMENT_TYPE_FILTER',
+          message: 'Type d’équipement de filtre invalide ou inactif.',
+        });
+      }
+    }
+
+    let cursorFilter: ReturnType<typeof buildExerciseCursorFilter> | undefined;
+    if (query.cursor) {
+      try {
+        cursorFilter = buildExerciseCursorFilter(decodeExerciseCursor(query.cursor));
+      } catch {
+        throw new BadRequestException({
+          code: 'EXERCISE_INVALID_CURSOR',
+          message: 'Cursor de pagination invalide.',
+        });
+      }
+    }
+
+    const visibility: Prisma.ExerciseWhereInput = {
+      OR: [{ source: 'SYSTEM' }, { source: 'USER', ownerUserId: userId }],
+    };
+
+    const filters: Prisma.ExerciseWhereInput[] = [visibility];
+
+    if (!query.includeArchived) {
+      filters.push({ archivedAt: null });
+    }
+
+    if (query.search) {
+      filters.push({
+        normalizedName: { contains: query.search },
+      });
+    }
+
+    if (query.muscleGroupId) {
+      filters.push({
+        OR: [
+          { primaryMuscleGroupId: query.muscleGroupId },
+          { secondaryMuscles: { some: { muscleGroupId: query.muscleGroupId } } },
         ],
-      },
-      include: exerciseDetailInclude,
+      });
+    }
+
+    if (query.equipmentTypeId) {
+      filters.push({
+        compatibleEquipment: {
+          some: { equipmentTypeId: query.equipmentTypeId },
+        },
+      });
+    }
+
+    if (query.measurementType) {
+      filters.push({ measurementType: query.measurementType });
+    }
+
+    if (query.source) {
+      filters.push(
+        query.source === 'SYSTEM'
+          ? { source: 'SYSTEM' }
+          : { source: 'USER', ownerUserId: userId },
+      );
+    }
+
+    if (cursorFilter) {
+      filters.push(cursorFilter);
+    }
+
+    const rows = await this.prisma.exercise.findMany({
+      where: { AND: filters },
+      include: exerciseListInclude,
       orderBy: [{ normalizedName: 'asc' }, { id: 'asc' }],
-      take: LIST_LIMIT,
+      take: query.limit + 1,
     });
 
-    return rows.map((row) => toExerciseListItem(row as ExerciseRow, userId));
+    const hasMore = rows.length > query.limit;
+    const pageRows = hasMore ? rows.slice(0, query.limit) : rows;
+    const last = pageRows[pageRows.length - 1];
+    const nextCursor =
+      hasMore && last
+        ? encodeExerciseCursor({
+            version: 1,
+            normalizedName: last.normalizedName,
+            id: last.id,
+          })
+        : null;
+
+    return {
+      data: pageRows.map((row) =>
+        toExerciseListItem(row as ExerciseListRow, userId),
+      ),
+      pagination: {
+        nextCursor,
+        hasMore,
+      },
+    };
   }
 
   async getById(userId: string, exerciseId: string) {

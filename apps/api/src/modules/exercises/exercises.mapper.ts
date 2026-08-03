@@ -21,19 +21,22 @@ type EquipmentRef = {
   name: string;
 };
 
-export type ExerciseRow = {
+export type ExerciseListRow = {
   id: string;
   source: ExerciseSource;
   name: string;
   measurementType: ExerciseDetail['measurementType'];
   defaultRestSeconds: number | null;
-  instructions: string | null;
   archivedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
   ownerUserId: string | null;
   primaryMuscleGroup: MuscleRef;
   defaultEquipmentType: EquipmentRef | null;
+};
+
+export type ExerciseRow = ExerciseListRow & {
+  instructions: string | null;
+  createdAt: Date;
+  updatedAt: Date;
   secondaryMuscles: Array<{ muscleGroup: MuscleRef }>;
   compatibleEquipment: Array<{
     isPreferred: boolean;
@@ -78,7 +81,7 @@ export function computeExercisePermissions(
 }
 
 export function toExerciseListItem(
-  row: ExerciseRow,
+  row: ExerciseListRow,
   viewerUserId: string,
 ): ExerciseListItem {
   return {

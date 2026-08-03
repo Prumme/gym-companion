@@ -172,3 +172,298 @@ export function toUpdateProfilePayload(values: ProfileFormValues): UpdateProfile
 
   return payload;
 }
+
+export const exerciseSourceSchema = z.enum(['SYSTEM', 'USER']);
+export const exerciseMeasurementTypeSchema = z.enum([
+  'WEIGHT_REPS',
+  'BODYWEIGHT_REPS',
+  'ASSISTED_BODYWEIGHT_REPS',
+  'REPS_ONLY',
+  'DURATION',
+  'DISTANCE_DURATION',
+  'WEIGHT_DURATION',
+]);
+
+const emptyToNull = (value: string | null | undefined) => {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
+};
+
+const compatibleEquipmentInputSchema = z.object({
+  equipmentTypeId: z.string().uuid(),
+  isPreferred: z.boolean().default(false),
+  notes: z
+    .string()
+    .max(500)
+    .nullable()
+    .optional()
+    .transform((value) => (value === undefined ? undefined : emptyToNull(value) ?? null)),
+});
+
+const createExerciseObjectSchema = z.object({
+  name: z.string().trim().min(1, 'Le nom est requis.').max(120),
+  primaryMuscleGroupId: z.string().uuid(),
+  secondaryMuscleGroupIds: z.array(z.string().uuid()).default([]),
+  measurementType: exerciseMeasurementTypeSchema,
+  defaultEquipmentTypeId: z.string().uuid().nullable().optional(),
+  compatibleEquipmentTypes: z.array(compatibleEquipmentInputSchema).default([]),
+  defaultRestSeconds: z.number().int().min(0).max(3600).nullable().optional(),
+  instructions: z
+    .string()
+    .max(4000)
+    .nullable()
+    .optional()
+    .transform((value) => (value === undefined ? undefined : emptyToNull(value) ?? null)),
+});
+
+function refineExercisePayload(
+  data: {
+    primaryMuscleGroupId?: string;
+    secondaryMuscleGroupIds?: string[];
+    defaultEquipmentTypeId?: string | null;
+    compatibleEquipmentTypes?: Array<{
+      equipmentTypeId: string;
+      isPreferred: boolean;
+      notes?: string | null;
+    }>;
+  },
+  ctx: z.RefinementCtx,
+) {
+  const secondary = data.secondaryMuscleGroupIds ?? [];
+  if (new Set(secondary).size !== secondary.length) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['secondaryMuscleGroupIds'],
+      message: 'Groupes musculaires secondaires en double.',
+    });
+  }
+  if (data.primaryMuscleGroupId && secondary.includes(data.primaryMuscleGroupId)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['secondaryMuscleGroupIds'],
+      message: 'Le groupe principal ne peut pas être secondaire.',
+    });
+  }
+
+  const equipmentIds = (data.compatibleEquipmentTypes ?? []).map(
+    (item) => item.equipmentTypeId,
+  );
+  if (new Set(equipmentIds).size !== equipmentIds.length) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['compatibleEquipmentTypes'],
+      message: 'Types d’équipement compatibles en double.',
+    });
+  }
+
+  const preferredCount = (data.compatibleEquipmentTypes ?? []).filter(
+    (item) => item.isPreferred,
+  ).length;
+  if (preferredCount > 1) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['compatibleEquipmentTypes'],
+      message: 'Un seul type d’équipement peut être préféré.',
+    });
+  }
+
+  if (
+    data.defaultEquipmentTypeId &&
+    data.compatibleEquipmentTypes &&
+    !equipmentIds.includes(data.defaultEquipmentTypeId)
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['defaultEquipmentTypeId'],
+      message: 'L’équipement par défaut doit être compatible.',
+    });
+  }
+}
+
+export const createExerciseSchema = createExerciseObjectSchema.superRefine(
+  refineExercisePayload,
+);
+
+export type CreateExerciseInput = z.infer<typeof createExerciseSchema>;
+
+export const updateExerciseSchema = createExerciseObjectSchema
+  .partial()
+  .superRefine(refineExercisePayload);
+export type UpdateExerciseInput = z.infer<typeof updateExerciseSchema>;
+
+/** Normalise un nom d’exercice pour détection de doublons. */
+export function normalizeExerciseName(name: string): string {
+  return name
+    .trim()
+    .replace(/\s+/g, ' ')
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase();
+}
+
+const emptyQueryToUndefined = (value: unknown) => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value === 'string' && value.trim() === '') {
+    return undefined;
+  }
+  return value;
+};
+
+/**
+ * Parse un booléen depuis une query string.
+ * N’utilise pas `Boolean("false")` (qui retournerait true).
+ */
+export const queryBooleanSchema = z.preprocess(
+  emptyQueryToUndefined,
+  z
+    .union([z.boolean(), z.string()])
+    .optional()
+    .transform((value, ctx) => {
+      if (value === undefined) {
+        return false;
+      }
+      if (typeof value === 'boolean') {
+        return value;
+      }
+      const normalized = value.trim().toLowerCase();
+      if (normalized === 'true' || normalized === '1' || normalized === 'yes') {
+        return true;
+      }
+      if (normalized === 'false' || normalized === '0' || normalized === 'no') {
+        return false;
+      }
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Valeur booléenne invalide.',
+      });
+      return z.NEVER;
+    }),
+);
+
+export type ExerciseCursorPayload = {
+  version: 1;
+  normalizedName: string;
+  id: string;
+};
+
+export function encodeExerciseCursor(payload: ExerciseCursorPayload): string {
+  return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+}
+
+export function decodeExerciseCursor(cursor: string): ExerciseCursorPayload {
+  let parsed: unknown;
+  try {
+    const json = Buffer.from(cursor, 'base64url').toString('utf8');
+    parsed = JSON.parse(json) as unknown;
+  } catch {
+    throw new Error('EXERCISE_INVALID_CURSOR');
+  }
+
+  if (
+    typeof parsed !== 'object' ||
+    parsed === null ||
+    (parsed as { version?: unknown }).version !== 1 ||
+    typeof (parsed as { normalizedName?: unknown }).normalizedName !== 'string' ||
+    typeof (parsed as { id?: unknown }).id !== 'string' ||
+    (parsed as { normalizedName: string }).normalizedName.length === 0 ||
+    (parsed as { id: string }).id.length === 0
+  ) {
+    throw new Error('EXERCISE_INVALID_CURSOR');
+  }
+
+  return {
+    version: 1,
+    normalizedName: (parsed as { normalizedName: string }).normalizedName,
+    id: (parsed as { id: string }).id,
+  };
+}
+
+/** Condition Prisma/SQL conceptuelle pour poursuivre après un cursor (normalizedName, id). */
+export function buildExerciseCursorFilter(cursor: ExerciseCursorPayload): {
+  OR: Array<
+    | { normalizedName: { gt: string } }
+    | { AND: [{ normalizedName: string }, { id: { gt: string } }] }
+  >;
+} {
+  return {
+    OR: [
+      { normalizedName: { gt: cursor.normalizedName } },
+      {
+        AND: [
+          { normalizedName: cursor.normalizedName },
+          { id: { gt: cursor.id } },
+        ],
+      },
+    ],
+  };
+}
+
+const listExercisesLimitSchema = z.preprocess(
+  emptyQueryToUndefined,
+  z
+    .union([z.string(), z.number()])
+    .optional()
+    .transform((value, ctx) => {
+      if (value === undefined) {
+        return 20;
+      }
+      if (typeof value === 'number') {
+        if (!Number.isInteger(value)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'limit doit être un entier.',
+          });
+          return z.NEVER;
+        }
+        return value;
+      }
+      const trimmed = value.trim();
+      if (!/^\d+$/.test(trimmed)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'limit doit être un entier.',
+        });
+        return z.NEVER;
+      }
+      return Number(trimmed);
+    })
+    .pipe(z.number().int().min(1).max(100)),
+);
+
+export const listExercisesQuerySchema = z.object({
+  search: z.preprocess(emptyQueryToUndefined, z.string().max(100).optional()).transform(
+    (value) => {
+      if (value === undefined) {
+        return undefined;
+      }
+      const normalized = normalizeExerciseName(value);
+      return normalized.length === 0 ? undefined : normalized;
+    },
+  ),
+  muscleGroupId: z.preprocess(
+    emptyQueryToUndefined,
+    z.string().uuid().optional(),
+  ),
+  equipmentTypeId: z.preprocess(
+    emptyQueryToUndefined,
+    z.string().uuid().optional(),
+  ),
+  measurementType: z.preprocess(
+    emptyQueryToUndefined,
+    exerciseMeasurementTypeSchema.optional(),
+  ),
+  source: z.preprocess(emptyQueryToUndefined, exerciseSourceSchema.optional()),
+  includeArchived: queryBooleanSchema,
+  cursor: z.preprocess(emptyQueryToUndefined, z.string().min(1).optional()),
+  limit: listExercisesLimitSchema,
+});
+
+export type ListExercisesQuery = z.infer<typeof listExercisesQuerySchema>;
