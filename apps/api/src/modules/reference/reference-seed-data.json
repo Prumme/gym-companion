@@ -1,0 +1,25 @@
+{
+  "equipmentTypes": [
+    { "code": "barbell", "name": "Barre" },
+    { "code": "dumbbell", "name": "Haltères" },
+    { "code": "cable", "name": "Poulie" },
+    { "code": "machine", "name": "Machine" },
+    { "code": "bodyweight", "name": "Poids du corps" },
+    { "code": "resistance-band", "name": "Bande élastique" },
+    { "code": "cardio-machine", "name": "Machine de cardio" },
+    { "code": "other", "name": "Autre" }
+  ],
+  "muscleGroups": [
+    { "code": "chest", "name": "Pectoraux" },
+    { "code": "back", "name": "Dos" },
+    { "code": "shoulders", "name": "Épaules" },
+    { "code": "biceps", "name": "Biceps" },
+    { "code": "triceps", "name": "Triceps" },
+    { "code": "forearms", "name": "Avant-bras" },
+    { "code": "quadriceps", "name": "Quadriceps" },
+    { "code": "hamstrings", "name": "Ischio-jambiers" },
+    { "code": "glutes", "name": "Fessiers" },
+    { "code": "calves", "name": "Mollets" },
+    { "code": "core", "name": "Sangle abdominale" }
+  ]
+}

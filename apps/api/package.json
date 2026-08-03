@@ -12,7 +12,11 @@
     "test": "vitest run",
     "prisma:generate": "node ./scripts/run-prisma.cjs generate",
     "prisma:migrate": "node ./scripts/run-prisma.cjs migrate dev",
-    "prisma:deploy": "node ./scripts/run-prisma.cjs migrate deploy"
+    "prisma:deploy": "node ./scripts/run-prisma.cjs migrate deploy",
+    "prisma:seed": "node ./scripts/run-prisma.cjs db seed"
+  },
+  "prisma": {
+    "seed": "node ./prisma/seed.cjs"
   },
   "dependencies": {
     "@gym-companion/shared": "workspace:*",

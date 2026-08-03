@@ -138,3 +138,32 @@ model EmailVerificationToken {
   @@index([expiresAt])
   @@map("email_verification_tokens")
 }
+
+model MuscleGroup {
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique
+  name      String
+  parentId  String?  @db.Uuid
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parent   MuscleGroup?  @relation("MuscleGroupHierarchy", fields: [parentId], references: [id])
+  children MuscleGroup[] @relation("MuscleGroupHierarchy")
+
+  @@index([parentId])
+  @@index([isActive])
+  @@map("muscle_groups")
+}
+
+model EquipmentType {
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@map("equipment_types")
+}

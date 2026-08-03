@@ -6,6 +6,7 @@ import { AppConfigModule } from './config/app-config.module';
 import { PrismaModule } from './database/prisma/prisma.module';
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { ReferenceModule } from './modules/reference/reference.module';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
@@ -16,6 +17,7 @@ import { UsersModule } from './modules/users/users.module';
     HealthModule,
     AuthModule,
     UsersModule,
+    ReferenceModule,
   ],
   providers: [
     {

@@ -33,7 +33,9 @@ async function bootstrap() {
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Gym Companion API')
-    .setDescription('API Phase 0 — authentification, profil et health')
+    .setDescription(
+      'API Phase 0/1.1 — authentification, profil, health et références exercices',
+    )
     .setVersion('0.1.0')
     .addBearerAuth()
     .build();
