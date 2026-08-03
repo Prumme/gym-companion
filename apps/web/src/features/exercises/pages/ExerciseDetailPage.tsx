@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft } from 'lucide-react';
+import { useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 
 import { ButtonLink } from '@/components/ui/button';
@@ -7,19 +8,24 @@ import { LoadingState } from '@/components/common/LoadingState';
 import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
 
 import { exerciseDetailQueryOptions } from '../api/exercise-query-options';
+import { ExerciseManagementSection } from '../components/ExerciseManagementSection';
 import { ExercisePreferenceSection } from '../components/ExercisePreferenceSection';
 import { ExerciseSourceBadge } from '../components/ExerciseSourceBadge';
 import { getMeasurementTypeLabel } from '../lib/exercise-labels';
 
 type DetailLocationState = {
   from?: string;
+  flash?: string;
 };
 
 export function ExerciseDetailPage() {
   const { exerciseId = '' } = useParams();
   const location = useLocation();
-  const backTo =
-    (location.state as DetailLocationState | null)?.from ?? '/exercises';
+  const locationState = location.state as DetailLocationState | null;
+  const backTo = locationState?.from ?? '/exercises';
+  const [statusMessage, setStatusMessage] = useState<string | null>(
+    locationState?.flash ?? null,
+  );
   const detailQuery = useQuery({
     ...exerciseDetailQueryOptions(exerciseId),
     enabled: Boolean(exerciseId),
@@ -77,6 +83,11 @@ export function ExerciseDetailPage() {
             </span>
           ) : null}
         </div>
+        {statusMessage ? (
+          <p className="mt-3 text-sm text-emerald-700" role="status">
+            {statusMessage}
+          </p>
+        ) : null}
       </div>
 
       <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-4">
@@ -137,6 +148,11 @@ export function ExerciseDetailPage() {
           {exercise.instructions?.trim() || 'Aucune instruction.'}
         </p>
       </section>
+
+      <ExerciseManagementSection
+        exercise={exercise}
+        onStatus={setStatusMessage}
+      />
 
       <ExercisePreferenceSection exercise={exercise} />
     </main>

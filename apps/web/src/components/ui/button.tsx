@@ -7,6 +7,8 @@ const variants = {
   primary: 'bg-[var(--primary)] text-[var(--primary-foreground)]',
   secondary: 'border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)]',
   ghost: 'bg-transparent text-[var(--muted)]',
+  destructive:
+    'border border-red-300 bg-red-50 text-[var(--danger)] hover:bg-red-100',
 } as const;
 
 type Variant = keyof typeof variants;

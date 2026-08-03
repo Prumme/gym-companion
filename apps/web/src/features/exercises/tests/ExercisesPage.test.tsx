@@ -21,6 +21,10 @@ vi.mock('../api/exercise-api', () => ({
   updateExercisePreference: vi.fn(),
   resetExercisePreference: vi.fn(),
   getExercisePreference: vi.fn(),
+  createExercise: vi.fn(),
+  updateExercise: vi.fn(),
+  archiveExercise: vi.fn(),
+  restoreExercise: vi.fn(),
   buildExerciseListSearchParams: vi.fn(),
 }));
 
@@ -58,6 +62,7 @@ function renderPage(initialEntry = '/exercises') {
       <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
           <Route path="/exercises" element={children} />
+          <Route path="/exercises/new" element={<div>Create stub</div>} />
           <Route path="/exercises/:exerciseId" element={<div>Detail stub</div>} />
         </Routes>
       </MemoryRouter>
@@ -92,7 +97,9 @@ describe('ExercisesPage', () => {
     expect(await screen.findByText('Squat')).toBeInTheDocument();
     expect(screen.getByText('Soulevé de terre')).toBeInTheDocument();
     expect(screen.getByText('2 exercices chargés')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /créer/i })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /Créer un exercice/i }),
+    ).toHaveAttribute('href', '/exercises/new');
     expect(screen.queryByRole('button', { name: /archiver/i })).not.toBeInTheDocument();
   });
 

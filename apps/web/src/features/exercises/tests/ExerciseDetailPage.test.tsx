@@ -11,6 +11,8 @@ import { createExerciseListItem } from './fixtures';
 const getExercise = vi.fn();
 const updateExercisePreference = vi.fn();
 const resetExercisePreference = vi.fn();
+const archiveExercise = vi.fn();
+const restoreExercise = vi.fn();
 
 vi.mock('../api/exercise-api', async () => {
   const actual = await vi.importActual<typeof import('../api/exercise-api')>(
@@ -23,6 +25,8 @@ vi.mock('../api/exercise-api', async () => {
       updateExercisePreference(...args),
     resetExercisePreference: (...args: unknown[]) =>
       resetExercisePreference(...args),
+    archiveExercise: (...args: unknown[]) => archiveExercise(...args),
+    restoreExercise: (...args: unknown[]) => restoreExercise(...args),
   };
 });
 
@@ -91,6 +95,8 @@ describe('ExerciseDetailPage preferences', () => {
     getExercise.mockReset();
     updateExercisePreference.mockReset();
     resetExercisePreference.mockReset();
+    archiveExercise.mockReset();
+    restoreExercise.mockReset();
   });
 
   it('loads detail and shows preferences', async () => {
@@ -252,5 +258,120 @@ describe('ExerciseDetailPage preferences', () => {
     );
     renderDetail();
     expect(await screen.findByText('Archivé')).toBeInTheDocument();
+  });
+});
+
+describe('ExerciseDetailPage management', () => {
+  beforeEach(() => {
+    getExercise.mockReset();
+    updateExercisePreference.mockReset();
+    resetExercisePreference.mockReset();
+    archiveExercise.mockReset();
+    restoreExercise.mockReset();
+  });
+
+  it('hides edit/archive for system exercises', async () => {
+    getExercise.mockResolvedValue(createDetail());
+    renderDetail();
+    await screen.findByRole('heading', { name: 'Développé couché à la barre' });
+    expect(screen.queryByText('Gestion de l’exercice')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /Modifier l’exercice/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('archives a personal exercise after confirmation and preserves preferences', async () => {
+    const user = userEvent.setup();
+    const personal = createDetail({
+      id: 'user-ex-1',
+      source: 'USER',
+      name: 'Curl perso',
+      permissions: { canEdit: true, canArchive: true, canRestore: false },
+      userPreference: {
+        isFavorite: true,
+        isExcludedFromSuggestions: false,
+        preferredEquipmentType: null,
+        restSecondsOverride: 40,
+      },
+    });
+    getExercise.mockResolvedValue(personal);
+    archiveExercise.mockResolvedValue({
+      ...personal,
+      archivedAt: '2026-08-03T00:00:00.000Z',
+      permissions: { canEdit: false, canArchive: false, canRestore: true },
+    });
+
+    renderDetail('user-ex-1');
+    await screen.findByRole('heading', { name: 'Curl perso' });
+    expect(
+      screen.getByRole('link', { name: /Modifier l’exercice/i }),
+    ).toHaveAttribute('href', '/exercises/user-ex-1/edit');
+
+    await user.click(screen.getByRole('button', { name: /Archiver l’exercice/i }));
+    expect(screen.getByRole('alertdialog')).toHaveTextContent(
+      'Archiver cet exercice ?',
+    );
+    await user.click(screen.getByRole('button', { name: 'Annuler' }));
+    expect(archiveExercise).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: /Archiver l’exercice/i }));
+    await user.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', {
+        name: 'Archiver',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(archiveExercise).toHaveBeenCalledTimes(1);
+      expect(archiveExercise).toHaveBeenCalledWith('user-ex-1');
+    });
+    expect(await screen.findByText('Archivé')).toBeInTheDocument();
+    expect(await screen.findByText('Exercice archivé.')).toBeInTheDocument();
+    expect(screen.getByText('Favori')).toBeInTheDocument();
+  });
+
+  it('restores an archived personal exercise', async () => {
+    const user = userEvent.setup();
+    const archived = createDetail({
+      id: 'user-ex-2',
+      source: 'USER',
+      name: 'Row perso',
+      archivedAt: '2026-08-01T00:00:00.000Z',
+      permissions: { canEdit: false, canArchive: false, canRestore: true },
+      userPreference: {
+        isFavorite: true,
+        isExcludedFromSuggestions: true,
+        preferredEquipmentType: null,
+        restSecondsOverride: 55,
+      },
+    });
+    getExercise.mockResolvedValue(archived);
+    restoreExercise.mockResolvedValue({
+      ...archived,
+      archivedAt: null,
+      permissions: { canEdit: true, canArchive: true, canRestore: false },
+    });
+
+    renderDetail('user-ex-2');
+    await screen.findByRole('heading', { name: 'Row perso' });
+    expect(
+      screen.queryByRole('link', { name: /Modifier l’exercice/i }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Restaurer l’exercice/i }));
+    await user.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', {
+        name: 'Restaurer',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(restoreExercise).toHaveBeenCalledWith('user-ex-2');
+    });
+    expect(await screen.findByText('Exercice restauré.')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('link', { name: /Modifier l’exercice/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Archivé')).not.toBeInTheDocument();
   });
 });

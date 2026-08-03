@@ -1,10 +1,10 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import type { ExerciseListItem } from '@gym-companion/shared';
-import { Filter, Search, X } from 'lucide-react';
+import { Filter, Plus, Search, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
+import { Button, ButtonLink } from '@/components/ui/button';
 import { getApiErrorMessage } from '@/lib/api/client';
 
 import {
@@ -87,6 +87,8 @@ export function ExercisesPage() {
     search: undefined,
   });
   const hasAnyFilter = countActiveExerciseFilters(filters) > 0;
+  const showCreateInEmptyState =
+    !hasAnyFilter || filters.source === 'USER';
   const isInitialLoading = listQuery.isLoading;
 
   function applyFiltersToUrl(next: ExerciseListFilters) {
@@ -108,11 +110,21 @@ export function ExercisesPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-5">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight">Exercices</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Catalogue système et exercices personnels.
-        </p>
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Exercices</h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Catalogue système et exercices personnels.
+          </p>
+        </div>
+        <ButtonLink
+          to="/exercises/new"
+          className="w-full gap-2 sm:w-auto"
+          aria-label="Créer un exercice"
+        >
+          <Plus className="size-4" aria-hidden="true" />
+          Créer un exercice
+        </ButtonLink>
       </header>
 
       <div className="flex flex-col gap-3">
@@ -270,19 +282,29 @@ export function ExercisesPage() {
         <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-6 text-center">
           <p className="text-sm text-[var(--muted)]">
             {hasAnyFilter
-              ? 'Aucun exercice ne correspond à tes filtres.'
+              ? filters.source === 'USER' &&
+                countActiveExerciseFilters({ ...filters, source: undefined }) === 0
+                ? 'Aucun exercice personnel pour le moment.'
+                : 'Aucun exercice ne correspond à tes filtres.'
               : 'Aucun exercice disponible.'}
           </p>
-          {hasAnyFilter ? (
-            <Button
-              type="button"
-              variant="secondary"
-              className="mt-4"
-              onClick={resetFilters}
-            >
-              Réinitialiser les filtres
-            </Button>
-          ) : null}
+          <div className="mt-4 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
+            {hasAnyFilter ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={resetFilters}
+              >
+                Réinitialiser les filtres
+              </Button>
+            ) : null}
+            {showCreateInEmptyState ? (
+              <ButtonLink to="/exercises/new" className="gap-2">
+                <Plus className="size-4" aria-hidden="true" />
+                Créer un exercice
+              </ButtonLink>
+            ) : null}
+          </div>
         </div>
       ) : null}
 

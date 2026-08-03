@@ -273,7 +273,9 @@ pnpm dev
 
 - Web : http://localhost:5173
   - Catalogue : http://localhost:5173/exercises (auth requise)
-  - Détail : http://localhost:5173/exercises/:exerciseId (favoris et préférences personnelles)
+  - Création : http://localhost:5173/exercises/new
+  - Édition : http://localhost:5173/exercises/:exerciseId/edit (exercices personnels actifs)
+  - Détail : http://localhost:5173/exercises/:exerciseId (favoris, préférences, archivage/restauration selon permissions)
 - API : http://localhost:3000
 - Health : http://localhost:3000/health/live et `/health/ready`
 - OpenAPI : http://localhost:3000/docs
