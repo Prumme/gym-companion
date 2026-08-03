@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api/client';
+import type { UpdateProfileInput } from '@gym-companion/validation';
 
 export type MeResponse = {
   data: {
@@ -26,7 +27,7 @@ export function getMe() {
   return apiFetch<MeResponse>('/api/v1/me');
 }
 
-export function updateProfile(input: Partial<MeResponse['data']['profile']>) {
+export function updateProfile(input: UpdateProfileInput) {
   return apiFetch<MeResponse>('/api/v1/me/profile', {
     method: 'PATCH',
     body: JSON.stringify(input),

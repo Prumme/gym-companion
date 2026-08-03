@@ -1,9 +1,31 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+function resolveApiBaseUrl(): string {
+  const configured = import.meta.env.VITE_API_BASE_URL;
+  if (typeof configured === 'string' && configured.length > 0) {
+    return configured;
+  }
+
+  // Fallback local uniquement en développement Vite.
+  if (import.meta.env.DEV) {
+    return 'http://localhost:3000';
+  }
+
+  throw new Error(
+    'VITE_API_BASE_URL must be defined for production builds (see root .env / envDir).',
+  );
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 export type ApiError = {
   code: string;
   message: string;
   fieldErrors?: Record<string, string[]>;
+};
+
+export type ApiRequestError = Error & {
+  code?: string;
+  fieldErrors?: Record<string, string[]>;
+  status?: number;
 };
 
 let accessToken: string | null = null;
@@ -15,6 +37,13 @@ export function setAccessToken(token: string | null) {
 
 export function getAccessToken() {
   return accessToken;
+}
+
+export function getApiErrorMessage(error: unknown, fallback = 'Une erreur est survenue.') {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return fallback;
 }
 
 async function refreshAccessToken(): Promise<string | null> {
@@ -71,11 +100,15 @@ export async function apiFetch<T>(
   const json = (await response.json()) as T | { error: ApiError };
   if (!response.ok) {
     const error = (json as { error: ApiError }).error;
-    throw Object.assign(new Error(error?.message ?? 'Request failed'), {
-      code: error?.code,
-      fieldErrors: error?.fieldErrors,
-      status: response.status,
-    });
+    const requestError: ApiRequestError = Object.assign(
+      new Error(error?.message ?? 'Request failed'),
+      {
+        code: error?.code,
+        fieldErrors: error?.fieldErrors,
+        status: response.status,
+      },
+    );
+    throw requestError;
   }
 
   return json as T;

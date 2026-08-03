@@ -1,10 +1,15 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+
 export default defineConfig({
+  // Charge le .env du monorepo (VITE_API_BASE_URL, VITE_PUBLIC_APP_URL).
+  envDir: rootDir,
   plugins: [
     react(),
     tailwindcss(),
@@ -49,6 +54,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // Source TS : le dist CJS hors node_modules n’est pas transformé correctement par Rollup.
+      '@gym-companion/validation': path.resolve(rootDir, 'packages/validation/src/index.ts'),
     },
   },
   server: {
