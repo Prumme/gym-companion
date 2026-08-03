@@ -7,12 +7,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ProgramDetailPage } from '../pages/ProgramDetailPage';
 import {
+  createActiveProgramSummary,
   createProgramDetail,
   createTemplate,
   createTemplateExercise,
 } from './fixtures';
 
 const getProgram = vi.fn();
+const getActiveProgram = vi.fn();
+const activateProgram = vi.fn();
+const deactivateProgram = vi.fn();
 const archiveProgram = vi.fn();
 const restoreProgram = vi.fn();
 const createWorkoutTemplate = vi.fn();
@@ -26,6 +30,9 @@ vi.mock('../api/program-api', async () => {
   return {
     ...actual,
     getProgram: (...args: unknown[]) => getProgram(...args),
+    getActiveProgram: (...args: unknown[]) => getActiveProgram(...args),
+    activateProgram: (...args: unknown[]) => activateProgram(...args),
+    deactivateProgram: (...args: unknown[]) => deactivateProgram(...args),
     archiveProgram: (...args: unknown[]) => archiveProgram(...args),
     restoreProgram: (...args: unknown[]) => restoreProgram(...args),
     createWorkoutTemplate: (...args: unknown[]) => createWorkoutTemplate(...args),
@@ -39,6 +46,7 @@ const PROGRAM_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 
 function renderDetail(detail = createProgramDetail()) {
   getProgram.mockResolvedValue(detail);
+  getActiveProgram.mockResolvedValue(null);
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -59,6 +67,9 @@ function renderDetail(detail = createProgramDetail()) {
 describe('ProgramDetailPage', () => {
   beforeEach(() => {
     getProgram.mockReset();
+    getActiveProgram.mockReset();
+    activateProgram.mockReset();
+    deactivateProgram.mockReset();
     archiveProgram.mockReset();
     restoreProgram.mockReset();
     createWorkoutTemplate.mockReset();
@@ -109,6 +120,9 @@ describe('ProgramDetailPage', () => {
         canEdit: false,
         canArchive: false,
         canRestore: true,
+        canActivate: false,
+        canDeactivate: false,
+        canEditSchedule: false,
       },
     });
     getProgram.mockResolvedValue(active);
@@ -191,6 +205,42 @@ describe('ProgramDetailPage', () => {
     expect(headings[0]).toHaveTextContent('Séance A');
   });
 
+  it('activates a program from the detail page', async () => {
+    const user = userEvent.setup();
+    const detail = createProgramDetail({
+      permissions: {
+        canEdit: true,
+        canArchive: true,
+        canRestore: false,
+        canActivate: true,
+        canDeactivate: false,
+        canEditSchedule: true,
+      },
+    });
+    const active = createActiveProgramSummary({ program: detail });
+    getActiveProgram.mockResolvedValue(null);
+    activateProgram.mockResolvedValue(active);
+
+    renderDetail(detail);
+    await screen.findByRole('heading', { name: 'Push Pull Legs' });
+    await user.click(screen.getByRole('button', { name: /Utiliser ce programme/i }));
+
+    const dateInput = screen.getByLabelText(/Date de début/i);
+    await user.clear(dateInput);
+    await user.type(dateInput, '2026-08-03');
+    await user.click(screen.getByRole('button', { name: /^Activer$/i }));
+
+    await waitFor(() =>
+      expect(activateProgram).toHaveBeenCalledWith(PROGRAM_ID, {
+        startedOn: '2026-08-03',
+        replaceCurrentProgram: false,
+      }),
+    );
+    expect(
+      await screen.findByText(/maintenant ton programme courant/i),
+    ).toBeInTheDocument();
+  });
+
   it('keeps archived program read-only', async () => {
     renderDetail(
       createProgramDetail({
@@ -200,6 +250,9 @@ describe('ProgramDetailPage', () => {
           canEdit: false,
           canArchive: false,
           canRestore: true,
+          canActivate: false,
+          canDeactivate: false,
+          canEditSchedule: false,
         },
       }),
     );

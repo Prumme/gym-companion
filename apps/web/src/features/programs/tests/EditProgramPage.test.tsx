@@ -74,6 +74,9 @@ describe('EditProgramPage', () => {
           canEdit: false,
           canArchive: false,
           canRestore: true,
+          canActivate: false,
+          canDeactivate: false,
+          canEditSchedule: false,
         },
       }),
     );

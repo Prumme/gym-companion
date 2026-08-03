@@ -1,7 +1,9 @@
 import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
 
 import {
+  getActiveProgram,
   getProgram,
+  getProgramSchedule,
   listPrograms,
   type ProgramListQuery,
 } from './program-api';
@@ -30,5 +32,20 @@ export function programDetailQueryOptions(programId: string) {
   return queryOptions({
     queryKey: programQueryKeys.detail(programId),
     queryFn: () => getProgram(programId),
+  });
+}
+
+export function activeProgramQueryOptions() {
+  return queryOptions({
+    queryKey: programQueryKeys.active(),
+    queryFn: () => getActiveProgram(),
+  });
+}
+
+export function programScheduleQueryOptions(programId: string) {
+  return queryOptions({
+    queryKey: programQueryKeys.schedule(programId),
+    queryFn: () => getProgramSchedule(programId),
+    enabled: Boolean(programId),
   });
 }

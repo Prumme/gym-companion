@@ -8,6 +8,7 @@ import { LoadingState } from '@/components/common/LoadingState';
 import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
 
 import { programDetailQueryOptions } from '../api/program-query-options';
+import { ProgramActivationActions } from '../components/ProgramActivationActions';
 import { ProgramDangerZone } from '../components/ProgramDangerZone';
 import {
   CreateWorkoutTemplateButton,
@@ -108,10 +109,16 @@ export function ProgramDetailPage() {
             className={
               isArchived
                 ? 'rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-900'
-                : 'rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-900'
+                : program.isCurrent
+                  ? 'rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-900'
+                  : 'rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-900'
             }
           >
-            {isArchived ? 'Archivé' : 'Disponible'}
+            {isArchived
+              ? 'Archivé'
+              : program.isCurrent
+                ? 'Programme courant'
+                : 'Disponible'}
           </span>
         </div>
       </div>
@@ -173,6 +180,8 @@ export function ProgramDetailPage() {
           />
         ))}
       </section>
+
+      <ProgramActivationActions program={program} onStatus={setStatus} />
 
       <ProgramDangerZone
         programId={program.id}

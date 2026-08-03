@@ -1,5 +1,11 @@
-import type { ProgramDetail, ProgramListResponse } from '@gym-companion/shared';
 import type {
+  ActiveProgramSummary,
+  ProgramDetail,
+  ProgramListResponse,
+  ProgramSchedule,
+} from '@gym-companion/shared';
+import type {
+  ActivateProgramInput,
   AddWorkoutTemplateExerciseInput,
   CreateProgramInput,
   CreateWorkoutTemplateInput,
@@ -7,6 +13,7 @@ import type {
   ReorderWorkoutTemplateExercisesInput,
   ReorderWorkoutTemplatesInput,
   ReorderWorkoutTemplateSetsInput,
+  ReplaceProgramScheduleInput,
   UpdateProgramInput,
   UpdateWorkoutTemplateExerciseInput,
   UpdateWorkoutTemplateInput,
@@ -102,6 +109,60 @@ export async function restoreProgram(programId: string): Promise<ProgramDetail> 
   const response = await apiFetch<{ data: ProgramDetail }>(
     `/api/v1/programs/${encodeURIComponent(programId)}/restore`,
     { method: 'POST' },
+  );
+  return response.data;
+}
+
+export async function getActiveProgram(): Promise<ActiveProgramSummary | null> {
+  const response = await apiFetch<{ data: ActiveProgramSummary | null }>(
+    '/api/v1/programs/active',
+  );
+  return response.data;
+}
+
+export async function activateProgram(
+  programId: string,
+  input: ActivateProgramInput,
+): Promise<ActiveProgramSummary> {
+  const response = await apiFetch<{ data: ActiveProgramSummary }>(
+    `/api/v1/programs/${encodeURIComponent(programId)}/activate`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+  );
+  return response.data;
+}
+
+export async function deactivateProgram(
+  programId: string,
+): Promise<ActiveProgramSummary | null> {
+  const response = await apiFetch<{ data: ActiveProgramSummary | null }>(
+    `/api/v1/programs/${encodeURIComponent(programId)}/deactivate`,
+    { method: 'POST' },
+  );
+  return response.data;
+}
+
+export async function getProgramSchedule(
+  programId: string,
+): Promise<ProgramSchedule> {
+  const response = await apiFetch<{ data: ProgramSchedule }>(
+    `/api/v1/programs/${encodeURIComponent(programId)}/schedule`,
+  );
+  return response.data;
+}
+
+export async function replaceProgramSchedule(
+  programId: string,
+  input: ReplaceProgramScheduleInput,
+): Promise<ProgramSchedule> {
+  const response = await apiFetch<{ data: ProgramSchedule }>(
+    `/api/v1/programs/${encodeURIComponent(programId)}/schedule`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    },
   );
   return response.data;
 }

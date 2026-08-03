@@ -48,6 +48,13 @@ export class ProgramsController {
     return createSuccessResponse(data);
   }
 
+  @Get('active')
+  @ApiOperation({ summary: 'Programme courant de l’utilisateur' })
+  async getActive(@CurrentUser() user: AuthenticatedUser) {
+    const data = await this.programsService.getActive(user.id);
+    return createSuccessResponse(data);
+  }
+
   @Get(':programId')
   @ApiOperation({ summary: 'Détail d’un programme avec modèles ordonnés' })
   async getOne(
@@ -87,6 +94,54 @@ export class ProgramsController {
     @Param('programId', ParseUUIDPipe) programId: string,
   ) {
     const data = await this.programsService.restore(user.id, programId);
+    return createSuccessResponse(data);
+  }
+
+  @Post(':programId/activate')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Activer un programme comme programme courant' })
+  async activate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('programId', ParseUUIDPipe) programId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.programsService.activate(user.id, programId, body);
+    return createSuccessResponse(data);
+  }
+
+  @Post(':programId/deactivate')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Désactiver le programme courant' })
+  async deactivate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('programId', ParseUUIDPipe) programId: string,
+  ) {
+    const data = await this.programsService.deactivate(user.id, programId);
+    return createSuccessResponse(data);
+  }
+
+  @Get(':programId/schedule')
+  @ApiOperation({ summary: 'Lire la planification hebdomadaire d’un programme' })
+  async getSchedule(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('programId', ParseUUIDPipe) programId: string,
+  ) {
+    const data = await this.programsService.getSchedule(user.id, programId);
+    return createSuccessResponse(data);
+  }
+
+  @Put(':programId/schedule')
+  @ApiOperation({ summary: 'Remplacer la planification hebdomadaire' })
+  async replaceSchedule(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('programId', ParseUUIDPipe) programId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.programsService.replaceSchedule(
+      user.id,
+      programId,
+      body,
+    );
     return createSuccessResponse(data);
   }
 

@@ -103,6 +103,9 @@ describe('Programs API', () => {
       canEdit: true,
       canArchive: true,
       canRestore: false,
+      canActivate: true,
+      canDeactivate: false,
+      canEditSchedule: true,
     });
 
     const row = await prisma.program.findUniqueOrThrow({ where: { id: programId } });
@@ -319,6 +322,9 @@ describe('Programs API', () => {
       canEdit: false,
       canArchive: false,
       canRestore: true,
+      canActivate: false,
+      canDeactivate: false,
+      canEditSchedule: false,
     });
 
     const defaultList = await request(app.getHttpServer())

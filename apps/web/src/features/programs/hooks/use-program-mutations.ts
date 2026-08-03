@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ProgramDetail } from '@gym-companion/shared';
 import type {
+  ActivateProgramInput,
   AddWorkoutTemplateExerciseInput,
   CreateProgramInput,
   CreateWorkoutTemplateInput,
@@ -8,6 +9,7 @@ import type {
   ReorderWorkoutTemplateExercisesInput,
   ReorderWorkoutTemplatesInput,
   ReorderWorkoutTemplateSetsInput,
+  ReplaceProgramScheduleInput,
   UpdateProgramInput,
   UpdateWorkoutTemplateExerciseInput,
   UpdateWorkoutTemplateInput,
@@ -15,17 +17,20 @@ import type {
 } from '@gym-companion/validation';
 
 import {
+  activateProgram,
   addWorkoutTemplateExercise,
   archiveProgram,
   createProgram,
   createWorkoutTemplate,
   createWorkoutTemplateSet,
+  deactivateProgram,
   deleteWorkoutTemplate,
   deleteWorkoutTemplateSet,
   removeWorkoutTemplateExercise,
   reorderWorkoutTemplateExercises,
   reorderWorkoutTemplates,
   reorderWorkoutTemplateSets,
+  replaceProgramSchedule,
   restoreProgram,
   updateProgram,
   updateWorkoutTemplate,
@@ -33,6 +38,11 @@ import {
   updateWorkoutTemplateSet,
 } from '../api/program-api';
 import { programQueryKeys } from '../api/program-query-keys';
+import {
+  syncAfterActivation,
+  syncAfterDeactivation,
+  syncAfterScheduleReplace,
+} from '../lib/activation-cache';
 
 function useSyncProgramDetail() {
   const queryClient = useQueryClient();
@@ -80,6 +90,53 @@ export function useRestoreProgramMutation() {
   return useMutation({
     mutationFn: (programId: string) => restoreProgram(programId),
     onSuccess: (detail) => sync(detail, true),
+  });
+}
+
+export function useActivateProgramMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      programId,
+      input,
+    }: {
+      programId: string;
+      input: ActivateProgramInput;
+      previousProgramId: string | null;
+    }) => activateProgram(programId, input),
+    onSuccess: (active, variables) => {
+      syncAfterActivation(
+        queryClient,
+        active,
+        variables.previousProgramId,
+      );
+    },
+  });
+}
+
+export function useDeactivateProgramMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (programId: string) => deactivateProgram(programId),
+    onSuccess: (_active, programId) => {
+      syncAfterDeactivation(queryClient, programId);
+    },
+  });
+}
+
+export function useReplaceProgramScheduleMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      programId,
+      input,
+    }: {
+      programId: string;
+      input: ReplaceProgramScheduleInput;
+    }) => replaceProgramSchedule(programId, input),
+    onSuccess: (schedule, variables) => {
+      syncAfterScheduleReplace(queryClient, variables.programId, schedule);
+    },
   });
 }
 

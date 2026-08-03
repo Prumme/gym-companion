@@ -40,12 +40,18 @@ export function ProgramCard({ program }: ProgramCardProps) {
         </div>
         <span
           className={
-            isArchived
-              ? 'shrink-0 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-900'
-              : 'shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-900'
+            program.isCurrent
+              ? 'shrink-0 rounded-full border border-sky-300 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-950'
+              : isArchived
+                ? 'shrink-0 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-900'
+                : 'shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-900'
           }
         >
-          {isArchived ? 'Archivé' : 'Disponible'}
+          {program.isCurrent
+            ? 'Programme courant'
+            : isArchived
+              ? 'Archivé'
+              : 'Disponible'}
         </span>
       </div>
     </article>

@@ -18,6 +18,8 @@ import { ProgramsPage } from '@/features/programs/pages/ProgramsPage';
 import { CreateProgramPage } from '@/features/programs/pages/CreateProgramPage';
 import { ProgramDetailPage } from '@/features/programs/pages/ProgramDetailPage';
 import { EditProgramPage } from '@/features/programs/pages/EditProgramPage';
+import { PlanningPage } from '@/features/programs/pages/PlanningPage';
+import { ProgramScheduleEditPage } from '@/features/programs/pages/ProgramScheduleEditPage';
 
 export const router = createBrowserRouter([
   {
@@ -34,9 +36,11 @@ export const router = createBrowserRouter([
         element: <ProtectedRoute />,
         children: [
           { path: 'profile', element: <ProfilePage /> },
+          { path: 'planning', element: <PlanningPage /> },
           { path: 'programs', element: <ProgramsPage /> },
           { path: 'programs/new', element: <CreateProgramPage /> },
           { path: 'programs/:programId/edit', element: <EditProgramPage /> },
+          { path: 'programs/:programId/schedule', element: <ProgramScheduleEditPage /> },
           { path: 'programs/:programId', element: <ProgramDetailPage /> },
           { path: 'exercises', element: <ExercisesPage /> },
           { path: 'exercises/new', element: <CreateExercisePage /> },

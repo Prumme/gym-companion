@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  activateProgramSchema,
   addWorkoutTemplateExerciseSchema,
   buildExerciseCursorFilter,
   compactOrderedPositions,
@@ -14,13 +15,19 @@ import {
   decodeExerciseCursor,
   encodeExerciseCursor,
   isDefaultExercisePreferenceInput,
+  isValidLocalDateString,
   listExercisesQuerySchema,
+  localDateSchema,
+  localDateStringToUtcDate,
   normalizeExerciseName,
   parseApiEnv,
   profileFormSchema,
+  replaceProgramScheduleSchema,
   reorderWorkoutTemplatesSchema,
   toUpdateProfilePayload,
   updateExercisePreferenceSchema,
+  utcDateToLocalDateString,
+  validateProgramScheduleEntries,
   validateWorkoutTemplateReorder,
   validateWorkoutTemplateSetTargets,
 } from './index';
@@ -627,5 +634,80 @@ describe('validateWorkoutTemplateSetTargets', () => {
       { id: idA, position: 0 },
       { id: idB, position: 1 },
     ]);
+  });
+});
+
+describe('local dates and program schedule validation', () => {
+  it('accepts and rejects local dates', () => {
+    expect(isValidLocalDateString('2026-08-03')).toBe(true);
+    expect(isValidLocalDateString('2026-02-30')).toBe(false);
+    expect(isValidLocalDateString('2026-8-3')).toBe(false);
+    expect(localDateSchema.safeParse('2026-08-03').success).toBe(true);
+    expect(localDateSchema.safeParse('2026-02-30').success).toBe(false);
+  });
+
+  it('round-trips Date for @db.Date storage', () => {
+    const date = localDateStringToUtcDate('2026-08-03');
+    expect(utcDateToLocalDateString(date)).toBe('2026-08-03');
+  });
+
+  it('validates schedule positions', () => {
+    expect(
+      validateProgramScheduleEntries([
+        {
+          workoutTemplateId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+          weekday: 'MONDAY',
+          position: 0,
+        },
+        {
+          workoutTemplateId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+          weekday: 'MONDAY',
+          position: 1,
+        },
+      ]),
+    ).toEqual({ ok: true });
+
+    expect(
+      validateProgramScheduleEntries([
+        {
+          workoutTemplateId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+          weekday: 'MONDAY',
+          position: 1,
+        },
+      ]).code,
+    ).toBe('PROGRAM_SCHEDULE_INVALID_POSITION');
+
+    expect(
+      validateProgramScheduleEntries([
+        {
+          workoutTemplateId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+          weekday: 'MONDAY',
+          position: 0,
+        },
+        {
+          workoutTemplateId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+          weekday: 'MONDAY',
+          position: 0,
+        },
+      ]).code,
+    ).toBe('PROGRAM_SCHEDULE_DUPLICATE_POSITION');
+  });
+
+  it('parses activate and replace schedule schemas', () => {
+    expect(
+      activateProgramSchema.safeParse({
+        startedOn: '2026-08-03',
+        replaceCurrentProgram: false,
+      }).success,
+    ).toBe(true);
+    expect(
+      activateProgramSchema.safeParse({
+        startedOn: '2026-08-03',
+        replaceCurrentProgram: 'true',
+      }).success,
+    ).toBe(false);
+    expect(
+      replaceProgramScheduleSchema.safeParse({ entries: [] }).success,
+    ).toBe(true);
   });
 });

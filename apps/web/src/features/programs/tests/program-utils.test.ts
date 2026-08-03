@@ -27,6 +27,13 @@ import {
   reorderTemplatesInDetail,
 } from '../lib/program-cache';
 import { createProgramDetail, createSet, createTemplate } from './fixtures';
+import { formatStartedOn } from '../lib/format';
+import {
+  addDraftEntry,
+  draftEntriesEqual,
+  moveDraftEntryWithinDay,
+  reindexDraftEntries,
+} from '../lib/schedule-utils';
 
 describe('program form transforms', () => {
   it('maps detail to form and payload with optional normalization', () => {
@@ -252,5 +259,26 @@ describe('set labels and payloads', () => {
       targetRpe: null,
       restSeconds: 90,
     });
+  });
+});
+
+describe('planning utils', () => {
+  it('formats local startedOn dates in fr-FR', () => {
+    expect(formatStartedOn('2026-08-03')).toMatch(/3 août 2026|03\/08\/2026|3 août 2026/i);
+  });
+
+  it('reindexes and reorders draft schedule entries', () => {
+    const detail = createProgramDetail({
+      workoutTemplates: [
+        createTemplate({ id: 't1', name: 'A' }),
+        createTemplate({ id: 't2', name: 'B' }),
+      ],
+    });
+    let entries = addDraftEntry([], 'MONDAY', detail.workoutTemplates[0]!);
+    entries = addDraftEntry(entries, 'MONDAY', detail.workoutTemplates[1]!);
+    const moved = moveDraftEntryWithinDay(entries, entries[1]!.clientId, 'up');
+    expect(moved[0]?.workoutTemplate.name).toBe('B');
+    expect(reindexDraftEntries(moved)[0]?.position).toBe(0);
+    expect(draftEntriesEqual(entries, entries)).toBe(true);
   });
 });

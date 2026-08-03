@@ -277,9 +277,11 @@ pnpm dev
   - Édition : http://localhost:5173/exercises/:exerciseId/edit (exercices personnels actifs)
   - Détail : http://localhost:5173/exercises/:exerciseId (favoris, préférences, archivage/restauration selon permissions)
   - Programmes : http://localhost:5173/programs (auth requise)
+  - Planning : http://localhost:5173/planning (auth requise, programme courant)
   - Création : http://localhost:5173/programs/new
   - Détail / constructeur : http://localhost:5173/programs/:programId
   - Édition infos : http://localhost:5173/programs/:programId/edit
+  - Planning hebdomadaire : http://localhost:5173/programs/:programId/schedule
 - API : http://localhost:3000
 - Health : http://localhost:3000/health/live et `/health/ready`
 - OpenAPI : http://localhost:3000/docs
@@ -297,6 +299,10 @@ pnpm dev
   - Réordonnancement exercices : `PUT .../exercises/order`
   - Séries cibles : `POST|PATCH|DELETE .../exercises/:id/sets/...`
   - Réordonnancement séries : `PUT .../sets/order`
+  - Programme courant : `GET /api/v1/programs/active`
+  - Activation : `POST /api/v1/programs/:programId/activate` (body `{ startedOn, replaceCurrentProgram }`)
+  - Désactivation : `POST /api/v1/programs/:programId/deactivate`
+  - Planning : `GET|PUT /api/v1/programs/:programId/schedule`
 - Mailpit : http://localhost:8025 (`docker compose up -d mailpit`)
 
 Compose complet (profil `full`) :
@@ -325,8 +331,10 @@ Avant de générer du code métier, lire :
 
 Le socle (Phase 0) et le catalogue d’exercices (Phase 1) sont en place.
 
-Le jalon **2.3** ajoute l’interface de création et d’édition manuelle des programmes :
-liste, création, détail/constructeur (modèles, exercices, séries cibles), archivage et restauration.
-Hors scope pour l’instant : activation du programme courant, planification, séances actives, performances, IA.
+Les jalons **2.1–2.3** couvrent programmes, modèles, exercices/séries et le constructeur UI.
+
+Le jalon **2.4** ajoute le programme courant (`ProgramActivation`), la planification hebdomadaire (`ProgramScheduleEntry`),
+les pages `/planning` et `/programs/:id/schedule`, et le refus d’archivage tant que le programme est courant.
+Hors scope : séances actives automatiques, performances, calendriers externes, notifications, IA.
 
 Les documents du dossier `docs/` restent la source de vérité produit et technique.

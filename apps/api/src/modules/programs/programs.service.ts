@@ -5,9 +5,15 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { ProgramDetail, ProgramListResponse } from '@gym-companion/shared';
+import type {
+  ActiveProgramSummary,
+  ProgramDetail,
+  ProgramListResponse,
+  ProgramSchedule,
+} from '@gym-companion/shared';
 import type { Prisma } from '@prisma/client';
 import {
+  activateProgramSchema,
   addWorkoutTemplateExerciseSchema,
   buildProgramCursorFilter,
   compactOrderedPositions,
@@ -20,13 +26,18 @@ import {
   decodeProgramCursor,
   encodeProgramCursor,
   listProgramsQuerySchema,
+  localDateStringToUtcDate,
+  replaceProgramScheduleSchema,
   reorderWorkoutTemplateExercisesSchema,
   reorderWorkoutTemplatesSchema,
   reorderWorkoutTemplateSetsSchema,
+  todayLocalDateString,
   updateProgramSchema,
   updateWorkoutTemplateExerciseSchema,
   updateWorkoutTemplateSchema,
   updateWorkoutTemplateSetSchema,
+  utcDateToLocalDateString,
+  validateProgramScheduleEntries,
   validateWorkoutTemplateExerciseReorder,
   validateWorkoutTemplateReorder,
   validateWorkoutTemplateSetReorder,
@@ -36,9 +47,12 @@ import {
 
 import { PrismaService } from '../../database/prisma/prisma.service';
 import {
+  toActiveProgramSummary,
   toProgramDetail,
   toProgramListItem,
+  toProgramSchedule,
   type ProgramRow,
+  type ScheduleEntryRow,
 } from './programs.mapper';
 
 const exerciseCatalogInclude = {
@@ -65,6 +79,14 @@ const programDetailInclude = {
   },
   _count: { select: { workoutTemplates: true } },
 } satisfies Prisma.ProgramInclude;
+
+const scheduleEntryInclude = {
+  workoutTemplate: {
+    include: {
+      _count: { select: { exercises: true } },
+    },
+  },
+} satisfies Prisma.ProgramScheduleEntryInclude;
 
 type Tx = Prisma.TransactionClient;
 
@@ -125,15 +147,42 @@ export class ProgramsService {
           })
         : null;
 
+    const current = await this.findCurrentActivation(userId);
+    const currentProgramId = current?.programId ?? null;
+
     return {
-      data: pageRows.map((row) => toProgramListItem(row as ProgramRow)),
+      data: pageRows.map((row) =>
+        toProgramListItem(row as ProgramRow, row.id === currentProgramId),
+      ),
       pagination: { nextCursor, hasMore },
     };
   }
 
   async getById(userId: string, programId: string): Promise<ProgramDetail> {
     const row = await this.findOwnedOrThrow(userId, programId);
-    return toProgramDetail(row);
+    const isCurrent = await this.isCurrentProgram(userId, programId);
+    return toProgramDetail(row, isCurrent);
+  }
+
+  async getActive(userId: string): Promise<ActiveProgramSummary | null> {
+    const activation = await this.findCurrentActivation(userId);
+    if (!activation) {
+      return null;
+    }
+    const program = await this.prisma.program.findUnique({
+      where: { id: activation.programId },
+      include: { _count: { select: { workoutTemplates: true } } },
+    });
+    if (!program || program.ownerUserId !== userId) {
+      return null;
+    }
+    const scheduleRows = await this.loadScheduleRows(activation.programId);
+    return toActiveProgramSummary({
+      activationId: activation.id,
+      startedOn: activation.startedOn,
+      program: program as ProgramRow,
+      scheduleRows,
+    });
   }
 
   async create(userId: string, input: unknown): Promise<ProgramDetail> {
@@ -148,7 +197,7 @@ export class ProgramsService {
       },
       include: programDetailInclude,
     });
-    return toProgramDetail(created as ProgramRow);
+    return toProgramDetail(created as ProgramRow, false);
   }
 
   async update(
@@ -171,7 +220,8 @@ export class ProgramsService {
       },
       include: programDetailInclude,
     });
-    return toProgramDetail(updated as ProgramRow);
+    const isCurrent = await this.isCurrentProgram(userId, programId);
+    return toProgramDetail(updated as ProgramRow, isCurrent);
   }
 
   async archive(userId: string, programId: string): Promise<ProgramDetail> {
@@ -183,6 +233,14 @@ export class ProgramsService {
       });
     }
 
+    if (await this.isCurrentProgram(userId, programId)) {
+      throw new ConflictException({
+        code: 'PROGRAM_MUST_BE_INACTIVE_BEFORE_ARCHIVE',
+        message:
+          'Désactive ce programme avant de l’archiver. Un programme courant ne peut pas être archivé.',
+      });
+    }
+
     const archived = await this.prisma.program.update({
       where: { id: programId },
       data: {
@@ -191,7 +249,7 @@ export class ProgramsService {
       },
       include: programDetailInclude,
     });
-    return toProgramDetail(archived as ProgramRow);
+    return toProgramDetail(archived as ProgramRow, false);
   }
 
   async restore(userId: string, programId: string): Promise<ProgramDetail> {
@@ -208,10 +266,200 @@ export class ProgramsService {
       data: {
         archivedAt: null,
         status: 'DRAFT',
+        activatedAt: null,
       },
       include: programDetailInclude,
     });
-    return toProgramDetail(restored as ProgramRow);
+    return toProgramDetail(restored as ProgramRow, false);
+  }
+
+  async activate(
+    userId: string,
+    programId: string,
+    input: unknown,
+  ): Promise<ActiveProgramSummary> {
+    const data = activateProgramSchema.parse(input);
+    const program = await this.findOwnedOrThrow(userId, programId);
+    if (program.archivedAt) {
+      throw new BadRequestException({
+        code: 'PROGRAM_ARCHIVED',
+        message: 'Un programme archivé ne peut pas être activé.',
+      });
+    }
+
+    const startedOn = localDateStringToUtcDate(data.startedOn);
+    const timezone = await this.getUserTimezone(userId);
+    const endedOnToday = localDateStringToUtcDate(todayLocalDateString(timezone));
+
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        const current = await tx.programActivation.findFirst({
+          where: { userId, endedOn: null },
+        });
+
+        if (current?.programId === programId) {
+          if (utcDateToLocalDateString(current.startedOn) !== data.startedOn) {
+            await tx.programActivation.update({
+              where: { id: current.id },
+              data: { startedOn },
+            });
+          }
+          return;
+        }
+
+        if (current && !data.replaceCurrentProgram) {
+          throw new ConflictException({
+            code: 'PROGRAM_ACTIVE_CONFLICT',
+            message:
+              'Un autre programme est déjà courant. Confirme le remplacement pour continuer.',
+          });
+        }
+
+        if (current && data.replaceCurrentProgram) {
+          await tx.programActivation.update({
+            where: { id: current.id },
+            data: { endedOn: endedOnToday },
+          });
+          await tx.program.update({
+            where: { id: current.programId },
+            data: { status: 'DRAFT', activatedAt: null },
+          });
+        }
+
+        await tx.programActivation.create({
+          data: {
+            userId,
+            programId,
+            startedOn,
+            endedOn: null,
+          },
+        });
+        await tx.program.update({
+          where: { id: programId },
+          data: {
+            status: 'ACTIVE',
+            activatedAt: new Date(),
+          },
+        });
+      });
+    } catch (error) {
+      if (
+        error instanceof ConflictException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code?: string }).code === 'P2002'
+      ) {
+        throw new ConflictException({
+          code: 'PROGRAM_ACTIVE_CONFLICT',
+          message: 'Un autre programme est déjà courant.',
+        });
+      }
+      throw error;
+    }
+
+    const active = await this.getActive(userId);
+    if (!active) {
+      throw new ConflictException({
+        code: 'PROGRAM_ACTIVE_CONFLICT',
+        message: 'Impossible d’activer ce programme.',
+      });
+    }
+    return active;
+  }
+
+  async deactivate(
+    userId: string,
+    programId: string,
+  ): Promise<ActiveProgramSummary | null> {
+    await this.findOwnedOrThrow(userId, programId);
+    const timezone = await this.getUserTimezone(userId);
+    const endedOnToday = localDateStringToUtcDate(todayLocalDateString(timezone));
+
+    await this.prisma.$transaction(async (tx) => {
+      const current = await tx.programActivation.findFirst({
+        where: { userId, endedOn: null, programId },
+      });
+      if (!current) {
+        return;
+      }
+      await tx.programActivation.update({
+        where: { id: current.id },
+        data: { endedOn: endedOnToday },
+      });
+      await tx.program.update({
+        where: { id: programId },
+        data: { status: 'DRAFT', activatedAt: null },
+      });
+    });
+
+    return this.getActive(userId);
+  }
+
+  async getSchedule(
+    userId: string,
+    programId: string,
+  ): Promise<ProgramSchedule> {
+    await this.findOwnedOrThrow(userId, programId);
+    const rows = await this.loadScheduleRows(programId);
+    return toProgramSchedule(rows);
+  }
+
+  async replaceSchedule(
+    userId: string,
+    programId: string,
+    input: unknown,
+  ): Promise<ProgramSchedule> {
+    const data = replaceProgramScheduleSchema.parse(input);
+    const program = await this.findOwnedOrThrow(userId, programId);
+    this.assertEditable(program);
+
+    const positionsCheck = validateProgramScheduleEntries(data.entries);
+    if (!positionsCheck.ok) {
+      throw new BadRequestException({
+        code: positionsCheck.code,
+        message: positionsCheck.message,
+      });
+    }
+
+    const templateIds = [
+      ...new Set(data.entries.map((entry) => entry.workoutTemplateId)),
+    ];
+    if (templateIds.length > 0) {
+      const templates = await this.prisma.workoutTemplate.findMany({
+        where: { programId, id: { in: templateIds } },
+        select: { id: true },
+      });
+      if (templates.length !== templateIds.length) {
+        throw new BadRequestException({
+          code: 'PROGRAM_SCHEDULE_TEMPLATE_MISMATCH',
+          message:
+            'Un ou plusieurs modèles n’appartiennent pas à ce programme.',
+        });
+      }
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.programScheduleEntry.deleteMany({ where: { programId } });
+      if (data.entries.length === 0) {
+        return;
+      }
+      await tx.programScheduleEntry.createMany({
+        data: data.entries.map((entry) => ({
+          programId,
+          workoutTemplateId: entry.workoutTemplateId,
+          weekday: entry.weekday,
+          position: entry.position,
+        })),
+      });
+    });
+
+    return this.getSchedule(userId, programId);
   }
 
   async createWorkoutTemplate(
@@ -296,6 +544,7 @@ export class ProgramsService {
         tx,
         compactWorkoutTemplatePositions(remaining.map((item) => item.id)),
       );
+      await this.compactSchedulePositions(tx, programId);
     });
 
     return this.getById(userId, programId);
@@ -789,6 +1038,70 @@ export class ProgramsService {
         code: 'WORKOUT_TEMPLATE_EXERCISE_INVALID_EQUIPMENT',
         message: 'Cet équipement n’est pas compatible avec l’exercice.',
       });
+    }
+  }
+
+  private async findCurrentActivation(userId: string) {
+    return this.prisma.programActivation.findFirst({
+      where: { userId, endedOn: null },
+    });
+  }
+
+  private async isCurrentProgram(
+    userId: string,
+    programId: string,
+  ): Promise<boolean> {
+    const current = await this.prisma.programActivation.findFirst({
+      where: { userId, programId, endedOn: null },
+      select: { id: true },
+    });
+    return current != null;
+  }
+
+  private async getUserTimezone(userId: string): Promise<string> {
+    const profile = await this.prisma.userProfile.findUnique({
+      where: { userId },
+      select: { timezone: true },
+    });
+    return profile?.timezone || 'Europe/Paris';
+  }
+
+  private async loadScheduleRows(
+    programId: string,
+  ): Promise<ScheduleEntryRow[]> {
+    const rows = await this.prisma.programScheduleEntry.findMany({
+      where: { programId },
+      include: scheduleEntryInclude,
+      orderBy: [{ weekday: 'asc' }, { position: 'asc' }],
+    });
+    return rows as ScheduleEntryRow[];
+  }
+
+  private async compactSchedulePositions(tx: Tx, programId: string) {
+    const weekdays = await tx.programScheduleEntry.findMany({
+      where: { programId },
+      distinct: ['weekday'],
+      select: { weekday: true },
+    });
+
+    for (const { weekday } of weekdays) {
+      const entries = await tx.programScheduleEntry.findMany({
+        where: { programId, weekday },
+        orderBy: { position: 'asc' },
+        select: { id: true },
+      });
+      for (const [index, entry] of entries.entries()) {
+        await tx.programScheduleEntry.update({
+          where: { id: entry.id },
+          data: { position: -(index + 1) },
+        });
+      }
+      for (const [index, entry] of entries.entries()) {
+        await tx.programScheduleEntry.update({
+          where: { id: entry.id },
+          data: { position: index },
+        });
+      }
     }
   }
 

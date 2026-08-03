@@ -1002,3 +1002,149 @@ export function validateWorkoutTemplateSetReorder(
   } as const;
   return { ok: false, code: codeByReason[result.reason] };
 }
+
+const WEEKDAYS = [
+  'MONDAY',
+  'TUESDAY',
+  'WEDNESDAY',
+  'THURSDAY',
+  'FRIDAY',
+  'SATURDAY',
+  'SUNDAY',
+] as const;
+
+export const weekdaySchema = z.enum(WEEKDAYS);
+export type WeekdayInput = z.infer<typeof weekdaySchema>;
+
+export function isValidLocalDateString(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(5, 7));
+  const day = Number(value.slice(8, 10));
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
+/** Date locale YYYY-MM-DD → Date UTC à minuit pour stockage `@db.Date`. */
+export function localDateStringToUtcDate(value: string): Date {
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(5, 7));
+  const day = Number(value.slice(8, 10));
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+/** Date Prisma `@db.Date` → YYYY-MM-DD sans décalage silencieux. */
+export function utcDateToLocalDateString(value: Date): string {
+  const year = value.getUTCFullYear();
+  const month = String(value.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(value.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function todayLocalDateString(timeZone: string): string {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return formatter.format(new Date());
+}
+
+export const localDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'La date doit être au format YYYY-MM-DD.')
+  .refine(isValidLocalDateString, 'La date locale est invalide.');
+
+export const activateProgramSchema = z
+  .object({
+    startedOn: localDateSchema,
+    replaceCurrentProgram: z.boolean(),
+  })
+  .strict();
+
+export type ActivateProgramInput = z.infer<typeof activateProgramSchema>;
+
+export const replaceProgramScheduleEntrySchema = z
+  .object({
+    workoutTemplateId: z.string().uuid(),
+    weekday: weekdaySchema,
+    position: z.number().int().min(0).max(100),
+  })
+  .strict();
+
+export const replaceProgramScheduleSchema = z
+  .object({
+    entries: z.array(replaceProgramScheduleEntrySchema),
+  })
+  .strict();
+
+export type ReplaceProgramScheduleInput = z.infer<
+  typeof replaceProgramScheduleSchema
+>;
+
+export type ProgramScheduleValidationResult =
+  | { ok: true }
+  | {
+      ok: false;
+      code:
+        | 'PROGRAM_SCHEDULE_INVALID'
+        | 'PROGRAM_SCHEDULE_INVALID_POSITION'
+        | 'PROGRAM_SCHEDULE_DUPLICATE_POSITION';
+      message: string;
+    };
+
+export function validateProgramScheduleEntries(
+  entries: Array<{ weekday: string; position: number; workoutTemplateId: string }>,
+): ProgramScheduleValidationResult {
+  const byWeekday = new Map<string, number[]>();
+  for (const entry of entries) {
+    if (!WEEKDAYS.includes(entry.weekday as (typeof WEEKDAYS)[number])) {
+      return {
+        ok: false,
+        code: 'PROGRAM_SCHEDULE_INVALID',
+        message: 'Jour de la semaine invalide.',
+      };
+    }
+    if (!Number.isInteger(entry.position) || entry.position < 0) {
+      return {
+        ok: false,
+        code: 'PROGRAM_SCHEDULE_INVALID_POSITION',
+        message: 'La position doit être un entier positif ou nul.',
+      };
+    }
+    const list = byWeekday.get(entry.weekday) ?? [];
+    list.push(entry.position);
+    byWeekday.set(entry.weekday, list);
+  }
+
+  for (const [weekday, positions] of byWeekday.entries()) {
+    const sorted = [...positions].sort((a, b) => a - b);
+    const unique = new Set(sorted);
+    if (unique.size !== sorted.length) {
+      return {
+        ok: false,
+        code: 'PROGRAM_SCHEDULE_DUPLICATE_POSITION',
+        message: `Positions dupliquées pour ${weekday}.`,
+      };
+    }
+    for (let index = 0; index < sorted.length; index += 1) {
+      if (sorted[index] !== index) {
+        return {
+          ok: false,
+          code: 'PROGRAM_SCHEDULE_INVALID_POSITION',
+          message: `Les positions de ${weekday} doivent être compactes (0, 1, 2…).`,
+        };
+      }
+    }
+  }
+
+  return { ok: true };
+}
+

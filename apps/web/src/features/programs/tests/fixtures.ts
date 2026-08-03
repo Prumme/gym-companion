@@ -1,6 +1,8 @@
 import type {
+  ActiveProgramSummary,
   ProgramDetail,
   ProgramListItem,
+  ProgramSchedule,
   WorkoutTemplateDetail,
   WorkoutTemplateExerciseDetail,
   WorkoutTemplateSetTarget,
@@ -18,6 +20,7 @@ export function createProgramListItem(
     goal: 'HYPERTROPHY',
     status: 'ACTIVE',
     workoutTemplateCount: 2,
+    isCurrent: false,
     archivedAt: null,
     createdAt: now,
     updatedAt: now,
@@ -25,6 +28,9 @@ export function createProgramListItem(
       canEdit: true,
       canArchive: true,
       canRestore: false,
+      canActivate: true,
+      canDeactivate: false,
+      canEditSchedule: true,
     },
     ...overrides,
   };
@@ -120,6 +126,53 @@ export function createProgramDetail(
       workoutTemplateCount: templates.length,
     }),
     workoutTemplates: templates,
+    ...overrides,
+  };
+}
+
+export function createProgramSchedule(
+  overrides: Partial<ProgramSchedule> = {},
+): ProgramSchedule {
+  return {
+    entries: overrides.entries ?? [],
+    ...overrides,
+  };
+}
+
+export function createActiveProgramSummary(
+  overrides: Partial<ActiveProgramSummary> = {},
+): ActiveProgramSummary {
+  const program = createProgramListItem({
+    isCurrent: true,
+    permissions: {
+      canEdit: true,
+      canArchive: false,
+      canRestore: false,
+      canActivate: false,
+      canDeactivate: true,
+      canEditSchedule: true,
+    },
+    ...(overrides.program ?? {}),
+  });
+  return {
+    activationId: 'act-1',
+    startedOn: '2026-08-01',
+    program,
+    schedule: createProgramSchedule({
+      entries: [
+        {
+          id: 'sched-1',
+          weekday: 'MONDAY',
+          position: 0,
+          workoutTemplate: {
+            id: 'wt-1',
+            name: 'Push A',
+            estimatedDurationMinutes: 60,
+            exerciseCount: 1,
+          },
+        },
+      ],
+    }),
     ...overrides,
   };
 }

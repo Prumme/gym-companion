@@ -1,13 +1,13 @@
 import type {
-  EquipmentTypeReference,
-  ExerciseMeasurementType,
-  ExerciseSource,
-  MuscleGroupReference,
+  ActiveProgramSummary,
   ProgramDetail,
   ProgramListItem,
   ProgramPermissions,
+  ProgramSchedule,
+  ProgramScheduleEntry,
   ProgramStatus,
   TrainingGoal,
+  Weekday,
   WorkoutSetType,
   WorkoutTemplateDetail,
   WorkoutTemplateExerciseDetail,
@@ -15,6 +15,7 @@ import type {
   WorkoutTemplateSetTarget,
   WorkoutTemplateSummary,
 } from '@gym-companion/shared';
+import { utcDateToLocalDateString } from '@gym-companion/validation';
 
 export type ProgramRow = {
   id: string;
@@ -54,9 +55,9 @@ export type WorkoutTemplateExerciseRow = {
   notes: string | null;
   exercise: {
     id: string;
-    source: ExerciseSource;
+    source: WorkoutTemplateExerciseRef['source'];
     name: string;
-    measurementType: ExerciseMeasurementType;
+    measurementType: WorkoutTemplateExerciseRef['measurementType'];
     archivedAt: Date | null;
     primaryMuscleGroup: {
       id: string;
@@ -90,6 +91,19 @@ export type WorkoutTemplateRow = {
   exercises?: WorkoutTemplateExerciseRow[];
 };
 
+export type ScheduleEntryRow = {
+  id: string;
+  weekday: Weekday;
+  position: number;
+  workoutTemplate: {
+    id: string;
+    name: string;
+    estimatedDurationMinutes: number | null;
+    _count?: { exercises: number };
+    exercises?: unknown[];
+  };
+};
+
 function decimalToNumber(value: unknown): number | null {
   if (value == null) {
     return null;
@@ -105,7 +119,7 @@ function toMuscle(row: {
   code: string;
   name: string;
   parentId: string | null;
-}): MuscleGroupReference {
+}) {
   return {
     id: row.id,
     code: row.code,
@@ -118,21 +132,25 @@ function toEquipment(row: {
   id: string;
   code: string;
   name: string;
-} | null): EquipmentTypeReference | null {
+} | null) {
   if (!row) {
     return null;
   }
   return { id: row.id, code: row.code, name: row.name };
 }
 
-export function computeProgramPermissions(
-  archivedAt: Date | null,
-): ProgramPermissions {
-  const archived = archivedAt !== null;
+export function computeProgramPermissions(input: {
+  archivedAt: Date | null;
+  isCurrent: boolean;
+}): ProgramPermissions {
+  const archived = input.archivedAt !== null;
   return {
     canEdit: !archived,
-    canArchive: !archived,
+    canArchive: !archived && !input.isCurrent,
     canRestore: archived,
+    canActivate: !archived && !input.isCurrent,
+    canDeactivate: input.isCurrent,
+    canEditSchedule: !archived,
   };
 }
 
@@ -227,33 +245,101 @@ export function toWorkoutTemplateDetail(
   };
 }
 
-export function toProgramListItem(row: ProgramRow): ProgramListItem {
+export function toProgramListItem(
+  row: ProgramRow,
+  isCurrent: boolean,
+): ProgramListItem {
   return {
     id: row.id,
     name: row.name,
     description: row.description,
     goal: row.goal,
     status: row.status,
-    workoutTemplateCount: row._count?.workoutTemplates ?? row.workoutTemplates?.length ?? 0,
+    workoutTemplateCount:
+      row._count?.workoutTemplates ?? row.workoutTemplates?.length ?? 0,
+    isCurrent,
     archivedAt: row.archivedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
-    permissions: computeProgramPermissions(row.archivedAt),
+    permissions: computeProgramPermissions({
+      archivedAt: row.archivedAt,
+      isCurrent,
+    }),
   };
 }
 
-export function toProgramDetail(row: ProgramRow): ProgramDetail {
+export function toProgramDetail(
+  row: ProgramRow,
+  isCurrent: boolean,
+): ProgramDetail {
   const templates = [...(row.workoutTemplates ?? [])].sort(
     (a, b) => a.positionInProgram - b.positionInProgram,
   );
   const archived = row.archivedAt !== null;
   return {
-    ...toProgramListItem({
-      ...row,
-      _count: { workoutTemplates: templates.length },
-    }),
+    ...toProgramListItem(
+      {
+        ...row,
+        _count: { workoutTemplates: templates.length },
+      },
+      isCurrent,
+    ),
     workoutTemplates: templates.map((template) =>
       toWorkoutTemplateDetail(template, archived),
     ),
+  };
+}
+
+export function toProgramScheduleEntry(
+  row: ScheduleEntryRow,
+): ProgramScheduleEntry {
+  return {
+    id: row.id,
+    weekday: row.weekday,
+    position: row.position,
+    workoutTemplate: {
+      id: row.workoutTemplate.id,
+      name: row.workoutTemplate.name,
+      estimatedDurationMinutes: row.workoutTemplate.estimatedDurationMinutes,
+      exerciseCount:
+        row.workoutTemplate._count?.exercises ??
+        row.workoutTemplate.exercises?.length ??
+        0,
+    },
+  };
+}
+
+export function toProgramSchedule(rows: ScheduleEntryRow[]): ProgramSchedule {
+  const entries = [...rows]
+    .sort((a, b) => {
+      if (a.weekday === b.weekday) {
+        return a.position - b.position;
+      }
+      const order: Weekday[] = [
+        'MONDAY',
+        'TUESDAY',
+        'WEDNESDAY',
+        'THURSDAY',
+        'FRIDAY',
+        'SATURDAY',
+        'SUNDAY',
+      ];
+      return order.indexOf(a.weekday) - order.indexOf(b.weekday);
+    })
+    .map(toProgramScheduleEntry);
+  return { entries };
+}
+
+export function toActiveProgramSummary(input: {
+  activationId: string;
+  startedOn: Date;
+  program: ProgramRow;
+  scheduleRows: ScheduleEntryRow[];
+}): ActiveProgramSummary {
+  return {
+    activationId: input.activationId,
+    startedOn: utcDateToLocalDateString(input.startedOn),
+    program: toProgramListItem(input.program, true),
+    schedule: toProgramSchedule(input.scheduleRows),
   };
 }

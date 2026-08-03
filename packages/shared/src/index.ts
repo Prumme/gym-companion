@@ -141,10 +141,22 @@ export type ExerciseDetail = {
 
 export type ProgramStatus = 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
 
+export type Weekday =
+  | 'MONDAY'
+  | 'TUESDAY'
+  | 'WEDNESDAY'
+  | 'THURSDAY'
+  | 'FRIDAY'
+  | 'SATURDAY'
+  | 'SUNDAY';
+
 export type ProgramPermissions = {
   canEdit: boolean;
   canArchive: boolean;
   canRestore: boolean;
+  canActivate: boolean;
+  canDeactivate: boolean;
+  canEditSchedule: boolean;
 };
 
 export type WorkoutTemplateSummary = {
@@ -222,6 +234,7 @@ export type ProgramListItem = {
   goal: TrainingGoal;
   status: ProgramStatus;
   workoutTemplateCount: number;
+  isCurrent: boolean;
   archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -232,6 +245,51 @@ export type ProgramListResponse = ApiCursorListResponse<ProgramListItem>;
 
 export type ProgramDetail = ProgramListItem & {
   workoutTemplates: WorkoutTemplateDetail[];
+};
+
+export type ProgramScheduleTemplateRef = {
+  id: string;
+  name: string;
+  estimatedDurationMinutes: number | null;
+  exerciseCount: number;
+};
+
+export type ProgramScheduleEntry = {
+  id: string;
+  weekday: Weekday;
+  position: number;
+  workoutTemplate: ProgramScheduleTemplateRef;
+};
+
+export type ProgramSchedule = {
+  entries: ProgramScheduleEntry[];
+};
+
+export type ActiveProgramSummary = {
+  activationId: string;
+  startedOn: string;
+  program: ProgramListItem;
+  schedule: ProgramSchedule;
+};
+
+export const WEEKDAY_VALUES: Weekday[] = [
+  'MONDAY',
+  'TUESDAY',
+  'WEDNESDAY',
+  'THURSDAY',
+  'FRIDAY',
+  'SATURDAY',
+  'SUNDAY',
+];
+
+export const WEEKDAY_LABELS: Record<Weekday, string> = {
+  MONDAY: 'Lundi',
+  TUESDAY: 'Mardi',
+  WEDNESDAY: 'Mercredi',
+  THURSDAY: 'Jeudi',
+  FRIDAY: 'Vendredi',
+  SATURDAY: 'Samedi',
+  SUNDAY: 'Dimanche',
 };
 
 export function createSuccessResponse<T>(data: T): ApiSuccessResponse<T> {

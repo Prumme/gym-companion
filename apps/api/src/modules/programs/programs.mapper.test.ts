@@ -7,21 +7,45 @@ import {
 } from './programs.mapper';
 
 describe('programs.mapper', () => {
-  it('computes permissions for an active program', () => {
-    expect(computeProgramPermissions(null)).toEqual({
+  it('computes permissions for a non-current program', () => {
+    expect(
+      computeProgramPermissions({ archivedAt: null, isCurrent: false }),
+    ).toEqual({
       canEdit: true,
       canArchive: true,
       canRestore: false,
+      canActivate: true,
+      canDeactivate: false,
+      canEditSchedule: true,
+    });
+  });
+
+  it('computes permissions for the current program', () => {
+    expect(
+      computeProgramPermissions({ archivedAt: null, isCurrent: true }),
+    ).toEqual({
+      canEdit: true,
+      canArchive: false,
+      canRestore: false,
+      canActivate: false,
+      canDeactivate: true,
+      canEditSchedule: true,
     });
   });
 
   it('computes permissions for an archived program', () => {
     expect(
-      computeProgramPermissions(new Date('2026-08-01T00:00:00.000Z')),
+      computeProgramPermissions({
+        archivedAt: new Date('2026-08-01T00:00:00.000Z'),
+        isCurrent: false,
+      }),
     ).toEqual({
       canEdit: false,
       canArchive: false,
       canRestore: true,
+      canActivate: false,
+      canDeactivate: false,
+      canEditSchedule: false,
     });
   });
 
@@ -94,8 +118,9 @@ describe('programs.mapper', () => {
       ],
     };
 
-    const detail = toProgramDetail(row);
+    const detail = toProgramDetail(row, false);
     expect(detail).not.toHaveProperty('ownerUserId');
+    expect(detail.isCurrent).toBe(false);
     expect(detail.workoutTemplates[0]?.exerciseCount).toBe(1);
     expect(detail.workoutTemplates[0]?.exercises[0]?.exercise.name).toBe('Squat');
     expect(detail.workoutTemplates[0]?.exercises[0]?.sets[0]?.targetWeightKg).toBe(
@@ -104,6 +129,6 @@ describe('programs.mapper', () => {
     expect(detail.workoutTemplates[0]?.exercises[0]?.permissions.canEdit).toBe(
       true,
     );
-    expect(toProgramListItem(row).permissions.canEdit).toBe(true);
+    expect(toProgramListItem(row, false).permissions.canActivate).toBe(true);
   });
 });
