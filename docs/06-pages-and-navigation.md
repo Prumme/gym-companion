@@ -1,1666 +1,1327 @@
-# Modèle de données
+# Pages et navigation
 
 ## 1. Objectif de ce document
 
-Ce document décrit le modèle logique de l’application.
+Ce document décrit :
 
-Il guide :
+- les routes principales ;
+- la structure de navigation ;
+- la responsabilité de chaque page ;
+- les actions principales ;
+- les informations affichées ;
+- les états particuliers ;
+- les différences entre mobile et desktop.
 
-- le schéma Prisma ;
-- les relations entre entités ;
-- les DTO ;
-- les contrats partagés ;
-- les règles de suppression ;
-- les index ;
-- les contraintes d’unicité.
+Il ne définit pas précisément les couleurs, espacements ou composants visuels. Ces éléments sont décrits dans `docs/07-ui-ux-guidelines.md`.
 
-Les noms exacts peuvent évoluer pendant l’implémentation, mais les responsabilités des entités doivent rester cohérentes.
+## 2. Principes de navigation
 
-## 2. Conventions
+### 2.1 Mobile-first
 
-### 2.1 Identifiants
+La navigation principale est conçue en priorité pour un téléphone.
 
-Toutes les entités persistées utilisent un identifiant opaque.
+Les fonctionnalités utilisées pendant une séance doivent être accessibles rapidement et ne doivent pas dépendre d’un menu complexe.
 
-Format recommandé :
+### 2.2 Navigation stable
 
-- UUID ;
-- CUID ;
-- ULID.
+L’application doit conserver une structure prévisible.
 
-Le format doit être cohérent dans tout le projet.
+Les sections principales ne doivent pas changer de position selon le contexte, sauf pendant une séance active où une interface spécialisée peut remplacer temporairement la navigation habituelle.
 
-### 2.2 Dates
+### 2.3 Profondeur limitée
 
-Les timestamps sont stockés en UTC.
+Les actions fréquentes doivent être accessibles en trois interactions au maximum depuis la navigation principale.
 
-Conventions usuelles :
+### 2.4 Retour sécurisé
 
-```ts
-createdAt: Date;
-updatedAt: Date;
+Le bouton de retour ne doit pas provoquer la perte d’un formulaire ou d’une séance sans avertissement.
+
+### 2.5 URLs explicites
+
+Les pages importantes doivent posséder une route stable pouvant être :
+
+- mise en favori ;
+- partagée lorsqu’elle n’est pas privée ;
+- restaurée après actualisation ;
+- ouverte directement depuis une notification.
+
+## 3. Structure générale des routes
+
+Structure proposée :
+
+```text
+/
+├── login
+├── register
+├── forgot-password
+├── reset-password
+├── verify-email
+├── invite/:invitationCode
+│
+└── app
+    ├── dashboard
+    ├── today
+    ├── exercises
+    │   ├── new
+    │   └── :exerciseId
+    │       ├── overview
+    │       ├── history
+    │       └── edit
+    │
+    ├── programs
+    │   ├── new
+    │   └── :programId
+    │       ├── overview
+    │       ├── edit
+    │       └── workouts
+    │           ├── new
+    │           └── :templateId
+    │               └── edit
+    │
+    ├── workouts
+    │   ├── new
+    │   ├── active
+    │   ├── history
+    │   └── :workoutSessionId
+    │
+    ├── shared-workouts
+    │   ├── new
+    │   ├── join
+    │   └── :roomId
+    │       ├── lobby
+    │       ├── active
+    │       └── summary
+    │
+    ├── progress
+    │   ├── overview
+    │   └── exercises/:exerciseId
+    │
+    ├── nutrition
+    │   ├── today
+    │   ├── history
+    │   ├── foods
+    │   │   ├── new
+    │   │   └── :foodId
+    │   ├── recipes
+    │   │   ├── new
+    │   │   └── :recipeId
+    │   ├── saved-meals
+    │   ├── goals
+    │   └── body
+    │
+    ├── coach
+    │   ├── new-program
+    │   ├── new-workout
+    │   ├── progress-analysis
+    │   └── proposals/:proposalId
+    │
+    ├── notifications
+    ├── profile
+    ├── settings
+    │   ├── account
+    │   ├── preferences
+    │   ├── notifications
+    │   ├── privacy
+    │   ├── data
+    │   └── sessions
+    │
+    └── admin
+        ├── users
+        └── exercises
 ```
 
-Les entités archivables peuvent également utiliser :
+Cette structure est une cible. Les routes des phases futures ne doivent pas nécessairement être créées dès le lancement.
 
-```ts
-archivedAt: Date | null;
+## 4. Navigation mobile principale
+
+La navigation mobile utilise une barre inférieure persistante hors séance active.
+
+Proposition initiale :
+
+```text
+Aujourd’hui | Programmes | Ajouter | Progression | Profil
 ```
 
-### 2.3 Nombres décimaux
+### 4.1 Aujourd’hui
 
-Les valeurs de poids, distance et nutrition nécessitant une précision doivent utiliser un type décimal compatible avec PostgreSQL et Prisma.
+Accès au tableau de bord opérationnel :
 
-### 2.4 Suppression
+- séance prévue ;
+- séance active ;
+- résumé nutritionnel ;
+- invitations ;
+- rappels utiles.
 
-La suppression physique est évitée pour les entités référencées par l’historique.
+### 4.2 Programmes
 
-## 3. Enums principaux
+Accès aux programmes, séances modèles et catalogue d’exercices.
 
-```ts
-type UserStatus = "PENDING" | "ACTIVE" | "DISABLED" | "DELETION_PENDING";
+### 4.3 Ajouter
 
-type UserRole = "USER" | "ADMIN";
+Bouton d’action central ouvrant un menu contextuel :
 
-type WeightUnit = "KG" | "LB";
+- démarrer une séance libre ;
+- créer une séance partagée ;
+- ajouter un repas ;
+- enregistrer le poids ;
+- créer un exercice ;
+- créer un programme.
 
-type DistanceUnit = "KM" | "MI";
+Le menu ne doit afficher que les fonctionnalités disponibles dans la phase courante.
 
-type TrainingGoal =
-  | "ENDURANCE"
-  | "HYPERTROPHY"
-  | "STRENGTH"
-  | "GENERAL_FITNESS";
+### 4.4 Progression
 
-type ExperienceLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+Accès à :
 
-type EffortTrackingMode = "NONE" | "RIR" | "RPE";
+- historique ;
+- statistiques ;
+- records ;
+- graphiques ;
+- évolution du poids.
 
-type ExerciseSource = "SYSTEM" | "USER";
+### 4.5 Profil
 
-type ExerciseMeasurementType =
-  | "WEIGHT_REPS"
-  | "BODYWEIGHT_REPS"
-  | "ASSISTED_BODYWEIGHT_REPS"
-  | "REPS_ONLY"
-  | "DURATION"
-  | "DISTANCE_DURATION"
-  | "WEIGHT_DURATION";
+Accès aux préférences, paramètres, notifications, données et sessions.
 
-type WorkoutStatus =
-  | "PLANNED"
-  | "ACTIVE"
-  | "PAUSED"
-  | "COMPLETED"
-  | "CANCELLED";
+## 5. Navigation desktop
 
-type WorkoutSetStatus =
-  | "COMPLETED"
-  | "PARTIAL"
-  | "FAILED"
-  | "SKIPPED"
-  | "CANCELLED";
+Sur desktop, la navigation principale peut utiliser une barre latérale.
 
-type WorkoutSetType =
-  | "WARMUP"
-  | "WORKING"
-  | "BACKOFF"
-  | "DROP_SET"
-  | "AMRAP"
-  | "FAILURE_OPTIONAL";
+Sections proposées :
 
-type ProgramStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
+- Aujourd’hui ;
+- Exercices ;
+- Programmes ;
+- Séances ;
+- Progression ;
+- Nutrition ;
+- Séances partagées ;
+- Coach IA ;
+- Paramètres.
 
-type SharedRoomStatus =
-  | "LOBBY"
-  | "PREPARING"
-  | "ACTIVE"
-  | "PAUSED"
-  | "COMPLETED"
-  | "CANCELLED";
+La navigation desktop peut afficher davantage d’informations, mais les routes et concepts doivent rester identiques à la version mobile.
 
-type SharedParticipantRole = "HOST" | "PARTICIPANT";
+## 6. Layout public
 
-type SharedParticipantStatus =
-  | "INVITED"
-  | "JOINED"
-  | "READY"
-  | "ACTIVE"
-  | "TEMPORARILY_DISCONNECTED"
-  | "PAUSED"
-  | "FINISHED"
-  | "LEFT"
-  | "REMOVED";
+Les pages publiques utilisent un layout distinct.
 
-type MealType = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK" | "OTHER";
+### Pages concernées
 
-type DataSource = "SYSTEM" | "USER" | "EXTERNAL";
+- connexion ;
+- inscription ;
+- mot de passe oublié ;
+- réinitialisation ;
+- vérification d’email ;
+- invitation nécessitant une connexion.
 
-type AiProposalStatus =
-  | "GENERATING"
-  | "VALID"
-  | "INVALID"
-  | "ACCEPTED"
-  | "REJECTED"
-  | "EXPIRED";
+### Contenu du layout
+
+- logo ;
+- nom de l’application ;
+- formulaire principal ;
+- lien vers l’autre action d’authentification ;
+- conditions et confidentialité ;
+- messages d’erreur ;
+- état de connexion au serveur.
+
+## 7. Page de connexion
+
+### Route
+
+```text
+/login
 ```
 
-Les groupes musculaires et types d’équipement doivent également être centralisés dans des enums ou tables de référence.
+### Objectif
 
-## 4. User
+Permettre à un utilisateur existant d’accéder à l’application.
 
-Représente le compte technique.
+### Contenu
 
-```ts
-type User = {
-  id: string;
-  email: string;
-  passwordHash: string;
-  status: UserStatus;
-  role: UserRole;
+- adresse email ;
+- mot de passe ;
+- option d’affichage du mot de passe ;
+- bouton de connexion ;
+- lien mot de passe oublié ;
+- lien inscription.
 
-  emailVerifiedAt: Date | null;
-  lastLoginAt: Date | null;
+### États
 
-  createdAt: Date;
-  updatedAt: Date;
-  deletionRequestedAt: Date | null;
-};
+- formulaire initial ;
+- chargement ;
+- identifiants invalides ;
+- compte désactivé ;
+- réseau indisponible ;
+- session créée.
+
+### Règle
+
+Une erreur d’authentification ne doit pas révéler précisément si l’adresse email existe.
+
+## 8. Page d’inscription
+
+### Route
+
+```text
+/register
 ```
+
+### Contenu
+
+- email ;
+- mot de passe ;
+- confirmation ;
+- acceptation des conditions ;
+- bouton de création ;
+- lien vers la connexion.
+
+### États
+
+- validation en temps réel ;
+- soumission ;
+- email déjà utilisé ;
+- erreur serveur ;
+- succès.
+
+## 9. Configuration initiale
+
+### Route proposée
+
+```text
+/app/onboarding
+```
+
+### Étapes
+
+1. Identité et timezone.
+2. Unités.
+3. Objectif sportif.
+4. Niveau.
+5. Informations facultatives.
+6. Résumé.
+
+### Règles
+
+- progression visible ;
+- possibilité de revenir en arrière ;
+- données facultatives clairement identifiées ;
+- possibilité de terminer rapidement ;
+- pas de questionnaire médical.
+
+## 10. Page Aujourd’hui
+
+### Route
+
+```text
+/app/today
+```
+
+### Objectif
+
+Donner immédiatement les actions utiles pour la journée.
+
+### Sections possibles
+
+#### Séance active
+
+Affichée en priorité lorsqu’une séance est en cours.
+
+Contenu :
+
+- nom ;
+- heure de début ;
+- progression ;
+- exercice actuel ;
+- bouton Reprendre.
+
+#### Prochaine séance
+
+- nom de la séance ;
+- programme ;
+- durée estimée ;
+- exercices principaux ;
+- bouton Démarrer ;
+- bouton Modifier ou choisir une autre séance.
+
+#### Séance partagée
+
+- invitation en attente ;
+- salle programmée ;
+- participants ;
+- bouton Rejoindre.
+
+#### Nutrition
+
+- calories consommées ;
+- objectif ;
+- protéines ;
+- accès rapide à Ajouter un repas.
+
+#### Résumé rapide
+
+- dernière séance ;
+- record récent ;
+- poids récent ;
+- série de régularité facultative.
+
+### État vide
+
+Lorsqu’aucune donnée n’existe, la page doit proposer une seule prochaine action claire :
+
+```text
+Créer mon premier programme
+```
+
+ou :
+
+```text
+Démarrer une séance libre
+```
+
+## 11. Tableau de bord
+
+### Route
+
+```text
+/app/dashboard
+```
+
+La page Aujourd’hui peut servir de tableau de bord principal. Une route distincte reste possible pour une vue plus analytique.
+
+### Widgets possibles
+
+- séances de la semaine ;
+- temps total d’entraînement ;
+- volume ;
+- records ;
+- évolution récente ;
+- objectif nutritionnel ;
+- poids ;
+- invitations ;
+- raccourcis.
+
+La page ne doit pas devenir une accumulation de cartes sans hiérarchie.
+
+## 12. Liste des exercices
+
+### Route
+
+```text
+/app/exercises
+```
+
+### Contenu
+
+- barre de recherche ;
+- filtres ;
+- favoris ;
+- exercices récents ;
+- liste des résultats ;
+- bouton Nouvel exercice.
+
+### Filtres
+
+- groupe musculaire ;
+- équipement ;
+- type de mesure ;
+- source ;
+- favoris ;
+- archivés, uniquement sur demande.
+
+### Carte d’exercice
+
+- nom ;
+- muscle principal ;
+- équipement ;
+- indicateur personnel ou système ;
+- dernière performance facultative ;
+- favori.
+
+## 13. Détail d’un exercice
+
+### Route
+
+```text
+/app/exercises/:exerciseId
+```
+
+### Onglets ou sections
+
+#### Vue générale
+
+- nom ;
+- muscles ;
+- équipement ;
+- instructions ;
+- temps de repos ;
+- préférences personnelles.
+
+#### Historique
+
+- dernières performances ;
+- charge ;
+- répétitions ;
+- dates ;
+- séances sources.
+
+#### Progression
+
+- records ;
+- graphique ;
+- 1RM estimé ;
+- volume ;
+- comparaison.
+
+#### Paramètres personnels
+
+- équipement préféré ;
+- repos par défaut ;
+- notes ;
+- favori ;
+- exclusion.
+
+### Actions
+
+- ajouter à une séance ;
+- ajouter à un programme ;
+- modifier si personnel ;
+- archiver si personnel.
+
+## 14. Création ou modification d’exercice
+
+### Routes
+
+```text
+/app/exercises/new
+/app/exercises/:exerciseId/edit
+```
+
+### Sections
+
+- identité ;
+- muscles ;
+- équipement ;
+- type de mesure ;
+- paramètres par défaut ;
+- instructions.
+
+### Règle mobile
+
+Le formulaire peut être découpé en sections repliables, mais ne doit pas masquer les erreurs.
+
+## 15. Liste des programmes
+
+### Route
+
+```text
+/app/programs
+```
+
+### Sections
+
+- programme actif ;
+- programmes personnels ;
+- brouillons ;
+- archivés, sur demande ;
+- bouton Nouveau programme.
+
+### Carte de programme
+
+- nom ;
+- objectif ;
+- nombre de séances ;
+- statut ;
+- dernière utilisation ;
+- bouton d’action.
+
+## 16. Détail d’un programme
+
+### Route
+
+```text
+/app/programs/:programId
+```
+
+### Contenu
+
+- nom ;
+- objectif ;
+- description ;
+- statut ;
+- séances du programme ;
+- fréquence ou organisation facultative ;
+- date de modification.
+
+### Actions
+
+- activer ;
+- modifier ;
+- dupliquer ;
+- archiver ;
+- démarrer une séance ;
+- demander une adaptation IA, phase future.
+
+## 17. Éditeur de programme
+
+### Routes
+
+```text
+/app/programs/new
+/app/programs/:programId/edit
+```
+
+### Structure
+
+1. Informations générales.
+2. Liste des séances.
+3. Édition d’une séance.
+4. Résumé.
+5. Enregistrement.
 
 ### Contraintes
 
-- `email` unique après normalisation.
-- `passwordHash` jamais exposé.
-- Un utilisateur désactivé ne peut plus ouvrir de session.
+- sauvegarde de brouillon ;
+- alerte avant sortie avec modifications non enregistrées ;
+- réorganisation tactile ;
+- duplication de séance ;
+- suppression avec confirmation.
 
-### Relations
+## 18. Éditeur de séance modèle
 
-- un `UserProfile` ;
-- plusieurs sessions ;
-- plusieurs exercices personnels ;
-- plusieurs programmes ;
-- plusieurs séances ;
-- plusieurs entrées nutritionnelles ;
-- plusieurs participations à des salles partagées.
+### Routes
 
-## 5. UserProfile
-
-Contient les préférences et informations de profil.
-
-```ts
-type UserProfile = {
-  id: string;
-  userId: string;
-
-  displayName: string;
-  timezone: string;
-
-  weightUnit: WeightUnit;
-  distanceUnit: DistanceUnit;
-
-  primaryGoal: TrainingGoal;
-  experienceLevel: ExperienceLevel;
-  effortTrackingMode: EffortTrackingMode;
-
-  heightCm: Decimal | null;
-  currentWeightKg: Decimal | null;
-
-  weeklyTrainingTarget: number | null;
-  defaultWorkoutDurationMinutes: number | null;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
+```text
+/app/programs/:programId/workouts/new
+/app/programs/:programId/workouts/:templateId/edit
 ```
 
-### Contraintes
+### Contenu
 
-- relation unique avec `User`;
-- timezone IANA valide ;
-- les données physiques restent facultatives.
+- nom ;
+- description ;
+- liste ordonnée d’exercices ;
+- nombre de séries ;
+- cibles ;
+- repos ;
+- notes ;
+- estimation de durée.
 
-## 6. UserRestriction
+### Actions
 
-Représente une limitation volontairement déclarée par l’utilisateur.
+- ajouter un exercice ;
+- dupliquer un exercice ;
+- réordonner ;
+- modifier les séries ;
+- supprimer ;
+- enregistrer.
 
-```ts
-type UserRestriction = {
-  id: string;
-  userId: string;
+## 19. Prévisualisation avant séance
 
-  label: string;
-  description: string | null;
-  restrictionType:
-    | "EXCLUDED_EXERCISE"
-    | "EXCLUDED_EQUIPMENT"
-    | "MOVEMENT_LIMITATION"
-    | "OTHER";
+### Route proposée
 
-  exerciseId: string | null;
-  equipmentTypeId: string | null;
-
-  isActive: boolean;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
+```text
+/app/workouts/new?templateId=:templateId
 ```
 
-Cette donnée ne constitue pas un dossier médical.
+### Objectif
 
-## 7. AuthSession
+Permettre de vérifier et adapter la séance avant son démarrage.
 
-Représente une session renouvelable.
+### Contenu
 
-```ts
-type AuthSession = {
-  id: string;
-  userId: string;
+- exercices ;
+- séries ;
+- charge suggérée ;
+- dernière performance ;
+- durée estimée ;
+- équipement ;
+- restrictions ou avertissements.
 
-  refreshTokenHash: string;
-  userAgent: string | null;
-  ipHash: string | null;
+### Actions
 
-  expiresAt: Date;
-  revokedAt: Date | null;
-  lastUsedAt: Date | null;
+- démarrer ;
+- modifier temporairement ;
+- annuler ;
+- créer une séance partagée.
 
-  createdAt: Date;
-};
+## 20. Page de séance individuelle active
+
+### Route
+
+```text
+/app/workouts/active
 ```
 
-### Contraintes
+### Objectif
 
-- le refresh token brut n’est jamais stocké ;
-- une session révoquée ne peut plus être renouvelée.
+Être l’écran principal utilisé pendant l’entraînement.
 
-## 8. PasswordResetToken
+### Mode d’affichage
 
-```ts
-type PasswordResetToken = {
-  id: string;
-  userId: string;
+Cette page peut utiliser un layout plein écran sans navigation mobile habituelle.
 
-  tokenHash: string;
-  expiresAt: Date;
-  usedAt: Date | null;
+### En-tête
 
-  createdAt: Date;
-};
+- nom de séance ;
+- durée écoulée ;
+- état réseau ;
+- état de synchronisation ;
+- menu secondaire ;
+- bouton terminer.
+
+### Carte de l’exercice courant
+
+- nom ;
+- équipement ;
+- dernière performance ;
+- cible ;
+- notes ;
+- progression dans les séries.
+
+### Saisie de série
+
+- charge ;
+- répétitions ou durée ;
+- RIR/RPE ;
+- indication d’échec ;
+- statut ;
+- bouton de validation.
+
+### Navigation dans la séance
+
+- exercice précédent ;
+- exercice suivant ;
+- liste complète ;
+- ajout d’exercice ;
+- remplacement ;
+- réorganisation.
+
+### Chronomètre
+
+- temps restant ;
+- pause ;
+- ajout ou retrait de temps ;
+- terminer le repos.
+
+### États particuliers
+
+- hors ligne ;
+- synchronisation en attente ;
+- conflit ;
+- session expirée ;
+- séance terminée ailleurs.
+
+## 21. Liste compacte de la séance active
+
+Une bottom sheet ou page secondaire permet de voir :
+
+- tous les exercices ;
+- séries réalisées ;
+- séries restantes ;
+- exercice courant ;
+- exercices ignorés ;
+- progression globale.
+
+L’utilisateur peut sélectionner directement un exercice.
+
+## 22. Résumé de séance
+
+### Route
+
+```text
+/app/workouts/:workoutSessionId
 ```
 
-## 9. EmailVerificationToken
+### Contenu
 
-```ts
-type EmailVerificationToken = {
-  id: string;
-  userId: string;
+- nom ;
+- date ;
+- durée ;
+- statut ;
+- exercices ;
+- séries ;
+- volume ;
+- records ;
+- notes ;
+- comparaison avec la dernière séance.
 
-  tokenHash: string;
-  expiresAt: Date;
-  usedAt: Date | null;
+### Actions
 
-  createdAt: Date;
-};
+- ajouter une note ;
+- corriger une donnée selon les droits ;
+- dupliquer comme modèle ;
+- partager un résumé non sensible, phase future.
+
+## 23. Historique des séances
+
+### Route
+
+```text
+/app/workouts/history
 ```
 
-## 10. MuscleGroup
+### Contenu
 
-Table de référence recommandée.
+- liste chronologique ;
+- calendrier facultatif ;
+- filtres ;
+- recherche ;
+- résumé de période.
 
-```ts
-type MuscleGroup = {
-  id: string;
-  code: string;
-  name: string;
-  parentId: string | null;
-  isActive: boolean;
-};
+### Filtres
+
+- date ;
+- programme ;
+- exercice ;
+- statut ;
+- séance individuelle ou partagée.
+
+## 24. Vue globale de progression
+
+### Route
+
+```text
+/app/progress/overview
 ```
 
-Exemples :
+### Contenu
 
-- chest ;
-- back ;
-- shoulders ;
-- biceps ;
-- triceps ;
-- quadriceps ;
-- hamstrings ;
-- glutes ;
-- calves ;
-- core.
+- fréquence d’entraînement ;
+- durée totale ;
+- volume ;
+- records récents ;
+- exercices les plus pratiqués ;
+- évolution par période ;
+- poids, si disponible.
 
-## 11. EquipmentType
+### Règle
 
-Catégorie d’équipement.
+Les graphiques doivent répondre à une question précise. Ils ne doivent pas être ajoutés uniquement pour décorer.
 
-```ts
-type EquipmentType = {
-  id: string;
-  code: string;
-  name: string;
-  isActive: boolean;
-};
+## 25. Progression d’un exercice
+
+### Route
+
+```text
+/app/progress/exercises/:exerciseId
 ```
 
-Exemples :
+### Contenu
 
-- barbell ;
-- dumbbell ;
-- cable ;
+- exercice ;
+- équipement sélectionné ;
+- période ;
+- charge maximale ;
+- 1RM estimé ;
+- volume ;
+- répétitions ;
+- records ;
+- graphique ;
+- liste des meilleures séries.
+
+### Filtres
+
+- équipement ;
+- période ;
+- séries de travail uniquement ;
+- inclure ou exclure l’échauffement.
+
+## 26. Création d’une séance partagée
+
+### Route
+
+```text
+/app/shared-workouts/new
+```
+
+### Étapes
+
+1. Choisir une séance.
+2. Définir les équipements disponibles.
+3. Définir les options de salle.
+4. Créer la salle.
+5. Partager l’invitation.
+
+### Informations
+
+- nom ;
+- modèle ;
+- capacité ;
+- durée cible ;
+- équipements ;
+- expiration du code.
+
+## 27. Rejoindre une séance partagée
+
+### Routes
+
+```text
+/invite/:invitationCode
+/app/shared-workouts/join
+```
+
+### Contenu
+
+- informations de la salle ;
+- hôte ;
+- participants ;
+- séance ;
+- validité de l’invitation ;
+- bouton Rejoindre.
+
+### États
+
+- invitation valide ;
+- expirée ;
+- révoquée ;
+- salle complète ;
+- salle terminée ;
+- connexion requise ;
+- déjà membre.
+
+## 28. Lobby d’une séance partagée
+
+### Route
+
+```text
+/app/shared-workouts/:roomId/lobby
+```
+
+### Contenu
+
+- hôte ;
+- participants ;
+- statuts de présence ;
+- équipements ;
+- séance ;
+- rotation proposée ;
+- code d’invitation ;
+- durée cible.
+
+### Actions de l’hôte
+
+- partager ;
+- révoquer le code ;
+- retirer un participant ;
+- modifier les équipements ;
+- recalculer la rotation ;
+- démarrer.
+
+### Actions des participants
+
+- confirmer prêt ;
+- déclarer une restriction ;
+- consulter leur plan ;
+- quitter.
+
+## 29. Séance partagée active
+
+### Route
+
+```text
+/app/shared-workouts/:roomId/active
+```
+
+### Objectif
+
+Afficher uniquement les informations nécessaires au participant connecté.
+
+### En-tête
+
+- statut de connexion ;
+- durée ;
+- participants ;
+- version ou synchronisation en cas de problème ;
+- bouton menu.
+
+### Station actuelle
+
+- exercice ;
 - machine ;
-- bodyweight ;
-- resistance-band ;
-- cardio-machine ;
-- other.
+- charge personnelle ;
+- cible personnelle ;
+- série courante ;
+- repos ;
+- prochain passage.
 
-## 12. Equipment
+### État du groupe
 
-Représente un équipement précis ou une configuration personnelle.
+Vue secondaire :
 
-```ts
-type Equipment = {
-  id: string;
-  ownerUserId: string | null;
-  equipmentTypeId: string;
+- participant ;
+- station ;
+- statut ;
+- progression ;
+- attente éventuelle.
 
-  name: string;
-  description: string | null;
+### Actions participant
 
-  minWeightKg: Decimal | null;
-  maxWeightKg: Decimal | null;
-  weightIncrementKg: Decimal | null;
-  baseWeightKg: Decimal | null;
+- enregistrer sa série ;
+- indiquer une pause ;
+- signaler un problème ;
+- consulter la rotation ;
+- terminer sa partie.
 
-  availableWeightsKg: Decimal[] | null;
+### Actions hôte
 
-  isSystem: boolean;
-  archivedAt: Date | null;
+- réaffecter une station ;
+- mettre la salle en pause ;
+- retirer une station ;
+- gérer un participant ;
+- terminer la séance.
 
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
+## 30. Résumé de séance partagée
 
-### Usage
-
-Un équipement système peut représenter une catégorie générique.
-
-Un équipement utilisateur peut représenter une machine précise d’une salle.
-
-## 13. Exercise
-
-```ts
-type Exercise = {
-  id: string;
-  ownerUserId: string | null;
-
-  source: ExerciseSource;
-  name: string;
-  normalizedName: string;
-  slug: string | null;
-
-  primaryMuscleGroupId: string;
-  measurementType: ExerciseMeasurementType;
-  defaultEquipmentTypeId: string | null;
-
-  defaultRestSeconds: number | null;
-  instructions: string | null;
-
-  archivedAt: Date | null;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-### Contraintes
-
-- un exercice système possède `ownerUserId = null` ;
-- un exercice utilisateur possède un propriétaire ;
-- `normalizedName` aide à détecter les doublons ;
-- un exercice archivé reste accessible dans les historiques.
-
-## 14. ExerciseSecondaryMuscle
-
-Table d’association.
-
-```ts
-type ExerciseSecondaryMuscle = {
-  exerciseId: string;
-  muscleGroupId: string;
-};
-```
-
-### Contrainte
-
-Clé unique :
+### Route
 
 ```text
-exerciseId + muscleGroupId
+/app/shared-workouts/:roomId/summary
 ```
 
-## 15. ExerciseEquipmentCompatibility
+### Contenu individuel
 
-Décrit les équipements compatibles avec un exercice.
+- performances personnelles ;
+- records ;
+- durée ;
+- exercices ;
+- charges ;
+- notes.
 
-```ts
-type ExerciseEquipmentCompatibility = {
-  id: string;
-  exerciseId: string;
-  equipmentTypeId: string;
+### Contenu partagé
 
-  isPreferred: boolean;
-  notes: string | null;
-};
-```
+- durée totale ;
+- participants ;
+- séries réalisées ;
+- rotation ;
+- éventuels temps d’attente.
 
-## 16. UserExercisePreference
+Les performances privées d’un autre participant ne sont affichées que s’il a choisi de les partager.
 
-Préférences d’un utilisateur pour un exercice.
+## 31. Nutrition du jour
 
-```ts
-type UserExercisePreference = {
-  id: string;
-  userId: string;
-  exerciseId: string;
-
-  preferredEquipmentId: string | null;
-  defaultRestSeconds: number | null;
-  defaultSetCount: number | null;
-  notes: string | null;
-
-  isFavorite: boolean;
-  isExcluded: boolean;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-### Contrainte
-
-Clé unique :
+### Route
 
 ```text
-userId + exerciseId
+/app/nutrition/today
 ```
 
-## 17. ExerciseStrengthReference
-
-Référence de force pour une combinaison utilisateur, exercice et équipement.
-
-```ts
-type ExerciseStrengthReference = {
-  id: string;
-  userId: string;
-  exerciseId: string;
-  equipmentId: string | null;
-
-  referenceType:
-    | "DECLARED_ONE_REP_MAX"
-    | "ESTIMATED_ONE_REP_MAX"
-    | "OBSERVED_MAX_WEIGHT"
-    | "TRAINING_MAX"
-    | "MACHINE_REFERENCE_MAX";
-
-  valueKg: Decimal;
-  estimatedFromSetId: string | null;
-
-  formulaCode: string | null;
-  confidenceLevel: "LOW" | "MEDIUM" | "HIGH" | null;
-
-  evaluatedAt: Date;
-  expiresAt: Date | null;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-Une stratégie pourra déterminer la référence actuellement utilisée.
-
-## 18. Program
-
-```ts
-type Program = {
-  id: string;
-  ownerUserId: string;
-
-  name: string;
-  description: string | null;
-  goal: TrainingGoal;
-  status: ProgramStatus;
-
-  activatedAt: Date | null;
-  archivedAt: Date | null;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-### Contraintes
-
-La première version limite à un programme principal actif par utilisateur.
-
-Cette contrainte peut être appliquée dans le service métier plutôt que par un index simple.
-
-## 19. WorkoutTemplate
-
-```ts
-type WorkoutTemplate = {
-  id: string;
-  ownerUserId: string;
-  programId: string | null;
-
-  name: string;
-  description: string | null;
-
-  positionInProgram: number | null;
-  estimatedDurationMinutes: number | null;
-
-  archivedAt: Date | null;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-## 20. WorkoutTemplateExercise
-
-```ts
-type WorkoutTemplateExercise = {
-  id: string;
-  workoutTemplateId: string;
-  exerciseId: string;
-
-  position: number;
-  notes: string | null;
-
-  preferredEquipmentId: string | null;
-  targetSetCount: number;
-
-  targetRepMin: number | null;
-  targetRepMax: number | null;
-
-  targetDurationSeconds: number | null;
-  targetDistanceMeters: Decimal | null;
-
-  targetWeightKg: Decimal | null;
-  targetIntensityPercent: Decimal | null;
-
-  targetRir: number | null;
-  targetRpe: Decimal | null;
-
-  restSeconds: number | null;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-### Contraintes
-
-- `position` unique dans une séance modèle ;
-- les cibles doivent être compatibles avec le type de mesure.
-
-## 21. WorkoutTemplateSet
-
-Cette entité est recommandée si chaque série doit disposer d’une cible distincte.
-
-```ts
-type WorkoutTemplateSet = {
-  id: string;
-  workoutTemplateExerciseId: string;
-
-  setNumber: number;
-  setType: WorkoutSetType;
-
-  targetWeightKg: Decimal | null;
-  targetRepMin: number | null;
-  targetRepMax: number | null;
-
-  targetDurationSeconds: number | null;
-  targetDistanceMeters: Decimal | null;
-
-  targetRir: number | null;
-  targetRpe: Decimal | null;
-
-  restSeconds: number | null;
-};
-```
-
-### Décision d’implémentation
-
-Deux approches sont possibles :
-
-1. conserver uniquement `targetSetCount` sur `WorkoutTemplateExercise` lorsque toutes les séries sont identiques ;
-2. créer des lignes `WorkoutTemplateSet` pour une configuration détaillée.
-
-La seconde approche est plus flexible et recommandée pour le projet final.
-
-## 22. WorkoutSession
-
-```ts
-type WorkoutSession = {
-  id: string;
-  ownerUserId: string;
-
-  sourceTemplateId: string | null;
-  sharedWorkoutRoomId: string | null;
-
-  name: string;
-  status: WorkoutStatus;
-
-  startedAt: Date | null;
-  pausedAt: Date | null;
-  completedAt: Date | null;
-
-  localDate: string;
-  timezone: string;
-
-  notes: string | null;
-
-  version: number;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-### Contraintes
-
-- `localDate` utilise le format `YYYY-MM-DD` ;
-- `version` augmente lors des changements nécessitant un contrôle de concurrence ;
-- une séance partagée peut produire une séance individuelle liée pour chaque participant.
-
-## 23. WorkoutSessionExercise
-
-Snapshot d’un exercice dans une séance.
-
-```ts
-type WorkoutSessionExercise = {
-  id: string;
-  workoutSessionId: string;
-  exerciseId: string;
-
-  sourceTemplateExerciseId: string | null;
-
-  exerciseNameSnapshot: string;
-  measurementTypeSnapshot: ExerciseMeasurementType;
-
-  position: number;
-  notes: string | null;
-
-  equipmentId: string | null;
-  equipmentNameSnapshot: string | null;
-
-  plannedSetCount: number | null;
-  targetRepMin: number | null;
-  targetRepMax: number | null;
-  targetRestSeconds: number | null;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-Les champs snapshot permettent de conserver une lecture correcte si l’exercice est renommé ou archivé.
-
-## 24. WorkoutSet
-
-```ts
-type WorkoutSet = {
-  id: string;
-  workoutSessionExerciseId: string;
-  userId: string;
-
-  sourceTemplateSetId: string | null;
-
-  setNumber: number;
-  setType: WorkoutSetType;
-  status: WorkoutSetStatus;
-
-  targetWeightKg: Decimal | null;
-  targetRepMin: number | null;
-  targetRepMax: number | null;
-  targetDurationSeconds: number | null;
-  targetDistanceMeters: Decimal | null;
-  targetRir: number | null;
-  targetRpe: Decimal | null;
-
-  actualWeightKg: Decimal | null;
-  actualReps: number | null;
-  actualDurationSeconds: number | null;
-  actualDistanceMeters: Decimal | null;
-  actualRir: number | null;
-  actualRpe: Decimal | null;
-
-  reachedFailure: boolean;
-  notes: string | null;
-
-  startedAt: Date | null;
-  completedAt: Date | null;
-
-  clientCommandId: string | null;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-### Contraintes
-
-- `setNumber` unique dans un `WorkoutSessionExercise` pour un utilisateur ;
-- `clientCommandId` peut être unique par utilisateur ;
-- les valeurs réelles doivent respecter le type de mesure.
-
-## 25. WorkoutSessionEvent
-
-Journal métier facultatif mais recommandé.
-
-```ts
-type WorkoutSessionEvent = {
-  id: string;
-  workoutSessionId: string;
-  userId: string | null;
-
-  eventType: string;
-  payload: Json;
-
-  clientCommandId: string | null;
-  serverVersion: number;
-
-  createdAt: Date;
-};
-```
-
-### Utilité
-
-- audit ;
-- reconstruction ;
-- diagnostic de synchronisation ;
-- suivi des corrections ;
-- idempotence.
-
-Cette table n’oblige pas à adopter un event sourcing complet.
-
-## 26. PersonalRecord
-
-Cache ou matérialisation d’un record calculé.
-
-```ts
-type PersonalRecord = {
-  id: string;
-  userId: string;
-  exerciseId: string;
-  equipmentId: string | null;
-
-  recordType:
-    | "MAX_WEIGHT"
-    | "MAX_REPS"
-    | "MAX_REPS_AT_WEIGHT"
-    | "MAX_SET_VOLUME"
-    | "MAX_SESSION_VOLUME"
-    | "ESTIMATED_ONE_REP_MAX"
-    | "MAX_DURATION"
-    | "MAX_DISTANCE";
-
-  numericValue: Decimal;
-  secondaryValue: Decimal | null;
-
-  sourceWorkoutSetId: string | null;
-  sourceWorkoutSessionId: string | null;
-
-  calculationStrategy: string | null;
-
-  achievedAt: Date;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-Les records peuvent aussi être calculés à la demande. Cette table sert si les calculs deviennent coûteux ou si l’on souhaite notifier immédiatement un record.
-
-## 27. SharedWorkoutRoom
-
-```ts
-type SharedWorkoutRoom = {
-  id: string;
-  hostUserId: string;
-
-  sourceTemplateId: string | null;
-
-  name: string;
-  status: SharedRoomStatus;
-
-  invitationCodeHash: string | null;
-  invitationExpiresAt: Date | null;
-  invitationRevokedAt: Date | null;
-
-  maxParticipants: number;
-  targetDurationMinutes: number | null;
-
-  stateVersion: number;
-  rotationAlgorithmVersion: string;
-
-  startedAt: Date | null;
-  completedAt: Date | null;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-### Sécurité
-
-Le code d’invitation peut être stocké sous forme hachée lorsque sa récupération en clair n’est pas nécessaire.
-
-## 28. SharedWorkoutParticipant
-
-```ts
-type SharedWorkoutParticipant = {
-  id: string;
-  sharedWorkoutRoomId: string;
-  userId: string;
-
-  role: SharedParticipantRole;
-  status: SharedParticipantStatus;
-
-  joinedAt: Date | null;
-  readyAt: Date | null;
-  disconnectedAt: Date | null;
-  finishedAt: Date | null;
-  leftAt: Date | null;
-
-  currentStationId: string | null;
-  nextStationId: string | null;
-
-  lastAcknowledgedVersion: number | null;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-### Contraintes
-
-Clé unique :
+### Contenu
+
+- date ;
+- objectif calorique ;
+- calories consommées ;
+- protéines ;
+- glucides ;
+- lipides ;
+- dépense sportive estimée séparée ;
+- repas de la journée.
+
+### Actions
+
+- ajouter un aliment ;
+- ajouter un repas enregistré ;
+- copier un repas ;
+- modifier les objectifs ;
+- changer la date.
+
+## 32. Journal nutritionnel
+
+### Route
 
 ```text
-sharedWorkoutRoomId + userId
+/app/nutrition/history
 ```
 
-## 29. SharedWorkoutStation
+### Contenu
 
-Représente une station utilisable dans la rotation.
+- calendrier ;
+- moyenne ;
+- jours récents ;
+- objectifs historiques ;
+- filtres ;
+- tendances.
 
-```ts
-type SharedWorkoutStation = {
-  id: string;
-  sharedWorkoutRoomId: string;
+## 33. Catalogue alimentaire
 
-  exerciseId: string;
-  equipmentId: string | null;
-
-  nameSnapshot: string;
-  position: number;
-
-  capacity: number;
-  status: "AVAILABLE" | "OCCUPIED" | "DISABLED";
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-La capacité initiale sera généralement égale à 1.
-
-## 30. SharedParticipantExercisePlan
-
-Plan personnalisé d’un participant dans la séance partagée.
-
-```ts
-type SharedParticipantExercisePlan = {
-  id: string;
-  participantId: string;
-  stationId: string;
-
-  workoutSessionExerciseId: string | null;
-
-  position: number;
-
-  targetSetCount: number;
-  targetWeightKg: Decimal | null;
-  targetRepMin: number | null;
-  targetRepMax: number | null;
-  targetDurationSeconds: number | null;
-  targetDistanceMeters: Decimal | null;
-  targetRir: number | null;
-  targetRpe: Decimal | null;
-  restSeconds: number | null;
-
-  status: "PENDING" | "ACTIVE" | "COMPLETED" | "SKIPPED";
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-## 31. SharedRotationAssignment
-
-Historise les affectations de rotation.
-
-```ts
-type SharedRotationAssignment = {
-  id: string;
-  sharedWorkoutRoomId: string;
-  participantId: string;
-  stationId: string | null;
-
-  roundNumber: number;
-  stateVersion: number;
-
-  assignedAt: Date;
-  releasedAt: Date | null;
-
-  reason:
-    | "INITIAL"
-    | "AUTOMATIC_ROTATION"
-    | "HOST_OVERRIDE"
-    | "RECONNECTION"
-    | "PARTICIPANT_ADDED"
-    | "PARTICIPANT_PAUSED";
-};
-```
-
-## 32. RealtimeCommand
-
-Permet de suivre l’idempotence des commandes critiques.
-
-```ts
-type RealtimeCommand = {
-  id: string;
-  commandId: string;
-
-  sharedWorkoutRoomId: string;
-  userId: string;
-
-  commandType: string;
-  expectedVersion: number | null;
-  appliedVersion: number | null;
-
-  status: "RECEIVED" | "APPLIED" | "REJECTED" | "CONFLICT";
-
-  resultPayload: Json | null;
-  errorCode: string | null;
-
-  createdAt: Date;
-  processedAt: Date | null;
-};
-```
-
-### Contrainte
-
-`commandId` doit être unique dans le périmètre défini.
-
-## 33. Food
-
-```ts
-type Food = {
-  id: string;
-  ownerUserId: string | null;
-
-  source: DataSource;
-  externalReference: string | null;
-
-  name: string;
-  brand: string | null;
-
-  referenceAmount: Decimal;
-  referenceUnit: "GRAM" | "MILLILITER" | "UNIT" | "PORTION";
-
-  caloriesKcal: Decimal;
-  proteinGrams: Decimal;
-  carbohydrateGrams: Decimal;
-  fatGrams: Decimal;
-
-  fiberGrams: Decimal | null;
-  saltGrams: Decimal | null;
-
-  archivedAt: Date | null;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-### Contraintes
-
-Les valeurs correspondent à la quantité de référence.
-
-## 34. Recipe
-
-```ts
-type Recipe = {
-  id: string;
-  ownerUserId: string;
-
-  name: string;
-  description: string | null;
-  servingCount: Decimal;
-
-  archivedAt: Date | null;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-## 35. RecipeIngredient
-
-```ts
-type RecipeIngredient = {
-  id: string;
-  recipeId: string;
-  foodId: string;
-
-  amount: Decimal;
-  unit: "GRAM" | "MILLILITER" | "UNIT" | "PORTION";
-
-  position: number;
-};
-```
-
-Les valeurs nutritionnelles d’une recette sont calculées depuis ses ingrédients.
-
-Un snapshot peut être conservé lors de l’ajout au journal afin qu’une modification future de recette ne modifie pas les anciens repas.
-
-## 36. NutritionGoal
-
-```ts
-type NutritionGoal = {
-  id: string;
-  userId: string;
-
-  effectiveFromLocalDate: string;
-  effectiveToLocalDate: string | null;
-
-  calorieTargetKcal: Decimal;
-  proteinTargetGrams: Decimal | null;
-  carbohydrateTargetGrams: Decimal | null;
-  fatTargetGrams: Decimal | null;
-
-  source: "USER_DEFINED" | "CALCULATED" | "AI_PROPOSED";
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-Une modification crée une nouvelle période au lieu de réécrire l’objectif passé.
-
-## 37. FoodLogEntry
-
-```ts
-type FoodLogEntry = {
-  id: string;
-  userId: string;
-
-  localDate: string;
-  timezone: string;
-  mealType: MealType;
-
-  foodId: string | null;
-  recipeId: string | null;
-
-  nameSnapshot: string;
-
-  amount: Decimal;
-  unit: "GRAM" | "MILLILITER" | "UNIT" | "PORTION";
-
-  caloriesKcal: Decimal;
-  proteinGrams: Decimal;
-  carbohydrateGrams: Decimal;
-  fatGrams: Decimal;
-  fiberGrams: Decimal | null;
-  saltGrams: Decimal | null;
-
-  consumedAt: Date | null;
-  notes: string | null;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-Les valeurs calculées sont enregistrées sous forme de snapshot.
-
-## 38. SavedMeal
-
-Repas réutilisable indépendant d’une recette.
-
-```ts
-type SavedMeal = {
-  id: string;
-  ownerUserId: string;
-
-  name: string;
-  defaultMealType: MealType | null;
-
-  archivedAt: Date | null;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-## 39. SavedMealItem
-
-```ts
-type SavedMealItem = {
-  id: string;
-  savedMealId: string;
-
-  foodId: string | null;
-  recipeId: string | null;
-
-  amount: Decimal;
-  unit: "GRAM" | "MILLILITER" | "UNIT" | "PORTION";
-
-  position: number;
-};
-```
-
-## 40. BodyMeasurement
-
-```ts
-type BodyMeasurement = {
-  id: string;
-  userId: string;
-
-  measurementType:
-    | "WEIGHT"
-    | "BODY_FAT_PERCENT"
-    | "WAIST_CIRCUMFERENCE"
-    | "OTHER";
-
-  value: Decimal;
-  unit: string;
-
-  measuredAt: Date;
-  source: DataSource;
-  notes: string | null;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-La première version utilise principalement `WEIGHT`.
-
-## 41. ExerciseEnergyEstimate
-
-Estimation de dépense associée à une séance.
-
-```ts
-type ExerciseEnergyEstimate = {
-  id: string;
-  userId: string;
-  workoutSessionId: string;
-
-  estimatedCaloriesKcal: Decimal;
-
-  calculationStrategy: string;
-  calculationVersion: string;
-
-  inputSnapshot: Json;
-  confidenceLevel: "LOW" | "MEDIUM" | "HIGH";
-
-  calculatedAt: Date;
-};
-```
-
-Cette valeur doit être affichée comme estimation.
-
-## 42. PushSubscription
-
-```ts
-type PushSubscription = {
-  id: string;
-  userId: string;
-
-  endpoint: string;
-  p256dhKey: string;
-  authKey: string;
-
-  userAgent: string | null;
-  deviceLabel: string | null;
-
-  expiresAt: Date | null;
-  revokedAt: Date | null;
-  lastSuccessAt: Date | null;
-  lastFailureAt: Date | null;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-Les clés doivent être protégées et ne jamais être exposées inutilement.
-
-## 43. NotificationPreference
-
-```ts
-type NotificationPreference = {
-  id: string;
-  userId: string;
-
-  category:
-    | "PLANNED_WORKOUT"
-    | "REST_TIMER"
-    | "SHARED_INVITATION"
-    | "SHARED_WORKOUT_START"
-    | "STATION_CHANGE"
-    | "NUTRITION_REMINDER"
-    | "ACCOUNT_SECURITY";
-
-  isEnabled: boolean;
-
-  quietHoursStart: string | null;
-  quietHoursEnd: string | null;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
-```
-
-### Contrainte
-
-Clé unique :
+### Route
 
 ```text
-userId + category
+/app/nutrition/foods
 ```
 
-## 44. NotificationDelivery
+### Contenu
 
-```ts
-type NotificationDelivery = {
-  id: string;
-  userId: string;
-  pushSubscriptionId: string | null;
+- recherche ;
+- récents ;
+- favoris ;
+- aliments personnels ;
+- bouton Nouvel aliment.
 
-  category: string;
-  title: string;
-  body: string;
-  payload: Json | null;
+## 34. Création d’un aliment
 
-  scheduledAt: Date | null;
-  sentAt: Date | null;
-  failedAt: Date | null;
+### Route
 
-  status: "PENDING" | "SENT" | "FAILED" | "CANCELLED";
-
-  failureCode: string | null;
-
-  createdAt: Date;
-};
+```text
+/app/nutrition/foods/new
 ```
 
-## 45. AiRequest
+### Contenu
 
-```ts
-type AiRequest = {
-  id: string;
-  userId: string;
+- nom ;
+- marque ;
+- quantité de référence ;
+- unité ;
+- calories ;
+- protéines ;
+- glucides ;
+- lipides ;
+- fibres ;
+- sel ;
+- source facultative.
 
-  requestType:
-    | "PROGRAM_GENERATION"
-    | "WORKOUT_GENERATION"
-    | "PROGRESS_ANALYSIS"
-    | "LOAD_ADJUSTMENT"
-    | "EXERCISE_ALTERNATIVE";
+## 35. Recettes
 
-  provider: string;
-  model: string;
+### Routes
 
-  inputSummary: Json;
-  consentedDataTypes: string[];
-
-  promptVersion: string;
-  schemaVersion: string;
-
-  status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
-
-  tokenUsageInput: number | null;
-  tokenUsageOutput: number | null;
-  estimatedCost: Decimal | null;
-
-  createdAt: Date;
-  completedAt: Date | null;
-};
+```text
+/app/nutrition/recipes
+/app/nutrition/recipes/new
+/app/nutrition/recipes/:recipeId
 ```
 
-Le prompt complet contenant des données sensibles ne doit pas nécessairement être conservé.
+### Contenu
 
-## 46. AiProposal
+- nom ;
+- ingrédients ;
+- quantités ;
+- portions ;
+- valeurs calculées ;
+- instructions facultatives.
 
-```ts
-type AiProposal = {
-  id: string;
-  aiRequestId: string;
-  userId: string;
+## 36. Mesures corporelles
 
-  proposalType:
-    | "PROGRAM"
-    | "WORKOUT"
-    | "PROGRESS_ANALYSIS"
-    | "LOAD_ADJUSTMENT"
-    | "EXERCISE_ALTERNATIVE";
+### Route
 
-  status: AiProposalStatus;
-
-  structuredPayload: Json | null;
-  explanation: string | null;
-  assumptions: string[];
-  warnings: string[];
-
-  validationErrors: Json | null;
-
-  acceptedAt: Date | null;
-  rejectedAt: Date | null;
-  expiresAt: Date | null;
-
-  createdAt: Date;
-  updatedAt: Date;
-};
+```text
+/app/nutrition/body
 ```
 
-## 47. OfflineCommand
+### Contenu
 
-Optionnel côté serveur pour les commandes synchronisées depuis la PWA.
+- poids récent ;
+- tendance ;
+- graphique ;
+- liste des mesures ;
+- bouton Ajouter.
 
-```ts
-type OfflineCommand = {
-  id: string;
-  commandId: string;
-  userId: string;
+### Règle
 
-  aggregateType: string;
-  aggregateId: string;
+Une variation journalière ne doit pas être présentée comme une tendance significative.
 
-  commandType: string;
-  expectedVersion: number | null;
-  payload: Json;
+## 37. Coach IA
 
-  status: "RECEIVED" | "APPLIED" | "REJECTED" | "CONFLICT";
+### Route
 
-  resultPayload: Json | null;
-  errorCode: string | null;
-
-  createdAt: Date;
-  processedAt: Date | null;
-};
+```text
+/app/coach
 ```
 
-## 48. DataExport
+### Entrées possibles
 
-```ts
-type DataExport = {
-  id: string;
-  userId: string;
+- créer un programme ;
+- créer une séance ;
+- analyser une progression ;
+- proposer une adaptation ;
+- proposer une alternative.
 
-  formatVersion: string;
-  status: "PENDING" | "PROCESSING" | "READY" | "FAILED" | "EXPIRED";
+### Page de proposition
 
-  fileReference: string | null;
-  expiresAt: Date | null;
-
-  createdAt: Date;
-  completedAt: Date | null;
-};
+```text
+/app/coach/proposals/:proposalId
 ```
 
-## 49. AuditLog
+Contenu :
 
-```ts
-type AuditLog = {
-  id: string;
+- résultat structuré ;
+- explication ;
+- hypothèses ;
+- avertissements ;
+- données utilisées ;
+- boutons accepter, modifier ou refuser.
 
-  actorUserId: string | null;
-  targetUserId: string | null;
+## 38. Notifications
 
-  action: string;
-  entityType: string;
-  entityId: string | null;
+### Route
 
-  metadata: Json | null;
-
-  createdAt: Date;
-};
+```text
+/app/notifications
 ```
 
-L’audit ne doit pas contenir :
+### Contenu
 
-- mots de passe ;
-- tokens ;
-- clés push ;
-- prompts complets sensibles ;
-- données inutiles.
+- invitations ;
+- rappels ;
+- changements importants ;
+- sécurité du compte ;
+- état lu ou non lu.
 
-## 50. Index recommandés
+Cette page ne remplace pas les notifications système.
+
+## 39. Profil
+
+### Route
+
+```text
+/app/profile
+```
+
+### Contenu
+
+- nom ;
+- objectif ;
+- niveau ;
+- unités ;
+- statistiques synthétiques ;
+- accès aux paramètres.
+
+## 40. Paramètres
+
+### Routes
+
+```text
+/app/settings/account
+/app/settings/preferences
+/app/settings/notifications
+/app/settings/privacy
+/app/settings/data
+/app/settings/sessions
+```
+
+### Compte
+
+- email ;
+- mot de passe ;
+- vérification ;
+- suppression.
+
+### Préférences
+
+- unités ;
+- timezone ;
+- RIR/RPE ;
+- thème ;
+- comportement des chronomètres.
+
+### Notifications
+
+- permission ;
+- abonnements ;
+- catégories ;
+- horaires silencieux.
+
+### Confidentialité
+
+- données utilisées ;
+- consentements IA ;
+- visibilité partagée.
+
+### Données
+
+- export ;
+- import futur ;
+- suppression ;
+- historique des exports.
+
+### Sessions
+
+- appareils connectés ;
+- dernière activité ;
+- révocation.
+
+## 41. Administration
+
+Les pages administratives ne doivent pas apparaître pour un utilisateur standard.
 
 ### Utilisateurs
 
-- `User.email` unique ;
-- `AuthSession.userId` ;
-- `AuthSession.expiresAt`.
+- recherche ;
+- statut ;
+- désactivation ;
+- historique administratif limité.
 
-### Exercices
+### Catalogue
 
-- `Exercise.ownerUserId` ;
-- `Exercise.normalizedName` ;
-- `Exercise.primaryMuscleGroupId` ;
-- `Exercise.archivedAt`.
+- création d’exercice système ;
+- modification ;
+- archivage ;
+- gestion des groupes musculaires ;
+- gestion des équipements.
 
-### Programmes
+## 42. Pages d’erreur
 
-- `Program.ownerUserId` ;
-- `Program.status` ;
-- `WorkoutTemplate.programId`.
+### 401 — Session requise
 
-### Séances
+Proposer une reconnexion et conserver la destination initiale.
 
-- `WorkoutSession.ownerUserId + localDate` ;
-- `WorkoutSession.ownerUserId + status` ;
-- `WorkoutSession.sharedWorkoutRoomId` ;
-- `WorkoutSet.userId + completedAt` ;
-- `WorkoutSet.workoutSessionExerciseId`.
+### 403 — Accès interdit
 
-### Partage
+Expliquer que l’utilisateur ne possède pas les droits.
 
-- `SharedWorkoutRoom.hostUserId` ;
-- `SharedWorkoutRoom.status` ;
-- `SharedWorkoutParticipant.sharedWorkoutRoomId` ;
-- `SharedWorkoutParticipant.userId` ;
-- `RealtimeCommand.commandId` unique.
+### 404 — Ressource introuvable
 
-### Nutrition
+Proposer un retour vers la section concernée.
 
-- `Food.ownerUserId` ;
-- `FoodLogEntry.userId + localDate` ;
-- `NutritionGoal.userId + effectiveFromLocalDate` ;
-- `BodyMeasurement.userId + measuredAt`.
+### 409 — Conflit
 
-### Notifications et IA
+Afficher les données locales et serveur lorsque nécessaire.
 
-- `PushSubscription.userId` ;
-- `NotificationDelivery.status + scheduledAt` ;
-- `AiRequest.userId + createdAt`.
+### 500 — Erreur interne
 
-## 51. Contraintes de suppression
+Afficher un message neutre et un identifiant de suivi facultatif.
 
-### Suppression en cascade possible
+### Hors ligne
 
-- tokens d’authentification ;
-- sessions ;
-- préférences sans historique ;
-- brouillons non référencés.
+Expliquer quelles fonctions restent disponibles.
 
-### Archivage recommandé
+## 43. Protection des routes
 
-- exercices ;
-- équipements ;
-- programmes ;
-- modèles ;
-- aliments ;
-- recettes ;
-- repas sauvegardés.
+### Routes publiques
 
-### Conservation ou anonymisation
+- login ;
+- register ;
+- mot de passe oublié ;
+- réinitialisation ;
+- vérification ;
+- invitation avant authentification.
 
-- séances partagées ;
-- événements d’audit ;
-- historiques nécessaires aux autres participants.
+### Routes authentifiées
 
-## 52. Agrégats métier recommandés
+Toutes les routes sous `/app`.
 
-Pour éviter des transactions trop larges, le domaine peut être séparé en agrégats.
+### Routes administratives
 
-### Agrégat utilisateur
+Routes sous `/app/admin` avec rôle adapté.
 
-- User ;
-- UserProfile ;
-- AuthSession.
+### Séance partagée
 
-### Agrégat catalogue
+L’utilisateur doit être membre de la salle ou posséder une invitation valide.
 
-- Exercise ;
-- Equipment ;
-- préférences utilisateur.
+## 44. Gestion des redirections
 
-### Agrégat programme
+Après connexion, l’utilisateur doit revenir vers l’action initialement demandée lorsque cela est sûr.
 
-- Program ;
-- WorkoutTemplate ;
-- WorkoutTemplateExercise ;
-- WorkoutTemplateSet.
+Exemple :
 
-### Agrégat séance
+```text
+invitation → connexion → lobby de la séance
+```
 
-- WorkoutSession ;
-- WorkoutSessionExercise ;
-- WorkoutSet ;
-- WorkoutSessionEvent.
+Une route invalide ou interdite ne doit pas créer de boucle de redirection.
 
-### Agrégat salle partagée
+## 45. Développement par phase
 
-- SharedWorkoutRoom ;
-- SharedWorkoutParticipant ;
-- SharedWorkoutStation ;
-- SharedRotationAssignment ;
-- RealtimeCommand.
+Les routes doivent être ajoutées uniquement lorsque la phase correspondante est développée.
 
-### Agrégat nutrition
+Les pages futures ne doivent pas être remplies de fonctionnalités factices.
 
-- Food ;
-- Recipe ;
-- FoodLogEntry ;
-- NutritionGoal.
-
-### Agrégat IA
-
-- AiRequest ;
-- AiProposal.
-
-## 53. Modèle minimal pour commencer
-
-La totalité du modèle ne doit pas être implémentée dès la phase 0.
-
-### Phase 0
-
-- User ;
-- UserProfile ;
-- AuthSession ;
-- PasswordResetToken ;
-- EmailVerificationToken.
-
-### Phase 1
-
-- MuscleGroup ;
-- EquipmentType ;
-- Equipment ;
-- Exercise ;
-- ExerciseSecondaryMuscle ;
-- UserExercisePreference.
-
-### Phase 2
-
-- Program ;
-- WorkoutTemplate ;
-- WorkoutTemplateExercise ;
-- WorkoutTemplateSet.
-
-### Phase 3
-
-- WorkoutSession ;
-- WorkoutSessionExercise ;
-- WorkoutSet ;
-- OfflineCommand ou mécanisme équivalent.
-
-### Phase 4
-
-- ExerciseStrengthReference ;
-- PersonalRecord.
-
-### Phase 5
-
-- SharedWorkoutRoom ;
-- SharedWorkoutParticipant ;
-- SharedWorkoutStation ;
-- SharedParticipantExercisePlan ;
-- SharedRotationAssignment ;
-- RealtimeCommand.
-
-### Phase 6
-
-- Food ;
-- Recipe ;
-- RecipeIngredient ;
-- NutritionGoal ;
-- FoodLogEntry ;
-- SavedMeal ;
-- SavedMealItem ;
-- BodyMeasurement ;
-- ExerciseEnergyEstimate.
-
-### Phases suivantes
-
-- PushSubscription ;
-- NotificationPreference ;
-- NotificationDelivery ;
-- AiRequest ;
-- AiProposal ;
-- DataExport ;
-- AuditLog.
-
-## 54. Décisions à confirmer pendant l’implémentation
-
-Les points suivants restent volontairement ouverts :
-
-- UUID, CUID ou ULID ;
-- refresh token en cookie ou autre stratégie sécurisée ;
-- conservation ou non d’un journal détaillé de tous les événements ;
-- calcul des records à la demande ou matérialisation ;
-- granularité exacte des séries modèles ;
-- source initiale du catalogue alimentaire ;
-- durée de conservation des demandes IA ;
-- stratégie de suppression différée ;
-- précision décimale exacte des colonnes PostgreSQL.
-
-Ces décisions devront être prises avant l’implémentation du module concerné et documentées dans les fichiers techniques.
+Une page marquée « bientôt disponible » peut être utilisée ponctuellement, mais elle ne doit pas encombrer la navigation principale.
