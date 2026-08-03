@@ -276,6 +276,10 @@ pnpm dev
   - Création : http://localhost:5173/exercises/new
   - Édition : http://localhost:5173/exercises/:exerciseId/edit (exercices personnels actifs)
   - Détail : http://localhost:5173/exercises/:exerciseId (favoris, préférences, archivage/restauration selon permissions)
+  - Programmes : http://localhost:5173/programs (auth requise)
+  - Création : http://localhost:5173/programs/new
+  - Détail / constructeur : http://localhost:5173/programs/:programId
+  - Édition infos : http://localhost:5173/programs/:programId/edit
 - API : http://localhost:3000
 - Health : http://localhost:3000/health/live et `/health/ready`
 - OpenAPI : http://localhost:3000/docs
@@ -319,6 +323,10 @@ Avant de générer du code métier, lire :
 
 ## Statut du projet
 
-Le projet est en **Phase 0** : monorepo, authentification, profil, PWA shell et infrastructure locale.
+Le socle (Phase 0) et le catalogue d’exercices (Phase 1) sont en place.
+
+Le jalon **2.3** ajoute l’interface de création et d’édition manuelle des programmes :
+liste, création, détail/constructeur (modèles, exercices, séries cibles), archivage et restauration.
+Hors scope pour l’instant : activation du programme courant, planification, séances actives, performances, IA.
 
 Les documents du dossier `docs/` restent la source de vérité produit et technique.

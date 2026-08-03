@@ -14,6 +14,10 @@ import { ExercisesPage } from '@/features/exercises/pages/ExercisesPage';
 import { ExerciseDetailPage } from '@/features/exercises/pages/ExerciseDetailPage';
 import { CreateExercisePage } from '@/features/exercises/pages/CreateExercisePage';
 import { EditExercisePage } from '@/features/exercises/pages/EditExercisePage';
+import { ProgramsPage } from '@/features/programs/pages/ProgramsPage';
+import { CreateProgramPage } from '@/features/programs/pages/CreateProgramPage';
+import { ProgramDetailPage } from '@/features/programs/pages/ProgramDetailPage';
+import { EditProgramPage } from '@/features/programs/pages/EditProgramPage';
 
 export const router = createBrowserRouter([
   {
@@ -30,6 +34,10 @@ export const router = createBrowserRouter([
         element: <ProtectedRoute />,
         children: [
           { path: 'profile', element: <ProfilePage /> },
+          { path: 'programs', element: <ProgramsPage /> },
+          { path: 'programs/new', element: <CreateProgramPage /> },
+          { path: 'programs/:programId/edit', element: <EditProgramPage /> },
+          { path: 'programs/:programId', element: <ProgramDetailPage /> },
           { path: 'exercises', element: <ExercisesPage /> },
           { path: 'exercises/new', element: <CreateExercisePage /> },
           { path: 'exercises/:exerciseId/edit', element: <EditExercisePage /> },

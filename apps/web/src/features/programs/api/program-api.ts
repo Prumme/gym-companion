@@ -61,6 +61,11 @@ export async function getProgram(programId: string): Promise<ProgramDetail> {
   return response.data;
 }
 
+/** Alias explicite pour le détail programme. */
+export function getProgramDetail(programId: string): Promise<ProgramDetail> {
+  return getProgram(programId);
+}
+
 export async function createProgram(
   input: CreateProgramInput,
 ): Promise<ProgramDetail> {
@@ -196,6 +201,19 @@ export async function removeWorkoutTemplateExercise(
     { method: 'DELETE' },
   );
   return response.data;
+}
+
+/** Alias explicite demandé par le contrat frontend. */
+export function deleteWorkoutTemplateExercise(
+  programId: string,
+  workoutTemplateId: string,
+  templateExerciseId: string,
+): Promise<ProgramDetail> {
+  return removeWorkoutTemplateExercise(
+    programId,
+    workoutTemplateId,
+    templateExerciseId,
+  );
 }
 
 export async function reorderWorkoutTemplateExercises(
