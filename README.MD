@@ -248,19 +248,58 @@ L’architecture doit permettre l’ajout futur des livres et miles.
 
 ## Démarrage du développement
 
-Avant de générer du code, lire :
+### Prérequis
+
+- Node.js 22+
+- pnpm 9+
+- Docker (PostgreSQL local)
+
+### Installation
+
+```bash
+pnpm install
+cp .env.example .env
+docker compose up -d postgres
+pnpm --filter @gym-companion/api prisma:deploy
+pnpm build
+```
+
+### Développement
+
+```bash
+pnpm dev
+```
+
+- Web : http://localhost:5173
+- API : http://localhost:3000
+- Health : http://localhost:3000/health/live et `/health/ready`
+- OpenAPI : http://localhost:3000/docs
+- Mailpit : http://localhost:8025 (`docker compose up -d mailpit`)
+
+Compose complet (profil `full`) :
+
+```bash
+docker compose --profile full up --build
+```
+
+### Vérifications
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+Avant de générer du code métier, lire :
 
 - `AGENTS.md` ;
 - `docs/00-vision.md` ;
 - `docs/01-scope-and-roadmap.md` ;
 - les documents liés à la fonctionnalité demandée.
 
-Exemple de consigne à fournir à Cursor :
-
-> Lis `AGENTS.md` ainsi que les documents du dossier `docs/` nécessaires à cette tâche. Considère-les comme la source de vérité. Analyse d’abord le projet existant, puis propose un plan d’implémentation limité au périmètre courant. N’invente pas de règle métier manquante et ne développe pas les phases futures.
-
 ## Statut du projet
 
-Le projet est actuellement en phase de conception.
+Le projet est en **Phase 0** : monorepo, authentification, profil, PWA shell et infrastructure locale.
 
-Les documents du dossier `docs/` doivent être finalisés progressivement avant l’implémentation complète.
+Les documents du dossier `docs/` restent la source de vérité produit et technique.

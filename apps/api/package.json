@@ -1,0 +1,53 @@
+{
+  "name": "@gym-companion/api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "nest start --watch",
+    "build": "node ./scripts/run-prisma.cjs generate && nest build",
+    "start": "node dist/main.js",
+    "start:prod": "node dist/main.js",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.check.json --noEmit",
+    "test": "vitest run",
+    "prisma:generate": "node ./scripts/run-prisma.cjs generate",
+    "prisma:migrate": "node ./scripts/run-prisma.cjs migrate dev",
+    "prisma:deploy": "node ./scripts/run-prisma.cjs migrate deploy"
+  },
+  "dependencies": {
+    "@gym-companion/shared": "workspace:*",
+    "@gym-companion/validation": "workspace:*",
+    "@nestjs/common": "^11.1.2",
+    "@nestjs/core": "^11.1.2",
+    "@nestjs/jwt": "^11.0.2",
+    "@nestjs/platform-express": "^11.1.2",
+    "@nestjs/swagger": "^11.4.6",
+    "@nestjs/throttler": "^6.5.0",
+    "@prisma/client": "6.19.0",
+    "argon2": "^0.45.1",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.4.2",
+    "nodemailer": "^9.0.3",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^3.25.51"
+  },
+  "devDependencies": {
+    "@gym-companion/config": "workspace:*",
+    "@nestjs/cli": "^11.0.7",
+    "@nestjs/schematics": "^11.0.5",
+    "@nestjs/testing": "^11.1.2",
+    "@swc/core": "^1.11.31",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.2",
+    "@types/node": "^22.15.29",
+    "@types/nodemailer": "^8.0.1",
+    "@types/supertest": "^6.0.3",
+    "eslint": "^9.28.0",
+    "prisma": "6.19.0",
+    "supertest": "^7.1.1",
+    "typescript": "^5.8.3",
+    "unplugin-swc": "^1.5.4",
+    "vitest": "^3.2.1"
+  }
+}

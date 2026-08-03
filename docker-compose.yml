@@ -1,0 +1,74 @@
+services:
+  postgres:
+    image: postgres:16.8-alpine
+    container_name: gym-companion-postgres
+    restart: unless-stopped
+    ports:
+      - '5433:5432'
+    environment:
+      POSTGRES_USER: gym
+      POSTGRES_PASSWORD: gym
+      POSTGRES_DB: gym_companion
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U gym -d gym_companion']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:v1.22
+    container_name: gym-companion-mailpit
+    restart: unless-stopped
+    ports:
+      - '8025:8025'
+      - '1025:1025'
+
+  api:
+    profiles: ['full']
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    container_name: gym-companion-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      PUBLIC_APP_URL: http://localhost:8080
+      API_BASE_URL: http://localhost:3000
+      DATABASE_URL: postgresql://gym:gym@postgres:5432/gym_companion?schema=public
+      CORS_ALLOWED_ORIGINS: http://localhost:8080
+      LOG_LEVEL: info
+      JWT_ACCESS_SECRET: change-me-to-a-long-random-secret-at-least-32-chars
+      COOKIE_SECRET: change-me-cookie-secret-at-least-32-chars
+      EMAIL_PROVIDER: mailpit
+      EMAIL_FROM: noreply@gym-companion.local
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+    ports:
+      - '3000:3000'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/health/live']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    profiles: ['full']
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:3000
+        VITE_PUBLIC_APP_URL: http://localhost:8080
+    container_name: gym-companion-web
+    depends_on:
+      - api
+    ports:
+      - '8080:80'
+
+volumes:
+  postgres_data:

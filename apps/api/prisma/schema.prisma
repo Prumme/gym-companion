@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  DISABLED
+  DELETION_PENDING
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum WeightUnit {
+  KG
+  LB
+}
+
+enum DistanceUnit {
+  KM
+  MI
+}
+
+enum TrainingGoal {
+  ENDURANCE
+  HYPERTROPHY
+  STRENGTH
+  GENERAL_FITNESS
+}
+
+enum ExperienceLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum EffortTrackingMode {
+  NONE
+  RIR
+  RPE
+}
+
+model User {
+  id                   String        @id @default(uuid()) @db.Uuid
+  email                String        @unique
+  passwordHash         String
+  status               UserStatus    @default(ACTIVE)
+  role                 UserRole      @default(USER)
+  emailVerifiedAt      DateTime?
+  lastLoginAt          DateTime?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  deletionRequestedAt  DateTime?
+
+  profile                 UserProfile?
+  sessions                AuthSession[]
+  passwordResetTokens     PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+
+  @@index([status])
+  @@map("users")
+}
+
+model UserProfile {
+  id                            String             @id @default(uuid()) @db.Uuid
+  userId                        String             @unique @db.Uuid
+  displayName                   String
+  timezone                      String             @default("Europe/Paris")
+  weightUnit                    WeightUnit         @default(KG)
+  distanceUnit                  DistanceUnit       @default(KM)
+  primaryGoal                   TrainingGoal       @default(GENERAL_FITNESS)
+  experienceLevel               ExperienceLevel    @default(BEGINNER)
+  effortTrackingMode            EffortTrackingMode @default(NONE)
+  heightCm                      Decimal?           @db.Decimal(5, 2)
+  currentWeightKg               Decimal?           @db.Decimal(6, 2)
+  weeklyTrainingTarget          Int?
+  defaultWorkoutDurationMinutes Int?
+  createdAt                     DateTime           @default(now())
+  updatedAt                     DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model AuthSession {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid
+  refreshTokenHash String
+  userAgent        String?
+  ipHash           String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  lastUsedAt       DateTime?
+  createdAt        DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("auth_sessions")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("email_verification_tokens")
+}
