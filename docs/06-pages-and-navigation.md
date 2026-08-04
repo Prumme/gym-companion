@@ -47,7 +47,9 @@ Les pages importantes doivent posséder une route stable pouvant être :
 
 ## 3. Structure générale des routes
 
-Structure proposée :
+Le shell frontend **n’utilise pas** de préfixe `/app`. Les routes authentifiées sont à la racine.
+
+Structure cible (routes livrées en gras conceptuel via commentaires) :
 
 ```text
 /
@@ -55,149 +57,113 @@ Structure proposée :
 ├── register
 ├── forgot-password
 ├── reset-password
-├── verify-email
-├── invite/:invitationCode
+├── verify-email                    # futur
+├── invite/:invitationCode          # futur
 │
-└── app
-    ├── dashboard
-    ├── today
-    ├── exercises
-    │   ├── new
-    │   └── :exerciseId
-    │       ├── overview
-    │       ├── history
-    │       └── edit
-    │
-    ├── programs
-    │   ├── new
-    │   └── :programId
-    │       ├── overview
-    │       ├── edit
-    │       └── workouts
-    │           ├── new
-    │           └── :templateId
-    │               └── edit
-    │
-    ├── workouts
-    │   ├── new
-    │   ├── active
-    │   ├── history
-    │   └── :workoutSessionId
-    │
-    ├── shared-workouts
-    │   ├── new
-    │   ├── join
-    │   └── :roomId
-    │       ├── lobby
-    │       ├── active
-    │       └── summary
-    │
-    ├── progress
-    │   ├── overview
-    │   └── exercises/:exerciseId
-    │
-    ├── nutrition
-    │   ├── today
-    │   ├── history
-    │   ├── foods
-    │   │   ├── new
-    │   │   └── :foodId
-    │   ├── recipes
-    │   │   ├── new
-    │   │   └── :recipeId
-    │   ├── saved-meals
-    │   ├── goals
-    │   └── body
-    │
-    ├── coach
-    │   ├── new-program
-    │   ├── new-workout
-    │   ├── progress-analysis
-    │   └── proposals/:proposalId
-    │
-    ├── notifications
-    ├── profile
-    ├── settings
-    │   ├── account
-    │   ├── preferences
-    │   ├── notifications
-    │   ├── privacy
-    │   ├── data
-    │   └── sessions
-    │
-    └── admin
-        ├── users
-        └── exercises
+├── profile                         # livré
+├── planning                        # livré
+├── exercises                       # livré
+│   ├── new
+│   └── :exerciseId
+│       └── edit
+│
+├── programs                        # livré
+│   ├── new
+│   └── :programId
+│       ├── edit
+│       └── schedule
+│
+├── workouts                        # historique (jalon 3.6)
+│   ├── active                      # séance interactive (jalons 3.4–3.5)
+│   └── :workoutSessionId           # détail ; lecture seule si COMPLETED/CANCELLED
+│
+├── shared-workouts                 # phase 5 — futur
+│   ├── new
+│   ├── join
+│   └── :roomId
+│       ├── lobby
+│       ├── active
+│       └── summary
+│
+├── progress                        # phase 4 — futur
+│   ├── overview
+│   └── exercises/:exerciseId
+│
+├── nutrition                       # phase 6 — futur
+│   ├── today
+│   ├── history
+│   ├── foods
+│   ├── recipes
+│   └── body
+│
+├── coach                           # futur
+│   └── proposals/:proposalId
+│
+├── notifications                   # futur
+├── settings                        # partiel / futur
+│   ├── account
+│   ├── preferences
+│   └── …
+│
+└── admin                           # futur
+    ├── users
+    └── exercises
 ```
 
-Cette structure est une cible. Les routes des phases futures ne doivent pas nécessairement être créées dès le lancement.
+Cette structure est une cible. Les routes des phases futures ne doivent pas nécessairement être créées dès le lancement. Aucune route concurrente du type `/app/...` ou `/history/workouts` n’est utilisée.
 
 ## 4. Navigation mobile principale
 
 La navigation mobile utilise une barre inférieure persistante hors séance active.
 
-Proposition initiale :
+Proposition alignée sur la phase 3 livrée :
 
 ```text
-Aujourd’hui | Programmes | Ajouter | Progression | Profil
+Accueil | Planning | Historique | Programmes | Exercices | Profil
 ```
 
-### 4.1 Aujourd’hui
+Routes : `/`, `/planning`, `/workouts`, `/programs`, `/exercises`, `/profile`.
 
-Accès au tableau de bord opérationnel :
+### 4.1 Accueil / Planning
 
-- séance prévue ;
-- séance active ;
-- résumé nutritionnel ;
-- invitations ;
-- rappels utiles.
+Accès au planning hebdomadaire, au programme courant et au démarrage d’une séance depuis un modèle.
 
-### 4.2 Programmes
+### 4.2 Historique
 
-Accès aux programmes, séances modèles et catalogue d’exercices.
+Accès à `/workouts` (séances `COMPLETED` / `CANCELLED`).
 
-### 4.3 Ajouter
+### 4.3 Programmes et exercices
 
-Bouton d’action central ouvrant un menu contextuel :
-
-- démarrer une séance libre ;
-- créer une séance partagée ;
-- ajouter un repas ;
-- enregistrer le poids ;
-- créer un exercice ;
-- créer un programme.
-
-Le menu ne doit afficher que les fonctionnalités disponibles dans la phase courante.
+Accès aux programmes, modèles et catalogue d’exercices (`/programs`, `/exercises`).
 
 ### 4.4 Progression
 
-Accès à :
-
-- historique ;
-- statistiques ;
-- records ;
-- graphiques ;
-- évolution du poids.
+Phase 4 — **future** (records, statistiques, graphiques). Non présente dans la barre livrée en phase 3.
 
 ### 4.5 Profil
 
-Accès aux préférences, paramètres, notifications, données et sessions.
+Accès au profil et à la déconnexion (`/profile`), avec confirmation si des commandes hors ligne sont en attente.
 
 ## 5. Navigation desktop
 
-Sur desktop, la navigation principale peut utiliser une barre latérale.
+Sur desktop, la navigation principale peut utiliser une barre latérale ou la même barre que le mobile.
 
-Sections proposées :
+Sections livrées en phase 3 :
 
-- Aujourd’hui ;
-- Exercices ;
+- Accueil ;
+- Planning ;
+- Historique (`/workouts`) ;
 - Programmes ;
-- Séances ;
+- Exercices ;
+- Profil.
+
+Sections futures :
+
 - Progression ;
 - Nutrition ;
 - Séances partagées ;
 - Coach IA ;
-- Paramètres.
+- Paramètres avancés.
 
 La navigation desktop peut afficher davantage d’informations, mais les routes et concepts doivent rester identiques à la version mobile.
 
@@ -288,7 +254,7 @@ Une erreur d’authentification ne doit pas révéler précisément si l’adres
 ### Route proposée
 
 ```text
-/app/onboarding
+/onboarding
 ```
 
 ### Étapes
@@ -313,7 +279,7 @@ Une erreur d’authentification ne doit pas révéler précisément si l’adres
 ### Route
 
 ```text
-/app/today
+/today
 ```
 
 ### Objectif
@@ -383,7 +349,7 @@ Démarrer une séance libre
 ### Route
 
 ```text
-/app/dashboard
+/dashboard
 ```
 
 La page Aujourd’hui peut servir de tableau de bord principal. Une route distincte reste possible pour une vue plus analytique.
@@ -407,7 +373,7 @@ La page ne doit pas devenir une accumulation de cartes sans hiérarchie.
 ### Route
 
 ```text
-/app/exercises
+/exercises
 ```
 
 ### Contenu
@@ -442,7 +408,7 @@ La page ne doit pas devenir une accumulation de cartes sans hiérarchie.
 ### Route
 
 ```text
-/app/exercises/:exerciseId
+/exercises/:exerciseId
 ```
 
 ### Onglets ou sections
@@ -492,8 +458,8 @@ La page ne doit pas devenir une accumulation de cartes sans hiérarchie.
 ### Routes
 
 ```text
-/app/exercises/new
-/app/exercises/:exerciseId/edit
+/exercises/new
+/exercises/:exerciseId/edit
 ```
 
 ### Sections
@@ -514,7 +480,7 @@ Le formulaire peut être découpé en sections repliables, mais ne doit pas masq
 ### Route
 
 ```text
-/app/programs
+/programs
 ```
 
 ### Sections
@@ -539,7 +505,7 @@ Le formulaire peut être découpé en sections repliables, mais ne doit pas masq
 ### Route
 
 ```text
-/app/programs/:programId
+/programs/:programId
 ```
 
 ### Contenu
@@ -566,8 +532,8 @@ Le formulaire peut être découpé en sections repliables, mais ne doit pas masq
 ### Routes
 
 ```text
-/app/programs/new
-/app/programs/:programId/edit
+/programs/new
+/programs/:programId/edit
 ```
 
 ### Structure
@@ -591,8 +557,8 @@ Le formulaire peut être découpé en sections repliables, mais ne doit pas masq
 ### Routes
 
 ```text
-/app/programs/:programId/workouts/new
-/app/programs/:programId/workouts/:templateId/edit
+/programs/:programId/workouts/new
+/programs/:programId/workouts/:templateId/edit
 ```
 
 ### Contenu
@@ -620,7 +586,7 @@ Le formulaire peut être découpé en sections repliables, mais ne doit pas masq
 ### Route proposée
 
 ```text
-/app/workouts/new?templateId=:templateId
+/workouts/new?templateId=:templateId
 ```
 
 ### Objectif
@@ -649,67 +615,64 @@ Permettre de vérifier et adapter la séance avant son démarrage.
 ### Route
 
 ```text
-/app/workouts/active
+/workouts/active
 ```
 
 ### Objectif
 
-Être l’écran principal utilisé pendant l’entraînement.
+Être l’écran principal interactif utilisé pendant l’entraînement (jalons 3.4–3.5).
 
 ### Mode d’affichage
 
-Cette page peut utiliser un layout plein écran sans navigation mobile habituelle.
+Interface dédiée ; la barre de navigation principale peut rester visible ou être secondaire selon le layout.
 
 ### En-tête
 
 - nom de séance ;
-- durée écoulée ;
-- état réseau ;
-- état de synchronisation ;
-- menu secondaire ;
-- bouton terminer.
+- statut (`ACTIVE` / `PAUSED`) ;
+- progression globale des séries ;
+- état réseau / synchronisation ;
+- actions pause, reprise, terminer, annuler (selon permissions serveur).
 
-### Carte de l’exercice courant
+### Exercice courant
 
-- nom ;
-- équipement ;
-- dernière performance ;
-- cible ;
-- notes ;
-- progression dans les séries.
+- nom snapshot ;
+- équipement snapshot ;
+- type de mesure ;
+- notes snapshot ;
+- navigation précédent / suivant (`?exerciseId=`).
 
 ### Saisie de série
 
-- charge ;
-- répétitions ou durée ;
+- cibles (lecture seule) ;
+- résultats réels ;
 - RIR/RPE ;
-- indication d’échec ;
+- indication d’échec musculaire ;
 - statut ;
-- bouton de validation.
+- validation / ignore / échec.
 
-### Navigation dans la séance
-
-- exercice précédent ;
-- exercice suivant ;
-- liste complète ;
-- ajout d’exercice ;
-- remplacement ;
-- réorganisation.
-
-### Chronomètre
+### Chronomètre de repos (local)
 
 - temps restant ;
-- pause ;
-- ajout ou retrait de temps ;
-- terminer le repos.
+- pause / reprise ;
+- +15 s / −15 s ;
+- restauration via `localStorage` sur le même navigateur ;
+- aucune mutation API.
 
 ### États particuliers
 
 - hors ligne ;
 - synchronisation en attente ;
-- conflit ;
+- conflit de version ;
 - session expirée ;
 - séance terminée ailleurs.
+
+### Hors périmètre de cette page (phase 3)
+
+- ajout / suppression / réordonnancement d’exercices ou de séries ;
+- modification des cibles ;
+- dernière performance / copie de charges ;
+- volume officiel ou records.
 
 ## 21. Liste compacte de la séance active
 
@@ -724,33 +687,38 @@ Une bottom sheet ou page secondaire permet de voir :
 
 L’utilisateur peut sélectionner directement un exercice.
 
-## 22. Résumé de séance
+## 22. Détail d’une séance
 
 ### Route
 
 ```text
-/app/workouts/:workoutSessionId
+/workouts/:workoutSessionId
 ```
 
-### Contenu
+### Rôle (phase 3)
 
-- nom ;
-- date ;
-- durée ;
+- si la séance est `ACTIVE` ou `PAUSED` : redirection vers `/workouts/active` ;
+- si la séance est `COMPLETED` ou `CANCELLED` : détail historique en **lecture seule**.
+
+### Contenu (lecture seule)
+
+- nom snapshot ;
 - statut ;
-- exercices ;
-- séries ;
-- volume ;
+- date locale, début, fin ou annulation ;
+- durée écoulée (si calculable ; pas une durée d’effort nette) ;
+- programme / modèle snapshot ;
+- notes et motif d’annulation ;
+- résumé des compteurs de séries ;
+- exercices et séries (cibles, résultats, statuts, RIR/RPE, échec musculaire).
+
+### Hors périmètre actuel
+
+- volume officiel ;
 - records ;
-- notes ;
-- comparaison avec la dernière séance.
-
-### Actions
-
-- ajouter une note ;
-- corriger une donnée selon les droits ;
-- dupliquer comme modèle ;
-- partager un résumé non sensible, phase future.
+- comparaison avec une séance précédente ;
+- correction des performances ;
+- duplication ;
+- partage.
 
 ## 23. Historique des séances
 
@@ -760,15 +728,13 @@ L’utilisateur peut sélectionner directement un exercice.
 /workouts
 ```
 
-(Doc historique `/app/workouts/history` : le shell frontend n’utilise pas le préfixe `/app`.)
-
 ### Contenu (jalon 3.6)
 
 - liste chronologique des séances `COMPLETED` / `CANCELLED` ;
-- filtres statut + plage de dates (URL) ;
+- filtres statut + plage de dates (synchronisés dans l’URL) ;
 - pagination « Charger plus » ;
-- cartes avec résumé de séries ;
-- détail lecture seule `/workouts/:workoutSessionId` ;
+- cartes avec résumé de séries (noms snapshotés) ;
+- lien vers le détail `/workouts/:workoutSessionId` (filtres conservés au retour) ;
 - badge local « En attente de synchronisation » pour une fin/annulation hors ligne non confirmée.
 
 ### Hors périmètre actuel
@@ -777,14 +743,17 @@ L’utilisateur peut sélectionner directement un exercice.
 - recherche plein texte ;
 - records / progression / graphiques ;
 - duplication ou relance d’une ancienne séance ;
-- modification / suppression définitive.
+- modification / suppression définitive ;
+- route concurrente `/history/workouts` (non utilisée).
 
 ## 24. Vue globale de progression
+
+> Phase 4 — **future**. Non livrée en phase 3.
 
 ### Route
 
 ```text
-/app/progress/overview
+/progress/overview
 ```
 
 ### Contenu
@@ -806,7 +775,7 @@ Les graphiques doivent répondre à une question précise. Ils ne doivent pas ê
 ### Route
 
 ```text
-/app/progress/exercises/:exerciseId
+/progress/exercises/:exerciseId
 ```
 
 ### Contenu
@@ -834,7 +803,7 @@ Les graphiques doivent répondre à une question précise. Ils ne doivent pas ê
 ### Route
 
 ```text
-/app/shared-workouts/new
+/shared-workouts/new
 ```
 
 ### Étapes
@@ -860,7 +829,7 @@ Les graphiques doivent répondre à une question précise. Ils ne doivent pas ê
 
 ```text
 /invite/:invitationCode
-/app/shared-workouts/join
+/shared-workouts/join
 ```
 
 ### Contenu
@@ -887,7 +856,7 @@ Les graphiques doivent répondre à une question précise. Ils ne doivent pas ê
 ### Route
 
 ```text
-/app/shared-workouts/:roomId/lobby
+/shared-workouts/:roomId/lobby
 ```
 
 ### Contenu
@@ -922,7 +891,7 @@ Les graphiques doivent répondre à une question précise. Ils ne doivent pas ê
 ### Route
 
 ```text
-/app/shared-workouts/:roomId/active
+/shared-workouts/:roomId/active
 ```
 
 ### Objectif
@@ -978,7 +947,7 @@ Vue secondaire :
 ### Route
 
 ```text
-/app/shared-workouts/:roomId/summary
+/shared-workouts/:roomId/summary
 ```
 
 ### Contenu individuel
@@ -1005,7 +974,7 @@ Les performances privées d’un autre participant ne sont affichées que s’il
 ### Route
 
 ```text
-/app/nutrition/today
+/nutrition/today
 ```
 
 ### Contenu
@@ -1032,7 +1001,7 @@ Les performances privées d’un autre participant ne sont affichées que s’il
 ### Route
 
 ```text
-/app/nutrition/history
+/nutrition/history
 ```
 
 ### Contenu
@@ -1049,7 +1018,7 @@ Les performances privées d’un autre participant ne sont affichées que s’il
 ### Route
 
 ```text
-/app/nutrition/foods
+/nutrition/foods
 ```
 
 ### Contenu
@@ -1065,7 +1034,7 @@ Les performances privées d’un autre participant ne sont affichées que s’il
 ### Route
 
 ```text
-/app/nutrition/foods/new
+/nutrition/foods/new
 ```
 
 ### Contenu
@@ -1087,9 +1056,9 @@ Les performances privées d’un autre participant ne sont affichées que s’il
 ### Routes
 
 ```text
-/app/nutrition/recipes
-/app/nutrition/recipes/new
-/app/nutrition/recipes/:recipeId
+/nutrition/recipes
+/nutrition/recipes/new
+/nutrition/recipes/:recipeId
 ```
 
 ### Contenu
@@ -1106,7 +1075,7 @@ Les performances privées d’un autre participant ne sont affichées que s’il
 ### Route
 
 ```text
-/app/nutrition/body
+/nutrition/body
 ```
 
 ### Contenu
@@ -1126,7 +1095,7 @@ Une variation journalière ne doit pas être présentée comme une tendance sign
 ### Route
 
 ```text
-/app/coach
+/coach
 ```
 
 ### Entrées possibles
@@ -1140,7 +1109,7 @@ Une variation journalière ne doit pas être présentée comme une tendance sign
 ### Page de proposition
 
 ```text
-/app/coach/proposals/:proposalId
+/coach/proposals/:proposalId
 ```
 
 Contenu :
@@ -1157,7 +1126,7 @@ Contenu :
 ### Route
 
 ```text
-/app/notifications
+/notifications
 ```
 
 ### Contenu
@@ -1175,7 +1144,7 @@ Cette page ne remplace pas les notifications système.
 ### Route
 
 ```text
-/app/profile
+/profile
 ```
 
 ### Contenu
@@ -1192,12 +1161,12 @@ Cette page ne remplace pas les notifications système.
 ### Routes
 
 ```text
-/app/settings/account
-/app/settings/preferences
-/app/settings/notifications
-/app/settings/privacy
-/app/settings/data
-/app/settings/sessions
+/settings/account
+/settings/preferences
+/settings/notifications
+/settings/privacy
+/settings/data
+/settings/sessions
 ```
 
 ### Compte
@@ -1299,11 +1268,11 @@ Expliquer quelles fonctions restent disponibles.
 
 ### Routes authentifiées
 
-Toutes les routes sous `/app`.
+Routes à la racine du shell (sans préfixe `/app`), par exemple `/planning`, `/programs`, `/exercises`, `/workouts`, `/workouts/active`, `/profile`.
 
 ### Routes administratives
 
-Routes sous `/app/admin` avec rôle adapté.
+Routes sous `/admin` avec rôle adapté.
 
 ### Séance partagée
 

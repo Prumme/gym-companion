@@ -778,8 +778,9 @@ type WorkoutTemplateSet = {
 
 ## 24. WorkoutSession
 
-> Statut : implémenté pour le jalon 3.1 (création + lecture de séance active).  
-> Les mutations d’exécution (pause, séries réelles, fin) restent hors périmètre.
+> Statut : **implémenté à la clôture de la phase 3** (jalons 3.1–3.6).  
+> Couvre création depuis un modèle, lecture active, saisie des séries, cycle de vie, historique paginé et détail en lecture seule.  
+> Records, statistiques, progression et graphiques restent hors périmètre (phase 4).
 
 ```ts
 type WorkoutSession = {
@@ -793,7 +794,7 @@ type WorkoutSession = {
   workoutTemplateNameSnapshot: string | null;
 
   name: string;
-  status: WorkoutStatus;
+  status: WorkoutStatus; // ACTIVE | PAUSED | COMPLETED | CANCELLED (PLANNED réservé, non utilisé par le flux actif)
 
   localDate: string; // YYYY-MM-DD, stocké en DATE PostgreSQL
   timezone: string;
@@ -814,17 +815,19 @@ type WorkoutSession = {
 
 ### Contraintes
 
-- `localDate` utilise le format `YYYY-MM-DD` ;
+- `localDate` utilise le format `YYYY-MM-DD` sans conversion UTC qui décale le jour ;
+- `timezone` est snapshotée à la création ;
 - `version` protège les mutations concurrentes (séries et cycle de vie) ;
-- au plus une séance `ACTIVE` ou `PAUSED` par utilisateur (index partiel PostgreSQL) ;
-- `cancellationReason` est renseigné à l’annulation (jalon 3.3) ;
-- l’historique cumulé des pauses n’est pas encore stocké : seul le dernier `pausedAt` est conservé ;
-- les relations sources utilisent `ON DELETE SET NULL` : supprimer un programme ou un modèle ne supprime pas la séance ;
-- l’affichage repose sur les snapshots, pas sur les relations sources.
+- au plus une séance `ACTIVE` ou `PAUSED` par utilisateur (index partiel PostgreSQL `workout_sessions_one_in_progress_per_user`) ;
+- `cancellationReason` est renseigné à l’annulation lorsque fourni ;
+- l’historique cumulé des pauses n’est pas stocké : seul le dernier `pausedAt` est conservé (pas de durée active nette calculable côté serveur) ;
+- les relations sources (`Program`, `WorkoutTemplate`) sont facultatives et utilisent `ON DELETE SET NULL` : supprimer une source ne supprime jamais la séance ;
+- l’affichage et l’historique reposent exclusivement sur le snapshot, pas sur les sources actuelles ;
+- une séance `COMPLETED` ou `CANCELLED` est immuable (aucune mutation d’exécution).
 
 ## 25. WorkoutSessionExercise
 
-Snapshot d’un exercice dans une séance.
+Snapshot d’un exercice dans une séance (phase 3 livrée).
 
 ```ts
 type WorkoutSessionExercise = {
@@ -858,9 +861,11 @@ Les champs snapshot permettent de conserver une lecture correcte si l’exercice
 
 L’équipement prévu copie le type d’équipement du modèle (`equipmentTypeId` + nom/code snapshot), pas un équipement physique.
 
+Les relations `sourceExercise` / `sourceTemplateExercise` / `equipmentType` utilisent `ON DELETE SET NULL`.
+
 ## 26. WorkoutSet
 
-Ligne de série prévue dans une séance, prête à recevoir les performances réelles au jalon 3.2+.
+Ligne de série d’une séance : cibles immuables du snapshot + résultats réels (phase 3 livrée).
 
 ```ts
 type WorkoutSet = {
@@ -872,7 +877,7 @@ type WorkoutSet = {
 
   position: number;
   setType: WorkoutSetType;
-  status: WorkoutSetStatus;
+  status: WorkoutSetStatus; // PENDING | COMPLETED | PARTIAL | FAILED | SKIPPED | CANCELLED
 
   targetWeightKg: Decimal | null;
   targetRepMin: number | null;
@@ -906,15 +911,82 @@ type WorkoutSet = {
 
 ### Contraintes
 
-- `position` unique dans un `WorkoutSessionExercise` (même convention que la phase 2) ;
-- `status` vaut `PENDING` à la création du snapshot (jalon 3.2) ;
+- `position` unique dans un `WorkoutSessionExercise` ;
+- `status` vaut `PENDING` à la création du snapshot ;
+- les champs `target*` sont immuables après création : une mutation de performance ne les modifie jamais ;
+- les valeurs réelles (`actual*`) sont stockées séparément et validées selon `measurementTypeSnapshot` ;
+- RIR et RPE réels ne sont pas renseignés simultanément ;
+- `reachedFailure` est distinct de `status = FAILED` ;
 - `completedAt` correspond à la dernière validation de la série ;
-- `clientCommandId` peut être unique par utilisateur (préparation hors ligne) ;
-- les valeurs réelles doivent respecter le type de mesure lors de l’exécution.
+- `clientCommandId` est unique par utilisateur lorsqu’il est renseigné (idempotence best-effort sur la ligne) ;
+- la relation `sourceTemplateSet` utilise `ON DELETE SET NULL` ;
+- unités canoniques persistées : kg, secondes, mètres.
+
+## 26 bis. WorkoutSetCommand
+
+Reçu d’idempotence serveur pour les mises à jour de séries (jalon 3.5 / rejeu hors ligne).
+
+Table Prisma : `workout_set_commands`.
+
+```ts
+type WorkoutSetCommand = {
+  id: string;
+  ownerUserId: string;
+  workoutSessionId: string;
+  workoutSetId: string;
+  clientCommandId: string;
+  payloadFingerprint: string;
+  appliedVersion: number;
+  createdAt: Date;
+};
+```
+
+### Contraintes
+
+- unicité `(ownerUserId, clientCommandId)` ;
+- même identifiant + même empreinte → rejeu sans double effet (retourne la version déjà appliquée) ;
+- même identifiant + empreinte différente → conflit (`WORKOUT_SET_COMMAND_CONFLICT`) ;
+- le lookup du reçu précède le contrôle de version obsolète afin de tolérer une réponse réseau perdue.
+
+## 26 ter. WorkoutLifecycleCommand
+
+Reçu d’idempotence serveur pour pause / reprise / fin / annulation.
+
+Table Prisma : `workout_lifecycle_commands`.
+
+```ts
+type WorkoutLifecycleCommand = {
+  id: string;
+  ownerUserId: string;
+  workoutSessionId: string;
+  clientCommandId: string;
+  action: string; // PAUSE | RESUME | COMPLETE | CANCEL
+  payloadFingerprint: string;
+  createdAt: Date;
+};
+```
+
+### Contraintes
+
+- unicité `(ownerUserId, clientCommandId)` ;
+- protection contre les doubles effets et les payloads contradictoires sur le même identifiant ;
+- les transitions déjà appliquées sont idempotentes (`noop` sans nouvel incrément de version).
+
+## 26 quater. File hors ligne (client)
+
+La file de commandes hors ligne **n’est pas** une table Prisma.
+
+Elle est stockée côté client dans IndexedDB (`gym-companion-offline`) :
+
+- `workoutSnapshots` — snapshot local de séance ;
+- `workoutCommands` — file ordonnée (`UPDATE_WORKOUT_SET`, `PAUSE_WORKOUT`, `RESUME_WORKOUT`, `COMPLETE_WORKOUT`, `CANCEL_WORKOUT`) ;
+- `workoutSyncState` — état de sync, conflit, lease multi-onglets.
+
+Les données sont cloisonnées par `userId`. Voir `docs/11-pwa-and-offline.md`.
 
 ## 27. WorkoutSessionEvent
 
-Journal métier facultatif mais recommandé.
+Journal métier facultatif, **non implémenté** en phase 3.
 
 ```ts
 type WorkoutSessionEvent = {
@@ -932,15 +1004,14 @@ type WorkoutSessionEvent = {
 };
 ```
 
-### Utilité
+### Utilité future
 
 - audit ;
 - reconstruction ;
 - diagnostic de synchronisation ;
-- suivi des corrections ;
-- idempotence.
+- suivi des corrections.
 
-Cette table n’oblige pas à adopter un event sourcing complet.
+L’idempotence opérationnelle de la phase 3 repose sur `WorkoutSetCommand` et `WorkoutLifecycleCommand`, pas sur cette table.
 
 ## 28. PersonalRecord
 
@@ -1795,9 +1866,13 @@ Le modèle `Equipment` reste prévu pour une phase ultérieure consacrée aux é
 - WorkoutSession ;
 - WorkoutSessionExercise ;
 - WorkoutSet ;
-- OfflineCommand ou mécanisme équivalent.
+- WorkoutSetCommand ;
+- WorkoutLifecycleCommand ;
+- file IndexedDB client (`workoutSnapshots`, `workoutCommands`, `workoutSyncState`) — hors schéma Prisma.
 
-La création d’une séance depuis un modèle doit copier un snapshot immuable des informations nécessaires : noms, ordre, type de mesure, équipement prévu, repos, notes et séries cibles.
+La création d’une séance depuis un modèle copie un snapshot immuable des informations nécessaires : noms, ordre, type de mesure, équipement prévu, repos, notes et séries cibles.
+
+À la clôture de la phase 3, l’historique paginé et le détail en lecture seule reposent sur ces snapshots. `PersonalRecord` et les agrégats de progression restent phase 4.
 
 ### Phase 4
 

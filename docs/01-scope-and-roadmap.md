@@ -250,59 +250,70 @@ La phase est terminée lorsque :
 
 ### 6.1 Objectif
 
-Permettre à l’utilisateur d’exécuter et d’enregistrer une séance complète depuis son téléphone.
+Permettre à l’utilisateur d’exécuter et d’enregistrer une séance complète depuis son téléphone, avec résilience réseau et consultation de l’historique en lecture seule.
 
-### 6.2 Fonctionnalités incluses
+### 6.2 Fonctionnalités livrées (jalons 3.1–3.6)
 
-#### Démarrage
+#### Démarrage et snapshot
 
-- Lancer une séance depuis un modèle.
-- Lancer une séance vide.
-- Reprendre une séance active.
-- Afficher la dernière performance.
-- Copier les charges précédentes.
+- Lancer une séance depuis un modèle (création immédiate en `ACTIVE`).
+- Snapshot immuable du programme, du modèle, des exercices, des cibles et des repos.
+- Une seule séance `ACTIVE` ou `PAUSED` par utilisateur.
+- Reprendre une séance active ou en pause (lecture via `GET /workouts/active`).
 
 #### Pendant la séance
 
-- Afficher l’exercice courant.
-- Afficher la série courante.
-- Modifier la charge.
-- Modifier la cible.
-- Enregistrer les répétitions réelles.
-- Enregistrer une durée ou une distance.
-- Marquer une série comme réussie.
-- Marquer une série comme partielle.
-- Marquer une série comme échouée.
-- Ignorer une série.
-- Enregistrer RIR ou RPE.
-- Ajouter une note.
-- Ajouter ou supprimer une série.
-- Ajouter un exercice.
-- Réordonner les exercices.
-- Remplacer un exercice.
-- Démarrer un chronomètre de repos.
+- Interface complète de séance active (`/workouts/active`).
+- Navigation entre exercices.
+- Afficher l’exercice et les séries courantes.
+- Enregistrer les résultats réels (charge, répétitions, durée, distance selon le type de mesure).
+- Statuts de série : `PENDING`, `COMPLETED`, `PARTIAL`, `FAILED`, `SKIPPED`.
+- Enregistrer RIR ou RPE (selon le profil).
+- Distinguer `status = FAILED` et `reachedFailure`.
+- Ajouter une note de série.
+- Versionnement optimiste (`expectedVersion`) et idempotence (`clientCommandId`).
+- Mettre en pause et reprendre.
+- Minuterie de repos locale (non synchronisée serveur).
 
-#### Fin de séance
+#### Fin de séance et historique
 
-- Terminer la séance.
-- Annuler la séance.
-- Conserver une séance incomplète.
-- Afficher un résumé.
-- Afficher le volume.
-- Afficher les records obtenus.
-- Enregistrer la durée réelle.
+- Terminer la séance (`COMPLETED`) ou l’annuler (`CANCELLED`) en conservant le snapshot et les résultats déjà saisis.
+- Séries `PENDING` conservées (jamais transformées en ignorées automatiquement).
+- Résumé simple de progression des séries (compteurs), sans volume officiel ni records.
+- Historique paginé (`GET /workouts`, page `/workouts`) : séances `COMPLETED` / `CANCELLED`.
+- Détail historique en lecture seule (`/workouts/:workoutSessionId`).
 
-### 6.3 Mode hors ligne
+#### Mode hors ligne (jalon 3.5)
 
-- La séance active est stockée localement.
-- Les actions non synchronisées sont conservées.
-- L’état de synchronisation est visible.
-- Une reconnexion déclenche une synchronisation.
-- Les conflits doivent être détectés.
+- Snapshot local IndexedDB de la séance active.
+- File de commandes hors ligne (`UPDATE_WORKOUT_SET`, pause/reprise/fin/annulation).
+- Synchronisation séquentielle à la reprise du réseau (application ouverte).
+- Résolution explicite des conflits de version.
+- Cloisonnement des données locales par utilisateur et nettoyage à la déconnexion.
+- La création de séance reste en ligne.
 
-### 6.4 Hors périmètre
+### 6.3 Backlog futur (hors phase 3 livrée)
 
-- Séance collaborative.
+Ces éléments restent explicitement hors livraison de la phase 3 :
+
+- séance vide (sans modèle) ;
+- démarrage de séance hors ligne ;
+- affichage / copie de la dernière performance ;
+- modification des cibles pendant la séance ;
+- ajout ou suppression d’exercices pendant la séance ;
+- ajout ou suppression de séries pendant la séance ;
+- réordonnancement du snapshot ;
+- remplacement d’exercice en séance ;
+- copie ou duplication d’une séance ;
+- durée active nette (historique complet des pauses) ;
+- volume officiel, records, statistiques, progression, graphiques ;
+- export des données d’entraînement ;
+- WebSocket / Background Sync garanti ;
+- séance collaborative, nutrition, coach IA.
+
+### 6.4 Hors périmètre produit (inchangé)
+
+- Séance collaborative (phase 5).
 - Coaching vidéo.
 - Détection automatique des répétitions.
 - Intégration montre connectée.
@@ -310,26 +321,29 @@ Permettre à l’utilisateur d’exécuter et d’enregistrer une séance compl�
 
 ### 6.5 Critères de validation
 
-La phase est terminée lorsque :
+La phase 3 est terminée lorsque :
 
-- une séance peut être effectuée entièrement depuis un téléphone ;
-- une série peut être enregistrée rapidement ;
-- une série échouée peut être enregistrée sans être perdue ;
-- une séance active peut être reprise ;
-- une coupure réseau courte ne provoque pas de perte de données ;
-- la séance terminée apparaît dans l’historique.
+- une séance peut être démarrée depuis un modèle et effectuée depuis un téléphone ;
+- le snapshot reste lisible après modification des sources ;
+- une série peut être enregistrée rapidement avec le bon statut ;
+- pause / reprise / fin / annulation fonctionnent avec versionnement ;
+- une coupure réseau courte ne provoque pas de perte silencieuse des commandes en file ;
+- les conflits de version sont détectés et résolus explicitement ;
+- une séance terminée ou annulée apparaît dans l’historique en lecture seule.
 
-## 7. Phase 4 — Historique et progression
+## 7. Phase 4 — Records, statistiques et progression
+
+> Statut : **future**.  
+> La liste et le détail historique de base sont déjà livrés en phase 3 (jalon 3.6).  
+> La phase 4 transforme ces données en records, statistiques et visualisation.
 
 ### 7.1 Objectif
 
-Transformer les données enregistrées en informations utiles.
+Transformer les données enregistrées en informations utiles (records, progression, graphiques).
 
 ### 7.2 Fonctionnalités incluses
 
-- Liste des séances passées.
-- Détail d’une séance.
-- Historique par exercice.
+- Historique enrichi par exercice.
 - Évolution de la charge.
 - Évolution des répétitions.
 - Volume par séance.
@@ -338,8 +352,9 @@ Transformer les données enregistrées en informations utiles.
 - Records personnels.
 - Comparaison entre périodes.
 - Graphiques.
-- Filtres par programme, exercice et période.
+- Filtres avancés (exercice, performance).
 - Export des données d’entraînement.
+- Durée active nette (si le modèle d’historique des pauses est enrichi).
 
 ### 7.3 Records initiaux
 
@@ -363,10 +378,10 @@ Transformer les données enregistrées en informations utiles.
 
 La phase est terminée lorsque :
 
-- l’utilisateur peut retrouver n’importe quelle séance ;
-- il peut visualiser sa progression sur un exercice ;
-- les estimations sont identifiées comme telles ;
+- l’utilisateur peut visualiser sa progression sur un exercice ;
+- les estimations (ex. 1RM) sont identifiées comme telles ;
 - les records reposent sur des règles déterministes ;
+- les graphiques et volumes officiels sont cohérents avec les snapshots de séance.
 - les graphiques sont utilisables sur mobile.
 
 ## 8. Phase 5 — Séances partagées
