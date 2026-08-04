@@ -22,6 +22,8 @@ const restoreProgram = vi.fn();
 const createWorkoutTemplate = vi.fn();
 const deleteWorkoutTemplate = vi.fn();
 const reorderWorkoutTemplates = vi.fn();
+const getActiveWorkoutSession = vi.fn();
+const getMe = vi.fn();
 
 vi.mock('../api/program-api', async () => {
   const actual = await vi.importActual<typeof import('../api/program-api')>(
@@ -42,11 +44,26 @@ vi.mock('../api/program-api', async () => {
   };
 });
 
+vi.mock('@/features/workouts/api/workout-api', () => ({
+  getActiveWorkoutSession: (...args: unknown[]) =>
+    getActiveWorkoutSession(...args),
+  createWorkoutSession: vi.fn(),
+  getWorkoutSessionDetail: vi.fn(),
+}));
+
+vi.mock('@/features/profile/api/profile-api', () => ({
+  getMe: (...args: unknown[]) => getMe(...args),
+}));
+
 const PROGRAM_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 
 function renderDetail(detail = createProgramDetail()) {
   getProgram.mockResolvedValue(detail);
   getActiveProgram.mockResolvedValue(null);
+  getActiveWorkoutSession.mockResolvedValue(null);
+  getMe.mockResolvedValue({
+    data: { profile: { timezone: 'Europe/Paris' } },
+  });
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -75,6 +92,8 @@ describe('ProgramDetailPage', () => {
     createWorkoutTemplate.mockReset();
     deleteWorkoutTemplate.mockReset();
     reorderWorkoutTemplates.mockReset();
+    getActiveWorkoutSession.mockReset();
+    getMe.mockReset();
   });
 
   it('shows program detail and templates', async () => {

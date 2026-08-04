@@ -1234,7 +1234,8 @@ ne doit être considéré comme disponible.
 
 ## 19. Séances individuelles
 
-> Statut : contrats cibles de phase 3, non implémentés à la clôture de la phase 2.
+> Statut : jalon 3.1 — création et lecture de séance active disponibles.  
+> Pause, reprise, fin, annulation, saisie de performances et historique restent hors périmètre.
 
 ### 19.1 Séance active
 
@@ -1242,7 +1243,7 @@ ne doit être considéré comme disponible.
 GET /api/v1/workouts/active
 ```
 
-Retourne `data: null` si aucune séance active.
+Retourne `{ "data": null }` si aucune séance `ACTIVE` ou `PAUSED`.
 
 ### 19.2 Créer depuis un modèle
 
@@ -1254,23 +1255,28 @@ Requête :
 
 ```json
 {
-  "sourceTemplateId": "template-id",
-  "name": null,
-  "localDate": "2026-08-03",
+  "sourceWorkoutTemplateId": "template-id",
+  "localDate": "2026-08-04",
   "timezone": "Europe/Paris"
 }
 ```
+
+Réponse : `201 Created` avec le détail complet `WorkoutSessionDetail` (snapshot).
+
+Le client n’envoie jamais le contenu du modèle. Le serveur construit le snapshot en transaction.
+
+Codes d’erreur utiles :
+
+- `WORKOUT_ACTIVE_ALREADY_EXISTS` (`409`) — détails éventuels `{ activeWorkoutSessionId }` ;
+- `WORKOUT_TEMPLATE_NOT_FOUND` ;
+- `WORKOUT_TEMPLATE_EMPTY` ;
+- `WORKOUT_TEMPLATE_EXERCISE_WITHOUT_SETS` ;
+- `WORKOUT_TEMPLATE_NOT_STARTABLE` ;
+- `WORKOUT_SNAPSHOT_CREATION_FAILED`.
 
 ### 19.3 Créer une séance libre
 
-```json
-{
-  "sourceTemplateId": null,
-  "name": "Séance libre",
-  "localDate": "2026-08-03",
-  "timezone": "Europe/Paris"
-}
-```
+Hors périmètre du jalon 3.1.
 
 ### 19.4 Détail
 
@@ -1278,59 +1284,27 @@ Requête :
 GET /api/v1/workouts/:workoutSessionId
 ```
 
+Propriétaire uniquement. Ressource étrangère → `WORKOUT_NOT_FOUND`.
+
 ### 19.5 Lister
 
-```text
-GET /api/v1/workouts
-```
-
-Filtres :
-
-```text
-from
-to
-status
-programId
-exerciseId
-shared
-cursor
-limit
-```
+Hors périmètre du jalon 3.1.
 
 ### 19.6 Démarrer
 
-Si la création ne démarre pas automatiquement :
-
-```text
-POST /api/v1/workouts/:workoutSessionId/start
-```
+Non utilisé pour le flux modèle → `ACTIVE` immédiat (3.1).
 
 ### 19.7 Mettre en pause
 
-```text
-POST /api/v1/workouts/:workoutSessionId/pause
-```
+Hors périmètre du jalon 3.1.
 
 ### 19.8 Reprendre
 
-```text
-POST /api/v1/workouts/:workoutSessionId/resume
-```
+Hors périmètre du jalon 3.1.
 
 ### 19.9 Terminer
 
-```text
-POST /api/v1/workouts/:workoutSessionId/complete
-```
-
-Requête :
-
-```json
-{
-  "expectedVersion": 12,
-  "notes": "Bonne séance"
-}
-```
+Hors périmètre du jalon 3.1.
 
 ### 19.10 Annuler
 
@@ -2149,7 +2123,14 @@ PROGRAM_SCHEDULE_DUPLICATE_POSITION
 
 ```text
 WORKOUT_NOT_FOUND
-WORKOUT_ALREADY_ACTIVE
+WORKOUT_ACTIVE_ALREADY_EXISTS
+WORKOUT_TEMPLATE_NOT_FOUND
+WORKOUT_TEMPLATE_EMPTY
+WORKOUT_TEMPLATE_EXERCISE_WITHOUT_SETS
+WORKOUT_TEMPLATE_NOT_STARTABLE
+WORKOUT_SNAPSHOT_CREATION_FAILED
+WORKOUT_INVALID_LOCAL_DATE
+WORKOUT_INVALID_TIMEZONE
 WORKOUT_ALREADY_COMPLETED
 WORKOUT_ALREADY_CANCELLED
 WORKOUT_VERSION_CONFLICT
@@ -2267,12 +2248,20 @@ Les endpoints sont implémentés selon la roadmap.
 - activation du programme courant ;
 - planification hebdomadaire.
 
-### Non disponible à la clôture de la phase 2
+### Disponible à partir du jalon 3.1
+
+- création d’une séance active depuis un modèle (snapshot immuable) ;
+- lecture de la séance active ;
+- détail d’une séance par identifiant ;
+- interface minimale en lecture seule (`/workouts/active`) ;
+- démarrage depuis le planning et le constructeur de programme.
+
+### Non disponible (reste phase 3+)
 
 - duplication de programme ou de modèle ;
-- séance active ;
-- performance réelle ;
-- série effectuée ;
+- saisie des performances réelles ;
+- validation / échec de série ;
+- pause, reprise, fin, annulation ;
 - historique de séance ;
 - records et progression ;
 - synchronisation hors ligne des séances ;

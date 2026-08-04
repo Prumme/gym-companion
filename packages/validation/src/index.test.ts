@@ -12,6 +12,7 @@ import {
   createProgramSchema,
   createWorkoutTemplateSchema,
   createWorkoutTemplateSetSchema,
+  createWorkoutSessionSchema,
   decodeExerciseCursor,
   encodeExerciseCursor,
   isDefaultExercisePreferenceInput,
@@ -709,5 +710,62 @@ describe('local dates and program schedule validation', () => {
     expect(
       replaceProgramScheduleSchema.safeParse({ entries: [] }).success,
     ).toBe(true);
+  });
+});
+
+describe('createWorkoutSessionSchema', () => {
+  const valid = {
+    sourceWorkoutTemplateId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    localDate: '2026-08-04',
+    timezone: 'Europe/Paris',
+  };
+
+  it('accepte un payload valide', () => {
+    expect(createWorkoutSessionSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it('refuse une date locale invalide', () => {
+    expect(
+      createWorkoutSessionSchema.safeParse({
+        ...valid,
+        localDate: '2026-02-30',
+      }).success,
+    ).toBe(false);
+    expect(
+      createWorkoutSessionSchema.safeParse({
+        ...valid,
+        localDate: '04-08-2026',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('refuse un fuseau vide et les champs supplémentaires', () => {
+    expect(
+      createWorkoutSessionSchema.safeParse({
+        ...valid,
+        timezone: '  ',
+      }).success,
+    ).toBe(false);
+    expect(
+      createWorkoutSessionSchema.safeParse({
+        ...valid,
+        ownerUserId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      }).success,
+    ).toBe(false);
+    expect(
+      createWorkoutSessionSchema.safeParse({
+        ...valid,
+        exercises: [],
+      }).success,
+    ).toBe(false);
+  });
+
+  it('refuse un identifiant de modèle vide ou invalide', () => {
+    expect(
+      createWorkoutSessionSchema.safeParse({
+        ...valid,
+        sourceWorkoutTemplateId: '',
+      }).success,
+    ).toBe(false);
   });
 });

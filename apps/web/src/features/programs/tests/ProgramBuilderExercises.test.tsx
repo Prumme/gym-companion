@@ -16,6 +16,7 @@ import {
 } from './fixtures';
 
 const getProgram = vi.fn();
+const getActiveProgram = vi.fn();
 const addWorkoutTemplateExercise = vi.fn();
 const createWorkoutTemplateSet = vi.fn();
 const updateWorkoutTemplateSet = vi.fn();
@@ -25,6 +26,8 @@ const listExercises = vi.fn();
 const getExercise = vi.fn();
 const listMuscleGroups = vi.fn();
 const listEquipmentTypes = vi.fn();
+const getActiveWorkoutSession = vi.fn();
+const getMe = vi.fn();
 
 vi.mock('../api/program-api', async () => {
   const actual = await vi.importActual<typeof import('../api/program-api')>(
@@ -33,6 +36,7 @@ vi.mock('../api/program-api', async () => {
   return {
     ...actual,
     getProgram: (...args: unknown[]) => getProgram(...args),
+    getActiveProgram: (...args: unknown[]) => getActiveProgram(...args),
     addWorkoutTemplateExercise: (...args: unknown[]) =>
       addWorkoutTemplateExercise(...args),
     createWorkoutTemplateSet: (...args: unknown[]) =>
@@ -58,6 +62,17 @@ vi.mock('@/features/exercises/api/exercise-api', async () => {
     listEquipmentTypes: (...args: unknown[]) => listEquipmentTypes(...args),
   };
 });
+
+vi.mock('@/features/workouts/api/workout-api', () => ({
+  getActiveWorkoutSession: (...args: unknown[]) =>
+    getActiveWorkoutSession(...args),
+  createWorkoutSession: vi.fn(),
+  getWorkoutSessionDetail: vi.fn(),
+}));
+
+vi.mock('@/features/profile/api/profile-api', () => ({
+  getMe: (...args: unknown[]) => getMe(...args),
+}));
 
 const PROGRAM_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 
@@ -105,6 +120,11 @@ const catalogDetail: ExerciseDetail = {
 
 function renderDetail(detail = createProgramDetail()) {
   getProgram.mockResolvedValue(detail);
+  getActiveProgram.mockResolvedValue(null);
+  getActiveWorkoutSession.mockResolvedValue(null);
+  getMe.mockResolvedValue({
+    data: { profile: { timezone: 'Europe/Paris' } },
+  });
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -123,6 +143,9 @@ function renderDetail(detail = createProgramDetail()) {
 describe('Program builder exercises and sets', () => {
   beforeEach(() => {
     getProgram.mockReset();
+    getActiveProgram.mockReset();
+    getActiveWorkoutSession.mockReset();
+    getMe.mockReset();
     addWorkoutTemplateExercise.mockReset();
     createWorkoutTemplateSet.mockReset();
     updateWorkoutTemplateSet.mockReset();

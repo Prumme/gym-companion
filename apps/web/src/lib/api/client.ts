@@ -19,11 +19,13 @@ const API_BASE_URL = resolveApiBaseUrl();
 export type ApiError = {
   code: string;
   message: string;
+  details?: unknown;
   fieldErrors?: Record<string, string[]>;
 };
 
 export type ApiRequestError = Error & {
   code?: string;
+  details?: unknown;
   fieldErrors?: Record<string, string[]>;
   status?: number;
 };
@@ -104,6 +106,7 @@ export async function apiFetch<T>(
       new Error(error?.message ?? 'Request failed'),
       {
         code: error?.code,
+        details: error?.details,
         fieldErrors: error?.fieldErrors,
         status: response.status,
       },

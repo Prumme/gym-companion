@@ -34,6 +34,7 @@ import { ReorderControls } from './ReorderControls';
 import { TemplateExerciseForm } from './TemplateExerciseForm';
 import { TemplateExerciseCard } from './TemplateExerciseCard';
 import { WorkoutTemplateForm } from './WorkoutTemplateForm';
+import { StartWorkoutButton } from '@/features/workouts/components/StartWorkoutButton';
 
 type WorkoutTemplateCardProps = {
   programId: string;
@@ -208,8 +209,16 @@ export function WorkoutTemplateCard({
           </div>
         </button>
 
-        {!readOnly ? (
-          <div className="flex shrink-0 flex-col items-end gap-2">
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          {template.exerciseCount > 0 ? (
+            <StartWorkoutButton
+              sourceWorkoutTemplateId={template.id}
+              label="Démarrer"
+              disabled={readOnly}
+            />
+          ) : null}
+          {!readOnly ? (
+            <>
             <ReorderControls
               label={`la séance ${template.name}`}
               canMoveUp={canMoveUp(index)}
@@ -265,8 +274,9 @@ export function WorkoutTemplateCard({
                 </div>
               ) : null}
             </div>
-          </div>
-        ) : null}
+            </>
+          ) : null}
+        </div>
       </div>
 
       {error ? (

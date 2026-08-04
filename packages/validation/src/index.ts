@@ -1089,6 +1089,28 @@ export type ReplaceProgramScheduleInput = z.infer<
   typeof replaceProgramScheduleSchema
 >;
 
+/**
+ * Création d’une séance active depuis un modèle.
+ * Le client n’envoie jamais le contenu du snapshot — le serveur le construit.
+ */
+export const createWorkoutSessionSchema = z
+  .object({
+    sourceWorkoutTemplateId: z
+      .string()
+      .uuid('L’identifiant du modèle de séance est invalide.'),
+    localDate: localDateSchema,
+    timezone: z
+      .string()
+      .trim()
+      .min(1, 'Le fuseau horaire est requis.')
+      .max(64, 'Le fuseau horaire est trop long.'),
+  })
+  .strict();
+
+export type CreateWorkoutSessionInput = z.infer<
+  typeof createWorkoutSessionSchema
+>;
+
 export type ProgramScheduleValidationResult =
   | { ok: true }
   | {

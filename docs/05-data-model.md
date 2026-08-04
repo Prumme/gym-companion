@@ -777,28 +777,32 @@ type WorkoutTemplateSet = {
 
 ## 24. WorkoutSession
 
-> Statut : modèle cible de phase 3, non implémenté à la clôture de la phase 2.
+> Statut : implémenté pour le jalon 3.1 (création + lecture de séance active).  
+> Les mutations d’exécution (pause, séries réelles, fin) restent hors périmètre.
 
 ```ts
 type WorkoutSession = {
   id: string;
   ownerUserId: string;
 
-  sourceTemplateId: string | null;
-  sharedWorkoutRoomId: string | null;
+  sourceProgramId: string | null;
+  sourceWorkoutTemplateId: string | null;
+
+  programNameSnapshot: string | null;
+  workoutTemplateNameSnapshot: string | null;
 
   name: string;
   status: WorkoutStatus;
 
-  startedAt: Date | null;
-  pausedAt: Date | null;
-  completedAt: Date | null;
-
-  localDate: string;
+  localDate: string; // YYYY-MM-DD, stocké en DATE PostgreSQL
   timezone: string;
 
-  notes: string | null;
+  startedAt: Date;
+  pausedAt: Date | null;
+  completedAt: Date | null;
+  cancelledAt: Date | null;
 
+  notes: string | null;
   version: number;
 
   createdAt: Date;
@@ -809,8 +813,10 @@ type WorkoutSession = {
 ### Contraintes
 
 - `localDate` utilise le format `YYYY-MM-DD` ;
-- `version` augmente lors des changements nécessitant un contrôle de concurrence ;
-- une séance partagée peut produire une séance individuelle liée pour chaque participant.
+- `version` prépare la concurrence future (initialisée à `1`, non incrémentée en lecture) ;
+- au plus une séance `ACTIVE` ou `PAUSED` par utilisateur (index partiel PostgreSQL) ;
+- les relations sources utilisent `ON DELETE SET NULL` : supprimer un programme ou un modèle ne supprime pas la séance ;
+- l’affichage repose sur les snapshots, pas sur les relations sources.
 
 ## 25. WorkoutSessionExercise
 
@@ -820,23 +826,24 @@ Snapshot d’un exercice dans une séance.
 type WorkoutSessionExercise = {
   id: string;
   workoutSessionId: string;
-  exerciseId: string;
 
+  sourceExerciseId: string | null;
   sourceTemplateExerciseId: string | null;
 
   exerciseNameSnapshot: string;
   measurementTypeSnapshot: ExerciseMeasurementType;
 
   position: number;
-  notes: string | null;
 
-  equipmentId: string | null;
+  primaryMuscleGroupNameSnapshot: string | null;
+  sourceExerciseArchivedAtCreation: boolean;
+
+  equipmentTypeId: string | null;
   equipmentNameSnapshot: string | null;
+  equipmentCodeSnapshot: string | null;
 
-  plannedSetCount: number | null;
-  targetRepMin: number | null;
-  targetRepMax: number | null;
-  targetRestSeconds: number | null;
+  notesSnapshot: string | null;
+  restSecondsSnapshot: number | null;
 
   createdAt: Date;
   updatedAt: Date;
@@ -845,27 +852,33 @@ type WorkoutSessionExercise = {
 
 Les champs snapshot permettent de conserver une lecture correcte si l’exercice est renommé ou archivé.
 
+L’équipement prévu copie le type d’équipement du modèle (`equipmentTypeId` + nom/code snapshot), pas un équipement physique.
+
 ## 26. WorkoutSet
+
+Ligne de série prévue dans une séance, prête à recevoir les performances réelles au jalon 3.2+.
 
 ```ts
 type WorkoutSet = {
   id: string;
   workoutSessionExerciseId: string;
-  userId: string;
+  ownerUserId: string;
 
   sourceTemplateSetId: string | null;
 
-  setNumber: number;
+  position: number;
   setType: WorkoutSetType;
-  status: WorkoutSetStatus;
+  status: WorkoutSetStatus | null;
 
   targetWeightKg: Decimal | null;
   targetRepMin: number | null;
   targetRepMax: number | null;
   targetDurationSeconds: number | null;
   targetDistanceMeters: Decimal | null;
+  targetIntensityPercent: Decimal | null;
   targetRir: number | null;
   targetRpe: Decimal | null;
+  targetRestSeconds: number | null;
 
   actualWeightKg: Decimal | null;
   actualReps: number | null;
@@ -889,9 +902,11 @@ type WorkoutSet = {
 
 ### Contraintes
 
-- `setNumber` unique dans un `WorkoutSessionExercise` pour un utilisateur ;
-- `clientCommandId` peut être unique par utilisateur ;
-- les valeurs réelles doivent respecter le type de mesure.
+- `position` unique dans un `WorkoutSessionExercise` (même convention que la phase 2) ;
+- `status` reste `null` à la création (jalon 3.1) : aucune série n’est marquée terminée, échouée, partielle, annulée ou ignorée ;
+- `PENDING` n’existe pas dans `WorkoutSetStatus` documenté — ne pas détourner `SKIPPED` ou `PARTIAL` ;
+- `clientCommandId` peut être unique par utilisateur (préparation hors ligne) ;
+- les valeurs réelles doivent respecter le type de mesure lors de l’exécution.
 
 ## 27. WorkoutSessionEvent
 
@@ -1826,7 +1841,6 @@ Les points suivants restent volontairement ouverts :
 - calcul des records à la demande ou matérialisation ;
 - stratégie d’archivage individuel de `WorkoutTemplate` et usage futur de `archivedAt` ;
 - stratégie de versionnement ou de concurrence des programmes sur plusieurs appareils ;
-- structure exacte des snapshots de séance en phase 3 ;
 - source initiale du catalogue alimentaire ;
 - durée de conservation des demandes IA ;
 - stratégie de suppression différée ;
@@ -1837,6 +1851,17 @@ Les décisions suivantes sont confirmées à la clôture de la phase 2 :
 - une série cible possède une ligne `WorkoutTemplateSet` distincte ;
 - un exercice ne peut apparaître qu’une fois dans un même modèle ;
 - RIR et RPE ne sont pas renseignés simultanément sur une série cible ;
+
+Les décisions suivantes sont confirmées pour le jalon 3.1 :
+
+- la création depuis un modèle démarre immédiatement une séance `ACTIVE` (pas d’état `PLANNED` ni de `POST .../start` pour ce flux) ;
+- le payload utilise `sourceWorkoutTemplateId` (pas de contenu de modèle envoyé par le client) ;
+- les snapshots de séance copient noms, ordre, mesure, équipement prévu, repos, notes et séries cibles ;
+- `WorkoutSet.status` reste `null` jusqu’à l’exécution réelle ;
+- `position` remplace `setNumber` pour l’ordre des séries de séance ;
+- l’équipement snapshot utilise `equipmentTypeId` + nom/code (pas `equipmentId` physique) ;
+- une seule séance `ACTIVE`/`PAUSED` par utilisateur via index partiel PostgreSQL ;
+- le conflit actif utilise le code `WORKOUT_ACTIVE_ALREADY_EXISTS`.
 - une seule activation courante est autorisée par utilisateur ;
 - la planification hebdomadaire appartient au programme et ne crée aucune séance réelle.
 

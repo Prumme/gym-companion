@@ -10,6 +10,8 @@ import { createActiveProgramSummary } from './fixtures';
 
 const getActiveProgram = vi.fn();
 const deactivateProgram = vi.fn();
+const getActiveWorkoutSession = vi.fn();
+const getMe = vi.fn();
 
 vi.mock('../api/program-api', async () => {
   const actual = await vi.importActual<typeof import('../api/program-api')>(
@@ -22,8 +24,23 @@ vi.mock('../api/program-api', async () => {
   };
 });
 
+vi.mock('@/features/workouts/api/workout-api', () => ({
+  getActiveWorkoutSession: (...args: unknown[]) =>
+    getActiveWorkoutSession(...args),
+  createWorkoutSession: vi.fn(),
+  getWorkoutSessionDetail: vi.fn(),
+}));
+
+vi.mock('@/features/profile/api/profile-api', () => ({
+  getMe: (...args: unknown[]) => getMe(...args),
+}));
+
 function renderPlanning(active = null as ReturnType<typeof createActiveProgramSummary> | null) {
   getActiveProgram.mockResolvedValue(active);
+  getActiveWorkoutSession.mockResolvedValue(null);
+  getMe.mockResolvedValue({
+    data: { profile: { timezone: 'Europe/Paris' } },
+  });
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -39,6 +56,8 @@ describe('PlanningPage', () => {
   beforeEach(() => {
     getActiveProgram.mockReset();
     deactivateProgram.mockReset();
+    getActiveWorkoutSession.mockReset();
+    getMe.mockReset();
   });
 
   it('shows empty state when no active program', async () => {
@@ -60,6 +79,9 @@ describe('PlanningPage', () => {
     expect(screen.getByText(/1 séance planifiée par semaine/i)).toBeInTheDocument();
     expect(screen.getByText('Lundi')).toBeInTheDocument();
     expect(screen.getByText('Push A')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Démarrer cette séance/i }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /Modifier le planning/i }),
     ).toHaveAttribute('href', '/programs/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/schedule');

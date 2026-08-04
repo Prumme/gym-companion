@@ -292,6 +292,84 @@ export const WEEKDAY_LABELS: Record<Weekday, string> = {
   SUNDAY: 'Dimanche',
 };
 
+export type WorkoutStatus =
+  | 'PLANNED'
+  | 'ACTIVE'
+  | 'PAUSED'
+  | 'COMPLETED'
+  | 'CANCELLED';
+
+/** Statuts de performance réelle (jalon 3.2+). Absents à la création d’une séance. */
+export type WorkoutSetStatus =
+  | 'COMPLETED'
+  | 'PARTIAL'
+  | 'FAILED'
+  | 'SKIPPED'
+  | 'CANCELLED';
+
+export type WorkoutSessionPermissions = {
+  canPause: boolean;
+  canResume: boolean;
+  canComplete: boolean;
+  canCancel: boolean;
+  canRecordSets: boolean;
+};
+
+export type WorkoutSessionSetTarget = {
+  id: string;
+  position: number;
+  setType: WorkoutSetType;
+  targetWeightKg: number | null;
+  targetRepMin: number | null;
+  targetRepMax: number | null;
+  targetDurationSeconds: number | null;
+  targetDistanceMeters: number | null;
+  targetIntensityPercent: number | null;
+  targetRir: number | null;
+  targetRpe: number | null;
+  targetRestSeconds: number | null;
+};
+
+export type WorkoutSessionExerciseDetail = {
+  id: string;
+  position: number;
+  sourceExerciseId: string | null;
+  exerciseName: string;
+  measurementType: ExerciseMeasurementType;
+  primaryMuscleGroupName: string | null;
+  sourceExerciseArchivedAtCreation: boolean;
+  equipment: {
+    id: string | null;
+    code: string | null;
+    name: string | null;
+  };
+  notes: string | null;
+  restSeconds: number | null;
+  sets: WorkoutSessionSetTarget[];
+};
+
+export type WorkoutSessionDetail = {
+  id: string;
+  name: string;
+  status: WorkoutStatus;
+  localDate: string;
+  timezone: string;
+  startedAt: string;
+  pausedAt: string | null;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  notes: string | null;
+  version: number;
+  source: {
+    programId: string | null;
+    programName: string | null;
+    workoutTemplateId: string | null;
+    workoutTemplateName: string | null;
+  };
+  exercises: WorkoutSessionExerciseDetail[];
+  permissions: WorkoutSessionPermissions;
+};
+
 export function createSuccessResponse<T>(data: T): ApiSuccessResponse<T> {
   return { data };
 }

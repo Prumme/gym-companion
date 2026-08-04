@@ -202,7 +202,10 @@ export function PlanningPage() {
         <h2 className="text-sm font-semibold tracking-wide text-[var(--muted)] uppercase">
           Semaine type
         </h2>
-        <WeeklyScheduleDisplay entries={active.schedule.entries} />
+        <WeeklyScheduleDisplay
+          entries={active.schedule.entries}
+          showStartActions
+        />
       </section>
     </main>
   );

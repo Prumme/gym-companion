@@ -281,7 +281,8 @@ pnpm dev
   - Création : http://localhost:5173/programs/new
   - Détail / constructeur : http://localhost:5173/programs/:programId
   - Édition infos : http://localhost:5173/programs/:programId/edit
-  - Planning hebdomadaire : http://localhost:5173/programs/:programId/schedule
+  - Planning : http://localhost:5173/programs/:programId/schedule
+  - Séance active (lecture) : http://localhost:5173/workouts/active
 - API : http://localhost:3000
 - Health : http://localhost:3000/health/live et `/health/ready`
 - OpenAPI : http://localhost:3000/docs
@@ -303,6 +304,11 @@ pnpm dev
   - Activation : `POST /api/v1/programs/:programId/activate` (body `{ startedOn, replaceCurrentProgram }`)
   - Désactivation : `POST /api/v1/programs/:programId/deactivate`
   - Planning : `GET|PUT /api/v1/programs/:programId/schedule`
+- Séances : http://localhost:3000/api/v1/workouts
+  - Active : `GET /api/v1/workouts/active` (`data: null` si aucune)
+  - Création snapshot : `POST /api/v1/workouts` (body `{ sourceWorkoutTemplateId, localDate, timezone }`)
+  - Détail : `GET /api/v1/workouts/:workoutSessionId`
+  - Hors périmètre actuel : pause, reprise, fin, annulation, saisie de performances
 - Mailpit : http://localhost:8025 (`docker compose up -d mailpit`)
 
 Compose complet (profil `full`) :
@@ -331,10 +337,11 @@ Avant de générer du code métier, lire :
 
 Le socle (Phase 0) et le catalogue d’exercices (Phase 1) sont en place.
 
-Les jalons **2.1–2.3** couvrent programmes, modèles, exercices/séries et le constructeur UI.
+Les jalons **2.1–2.4** couvrent programmes, modèles, exercices/séries, constructeur UI,
+programme courant et planification hebdomadaire.
 
-Le jalon **2.4** ajoute le programme courant (`ProgramActivation`), la planification hebdomadaire (`ProgramScheduleEntry`),
-les pages `/planning` et `/programs/:id/schedule`, et le refus d’archivage tant que le programme est courant.
-Hors scope : séances actives automatiques, performances, calendriers externes, notifications, IA.
+Le jalon **3.1** ajoute la création d’une séance active depuis un modèle (`WorkoutSession` snapshot),
+les endpoints `GET/POST /api/v1/workouts` et `GET /api/v1/workouts/:id`, et la page lecture seule `/workouts/active`.
+Hors scope actuel : saisie des performances, pause/reprise/fin, historique, hors ligne, WebSocket, IA.
 
 Les documents du dossier `docs/` restent la source de vérité produit et technique.
