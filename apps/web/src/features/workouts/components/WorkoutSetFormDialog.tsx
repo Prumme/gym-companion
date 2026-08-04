@@ -2,9 +2,10 @@ import type {
   EffortTrackingMode,
   ExerciseMeasurementType,
   WorkoutSessionSetDetail,
+  WorkoutSetStatus,
 } from '@gym-companion/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useId, useMemo } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import {
   updateWorkoutSetSchema,
@@ -30,8 +31,10 @@ type WorkoutSetFormDialogProps = {
   effortTrackingMode: EffortTrackingMode;
   expectedVersion: number;
   set: WorkoutSessionSetDetail;
+  initialStatus?: WorkoutSetStatus;
   onClose: () => void;
   onVersionConflict: () => void;
+  onRecorded?: (status: WorkoutSetStatus) => void;
 };
 
 function emptyActuals(): Pick<
@@ -57,6 +60,7 @@ function buildDefaults(
   set: WorkoutSessionSetDetail,
   effortTrackingMode: EffortTrackingMode,
   expectedVersion: number,
+  initialStatus?: WorkoutSetStatus,
 ): FormValues {
   const isFirst = set.status === 'PENDING';
   const effort =
@@ -74,7 +78,12 @@ function buildDefaults(
 
   if (!isFirst) {
     return {
-      status: set.status === 'CANCELLED' ? 'PENDING' : set.status,
+      status:
+        initialStatus && initialStatus !== 'CANCELLED'
+          ? initialStatus
+          : set.status === 'CANCELLED'
+            ? 'PENDING'
+            : set.status,
       actualWeightKg: set.actualWeightKg,
       actualReps: set.actualReps,
       actualDurationSeconds: set.actualDurationSeconds,
@@ -88,7 +97,12 @@ function buildDefaults(
   }
 
   return {
-    status: 'COMPLETED',
+    status:
+      initialStatus &&
+      initialStatus !== 'CANCELLED' &&
+      initialStatus !== 'PENDING'
+        ? initialStatus
+        : 'COMPLETED',
     actualWeightKg: set.targetWeightKg,
     actualReps: set.targetRepMax ?? set.targetRepMin,
     actualDurationSeconds: set.targetDurationSeconds,
@@ -117,14 +131,18 @@ export function WorkoutSetFormDialog({
   effortTrackingMode,
   expectedVersion,
   set,
+  initialStatus,
   onClose,
   onVersionConflict,
+  onRecorded,
 }: WorkoutSetFormDialogProps) {
   const titleId = useId();
   const mutation = useUpdateWorkoutSetMutation(workoutSessionId);
+  const [confirmClose, setConfirmClose] = useState(false);
   const defaults = useMemo(
-    () => buildDefaults(set, effortTrackingMode, expectedVersion),
-    [set, effortTrackingMode, expectedVersion],
+    () =>
+      buildDefaults(set, effortTrackingMode, expectedVersion, initialStatus),
+    [set, effortTrackingMode, expectedVersion, initialStatus],
   );
 
   const {
@@ -133,7 +151,7 @@ export function WorkoutSetFormDialog({
     reset,
     setValue,
     watch,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: defaults,
@@ -141,9 +159,12 @@ export function WorkoutSetFormDialog({
 
   useEffect(() => {
     if (open) {
-      reset(buildDefaults(set, effortTrackingMode, expectedVersion));
+      reset(
+        buildDefaults(set, effortTrackingMode, expectedVersion, initialStatus),
+      );
+      setConfirmClose(false);
     }
-  }, [open, set, effortTrackingMode, expectedVersion, reset]);
+  }, [open, set, effortTrackingMode, expectedVersion, initialStatus, reset]);
 
   const status = watch('status');
 
@@ -175,6 +196,17 @@ export function WorkoutSetFormDialog({
       : measurementType === 'BODYWEIGHT_REPS'
         ? 'Charge additionnelle (kg)'
         : 'Charge (kg)';
+
+  function requestClose() {
+    if (mutation.isPending) {
+      return;
+    }
+    if (isDirty) {
+      setConfirmClose(true);
+      return;
+    }
+    onClose();
+  }
 
   async function submit(values: FormValues) {
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
@@ -210,6 +242,7 @@ export function WorkoutSetFormDialog({
         workoutSetId: set.id,
         input: payload,
       });
+      onRecorded?.(payload.status);
       onClose();
     } catch (err) {
       const apiError = err as ApiRequestError;
@@ -236,11 +269,7 @@ export function WorkoutSetFormDialog({
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
       role="presentation"
-      onClick={() => {
-        if (!mutation.isPending) {
-          onClose();
-        }
-      }}
+      onClick={requestClose}
     >
       <div
         role="dialog"
@@ -420,7 +449,7 @@ export function WorkoutSetFormDialog({
             </p>
           ) : null}
 
-          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+          <div className="sticky bottom-0 mt-2 flex flex-col gap-2 bg-[var(--card)] pt-2 sm:flex-row sm:flex-wrap sm:justify-end">
             <Button
               type="button"
               variant="secondary"
@@ -436,7 +465,7 @@ export function WorkoutSetFormDialog({
               type="button"
               variant="secondary"
               disabled={mutation.isPending}
-              onClick={onClose}
+              onClick={requestClose}
             >
               Annuler
             </Button>
@@ -445,6 +474,31 @@ export function WorkoutSetFormDialog({
             </Button>
           </div>
         </form>
+
+        {confirmClose ? (
+          <div
+            className="mt-4 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--background)] p-3"
+            role="alertdialog"
+            aria-label="Modifications non enregistrées"
+          >
+            <p className="text-sm">
+              Des modifications non enregistrées seront perdues. Fermer quand
+              même ?
+            </p>
+            <div className="mt-2 flex gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setConfirmClose(false)}
+              >
+                Continuer la saisie
+              </Button>
+              <Button type="button" onClick={onClose}>
+                Fermer
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

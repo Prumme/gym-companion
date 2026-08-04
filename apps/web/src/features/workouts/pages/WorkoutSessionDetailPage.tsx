@@ -6,11 +6,10 @@ import { ButtonLink } from '@/components/ui/button';
 import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
 
 import { workoutDetailQueryOptions } from '../api/workout-query-options';
+import { WorkoutProgressBanner } from '../components/WorkoutProgressBanner';
 import { WorkoutSessionExerciseList } from '../components/WorkoutSessionExerciseList';
-import {
-  countRecordedSets,
-  getWorkoutStatusLabel,
-} from '../lib/workout-labels';
+import { getWorkoutStatusLabel } from '../lib/workout-labels';
+import { computeWorkoutProgress } from '../lib/workout-progress';
 
 function formatDateTime(value: string, timeZone: string): string {
   try {
@@ -29,12 +28,10 @@ export function WorkoutSessionDetailPage() {
   const query = useQuery(workoutDetailQueryOptions(workoutSessionId));
 
   const session = query.data;
-  const allSets = useMemo(
-    () => session?.exercises.flatMap((exercise) => exercise.sets) ?? [],
+  const progress = useMemo(
+    () => (session ? computeWorkoutProgress(session) : null),
     [session],
   );
-  const recordedCount = countRecordedSets(allSets);
-  const pendingCount = allSets.filter((set) => set.status === 'PENDING').length;
 
   if (query.isLoading) {
     return (
@@ -65,7 +62,7 @@ export function WorkoutSessionDetailPage() {
     );
   }
 
-  if (!session) {
+  if (!session || !progress) {
     return null;
   }
 
@@ -148,13 +145,14 @@ export function WorkoutSessionDetailPage() {
             </div>
           ) : null}
         </dl>
-        <p className="text-sm text-[var(--muted)]" role="status">
-          {recordedCount} série{recordedCount === 1 ? '' : 's'} enregistrée
-          {recordedCount === 1 ? '' : 's'} sur {allSets.length}
-          {pendingCount > 0
-            ? ` · ${pendingCount} non traitée${pendingCount === 1 ? '' : 's'}`
-            : ''}
-        </p>
+        <WorkoutProgressBanner progress={progress} />
+        {progress.pendingSets > 0 ? (
+          <p className="text-sm text-[var(--muted)]" role="status">
+            {progress.pendingSets} série
+            {progress.pendingSets === 1 ? '' : 's'} non traitée
+            {progress.pendingSets === 1 ? '' : 's'}
+          </p>
+        ) : null}
       </header>
 
       <div className="flex flex-col gap-2 sm:flex-row">

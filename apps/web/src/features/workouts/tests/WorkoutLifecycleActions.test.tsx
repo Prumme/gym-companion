@@ -120,9 +120,18 @@ describe('Workout lifecycle UI (3.3)', () => {
 
     renderActive();
     expect(await screen.findByRole('button', { name: /Mettre en pause/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Terminer la séance/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Annuler la séance/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Reprendre/i })).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: /Autres actions de séance/i }),
+    );
+    expect(
+      screen.getByRole('menuitem', { name: /Terminer la séance/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: /Annuler la séance/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Reprendre la séance/i }),
+    ).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Mettre en pause/i }));
     await waitFor(() => expect(pauseWorkoutSession).toHaveBeenCalledTimes(1));
@@ -130,7 +139,9 @@ describe('Workout lifecycle UI (3.3)', () => {
     expect(
       screen.getByText(/Saisie des séries désactivée pendant la pause/i),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^Saisir$/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Saisir la série/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('reprend une séance en pause', async () => {
@@ -209,7 +220,10 @@ describe('Workout lifecycle UI (3.3)', () => {
 
     const client = renderActive();
     await user.click(
-      await screen.findByRole('button', { name: /Terminer la séance/i }),
+      await screen.findByRole('button', { name: /Autres actions de séance/i }),
+    );
+    await user.click(
+      screen.getByRole('menuitem', { name: /Terminer la séance/i }),
     );
     const dialog = await screen.findByRole('dialog');
     expect(
@@ -276,7 +290,10 @@ describe('Workout lifecycle UI (3.3)', () => {
 
     renderActive();
     await user.click(
-      await screen.findByRole('button', { name: /^Annuler la séance$/i }),
+      await screen.findByRole('button', { name: /Autres actions de séance/i }),
+    );
+    await user.click(
+      screen.getByRole('menuitem', { name: /^Annuler la séance$/i }),
     );
     const dialog = await screen.findByRole('alertdialog');
     await user.type(within(dialog).getByLabelText(/Motif/i), 'Fatigue');
@@ -289,7 +306,9 @@ describe('Workout lifecycle UI (3.3)', () => {
     expect(screen.getByText(/Fatigue/i)).toBeInTheDocument();
     expect(screen.getByText(/Réalisé :/i)).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /Mettre en pause|Terminer|Reprendre/i }),
+      screen.queryByRole('button', {
+        name: /Mettre en pause|Terminer|Reprendre la séance/i,
+      }),
     ).not.toBeInTheDocument();
   });
 
@@ -311,6 +330,42 @@ describe('Workout lifecycle UI (3.3)', () => {
       await screen.findByText(
         /La séance a été modifiée depuis un autre onglet ou appareil/i,
       ),
+    ).toBeInTheDocument();
+  });
+
+  it('redirige /workouts/:id vers /workouts/active si la séance est encore active', async () => {
+    const active = createWorkoutSessionDetail();
+    getWorkoutSessionDetail.mockResolvedValue(active);
+    getActiveWorkoutSession.mockResolvedValue(active);
+
+    render(
+      <QueryClientProvider
+        client={
+          new QueryClient({
+            defaultOptions: {
+              queries: { retry: false },
+              mutations: { retry: false },
+            },
+          })
+        }
+      >
+        <MemoryRouter
+          initialEntries={[`/workouts/${active.id}`]}
+        >
+          <Routes>
+            <Route path="/workouts/active" element={<ActiveWorkoutPage />} />
+            <Route
+              path="/workouts/:workoutSessionId"
+              element={<WorkoutSessionDetailPage />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('Séance Push')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Mettre en pause/i }),
     ).toBeInTheDocument();
   });
 });

@@ -110,19 +110,13 @@ describe('ActiveWorkoutPage', () => {
     );
 
     expect(await screen.findByText('Séance Push')).toBeInTheDocument();
-    expect(
-      screen.getByText((_, el) =>
-        el?.tagName === 'P' &&
-        el.getAttribute('role') === 'status' &&
-        el.textContent === '0 séries enregistrées sur 1',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/0 séries enregistrées sur 1/i)).toBeInTheDocument();
     expect(screen.getByText(/Statut : À faire/i)).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /Mettre en pause/i }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /^Saisir$/i }));
+    await user.click(screen.getByRole('button', { name: /Saisir la série/i }));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByLabelText(/Charge/i)).toHaveValue(60);
     expect(within(dialog).getByLabelText(/Répétitions/i)).toHaveValue(10);
@@ -133,12 +127,92 @@ describe('ActiveWorkoutPage', () => {
 
     await waitFor(() => expect(updateWorkoutSet).toHaveBeenCalledTimes(1));
     expect(
-      screen.getByText((_, el) =>
-        el?.tagName === 'P' &&
-        el.getAttribute('role') === 'status' &&
-        el.textContent === '1 série enregistrée sur 1',
-      ),
+      screen.getByText(/1 série enregistrée sur 1/i),
     ).toBeInTheDocument();
+  });
+
+  it('navigue entre exercices et démarre la minuterie après enregistrement', async () => {
+    const user = userEvent.setup();
+    localStorage.clear();
+    const session = createWorkoutSessionDetail({
+      exercises: [
+        {
+          id: 'wse-1',
+          position: 0,
+          sourceExerciseId: 'ex-1',
+          exerciseName: 'Développé couché',
+          measurementType: 'WEIGHT_REPS',
+          primaryMuscleGroupName: 'Pectoraux',
+          sourceExerciseArchivedAtCreation: false,
+          equipment: { id: 'eq-1', code: 'barbell', name: 'Barre' },
+          notes: 'Contrôle',
+          restSeconds: 90,
+          sets: [
+            createWorkoutSet({
+              id: 'ws-1',
+              status: 'PENDING',
+              targetRestSeconds: 90,
+            }),
+          ],
+        },
+        {
+          id: 'wse-2',
+          position: 1,
+          sourceExerciseId: 'ex-2',
+          exerciseName: 'Élévations latérales',
+          measurementType: 'WEIGHT_REPS',
+          primaryMuscleGroupName: 'Épaules',
+          sourceExerciseArchivedAtCreation: false,
+          equipment: { id: 'eq-2', code: 'dumbbell', name: 'Haltères' },
+          notes: null,
+          restSeconds: 60,
+          sets: [createWorkoutSet({ id: 'ws-2', status: 'PENDING' })],
+        },
+      ],
+    });
+    getActiveWorkoutSession.mockResolvedValue(session);
+    updateWorkoutSet.mockResolvedValue({
+      workoutSet: createWorkoutSet({
+        id: 'ws-1',
+        status: 'COMPLETED',
+        actualWeightKg: 60,
+        actualReps: 10,
+        actualRir: 2,
+        targetRestSeconds: 90,
+        completedAt: '2026-08-04T10:05:00.000Z',
+      }),
+      workoutSessionVersion: 2,
+    });
+
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={['/workouts/active']}>
+          <ActiveWorkoutPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Développé couché' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Exercice suivant/i }));
+    expect(
+      await screen.findByRole('heading', { name: 'Élévations latérales' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Exercice précédent/i }));
+    expect(
+      await screen.findByRole('heading', { name: 'Développé couché' }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Saisir la série/i }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(
+      within(dialog).getByRole('button', { name: /^Enregistrer$/i }),
+    );
+    await waitFor(() => expect(updateWorkoutSet).toHaveBeenCalledTimes(1));
+    expect(await screen.findByRole('timer')).toBeInTheDocument();
+    expect(screen.getByText(/Passer à l’exercice suivant/i)).toBeInTheDocument();
   });
 });
 

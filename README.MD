@@ -282,7 +282,9 @@ pnpm dev
   - Détail / constructeur : http://localhost:5173/programs/:programId
   - Édition infos : http://localhost:5173/programs/:programId/edit
   - Planning : http://localhost:5173/programs/:programId/schedule
-  - Séance active (lecture) : http://localhost:5173/workouts/active
+  - Séance active (interface complète) : http://localhost:5173/workouts/active
+  - Détail séance (lecture seule si terminée/annulée) : http://localhost:5173/workouts/:workoutSessionId
+  - Query optionnelle : `/workouts/active?exerciseId=...`
 - API : http://localhost:3000
 - Health : http://localhost:3000/health/live et `/health/ready`
 - OpenAPI : http://localhost:3000/docs
@@ -311,7 +313,8 @@ pnpm dev
   - Saisie série : `PATCH /api/v1/workouts/:workoutSessionId/exercises/:sessionExerciseId/sets/:workoutSetId`
   - Pause / reprise / fin / annulation : `POST /api/v1/workouts/:id/{pause|resume|complete|cancel}`
   - Détail séance : http://localhost:5173/workouts/:workoutSessionId
-  - Hors périmètre actuel : pause, reprise, fin, annulation, historique, hors ligne
+  - Minuterie de repos : locale uniquement (localStorage), non synchronisée, aucune donnée serveur
+  - Hors périmètre actuel : historique paginé, records, progression calculée, mutations hors ligne, WebSocket, IA
 - Mailpit : http://localhost:8025 (`docker compose up -d mailpit`)
 
 Compose complet (profil `full`) :
@@ -351,6 +354,12 @@ avec contrôle de version (`expectedVersion`) et idempotence optionnelle (`clien
 
 Le jalon **3.3** ajoute le cycle de vie : pause, reprise, fin et annulation
 (`POST .../pause|resume|complete|cancel`), avec libération du verrou d’unicité après fin/annulation.
-Hors scope actuel : historique paginé, records, progression, hors ligne, WebSocket, IA.
+
+Le jalon **3.4** transforme `/workouts/active` en interface de séance complète :
+navigation entre exercices, progression, saisie des séries, actions rapides,
+cycle de vie dans l’en-tête, et **minuterie de repos locale** (non synchronisée,
+restaurable uniquement sur le même navigateur via `localStorage`, aucune entité backend).
+Hors scope actuel : ajout/retrait/réordonnancement d’exercices ou séries, mutations hors ligne,
+historique paginé, records, progression, WebSocket, notifications push, IA.
 
 Les documents du dossier `docs/` restent la source de vérité produit et technique.
