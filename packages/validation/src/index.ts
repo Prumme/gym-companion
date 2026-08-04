@@ -1679,3 +1679,216 @@ export function normalizeOptionalPlainText(
   const trimmed = value.trim();
   return trimmed === '' ? null : trimmed;
 }
+
+/** Statuts autorisés sur l’historique (pas ACTIVE / PAUSED / PLANNED). */
+export const workoutHistoryStatusSchema = z.enum(['COMPLETED', 'CANCELLED']);
+
+export type WorkoutHistoryStatusFilter = z.infer<
+  typeof workoutHistoryStatusSchema
+>;
+
+export const listWorkoutHistoryLimitSchema = listProgramsLimitSchema;
+
+/**
+ * Query `GET /api/v1/workouts` — historique des séances terminées / annulées.
+ * Les paramètres inconnus sont ignorés (convention liste programmes / exercices).
+ */
+export const workoutHistoryQuerySchema = z
+  .object({
+    status: z.preprocess(
+      emptyQueryToUndefined,
+      workoutHistoryStatusSchema.optional(),
+    ),
+    from: z.preprocess(emptyQueryToUndefined, localDateSchema.optional()),
+    to: z.preprocess(emptyQueryToUndefined, localDateSchema.optional()),
+    programId: z.preprocess(
+      emptyQueryToUndefined,
+      z.string().uuid().optional(),
+    ),
+    workoutTemplateId: z.preprocess(
+      emptyQueryToUndefined,
+      z.string().uuid().optional(),
+    ),
+    cursor: z.preprocess(emptyQueryToUndefined, z.string().min(1).optional()),
+    limit: listWorkoutHistoryLimitSchema,
+  })
+  .superRefine((data, ctx) => {
+    if (data.from && data.to && data.from > data.to) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'WORKOUT_HISTORY_INVALID_DATE_RANGE',
+        path: ['to'],
+      });
+    }
+  });
+
+export type WorkoutHistoryQuery = z.infer<typeof workoutHistoryQuerySchema>;
+
+export type WorkoutHistoryQueryParseErrorCode =
+  | 'WORKOUT_HISTORY_INVALID_STATUS'
+  | 'WORKOUT_HISTORY_INVALID_FROM_DATE'
+  | 'WORKOUT_HISTORY_INVALID_TO_DATE'
+  | 'WORKOUT_HISTORY_INVALID_DATE_RANGE'
+  | 'WORKOUT_HISTORY_INVALID_QUERY';
+
+export type WorkoutHistoryQueryParseResult =
+  | { ok: true; data: WorkoutHistoryQuery }
+  | { ok: false; code: WorkoutHistoryQueryParseErrorCode; message: string };
+
+function workoutHistoryQueryErrorMessage(
+  code: WorkoutHistoryQueryParseErrorCode,
+): string {
+  switch (code) {
+    case 'WORKOUT_HISTORY_INVALID_STATUS':
+      return 'Statut d’historique invalide.';
+    case 'WORKOUT_HISTORY_INVALID_FROM_DATE':
+      return 'Date de début invalide.';
+    case 'WORKOUT_HISTORY_INVALID_TO_DATE':
+      return 'Date de fin invalide.';
+    case 'WORKOUT_HISTORY_INVALID_DATE_RANGE':
+      return 'La date de début doit être antérieure ou égale à la date de fin.';
+    case 'WORKOUT_HISTORY_INVALID_QUERY':
+      return 'Paramètres de liste invalides.';
+  }
+}
+
+/** Parse la query historique avec codes d’erreur métier stables. */
+export function parseWorkoutHistoryQuery(
+  raw: unknown,
+): WorkoutHistoryQueryParseResult {
+  const result = workoutHistoryQuerySchema.safeParse(raw);
+  if (result.success) {
+    return { ok: true, data: result.data };
+  }
+
+  for (const issue of result.error.issues) {
+    const path = issue.path[0];
+    if (issue.message === 'WORKOUT_HISTORY_INVALID_DATE_RANGE') {
+      return {
+        ok: false,
+        code: 'WORKOUT_HISTORY_INVALID_DATE_RANGE',
+        message: workoutHistoryQueryErrorMessage(
+          'WORKOUT_HISTORY_INVALID_DATE_RANGE',
+        ),
+      };
+    }
+    if (path === 'status') {
+      return {
+        ok: false,
+        code: 'WORKOUT_HISTORY_INVALID_STATUS',
+        message: workoutHistoryQueryErrorMessage(
+          'WORKOUT_HISTORY_INVALID_STATUS',
+        ),
+      };
+    }
+    if (path === 'from') {
+      return {
+        ok: false,
+        code: 'WORKOUT_HISTORY_INVALID_FROM_DATE',
+        message: workoutHistoryQueryErrorMessage(
+          'WORKOUT_HISTORY_INVALID_FROM_DATE',
+        ),
+      };
+    }
+    if (path === 'to') {
+      return {
+        ok: false,
+        code: 'WORKOUT_HISTORY_INVALID_TO_DATE',
+        message: workoutHistoryQueryErrorMessage(
+          'WORKOUT_HISTORY_INVALID_TO_DATE',
+        ),
+      };
+    }
+  }
+
+  return {
+    ok: false,
+    code: 'WORKOUT_HISTORY_INVALID_QUERY',
+    message: workoutHistoryQueryErrorMessage('WORKOUT_HISTORY_INVALID_QUERY'),
+  };
+}
+
+export type WorkoutHistoryCursorPayload = {
+  version: 1;
+  localDate: string;
+  startedAt: string;
+  id: string;
+};
+
+export function encodeWorkoutHistoryCursor(
+  payload: WorkoutHistoryCursorPayload,
+): string {
+  return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+}
+
+export function decodeWorkoutHistoryCursor(
+  cursor: string,
+): WorkoutHistoryCursorPayload {
+  let parsed: unknown;
+  try {
+    const json = Buffer.from(cursor, 'base64url').toString('utf8');
+    parsed = JSON.parse(json) as unknown;
+  } catch {
+    throw new Error('WORKOUT_HISTORY_INVALID_CURSOR');
+  }
+
+  if (
+    typeof parsed !== 'object' ||
+    parsed === null ||
+    (parsed as { version?: unknown }).version !== 1 ||
+    typeof (parsed as { localDate?: unknown }).localDate !== 'string' ||
+    typeof (parsed as { startedAt?: unknown }).startedAt !== 'string' ||
+    typeof (parsed as { id?: unknown }).id !== 'string' ||
+    !isValidLocalDateString((parsed as { localDate: string }).localDate) ||
+    (parsed as { startedAt: string }).startedAt.length === 0 ||
+    (parsed as { id: string }).id.length === 0 ||
+    Number.isNaN(Date.parse((parsed as { startedAt: string }).startedAt))
+  ) {
+    throw new Error('WORKOUT_HISTORY_INVALID_CURSOR');
+  }
+
+  return {
+    version: 1,
+    localDate: (parsed as { localDate: string }).localDate,
+    startedAt: (parsed as { startedAt: string }).startedAt,
+    id: (parsed as { id: string }).id,
+  };
+}
+
+/**
+ * Filtre cursor pour tri `localDate DESC, startedAt DESC, id DESC`.
+ */
+export function buildWorkoutHistoryCursorFilter(
+  cursor: WorkoutHistoryCursorPayload,
+): {
+  OR: Array<
+    | { localDate: { lt: Date } }
+    | {
+        AND: [
+          { localDate: Date },
+          { startedAt: { lt: Date } },
+        ];
+      }
+    | {
+        AND: [
+          { localDate: Date },
+          { startedAt: Date },
+          { id: { lt: string } },
+        ];
+      }
+  >;
+} {
+  const localDate = localDateStringToUtcDate(cursor.localDate);
+  const startedAt = new Date(cursor.startedAt);
+  return {
+    OR: [
+      { localDate: { lt: localDate } },
+      {
+        AND: [{ localDate }, { startedAt: { lt: startedAt } }],
+      },
+      {
+        AND: [{ localDate }, { startedAt }, { id: { lt: cursor.id } }],
+      },
+    ],
+  };
+}

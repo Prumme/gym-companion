@@ -400,6 +400,41 @@ export type WorkoutSessionDetail = {
   permissions: WorkoutSessionPermissions;
 };
 
+/** Statuts exposés dans l’historique (hors ACTIVE / PAUSED). */
+export type WorkoutHistoryStatus = 'COMPLETED' | 'CANCELLED';
+
+export type WorkoutHistorySetSummary = {
+  exerciseCount: number;
+  totalSetCount: number;
+  processedSetCount: number;
+  completedSetCount: number;
+  partialSetCount: number;
+  failedSetCount: number;
+  skippedSetCount: number;
+  pendingSetCount: number;
+};
+
+export type WorkoutHistoryListItem = {
+  id: string;
+  name: string;
+  status: WorkoutHistoryStatus;
+  localDate: string;
+  timezone: string;
+  startedAt: string;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  source: {
+    programId: string | null;
+    programName: string | null;
+    workoutTemplateId: string | null;
+    workoutTemplateName: string | null;
+  };
+  summary: WorkoutHistorySetSummary;
+};
+
+export type WorkoutHistoryListResponse =
+  ApiCursorListResponse<WorkoutHistoryListItem>;
+
 export function createSuccessResponse<T>(data: T): ApiSuccessResponse<T> {
   return { data };
 }

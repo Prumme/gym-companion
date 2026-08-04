@@ -5,22 +5,28 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  buildWorkoutHistoryCursorFilter,
   buildWorkoutLifecycleFingerprint,
   buildWorkoutSetCommandFingerprint,
   cancelWorkoutSessionSchema,
   completeWorkoutSessionSchema,
   createWorkoutSessionSchema,
+  decodeWorkoutHistoryCursor,
+  encodeWorkoutHistoryCursor,
   localDateStringToUtcDate,
   normalizeOptionalPlainText,
+  parseWorkoutHistoryQuery,
   pauseWorkoutSessionSchema,
   resolveWorkoutLifecycleTransition,
   resumeWorkoutSessionSchema,
   updateWorkoutSetSchema,
+  utcDateToLocalDateString,
   validateWorkoutSetActuals,
   type WorkoutLifecycleAction,
 } from '@gym-companion/validation';
 import type {
   UpdateWorkoutSetResult,
+  WorkoutHistoryListResponse,
   WorkoutLifecycleResult,
   WorkoutSessionDetail,
 } from '@gym-companion/shared';
@@ -32,8 +38,10 @@ import {
   type TemplateForSnapshot,
 } from './workout-snapshot';
 import {
+  toWorkoutHistoryListItem,
   toWorkoutSetDetail,
   toWorkoutSessionDetail,
+  type WorkoutHistoryListRow,
   type WorkoutSetSnapshotRow,
   type WorkoutSessionSnapshotRow,
 } from './workouts.mapper';
@@ -49,9 +57,110 @@ const sessionDetailInclude = {
   },
 } satisfies Prisma.WorkoutSessionInclude;
 
+const historyListInclude = {
+  _count: { select: { exercises: true } },
+  exercises: {
+    select: {
+      sets: {
+        select: { status: true },
+      },
+    },
+  },
+} satisfies Prisma.WorkoutSessionInclude;
+
 @Injectable()
 export class WorkoutsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async listHistory(
+    userId: string,
+    rawQuery: Record<string, string | undefined>,
+  ): Promise<WorkoutHistoryListResponse> {
+    const parsed = parseWorkoutHistoryQuery(rawQuery);
+    if (!parsed.ok) {
+      throw new BadRequestException({
+        code: parsed.code,
+        message: parsed.message,
+      });
+    }
+    const query = parsed.data;
+
+    let cursorFilter:
+      | ReturnType<typeof buildWorkoutHistoryCursorFilter>
+      | undefined;
+    if (query.cursor) {
+      try {
+        cursorFilter = buildWorkoutHistoryCursorFilter(
+          decodeWorkoutHistoryCursor(query.cursor),
+        );
+      } catch {
+        throw new BadRequestException({
+          code: 'WORKOUT_HISTORY_INVALID_CURSOR',
+          message: 'Cursor de pagination invalide.',
+        });
+      }
+    }
+
+    const statusFilter: Prisma.WorkoutSessionWhereInput = query.status
+      ? { status: query.status }
+      : { status: { in: ['COMPLETED', 'CANCELLED'] } };
+
+    const filters: Prisma.WorkoutSessionWhereInput[] = [
+      { ownerUserId: userId },
+      statusFilter,
+    ];
+
+    if (query.from) {
+      filters.push({
+        localDate: { gte: localDateStringToUtcDate(query.from) },
+      });
+    }
+    if (query.to) {
+      filters.push({
+        localDate: { lte: localDateStringToUtcDate(query.to) },
+      });
+    }
+    if (query.programId) {
+      filters.push({ sourceProgramId: query.programId });
+    }
+    if (query.workoutTemplateId) {
+      filters.push({ sourceWorkoutTemplateId: query.workoutTemplateId });
+    }
+    if (cursorFilter) {
+      filters.push(cursorFilter);
+    }
+
+    const rows = await this.prisma.workoutSession.findMany({
+      where: { AND: filters },
+      include: historyListInclude,
+      orderBy: [
+        { localDate: 'desc' },
+        { startedAt: 'desc' },
+        { id: 'desc' },
+      ],
+      take: query.limit + 1,
+    });
+
+    const hasMore = rows.length > query.limit;
+    const pageRows = hasMore ? rows.slice(0, query.limit) : rows;
+    const last = pageRows[pageRows.length - 1];
+    const nextCursor =
+      hasMore && last
+        ? encodeWorkoutHistoryCursor({
+            version: 1,
+            localDate: utcDateToLocalDateString(last.localDate),
+            startedAt: last.startedAt.toISOString(),
+            id: last.id,
+          })
+        : null;
+
+    return {
+      data: pageRows.map((row) =>
+        toWorkoutHistoryListItem(row as WorkoutHistoryListRow),
+      ),
+      pagination: { nextCursor, hasMore },
+    };
+  }
 
   async getActive(userId: string): Promise<WorkoutSessionDetail | null> {
     const row = await this.prisma.workoutSession.findFirst({

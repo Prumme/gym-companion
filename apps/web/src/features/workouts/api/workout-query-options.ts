@@ -1,17 +1,54 @@
 import type { WorkoutSessionDetail } from '@gym-companion/shared';
-import { queryOptions } from '@tanstack/react-query';
+import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
 
 import {
   getActiveWorkoutSession,
   getWorkoutSessionDetail,
+  listWorkoutHistory,
 } from './workout-api';
-import { workoutQueryKeys } from './workout-query-keys';
+import {
+  workoutQueryKeys,
+  type WorkoutHistoryFilters,
+} from './workout-query-keys';
 import { isAuthError, isNetworkError } from '../offline/network';
 import {
   getLocalActiveSnapshot,
   getSnapshot,
+  listPendingTerminalSnapshots,
   persistServerSnapshot,
 } from '../offline/store';
+
+export function workoutHistoryInfiniteQueryOptions(
+  filters: WorkoutHistoryFilters,
+) {
+  return infiniteQueryOptions({
+    queryKey: workoutQueryKeys.history(filters),
+    queryFn: ({ pageParam }) =>
+      listWorkoutHistory({
+        ...filters,
+        cursor: pageParam,
+        limit: 20,
+      }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.hasMore
+        ? (lastPage.pagination.nextCursor ?? undefined)
+        : undefined,
+  });
+}
+
+export function pendingTerminalLocalQueryOptions(userId: string | null) {
+  return queryOptions({
+    queryKey: workoutQueryKeys.pendingTerminalLocal(),
+    queryFn: async () => {
+      if (!userId) {
+        return [];
+      }
+      return (await listPendingTerminalSnapshots(userId)) ?? [];
+    },
+    enabled: Boolean(userId),
+  });
+}
 
 export function activeWorkoutQueryOptions(
   getUserId: () => string | null = () => null,

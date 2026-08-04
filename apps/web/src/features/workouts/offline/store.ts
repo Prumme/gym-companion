@@ -248,13 +248,39 @@ export async function hasPendingCommandsForUser(
 
 export async function hasPendingTerminalCommand(
   userId: string,
+  workoutSessionId?: string,
 ): Promise<boolean> {
   const all = await (await getOfflineDb()).getAll('workoutCommands');
   return all.some(
     (row) =>
       row.userId === userId &&
+      (workoutSessionId == null || row.workoutSessionId === workoutSessionId) &&
       (row.type === 'COMPLETE_WORKOUT' || row.type === 'CANCEL_WORKOUT') &&
       ['PENDING', 'SYNCING', 'CONFLICT', 'REJECTED'].includes(row.status),
+  );
+}
+
+/** Séances locales COMPLETED/CANCELLED encore en attente de sync serveur. */
+export async function listPendingTerminalSnapshots(
+  userId: string,
+): Promise<StoredWorkoutSnapshot[]> {
+  const snapshots = await listSnapshotsForUser(userId);
+  const pending: StoredWorkoutSnapshot[] = [];
+  for (const snapshot of snapshots) {
+    if (
+      snapshot.data.status !== 'COMPLETED' &&
+      snapshot.data.status !== 'CANCELLED'
+    ) {
+      continue;
+    }
+    if (await hasPendingTerminalCommand(userId, snapshot.workoutSessionId)) {
+      pending.push(snapshot);
+    }
+  }
+  return pending.sort((a, b) =>
+    b.data.localDate.localeCompare(a.data.localDate) ||
+    b.data.startedAt.localeCompare(a.data.startedAt) ||
+    b.workoutSessionId.localeCompare(a.workoutSessionId),
   );
 }
 

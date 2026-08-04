@@ -12,6 +12,7 @@ const TREATED_STATUSES: WorkoutSetStatus[] = [
   'PARTIAL',
   'FAILED',
   'SKIPPED',
+  'CANCELLED',
 ];
 
 export function isSetTreated(status: WorkoutSetStatus): boolean {

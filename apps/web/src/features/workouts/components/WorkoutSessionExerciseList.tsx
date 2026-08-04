@@ -138,8 +138,35 @@ function WorkoutSessionExerciseItem({
                           .join(' — ') || '—'}
                       </p>
                       <p className="mt-1 text-xs">
-                        Statut : {getWorkoutSetStatusLabel(set.status)}
+                        Statut :{' '}
+                        {!canRecordSets && set.status === 'PENDING'
+                          ? 'Non réalisée'
+                          : getWorkoutSetStatusLabel(set.status)}
                       </p>
+                      {set.reachedFailure ? (
+                        <p className="mt-1 text-xs text-[var(--muted)]">
+                          Échec musculaire : Oui
+                        </p>
+                      ) : set.status !== 'PENDING' &&
+                        set.status !== 'SKIPPED' ? (
+                        <p className="mt-1 text-xs text-[var(--muted)]">
+                          Échec musculaire : Non
+                        </p>
+                      ) : null}
+                      {set.notes ? (
+                        <p className="mt-1 text-xs text-[var(--muted)]">
+                          Notes : {set.notes}
+                        </p>
+                      ) : null}
+                      {set.completedAt ? (
+                        <p className="mt-1 text-xs text-[var(--muted)]">
+                          Validée :{' '}
+                          {new Intl.DateTimeFormat('fr-FR', {
+                            dateStyle: 'short',
+                            timeStyle: 'short',
+                          }).format(new Date(set.completedAt))}
+                        </p>
+                      ) : null}
                       {actual ? (
                         <p className="mt-1 text-sm">Réalisé : {actual}</p>
                       ) : null}

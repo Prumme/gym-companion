@@ -1234,8 +1234,8 @@ ne doit être considéré comme disponible.
 
 ## 19. Séances individuelles
 
-> Statut : jalons 3.1–3.3 — création, lecture, saisie de séries et cycle de vie (pause/reprise/fin/annulation).  
-> Historique paginé, records et progression restent hors périmètre.
+> Statut : jalons 3.1–3.6 — création, lecture, saisie de séries, cycle de vie, interface active, sync hors ligne et historique paginé.  
+> Records et progression restent hors périmètre.
 
 ### 19.1 Séance active
 
@@ -1286,9 +1286,89 @@ GET /api/v1/workouts/:workoutSessionId
 
 Propriétaire uniquement. Ressource étrangère → `WORKOUT_NOT_FOUND`.
 
-### 19.5 Lister
+### 19.5 Lister l’historique
 
-Hors périmètre du jalon 3.1.
+```text
+GET /api/v1/workouts
+```
+
+Jalons : **3.6**.
+
+Historique paginé des séances `COMPLETED` et `CANCELLED` de l’utilisateur connecté.
+
+Les séances `ACTIVE` / `PAUSED` sont exclues (accessibles via `GET /workouts/active`).
+
+Query :
+
+| Paramètre | Type | Description |
+|-----------|------|-------------|
+| `status` | `COMPLETED` \| `CANCELLED` | Filtre optionnel. Absent → les deux. |
+| `from` | `YYYY-MM-DD` | Date locale inclusive (`localDate`). |
+| `to` | `YYYY-MM-DD` | Date locale inclusive. `from <= to`. |
+| `programId` | UUID | Filtre sur `sourceProgramId` (source peut être absente). |
+| `workoutTemplateId` | UUID | Filtre sur `sourceWorkoutTemplateId`. |
+| `cursor` | string opaque | Pagination. |
+| `limit` | 1–100 | Défaut 20. |
+
+Tri stable : `localDate DESC`, `startedAt DESC`, `id DESC`.
+
+Réponse :
+
+```json
+{
+  "data": [
+    {
+      "id": "…",
+      "name": "Séance Push",
+      "status": "COMPLETED",
+      "localDate": "2026-08-03",
+      "timezone": "Europe/Paris",
+      "startedAt": "2026-08-03T08:00:00.000Z",
+      "completedAt": "2026-08-03T09:10:00.000Z",
+      "cancelledAt": null,
+      "source": {
+        "programId": "…",
+        "programName": "PPL",
+        "workoutTemplateId": "…",
+        "workoutTemplateName": "Push A"
+      },
+      "summary": {
+        "exerciseCount": 4,
+        "totalSetCount": 12,
+        "processedSetCount": 10,
+        "completedSetCount": 8,
+        "partialSetCount": 1,
+        "failedSetCount": 1,
+        "skippedSetCount": 0,
+        "pendingSetCount": 2
+      }
+    }
+  ],
+  "pagination": {
+    "nextCursor": null,
+    "hasMore": false
+  }
+}
+```
+
+`processedSetCount` compte les séries `COMPLETED` / `PARTIAL` / `FAILED` / `SKIPPED` / `CANCELLED`.
+Les séries `PENDING` restent non traitées (jamais transformées en ignorées).
+
+Codes d’erreur :
+
+- `WORKOUT_HISTORY_INVALID_STATUS`
+- `WORKOUT_HISTORY_INVALID_FROM_DATE`
+- `WORKOUT_HISTORY_INVALID_TO_DATE`
+- `WORKOUT_HISTORY_INVALID_DATE_RANGE`
+- `WORKOUT_HISTORY_INVALID_CURSOR`
+- `WORKOUT_HISTORY_INVALID_QUERY`
+
+Limites actuelles :
+
+- lecture seule (aucune correction / suppression / duplication) ;
+- pas de records, progression, graphiques ni volume officiel ;
+- pas d’historique IndexedDB complet (seul le snapshot de séance active / commandes en attente) ;
+- réponses privées exclus du cache Workbox (`NetworkOnly` sur `/api/*`).
 
 ### 19.6 Démarrer
 
@@ -2368,7 +2448,6 @@ Les endpoints sont implémentés selon la roadmap.
 ### Non disponible (reste phase 3+)
 
 - duplication de programme ou de modèle ;
-- historique de séance paginé ;
 - records et progression ;
 - démarrage de séance hors ligne ;
 - endpoint batch `/sync/commands` ;
@@ -2383,6 +2462,14 @@ Les endpoints sont implémentés selon la roadmap.
 - synchronisation séquentielle à la reprise réseau (app ouverte) ;
 - reçus d’idempotence séries (`WorkoutSetCommand`) et lifecycle ;
 - résolution explicite des conflits.
+
+### Disponible depuis le jalon 3.6
+
+- historique paginé `GET /api/v1/workouts` (`COMPLETED` / `CANCELLED`) ;
+- filtres statut / dates / programme / modèle ;
+- page `/workouts` et détail historique lecture seule ;
+- invalidation de l’historique après fin / annulation synchronisée ;
+- séances terminales locales affichées comme « En attente de synchronisation » (sans doublon serveur).
 
 Créer toutes les routes à l’avance avec des réponses fictives est déconseillé.
 

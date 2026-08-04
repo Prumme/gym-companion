@@ -366,6 +366,11 @@ Le jalon **3.5** ajoute la résilience réseau : snapshot IndexedDB, file de com
 synchronisation séquentielle à la reprise du réseau (application ouverte), résolution
 explicite des conflits, cloisonnement par utilisateur et nettoyage à la déconnexion.
 La création de séance reste en ligne. Pas de WebSocket ni de Background Sync garanti.
-Hors scope actuel : démarrage hors ligne, édition du snapshot, historique paginé, records, IA.
+
+Le jalon **3.6** ajoute l’historique des séances : `GET /api/v1/workouts` (pagination cursor,
+filtres statut/dates/programme/modèle), page `/workouts`, détail lecture seule des snapshots
+`COMPLETED`/`CANCELLED`, invalidation après fin/annulation, et affichage local des séances
+terminales en attente de sync. Hors scope : records, progression, graphiques, volume officiel,
+modification/suppression/duplication d’historique, IndexedDB d’archives complètes.
 
 Les documents du dossier `docs/` restent la source de vérité produit et technique.

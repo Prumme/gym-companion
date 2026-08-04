@@ -48,6 +48,14 @@ function applyLifecycleToCache(
     isInProgress ? session : null,
   );
   queryClient.setQueryData(workoutQueryKeys.detail(session.id), session);
+  if (session.status === 'COMPLETED' || session.status === 'CANCELLED') {
+    void queryClient.invalidateQueries({
+      queryKey: workoutQueryKeys.historyLists(),
+    });
+    void queryClient.invalidateQueries({
+      queryKey: workoutQueryKeys.pendingTerminalLocal(),
+    });
+  }
 }
 
 function shouldEnqueueOffline(error: unknown): boolean {

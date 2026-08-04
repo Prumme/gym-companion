@@ -757,24 +757,27 @@ L’utilisateur peut sélectionner directement un exercice.
 ### Route
 
 ```text
-/app/workouts/history
+/workouts
 ```
 
-### Contenu
+(Doc historique `/app/workouts/history` : le shell frontend n’utilise pas le préfixe `/app`.)
 
-- liste chronologique ;
-- calendrier facultatif ;
-- filtres ;
-- recherche ;
-- résumé de période.
+### Contenu (jalon 3.6)
 
-### Filtres
+- liste chronologique des séances `COMPLETED` / `CANCELLED` ;
+- filtres statut + plage de dates (URL) ;
+- pagination « Charger plus » ;
+- cartes avec résumé de séries ;
+- détail lecture seule `/workouts/:workoutSessionId` ;
+- badge local « En attente de synchronisation » pour une fin/annulation hors ligne non confirmée.
 
-- date ;
-- programme ;
-- exercice ;
-- statut ;
-- séance individuelle ou partagée.
+### Hors périmètre actuel
+
+- calendrier ;
+- recherche plein texte ;
+- records / progression / graphiques ;
+- duplication ou relance d’une ancienne séance ;
+- modification / suppression définitive.
 
 ## 24. Vue globale de progression
 

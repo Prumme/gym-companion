@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
+import type { WorkoutSessionDetail } from '@gym-companion/shared';
 
 import { getMe } from '@/features/profile/api/profile-api';
 
@@ -13,6 +14,31 @@ import {
 import { getSyncState, listOpenCommands } from '../offline/store';
 import { syncWorkoutSession } from '../offline/sync-engine';
 import type { StoredWorkoutCommand, WorkoutSyncStatus } from '../offline/types';
+
+function applySyncedSessionToCache(
+  queryClient: ReturnType<typeof useQueryClient>,
+  session: WorkoutSessionDetail | null,
+) {
+  if (!session) {
+    queryClient.setQueryData(workoutQueryKeys.active(), null);
+    return;
+  }
+  const inProgress =
+    session.status === 'ACTIVE' || session.status === 'PAUSED';
+  queryClient.setQueryData(
+    workoutQueryKeys.active(),
+    inProgress ? session : null,
+  );
+  queryClient.setQueryData(workoutQueryKeys.detail(session.id), session);
+  if (session.status === 'COMPLETED' || session.status === 'CANCELLED') {
+    void queryClient.invalidateQueries({
+      queryKey: workoutQueryKeys.historyLists(),
+    });
+    void queryClient.invalidateQueries({
+      queryKey: workoutQueryKeys.pendingTerminalLocal(),
+    });
+  }
+}
 
 export function useCurrentUserId(): string | null {
   const meQuery = useQuery({
@@ -77,22 +103,8 @@ export function useWorkoutOfflineSync(workoutSessionId: string | null) {
       if (userId && workoutSessionId) {
         void syncWorkoutSession(userId, workoutSessionId, {
           force: true,
-          onSessionUpdated: (session) => {
-            if (!session) {
-              queryClient.setQueryData(workoutQueryKeys.active(), null);
-              return;
-            }
-            const inProgress =
-              session.status === 'ACTIVE' || session.status === 'PAUSED';
-            queryClient.setQueryData(
-              workoutQueryKeys.active(),
-              inProgress ? session : null,
-            );
-            queryClient.setQueryData(
-              workoutQueryKeys.detail(session.id),
-              session,
-            );
-          },
+          onSessionUpdated: (session) =>
+            applySyncedSessionToCache(queryClient, session),
         }).then(() => refresh());
       }
     };
@@ -106,19 +118,8 @@ export function useWorkoutOfflineSync(workoutSessionId: string | null) {
       void refresh();
       if (userId && workoutSessionId && navigator.onLine) {
         void syncWorkoutSession(userId, workoutSessionId, {
-          onSessionUpdated: (session) => {
-            if (!session) return;
-            const inProgress =
-              session.status === 'ACTIVE' || session.status === 'PAUSED';
-            queryClient.setQueryData(
-              workoutQueryKeys.active(),
-              inProgress ? session : null,
-            );
-            queryClient.setQueryData(
-              workoutQueryKeys.detail(session.id),
-              session,
-            );
-          },
+          onSessionUpdated: (session) =>
+            applySyncedSessionToCache(queryClient, session),
         }).then(() => refresh());
       }
     };
@@ -157,19 +158,8 @@ export function useWorkoutOfflineSync(workoutSessionId: string | null) {
     if (status === 'CONFLICT') return;
     await syncWorkoutSession(userId, workoutSessionId, {
       force: true,
-      onSessionUpdated: (session) => {
-        if (!session) {
-          queryClient.setQueryData(workoutQueryKeys.active(), null);
-          return;
-        }
-        const inProgress =
-          session.status === 'ACTIVE' || session.status === 'PAUSED';
-        queryClient.setQueryData(
-          workoutQueryKeys.active(),
-          inProgress ? session : null,
-        );
-        queryClient.setQueryData(workoutQueryKeys.detail(session.id), session);
-      },
+      onSessionUpdated: (session) =>
+        applySyncedSessionToCache(queryClient, session),
     });
     await refresh();
   }, [userId, workoutSessionId, status, queryClient, refresh]);
@@ -180,13 +170,7 @@ export function useWorkoutOfflineSync(workoutSessionId: string | null) {
       userId,
       workoutSessionId,
     });
-    const inProgress =
-      server.status === 'ACTIVE' || server.status === 'PAUSED';
-    queryClient.setQueryData(
-      workoutQueryKeys.active(),
-      inProgress ? server : null,
-    );
-    queryClient.setQueryData(workoutQueryKeys.detail(server.id), server);
+    applySyncedSessionToCache(queryClient, server);
     await refresh();
   }, [userId, workoutSessionId, queryClient, refresh]);
 

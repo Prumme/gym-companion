@@ -149,6 +149,8 @@ export function countRecordedSets(
   sets: Array<{ status: WorkoutSetStatus }>,
 ): number {
   return sets.filter((set) =>
-    ['COMPLETED', 'PARTIAL', 'FAILED', 'SKIPPED'].includes(set.status),
+    ['COMPLETED', 'PARTIAL', 'FAILED', 'SKIPPED', 'CANCELLED'].includes(
+      set.status,
+    ),
   ).length;
 }

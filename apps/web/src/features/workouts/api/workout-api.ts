@@ -1,5 +1,6 @@
 import type {
   UpdateWorkoutSetResult,
+  WorkoutHistoryListResponse,
   WorkoutLifecycleResult,
   WorkoutSessionDetail,
 } from '@gym-companion/shared';
@@ -10,9 +11,50 @@ import type {
   PauseWorkoutSessionInput,
   ResumeWorkoutSessionInput,
   UpdateWorkoutSetInput,
+  WorkoutHistoryQuery,
 } from '@gym-companion/validation';
 
 import { apiFetch } from '@/lib/api/client';
+
+export type WorkoutHistoryListQuery = Partial<WorkoutHistoryQuery> & {
+  cursor?: string;
+  limit?: number;
+};
+
+function appendIfPresent(
+  params: URLSearchParams,
+  key: string,
+  value: string | number | boolean | undefined,
+) {
+  if (value === undefined || value === '') {
+    return;
+  }
+  params.set(key, String(value));
+}
+
+export function buildWorkoutHistorySearchParams(
+  query: WorkoutHistoryListQuery,
+): URLSearchParams {
+  const params = new URLSearchParams();
+  appendIfPresent(params, 'status', query.status);
+  appendIfPresent(params, 'from', query.from);
+  appendIfPresent(params, 'to', query.to);
+  appendIfPresent(params, 'programId', query.programId);
+  appendIfPresent(params, 'workoutTemplateId', query.workoutTemplateId);
+  appendIfPresent(params, 'cursor', query.cursor);
+  appendIfPresent(params, 'limit', query.limit);
+  return params;
+}
+
+export async function listWorkoutHistory(
+  query: WorkoutHistoryListQuery = {},
+): Promise<WorkoutHistoryListResponse> {
+  const params = buildWorkoutHistorySearchParams(query);
+  const suffix = params.toString();
+  return apiFetch<WorkoutHistoryListResponse>(
+    `/api/v1/workouts${suffix ? `?${suffix}` : ''}`,
+  );
+}
 
 export async function getActiveWorkoutSession(): Promise<WorkoutSessionDetail | null> {
   const response = await apiFetch<{ data: WorkoutSessionDetail | null }>(

@@ -483,6 +483,7 @@ model WorkoutSession {
 
   @@index([ownerUserId, status])
   @@index([ownerUserId, localDate])
+  @@index([ownerUserId, status, localDate])
   @@index([sourceProgramId])
   @@index([sourceWorkoutTemplateId])
   @@map("workout_sessions")

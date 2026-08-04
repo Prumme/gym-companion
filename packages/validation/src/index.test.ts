@@ -4,6 +4,7 @@ import {
   activateProgramSchema,
   addWorkoutTemplateExerciseSchema,
   buildExerciseCursorFilter,
+  buildWorkoutHistoryCursorFilter,
   compactOrderedPositions,
   compactWorkoutTemplatePositions,
   computeNextOrderedPosition,
@@ -14,7 +15,9 @@ import {
   createWorkoutTemplateSetSchema,
   createWorkoutSessionSchema,
   decodeExerciseCursor,
+  decodeWorkoutHistoryCursor,
   encodeExerciseCursor,
+  encodeWorkoutHistoryCursor,
   isDefaultExercisePreferenceInput,
   isValidLocalDateString,
   listExercisesQuerySchema,
@@ -22,6 +25,7 @@ import {
   localDateStringToUtcDate,
   normalizeExerciseName,
   parseApiEnv,
+  parseWorkoutHistoryQuery,
   profileFormSchema,
   replaceProgramScheduleSchema,
   reorderWorkoutTemplatesSchema,
@@ -1141,5 +1145,71 @@ describe('resolveWorkoutLifecycleTransition', () => {
         status: 'PAUSED',
       }).success,
     ).toBe(false);
+  });
+});
+
+describe('workout history query (3.6)', () => {
+  it('accepte une query vide et les filtres valides', () => {
+    expect(parseWorkoutHistoryQuery({}).ok).toBe(true);
+    expect(
+      parseWorkoutHistoryQuery({
+        status: 'COMPLETED',
+        from: '2026-07-01',
+        to: '2026-08-04',
+        limit: '20',
+      }).ok,
+    ).toBe(true);
+  });
+
+  it('refuse les statuts hors historique', () => {
+    const result = parseWorkoutHistoryQuery({ status: 'ACTIVE' });
+    expect(result).toEqual({
+      ok: false,
+      code: 'WORKOUT_HISTORY_INVALID_STATUS',
+      message: 'Statut d’historique invalide.',
+    });
+    expect(parseWorkoutHistoryQuery({ status: 'PAUSED' }).ok).toBe(false);
+    expect(parseWorkoutHistoryQuery({ status: 'PLANNED' }).ok).toBe(false);
+  });
+
+  it('valide les dates et la plage', () => {
+    expect(parseWorkoutHistoryQuery({ from: '2026-13-01' }).ok).toBe(false);
+    expect(
+      parseWorkoutHistoryQuery({ from: '2026-13-01' }),
+    ).toMatchObject({ code: 'WORKOUT_HISTORY_INVALID_FROM_DATE' });
+    expect(
+      parseWorkoutHistoryQuery({ to: 'not-a-date' }),
+    ).toMatchObject({ code: 'WORKOUT_HISTORY_INVALID_TO_DATE' });
+    expect(
+      parseWorkoutHistoryQuery({ from: '2026-08-04', to: '2026-08-01' }),
+    ).toMatchObject({ code: 'WORKOUT_HISTORY_INVALID_DATE_RANGE' });
+    expect(
+      parseWorkoutHistoryQuery({ from: '2026-08-01', to: '2026-08-01' }).ok,
+    ).toBe(true);
+  });
+
+  it('encode et décode un cursor stable', () => {
+    const encoded = encodeWorkoutHistoryCursor({
+      version: 1,
+      localDate: '2026-08-03',
+      startedAt: '2026-08-03T18:00:00.000Z',
+      id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    });
+    expect(decodeWorkoutHistoryCursor(encoded)).toEqual({
+      version: 1,
+      localDate: '2026-08-03',
+      startedAt: '2026-08-03T18:00:00.000Z',
+      id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    });
+    expect(() => decodeWorkoutHistoryCursor('not-valid')).toThrow(
+      'WORKOUT_HISTORY_INVALID_CURSOR',
+    );
+    const filter = buildWorkoutHistoryCursorFilter({
+      version: 1,
+      localDate: '2026-08-03',
+      startedAt: '2026-08-03T18:00:00.000Z',
+      id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    });
+    expect(filter.OR).toHaveLength(3);
   });
 });

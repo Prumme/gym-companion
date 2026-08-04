@@ -1,4 +1,11 @@
-import { CalendarDays, ClipboardList, Dumbbell, Home, UserRound } from 'lucide-react';
+import {
+  CalendarDays,
+  ClipboardList,
+  Dumbbell,
+  History,
+  Home,
+  UserRound,
+} from 'lucide-react';
 import { NavLink, Outlet } from 'react-router-dom';
 
 import { PwaUpdateBanner } from '@/lib/pwa/PwaUpdateBanner';
@@ -8,6 +15,7 @@ import { useAuthStore } from '@/stores/auth-store';
 const navItems = [
   { to: '/', label: 'Accueil', icon: Home, end: true },
   { to: '/planning', label: 'Planning', icon: CalendarDays, end: false },
+  { to: '/workouts', label: 'Historique', icon: History, end: true },
   { to: '/programs', label: 'Programmes', icon: ClipboardList, end: false },
   { to: '/exercises', label: 'Exercices', icon: Dumbbell, end: false },
   { to: '/profile', label: 'Profil', icon: UserRound, end: false },

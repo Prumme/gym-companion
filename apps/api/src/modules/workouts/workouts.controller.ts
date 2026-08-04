@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -25,6 +26,17 @@ import { WorkoutsService } from './workouts.service';
 @UseGuards(JwtAuthGuard)
 export class WorkoutsController {
   constructor(private readonly workoutsService: WorkoutsService) {}
+
+  @Get()
+  @ApiOperation({
+    summary: 'Historique des séances terminées ou annulées (pagination cursor)',
+  })
+  async list(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: Record<string, string | undefined>,
+  ) {
+    return this.workoutsService.listHistory(user.id, query);
+  }
 
   @Get('active')
   @ApiOperation({ summary: 'Séance active ou en pause de l’utilisateur' })

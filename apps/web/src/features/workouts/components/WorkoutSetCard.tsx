@@ -53,8 +53,28 @@ export function WorkoutSetCard({
           Cible : {targetParts.join(' — ') || '—'}
         </p>
         <p className="text-xs">
-          Statut : {getWorkoutSetStatusLabel(set.status)}
+          Statut :{' '}
+          {!canRecord && set.status === 'PENDING'
+            ? 'Non réalisée'
+            : getWorkoutSetStatusLabel(set.status)}
         </p>
+        {set.reachedFailure ? (
+          <p className="text-xs text-[var(--muted)]">Échec musculaire : Oui</p>
+        ) : set.status !== 'PENDING' && set.status !== 'SKIPPED' ? (
+          <p className="text-xs text-[var(--muted)]">Échec musculaire : Non</p>
+        ) : null}
+        {set.notes ? (
+          <p className="text-xs text-[var(--muted)]">Notes : {set.notes}</p>
+        ) : null}
+        {set.completedAt ? (
+          <p className="text-xs text-[var(--muted)]">
+            Validée :{' '}
+            {new Intl.DateTimeFormat('fr-FR', {
+              dateStyle: 'short',
+              timeStyle: 'short',
+            }).format(new Date(set.completedAt))}
+          </p>
+        ) : null}
         {actual ? <p className="text-sm">Réalisé : {actual}</p> : null}
         {set.targetRestSeconds != null && set.targetRestSeconds > 0 ? (
           <p className="text-xs text-[var(--muted)]">

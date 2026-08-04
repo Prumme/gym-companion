@@ -1,5 +1,8 @@
 import type {
   ExerciseMeasurementType,
+  WorkoutHistoryListItem,
+  WorkoutHistorySetSummary,
+  WorkoutHistoryStatus,
   WorkoutSessionDetail,
   WorkoutSessionExerciseDetail,
   WorkoutSessionPermissions,
@@ -70,6 +73,23 @@ export type WorkoutSessionSnapshotRow = {
   programNameSnapshot: string | null;
   workoutTemplateNameSnapshot: string | null;
   exercises: WorkoutSessionExerciseSnapshotRow[];
+};
+
+export type WorkoutHistoryListRow = {
+  id: string;
+  name: string;
+  status: WorkoutHistoryStatus;
+  localDate: Date;
+  timezone: string;
+  startedAt: Date;
+  completedAt: Date | null;
+  cancelledAt: Date | null;
+  sourceProgramId: string | null;
+  sourceWorkoutTemplateId: string | null;
+  programNameSnapshot: string | null;
+  workoutTemplateNameSnapshot: string | null;
+  _count: { exercises: number };
+  exercises: Array<{ sets: Array<{ status: WorkoutSetStatus }> }>;
 };
 
 function decimalToNumber(value: unknown): number | null {
@@ -198,6 +218,88 @@ export function toWorkoutSessionDetail(
     },
     exercises,
     permissions: computeActiveWorkoutPermissions(row.status),
+  };
+}
+
+export function computeWorkoutHistorySetSummary(
+  exerciseCount: number,
+  setStatuses: WorkoutSetStatus[],
+): WorkoutHistorySetSummary {
+  let completedSetCount = 0;
+  let partialSetCount = 0;
+  let failedSetCount = 0;
+  let skippedSetCount = 0;
+  let pendingSetCount = 0;
+  let cancelledSetCount = 0;
+
+  for (const status of setStatuses) {
+    switch (status) {
+      case 'COMPLETED':
+        completedSetCount += 1;
+        break;
+      case 'PARTIAL':
+        partialSetCount += 1;
+        break;
+      case 'FAILED':
+        failedSetCount += 1;
+        break;
+      case 'SKIPPED':
+        skippedSetCount += 1;
+        break;
+      case 'PENDING':
+        pendingSetCount += 1;
+        break;
+      case 'CANCELLED':
+        cancelledSetCount += 1;
+        break;
+    }
+  }
+
+  const processedSetCount =
+    completedSetCount +
+    partialSetCount +
+    failedSetCount +
+    skippedSetCount +
+    cancelledSetCount;
+
+  return {
+    exerciseCount,
+    totalSetCount: setStatuses.length,
+    processedSetCount,
+    completedSetCount,
+    partialSetCount,
+    failedSetCount,
+    skippedSetCount,
+    pendingSetCount,
+  };
+}
+
+export function toWorkoutHistoryListItem(
+  row: WorkoutHistoryListRow,
+): WorkoutHistoryListItem {
+  const setStatuses = row.exercises.flatMap((exercise) =>
+    exercise.sets.map((set) => set.status),
+  );
+
+  return {
+    id: row.id,
+    name: row.name,
+    status: row.status,
+    localDate: utcDateToLocalDateString(row.localDate),
+    timezone: row.timezone,
+    startedAt: row.startedAt.toISOString(),
+    completedAt: row.completedAt?.toISOString() ?? null,
+    cancelledAt: row.cancelledAt?.toISOString() ?? null,
+    source: {
+      programId: row.sourceProgramId,
+      programName: row.programNameSnapshot,
+      workoutTemplateId: row.sourceWorkoutTemplateId,
+      workoutTemplateName: row.workoutTemplateNameSnapshot,
+    },
+    summary: computeWorkoutHistorySetSummary(
+      row._count.exercises,
+      setStatuses,
+    ),
   };
 }
 
