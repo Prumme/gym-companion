@@ -1,10 +1,11 @@
 import {
+  Body,
   Controller,
   Get,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
-  Body,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -47,6 +48,25 @@ export class WorkoutsController {
     @Param('workoutSessionId', ParseUUIDPipe) workoutSessionId: string,
   ) {
     const data = await this.workoutsService.getById(user.id, workoutSessionId);
+    return createSuccessResponse(data);
+  }
+
+  @Patch(':workoutSessionId/exercises/:sessionExerciseId/sets/:workoutSetId')
+  @ApiOperation({ summary: 'Enregistrer le résultat réel d’une série' })
+  async updateSet(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('workoutSessionId', ParseUUIDPipe) workoutSessionId: string,
+    @Param('sessionExerciseId', ParseUUIDPipe) sessionExerciseId: string,
+    @Param('workoutSetId', ParseUUIDPipe) workoutSetId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.workoutsService.updateSet(
+      user.id,
+      workoutSessionId,
+      sessionExerciseId,
+      workoutSetId,
+      body,
+    );
     return createSuccessResponse(data);
   }
 }

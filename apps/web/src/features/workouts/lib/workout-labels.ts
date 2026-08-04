@@ -1,12 +1,25 @@
 import type {
-  WorkoutSessionSetTarget,
+  WorkoutSessionSetDetail,
+  WorkoutSetStatus,
   WorkoutSetType,
 } from '@gym-companion/shared';
 
 import { getWorkoutSetTypeLabel } from '@/features/programs/lib/program-labels';
 
 export function formatWorkoutSetTargetSummary(
-  set: WorkoutSessionSetTarget,
+  set: Pick<
+    WorkoutSessionSetDetail,
+    | 'setType'
+    | 'targetWeightKg'
+    | 'targetRepMin'
+    | 'targetRepMax'
+    | 'targetDurationSeconds'
+    | 'targetDistanceMeters'
+    | 'targetIntensityPercent'
+    | 'targetRir'
+    | 'targetRpe'
+    | 'targetRestSeconds'
+  >,
 ): string {
   const parts: string[] = [getWorkoutSetTypeLabel(set.setType)];
 
@@ -63,6 +76,46 @@ export function formatWorkoutSetTargetSummary(
   return parts.join(' — ');
 }
 
+export function formatWorkoutSetActualSummary(
+  set: WorkoutSessionSetDetail,
+): string | null {
+  if (set.status === 'PENDING') {
+    return null;
+  }
+  if (set.status === 'SKIPPED') {
+    return 'Ignorée';
+  }
+
+  const parts: string[] = [];
+  if (set.actualReps != null) {
+    parts.push(`${set.actualReps} répétitions`);
+  }
+  if (set.actualWeightKg != null) {
+    parts.push(`${set.actualWeightKg} kg`);
+  }
+  if (set.actualDistanceMeters != null) {
+    parts.push(
+      `${new Intl.NumberFormat('fr-FR').format(set.actualDistanceMeters)} m`,
+    );
+  }
+  if (set.actualDurationSeconds != null) {
+    parts.push(`${set.actualDurationSeconds} s`);
+  }
+  if (set.actualRir != null) {
+    parts.push(`RIR ${set.actualRir}`);
+  }
+  if (set.actualRpe != null) {
+    parts.push(`RPE ${set.actualRpe}`);
+  }
+  if (set.reachedFailure) {
+    parts.push('échec musculaire');
+  }
+  if (parts.length === 0) {
+    return getWorkoutSetStatusLabel(set.status);
+  }
+  return parts.join(' — ');
+}
+
 export const WORKOUT_STATUS_LABELS: Record<string, string> = {
   PLANNED: 'Planifiée',
   ACTIVE: 'En cours',
@@ -75,6 +128,27 @@ export function getWorkoutStatusLabel(status: string): string {
   return WORKOUT_STATUS_LABELS[status] ?? status;
 }
 
+export const WORKOUT_SET_STATUS_LABELS: Record<WorkoutSetStatus, string> = {
+  PENDING: 'À faire',
+  COMPLETED: 'Terminée',
+  PARTIAL: 'Partielle',
+  FAILED: 'Échouée',
+  SKIPPED: 'Ignorée',
+  CANCELLED: 'Annulée',
+};
+
+export function getWorkoutSetStatusLabel(status: WorkoutSetStatus): string {
+  return WORKOUT_SET_STATUS_LABELS[status];
+}
+
 export function getWorkoutSetTypeLabelSafe(type: WorkoutSetType): string {
   return getWorkoutSetTypeLabel(type);
+}
+
+export function countRecordedSets(
+  sets: Array<{ status: WorkoutSetStatus }>,
+): number {
+  return sets.filter((set) =>
+    ['COMPLETED', 'PARTIAL', 'FAILED', 'SKIPPED'].includes(set.status),
+  ).length;
 }

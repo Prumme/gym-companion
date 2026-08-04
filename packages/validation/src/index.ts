@@ -1170,3 +1170,314 @@ export function validateProgramScheduleEntries(
   return { ok: true };
 }
 
+
+export const workoutSetStatusSchema = z.enum([
+  'PENDING',
+  'COMPLETED',
+  'PARTIAL',
+  'FAILED',
+  'SKIPPED',
+  'CANCELLED',
+]);
+
+const actualRepsSchema = z.number().int().min(0).max(10_000).nullable();
+const actualWeightSchema = z.number().finite().min(0).max(10_000).nullable();
+const actualDurationSchema = z.number().int().min(0).max(86_400).nullable();
+const actualDistanceSchema = z.number().finite().min(0).max(1_000_000).nullable();
+const actualRirSchema = z.number().int().min(0).max(10).nullable();
+const actualRpeSchema = z.number().finite().min(1).max(10).nullable();
+
+const setNotesSchema = z.string().max(2000).nullable();
+
+export const updateWorkoutSetSchema = z
+  .object({
+    status: workoutSetStatusSchema,
+    actualWeightKg: actualWeightSchema,
+    actualReps: actualRepsSchema,
+    actualDurationSeconds: actualDurationSchema,
+    actualDistanceMeters: actualDistanceSchema,
+    actualRir: actualRirSchema,
+    actualRpe: actualRpeSchema,
+    reachedFailure: z.boolean(),
+    notes: setNotesSchema,
+    expectedVersion: z.number().int().min(1).max(1_000_000_000),
+    clientCommandId: z
+      .string()
+      .trim()
+      .min(1)
+      .max(128)
+      .regex(/^[A-Za-z0-9._:-]+$/, 'Identifiant de commande invalide.')
+      .optional(),
+  })
+  .strict();
+
+export type UpdateWorkoutSetInput = z.infer<typeof updateWorkoutSetSchema>;
+
+export type WorkoutSetActualFields = {
+  status: z.infer<typeof workoutSetStatusSchema>;
+  actualWeightKg: number | null;
+  actualReps: number | null;
+  actualDurationSeconds: number | null;
+  actualDistanceMeters: number | null;
+  actualRir: number | null;
+  actualRpe: number | null;
+  reachedFailure: boolean;
+  notes: string | null;
+};
+
+export type WorkoutSetActualValidationResult =
+  | { ok: true; normalized: WorkoutSetActualFields }
+  | {
+      ok: false;
+      code:
+        | 'WORKOUT_SET_INVALID'
+        | 'WORKOUT_SET_INVALID_STATUS'
+        | 'WORKOUT_SET_MEASUREMENT_MISMATCH'
+        | 'WORKOUT_SET_CONFLICTING_EFFORT_VALUES';
+      message: string;
+    };
+
+type MeasurementType =
+  | 'WEIGHT_REPS'
+  | 'BODYWEIGHT_REPS'
+  | 'ASSISTED_BODYWEIGHT_REPS'
+  | 'REPS_ONLY'
+  | 'DURATION'
+  | 'DISTANCE_DURATION'
+  | 'WEIGHT_DURATION';
+
+function hasPrincipalValue(
+  measurementType: MeasurementType,
+  values: WorkoutSetActualFields,
+): boolean {
+  switch (measurementType) {
+    case 'WEIGHT_REPS':
+    case 'BODYWEIGHT_REPS':
+    case 'ASSISTED_BODYWEIGHT_REPS':
+    case 'REPS_ONLY':
+      return values.actualReps != null;
+    case 'DURATION':
+    case 'WEIGHT_DURATION':
+      return values.actualDurationSeconds != null;
+    case 'DISTANCE_DURATION':
+      return values.actualDistanceMeters != null;
+    default:
+      return false;
+  }
+}
+
+function forbidExtras(
+  measurementType: MeasurementType,
+  values: WorkoutSetActualFields,
+): WorkoutSetActualValidationResult | null {
+  const forbid = (condition: boolean, message: string) => {
+    if (condition) {
+      return {
+        ok: false as const,
+        code: 'WORKOUT_SET_MEASUREMENT_MISMATCH' as const,
+        message,
+      };
+    }
+    return null;
+  };
+
+  switch (measurementType) {
+    case 'WEIGHT_REPS':
+      return (
+        forbid(
+          values.actualDurationSeconds != null,
+          'Une série poids/répétitions ne doit pas avoir de durée réelle.',
+        ) ??
+        forbid(
+          values.actualDistanceMeters != null,
+          'Une série poids/répétitions ne doit pas avoir de distance réelle.',
+        )
+      );
+    case 'BODYWEIGHT_REPS':
+    case 'ASSISTED_BODYWEIGHT_REPS':
+      return (
+        forbid(
+          values.actualDurationSeconds != null,
+          'Ce type de mesure ne doit pas avoir de durée réelle.',
+        ) ??
+        forbid(
+          values.actualDistanceMeters != null,
+          'Ce type de mesure ne doit pas avoir de distance réelle.',
+        )
+      );
+    case 'REPS_ONLY':
+      return (
+        forbid(
+          values.actualWeightKg != null,
+          'Une série répétitions seules ne doit pas avoir de charge réelle.',
+        ) ??
+        forbid(
+          values.actualDurationSeconds != null,
+          'Une série répétitions seules ne doit pas avoir de durée réelle.',
+        ) ??
+        forbid(
+          values.actualDistanceMeters != null,
+          'Une série répétitions seules ne doit pas avoir de distance réelle.',
+        )
+      );
+    case 'DURATION':
+      return (
+        forbid(
+          values.actualReps != null,
+          'Une série durée ne doit pas avoir de répétitions réelles.',
+        ) ??
+        forbid(
+          values.actualWeightKg != null,
+          'Une série durée ne doit pas avoir de charge réelle.',
+        ) ??
+        forbid(
+          values.actualDistanceMeters != null,
+          'Une série durée ne doit pas avoir de distance réelle.',
+        )
+      );
+    case 'DISTANCE_DURATION':
+      return forbid(
+        values.actualReps != null || values.actualWeightKg != null,
+        'Une série distance/durée ne doit pas avoir de répétitions ou de charge.',
+      );
+    case 'WEIGHT_DURATION':
+      return (
+        forbid(
+          values.actualReps != null,
+          'Une série poids/durée ne doit pas avoir de répétitions réelles.',
+        ) ??
+        forbid(
+          values.actualDistanceMeters != null,
+          'Une série poids/durée ne doit pas avoir de distance réelle.',
+        )
+      );
+    default:
+      return {
+        ok: false,
+        code: 'WORKOUT_SET_INVALID',
+        message: 'Type de mesure inconnu.',
+      };
+  }
+}
+
+/**
+ * Valide les valeurs réelles d’une série selon le type de mesure du snapshot
+ * et le statut demandé. Normalise SKIPPED/PENDING (efface les actuals).
+ *
+ * ASSISTED_BODYWEIGHT_REPS : `actualWeightKg` représente une assistance éventuelle
+ * (même colonne que la charge additionnelle), sans poids corporel implicite.
+ */
+export function validateWorkoutSetActuals(
+  measurementType: MeasurementType,
+  input: WorkoutSetActualFields,
+): WorkoutSetActualValidationResult {
+  if (input.status === 'CANCELLED') {
+    return {
+      ok: false,
+      code: 'WORKOUT_SET_INVALID_STATUS',
+      message:
+        'Le statut CANCELLED n’est pas disponible pour la saisie manuelle d’une série.',
+    };
+  }
+
+  if (input.actualRir != null && input.actualRpe != null) {
+    return {
+      ok: false,
+      code: 'WORKOUT_SET_CONFLICTING_EFFORT_VALUES',
+      message: 'Une série ne peut pas définir RIR et RPE simultanément.',
+    };
+  }
+
+  if (input.status === 'PENDING' || input.status === 'SKIPPED') {
+    if (
+      input.actualWeightKg != null ||
+      input.actualReps != null ||
+      input.actualDurationSeconds != null ||
+      input.actualDistanceMeters != null ||
+      input.actualRir != null ||
+      input.actualRpe != null
+    ) {
+      return {
+        ok: false,
+        code: 'WORKOUT_SET_INVALID',
+        message:
+          input.status === 'SKIPPED'
+            ? 'Une série ignorée ne doit pas contenir de valeurs réelles.'
+            : 'Une série à faire ne doit pas contenir de valeurs réelles.',
+      };
+    }
+    return {
+      ok: true,
+      normalized: {
+        status: input.status,
+        actualWeightKg: null,
+        actualReps: null,
+        actualDurationSeconds: null,
+        actualDistanceMeters: null,
+        actualRir: null,
+        actualRpe: null,
+        reachedFailure: false,
+        notes: input.notes,
+      },
+    };
+  }
+
+  const extras = forbidExtras(measurementType, input);
+  if (extras) {
+    return extras;
+  }
+
+  if (input.status === 'PARTIAL') {
+    if (!hasPrincipalValue(measurementType, input)) {
+      return {
+        ok: false,
+        code: 'WORKOUT_SET_INVALID',
+        message:
+          'Une série partielle doit contenir au moins une valeur réelle principale.',
+      };
+    }
+    return { ok: true, normalized: input };
+  }
+
+  switch (measurementType) {
+    case 'WEIGHT_REPS':
+    case 'BODYWEIGHT_REPS':
+    case 'ASSISTED_BODYWEIGHT_REPS':
+    case 'REPS_ONLY':
+      if (input.actualReps == null) {
+        return {
+          ok: false,
+          code: 'WORKOUT_SET_INVALID',
+          message: 'Les répétitions réelles sont requises.',
+        };
+      }
+      break;
+    case 'DURATION':
+    case 'WEIGHT_DURATION':
+      if (input.actualDurationSeconds == null) {
+        return {
+          ok: false,
+          code: 'WORKOUT_SET_INVALID',
+          message: 'La durée réelle est requise.',
+        };
+      }
+      break;
+    case 'DISTANCE_DURATION':
+      if (input.actualDistanceMeters == null) {
+        return {
+          ok: false,
+          code: 'WORKOUT_SET_INVALID',
+          message: 'La distance réelle est requise.',
+        };
+      }
+      break;
+    default:
+      return {
+        ok: false,
+        code: 'WORKOUT_SET_INVALID',
+        message: 'Type de mesure inconnu.',
+      };
+  }
+
+  return { ok: true, normalized: input };
+}

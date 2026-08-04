@@ -299,8 +299,9 @@ export type WorkoutStatus =
   | 'COMPLETED'
   | 'CANCELLED';
 
-/** Statuts de performance réelle (jalon 3.2+). Absents à la création d’une séance. */
+/** Statuts de performance réelle d’une série de séance. */
 export type WorkoutSetStatus =
+  | 'PENDING'
   | 'COMPLETED'
   | 'PARTIAL'
   | 'FAILED'
@@ -315,10 +316,13 @@ export type WorkoutSessionPermissions = {
   canRecordSets: boolean;
 };
 
-export type WorkoutSessionSetTarget = {
+/** Série de séance : cibles snapshot + valeurs réellement effectuées. */
+export type WorkoutSessionSetDetail = {
   id: string;
   position: number;
   setType: WorkoutSetType;
+  status: WorkoutSetStatus;
+
   targetWeightKg: number | null;
   targetRepMin: number | null;
   targetRepMax: number | null;
@@ -328,6 +332,26 @@ export type WorkoutSessionSetTarget = {
   targetRir: number | null;
   targetRpe: number | null;
   targetRestSeconds: number | null;
+
+  actualWeightKg: number | null;
+  actualReps: number | null;
+  actualDurationSeconds: number | null;
+  actualDistanceMeters: number | null;
+  actualRir: number | null;
+  actualRpe: number | null;
+
+  reachedFailure: boolean;
+  notes: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+};
+
+/** @deprecated Alias conservé — préférer WorkoutSessionSetDetail. */
+export type WorkoutSessionSetTarget = WorkoutSessionSetDetail;
+
+export type UpdateWorkoutSetResult = {
+  workoutSet: WorkoutSessionSetDetail;
+  workoutSessionVersion: number;
 };
 
 export type WorkoutSessionExerciseDetail = {
@@ -345,7 +369,7 @@ export type WorkoutSessionExerciseDetail = {
   };
   notes: string | null;
   restSeconds: number | null;
-  sets: WorkoutSessionSetTarget[];
+  sets: WorkoutSessionSetDetail[];
 };
 
 export type WorkoutSessionDetail = {

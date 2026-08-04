@@ -442,10 +442,10 @@ enum WorkoutStatus {
   CANCELLED
 }
 
-/// Statuts de performance réelle. Nullable sur WorkoutSet jusqu’au jalon 3.2
-/// (aucune série n’est marquée COMPLETED/PARTIAL/FAILED/SKIPPED/CANCELLED à la création).
-/// PENDING n’existe pas dans le modèle documenté — ne pas détourner SKIPPED/PARTIAL.
+/// Statuts de performance réelle d’une série de séance.
+/// À la création du snapshot (3.1+), le statut est toujours PENDING.
 enum WorkoutSetStatus {
+  PENDING
   COMPLETED
   PARTIAL
   FAILED
@@ -524,8 +524,7 @@ model WorkoutSet {
   sourceTemplateSetId       String?           @db.Uuid
   position                  Int
   setType                   WorkoutSetType
-  /// Null jusqu’à l’exécution (jalon 3.2). Ne jamais initialiser avec SKIPPED/PARTIAL.
-  status                    WorkoutSetStatus?
+  status                    WorkoutSetStatus  @default(PENDING)
   targetWeightKg            Decimal?          @db.Decimal(8, 3)
   targetRepMin              Int?
   targetRepMax              Int?

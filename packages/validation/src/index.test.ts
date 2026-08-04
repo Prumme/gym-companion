@@ -27,8 +27,10 @@ import {
   reorderWorkoutTemplatesSchema,
   toUpdateProfilePayload,
   updateExercisePreferenceSchema,
+  updateWorkoutSetSchema,
   utcDateToLocalDateString,
   validateProgramScheduleEntries,
+  validateWorkoutSetActuals,
   validateWorkoutTemplateReorder,
   validateWorkoutTemplateSetTargets,
 } from './index';
@@ -767,5 +769,273 @@ describe('createWorkoutSessionSchema', () => {
         sourceWorkoutTemplateId: '',
       }).success,
     ).toBe(false);
+  });
+});
+
+describe('updateWorkoutSetSchema', () => {
+  const valid = {
+    status: 'COMPLETED',
+    actualWeightKg: 60,
+    actualReps: 10,
+    actualDurationSeconds: null,
+    actualDistanceMeters: null,
+    actualRir: 2,
+    actualRpe: null,
+    reachedFailure: false,
+    notes: null,
+    expectedVersion: 1,
+  };
+
+  it('accepte un payload valide', () => {
+    expect(updateWorkoutSetSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it('refuse une version invalide et les champs supplémentaires', () => {
+    expect(
+      updateWorkoutSetSchema.safeParse({ ...valid, expectedVersion: 0 }).success,
+    ).toBe(false);
+    expect(
+      updateWorkoutSetSchema.safeParse({ ...valid, extra: true }).success,
+    ).toBe(false);
+  });
+
+  it('accepte des notes nulles', () => {
+    const parsed = updateWorkoutSetSchema.parse({ ...valid, notes: null });
+    expect(parsed.notes).toBeNull();
+  });
+});
+
+describe('validateWorkoutSetActuals', () => {
+  const base = {
+    actualWeightKg: null as number | null,
+    actualReps: null as number | null,
+    actualDurationSeconds: null as number | null,
+    actualDistanceMeters: null as number | null,
+    actualRir: null as number | null,
+    actualRpe: null as number | null,
+    reachedFailure: false,
+    notes: null as string | null,
+  };
+
+  it('accepte PENDING sans valeurs', () => {
+    const result = validateWorkoutSetActuals('WEIGHT_REPS', {
+      ...base,
+      status: 'PENDING',
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it('refuse PENDING avec valeurs réelles', () => {
+    const result = validateWorkoutSetActuals('WEIGHT_REPS', {
+      ...base,
+      status: 'PENDING',
+      actualReps: 8,
+    });
+    expect(result.ok).toBe(false);
+  });
+
+  it('valide COMPLETED WEIGHT_REPS', () => {
+    expect(
+      validateWorkoutSetActuals('WEIGHT_REPS', {
+        ...base,
+        status: 'COMPLETED',
+        actualWeightKg: 60,
+        actualReps: 10,
+        actualRir: 2,
+      }).ok,
+    ).toBe(true);
+  });
+
+  it('refuse COMPLETED WEIGHT_REPS sans répétitions', () => {
+    const result = validateWorkoutSetActuals('WEIGHT_REPS', {
+      ...base,
+      status: 'COMPLETED',
+      actualWeightKg: 60,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe('WORKOUT_SET_INVALID');
+  });
+
+  it('valide REPS_ONLY et refuse une charge', () => {
+    expect(
+      validateWorkoutSetActuals('REPS_ONLY', {
+        ...base,
+        status: 'COMPLETED',
+        actualReps: 20,
+      }).ok,
+    ).toBe(true);
+    const bad = validateWorkoutSetActuals('REPS_ONLY', {
+      ...base,
+      status: 'COMPLETED',
+      actualReps: 20,
+      actualWeightKg: 10,
+    });
+    expect(bad.ok).toBe(false);
+  });
+
+  it('valide DURATION et DISTANCE_DURATION', () => {
+    expect(
+      validateWorkoutSetActuals('DURATION', {
+        ...base,
+        status: 'COMPLETED',
+        actualDurationSeconds: 45,
+      }).ok,
+    ).toBe(true);
+    expect(
+      validateWorkoutSetActuals('DISTANCE_DURATION', {
+        ...base,
+        status: 'COMPLETED',
+        actualDistanceMeters: 1000,
+        actualDurationSeconds: 300,
+      }).ok,
+    ).toBe(true);
+    expect(
+      validateWorkoutSetActuals('DISTANCE_DURATION', {
+        ...base,
+        status: 'COMPLETED',
+      }).ok,
+    ).toBe(false);
+  });
+
+  it('valide WEIGHT_DURATION', () => {
+    expect(
+      validateWorkoutSetActuals('WEIGHT_DURATION', {
+        ...base,
+        status: 'COMPLETED',
+        actualWeightKg: 20,
+        actualDurationSeconds: 40,
+      }).ok,
+    ).toBe(true);
+  });
+
+  it('valide BODYWEIGHT_REPS et ASSISTED_BODYWEIGHT_REPS', () => {
+    expect(
+      validateWorkoutSetActuals('BODYWEIGHT_REPS', {
+        ...base,
+        status: 'COMPLETED',
+        actualReps: 12,
+        actualWeightKg: 5,
+      }).ok,
+    ).toBe(true);
+    expect(
+      validateWorkoutSetActuals('ASSISTED_BODYWEIGHT_REPS', {
+        ...base,
+        status: 'COMPLETED',
+        actualReps: 8,
+        actualWeightKg: 20,
+      }).ok,
+    ).toBe(true);
+  });
+
+  it('refuse les valeurs négatives et les bornes RIR/RPE via le schéma', () => {
+    expect(
+      updateWorkoutSetSchema.safeParse({
+        status: 'COMPLETED',
+        actualWeightKg: -1,
+        actualReps: 10,
+        actualDurationSeconds: null,
+        actualDistanceMeters: null,
+        actualRir: null,
+        actualRpe: null,
+        reachedFailure: false,
+        notes: null,
+        expectedVersion: 1,
+      }).success,
+    ).toBe(false);
+    expect(
+      updateWorkoutSetSchema.safeParse({
+        status: 'COMPLETED',
+        actualWeightKg: 60,
+        actualReps: 10,
+        actualDurationSeconds: null,
+        actualDistanceMeters: null,
+        actualRir: 11,
+        actualRpe: null,
+        reachedFailure: false,
+        notes: null,
+        expectedVersion: 1,
+      }).success,
+    ).toBe(false);
+    expect(
+      updateWorkoutSetSchema.safeParse({
+        status: 'COMPLETED',
+        actualWeightKg: 60,
+        actualReps: 10,
+        actualDurationSeconds: null,
+        actualDistanceMeters: null,
+        actualRir: null,
+        actualRpe: 0.5,
+        reachedFailure: false,
+        notes: null,
+        expectedVersion: 1,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('exige une valeur principale pour PARTIAL', () => {
+    expect(
+      validateWorkoutSetActuals('WEIGHT_REPS', {
+        ...base,
+        status: 'PARTIAL',
+      }).ok,
+    ).toBe(false);
+    expect(
+      validateWorkoutSetActuals('WEIGHT_REPS', {
+        ...base,
+        status: 'PARTIAL',
+        actualReps: 3,
+      }).ok,
+    ).toBe(true);
+  });
+
+  it('accepte FAILED avec 0 répétitions', () => {
+    expect(
+      validateWorkoutSetActuals('WEIGHT_REPS', {
+        ...base,
+        status: 'FAILED',
+        actualReps: 0,
+        actualWeightKg: 60,
+      }).ok,
+    ).toBe(true);
+  });
+
+  it('refuse SKIPPED avec valeurs et normalise reachedFailure', () => {
+    expect(
+      validateWorkoutSetActuals('WEIGHT_REPS', {
+        ...base,
+        status: 'SKIPPED',
+        actualReps: 5,
+      }).ok,
+    ).toBe(false);
+    const ok = validateWorkoutSetActuals('WEIGHT_REPS', {
+      ...base,
+      status: 'SKIPPED',
+      reachedFailure: true,
+    });
+    expect(ok.ok).toBe(true);
+    if (ok.ok) expect(ok.normalized.reachedFailure).toBe(false);
+  });
+
+  it('refuse RIR et RPE simultanés', () => {
+    const result = validateWorkoutSetActuals('WEIGHT_REPS', {
+      ...base,
+      status: 'COMPLETED',
+      actualReps: 8,
+      actualRir: 2,
+      actualRpe: 8,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.code).toBe('WORKOUT_SET_CONFLICTING_EFFORT_VALUES');
+    }
+  });
+
+  it('refuse CANCELLED en saisie manuelle', () => {
+    const result = validateWorkoutSetActuals('WEIGHT_REPS', {
+      ...base,
+      status: 'CANCELLED',
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe('WORKOUT_SET_INVALID_STATUS');
   });
 });

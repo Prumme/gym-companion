@@ -1,63 +1,46 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatWorkoutSetTargetSummary } from '../lib/workout-labels';
+import {
+  formatWorkoutSetActualSummary,
+  formatWorkoutSetTargetSummary,
+  getWorkoutSetStatusLabel,
+} from '../lib/workout-labels';
+import { createWorkoutSet } from './fixtures';
 
-describe('formatWorkoutSetTargetSummary', () => {
-  it('affiche les cibles pertinentes pour WEIGHT_REPS', () => {
+describe('workout labels', () => {
+  it('formate les cibles pertinentes', () => {
     expect(
-      formatWorkoutSetTargetSummary({
-        id: '1',
-        position: 0,
-        setType: 'WORKING',
-        targetWeightKg: 60,
-        targetRepMin: 8,
-        targetRepMax: 10,
-        targetDurationSeconds: null,
-        targetDistanceMeters: null,
-        targetIntensityPercent: null,
-        targetRir: 2,
-        targetRpe: null,
-        targetRestSeconds: 120,
-      }),
+      formatWorkoutSetTargetSummary(
+        createWorkoutSet({
+          targetWeightKg: 60,
+          targetRepMin: 8,
+          targetRepMax: 10,
+          targetRir: 2,
+          targetRestSeconds: 120,
+        }),
+      ),
     ).toBe('Travail — 8 à 10 répétitions — 60 kg — RIR 2 — repos 120 s');
   });
 
-  it('affiche une série durée', () => {
-    expect(
-      formatWorkoutSetTargetSummary({
-        id: '1',
-        position: 0,
-        setType: 'WORKING',
-        targetWeightKg: null,
-        targetRepMin: null,
-        targetRepMax: null,
-        targetDurationSeconds: 45,
-        targetDistanceMeters: null,
-        targetIntensityPercent: null,
-        targetRir: null,
-        targetRpe: null,
-        targetRestSeconds: 60,
-      }),
-    ).toBe('Travail — 45 secondes — repos 60 s');
+  it('libellés de statut de série', () => {
+    expect(getWorkoutSetStatusLabel('PENDING')).toBe('À faire');
+    expect(getWorkoutSetStatusLabel('COMPLETED')).toBe('Terminée');
+    expect(getWorkoutSetStatusLabel('PARTIAL')).toBe('Partielle');
+    expect(getWorkoutSetStatusLabel('FAILED')).toBe('Échouée');
+    expect(getWorkoutSetStatusLabel('SKIPPED')).toBe('Ignorée');
   });
 
-  it('n’affiche pas les propriétés null', () => {
-    const summary = formatWorkoutSetTargetSummary({
-      id: '1',
-      position: 0,
-      setType: 'WARMUP',
-      targetWeightKg: null,
-      targetRepMin: 12,
-      targetRepMax: 12,
-      targetDurationSeconds: null,
-      targetDistanceMeters: null,
-      targetIntensityPercent: null,
-      targetRir: null,
-      targetRpe: null,
-      targetRestSeconds: null,
-    });
-    expect(summary).toBe('Échauffement — 12 répétitions');
-    expect(summary).not.toContain('null');
-    expect(summary).not.toContain('RIR');
+  it('formate le résumé réalisé', () => {
+    expect(formatWorkoutSetActualSummary(createWorkoutSet())).toBeNull();
+    expect(
+      formatWorkoutSetActualSummary(
+        createWorkoutSet({
+          status: 'COMPLETED',
+          actualWeightKg: 60,
+          actualReps: 10,
+          actualRir: 2,
+        }),
+      ),
+    ).toBe('10 répétitions — 60 kg — RIR 2');
   });
 });

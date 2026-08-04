@@ -1,11 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 
 import { ButtonLink } from '@/components/ui/button';
+import { getMe } from '@/features/profile/api/profile-api';
 import { getApiErrorMessage } from '@/lib/api/client';
 
 import { activeWorkoutQueryOptions } from '../api/workout-query-options';
 import { WorkoutSessionExerciseList } from '../components/WorkoutSessionExerciseList';
-import { getWorkoutStatusLabel } from '../lib/workout-labels';
+import {
+  countRecordedSets,
+  getWorkoutStatusLabel,
+} from '../lib/workout-labels';
 
 function formatStartedAt(value: string, timeZone: string): string {
   try {
@@ -21,6 +26,19 @@ function formatStartedAt(value: string, timeZone: string): string {
 
 export function ActiveWorkoutPage() {
   const query = useQuery(activeWorkoutQueryOptions());
+  const meQuery = useQuery({
+    queryKey: ['me'],
+    queryFn: getMe,
+    staleTime: 60_000,
+  });
+
+  const session = query.data;
+  const allSets = useMemo(
+    () => session?.exercises.flatMap((exercise) => exercise.sets) ?? [],
+    [session],
+  );
+  const recordedCount = countRecordedSets(allSets);
+  const nextPending = allSets.find((set) => set.status === 'PENDING') ?? null;
 
   if (query.isLoading) {
     return (
@@ -45,8 +63,6 @@ export function ActiveWorkoutPage() {
     );
   }
 
-  const session = query.data;
-
   if (!session) {
     return (
       <section className="flex flex-col gap-4">
@@ -63,6 +79,9 @@ export function ActiveWorkoutPage() {
       </section>
     );
   }
+
+  const effortTrackingMode =
+    meQuery.data?.data.profile.effortTrackingMode ?? 'NONE';
 
   return (
     <section className="flex flex-col gap-6">
@@ -103,15 +122,23 @@ export function ActiveWorkoutPage() {
             </dd>
           </div>
         </dl>
-        <p className="text-sm text-[var(--muted)]">
-          Lecture seule — la saisie des performances arrivera dans un prochain
-          jalon.
+        <p className="text-sm text-[var(--muted)]" role="status">
+          {recordedCount} série{recordedCount === 1 ? '' : 's'} enregistrée
+          {recordedCount === 1 ? '' : 's'} sur {allSets.length}
         </p>
       </header>
 
       <div>
-        <h2 className="mb-3 text-lg font-semibold">Exercices prévus</h2>
-        <WorkoutSessionExerciseList exercises={session.exercises} />
+        <h2 className="mb-3 text-lg font-semibold">Exercices</h2>
+        <WorkoutSessionExerciseList
+          session={session}
+          effortTrackingMode={effortTrackingMode}
+          canRecordSets={session.permissions.canRecordSets}
+          highlightedSetId={nextPending?.id ?? null}
+          onVersionConflict={() => {
+            void query.refetch();
+          }}
+        />
       </div>
     </section>
   );

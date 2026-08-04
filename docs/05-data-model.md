@@ -95,6 +95,7 @@ type WorkoutStatus =
   | "CANCELLED";
 
 type WorkoutSetStatus =
+  | "PENDING"
   | "COMPLETED"
   | "PARTIAL"
   | "FAILED"
@@ -868,7 +869,7 @@ type WorkoutSet = {
 
   position: number;
   setType: WorkoutSetType;
-  status: WorkoutSetStatus | null;
+  status: WorkoutSetStatus;
 
   targetWeightKg: Decimal | null;
   targetRepMin: number | null;
@@ -903,8 +904,8 @@ type WorkoutSet = {
 ### Contraintes
 
 - `position` unique dans un `WorkoutSessionExercise` (même convention que la phase 2) ;
-- `status` reste `null` à la création (jalon 3.1) : aucune série n’est marquée terminée, échouée, partielle, annulée ou ignorée ;
-- `PENDING` n’existe pas dans `WorkoutSetStatus` documenté — ne pas détourner `SKIPPED` ou `PARTIAL` ;
+- `status` vaut `PENDING` à la création du snapshot (jalon 3.2) ;
+- `completedAt` correspond à la dernière validation de la série ;
 - `clientCommandId` peut être unique par utilisateur (préparation hors ligne) ;
 - les valeurs réelles doivent respecter le type de mesure lors de l’exécution.
 
@@ -1852,16 +1853,14 @@ Les décisions suivantes sont confirmées à la clôture de la phase 2 :
 - un exercice ne peut apparaître qu’une fois dans un même modèle ;
 - RIR et RPE ne sont pas renseignés simultanément sur une série cible ;
 
-Les décisions suivantes sont confirmées pour le jalon 3.1 :
+Les décisions suivantes sont confirmées pour le jalon 3.2 :
 
-- la création depuis un modèle démarre immédiatement une séance `ACTIVE` (pas d’état `PLANNED` ni de `POST .../start` pour ce flux) ;
-- le payload utilise `sourceWorkoutTemplateId` (pas de contenu de modèle envoyé par le client) ;
-- les snapshots de séance copient noms, ordre, mesure, équipement prévu, repos, notes et séries cibles ;
-- `WorkoutSet.status` reste `null` jusqu’à l’exécution réelle ;
-- `position` remplace `setNumber` pour l’ordre des séries de séance ;
-- l’équipement snapshot utilise `equipmentTypeId` + nom/code (pas `equipmentId` physique) ;
-- une seule séance `ACTIVE`/`PAUSED` par utilisateur via index partiel PostgreSQL ;
-- le conflit actif utilise le code `WORKOUT_ACTIVE_ALREADY_EXISTS`.
+- `WorkoutSetStatus` inclut `PENDING` comme état initial explicite ;
+- la saisie passe par un unique `PATCH` imbriqué avec `status` explicite ;
+- `expectedVersion` protège la séance entière ;
+- `clientCommandId` offre une idempotence best-effort via l’unicité `(ownerUserId, clientCommandId)` ;
+- `actualWeightKg` sur `ASSISTED_BODYWEIGHT_REPS` représente une assistance éventuelle (pas le poids corporel) ;
+- `reachedFailure` reste distinct de `status = FAILED`.
 - une seule activation courante est autorisée par utilisateur ;
 - la planification hebdomadaire appartient au programme et ne crée aucune séance réelle.
 

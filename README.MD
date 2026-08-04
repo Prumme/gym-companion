@@ -308,7 +308,8 @@ pnpm dev
   - Active : `GET /api/v1/workouts/active` (`data: null` si aucune)
   - Création snapshot : `POST /api/v1/workouts` (body `{ sourceWorkoutTemplateId, localDate, timezone }`)
   - Détail : `GET /api/v1/workouts/:workoutSessionId`
-  - Hors périmètre actuel : pause, reprise, fin, annulation, saisie de performances
+  - Saisie série : `PATCH /api/v1/workouts/:workoutSessionId/exercises/:sessionExerciseId/sets/:workoutSetId`
+  - Hors périmètre actuel : pause, reprise, fin, annulation, historique, hors ligne
 - Mailpit : http://localhost:8025 (`docker compose up -d mailpit`)
 
 Compose complet (profil `full`) :
@@ -341,7 +342,10 @@ Les jalons **2.1–2.4** couvrent programmes, modèles, exercices/séries, const
 programme courant et planification hebdomadaire.
 
 Le jalon **3.1** ajoute la création d’une séance active depuis un modèle (`WorkoutSession` snapshot),
-les endpoints `GET/POST /api/v1/workouts` et `GET /api/v1/workouts/:id`, et la page lecture seule `/workouts/active`.
-Hors scope actuel : saisie des performances, pause/reprise/fin, historique, hors ligne, WebSocket, IA.
+les endpoints `GET/POST /api/v1/workouts` et `GET /api/v1/workouts/:id`, et la page `/workouts/active`.
+
+Le jalon **3.2** permet d’enregistrer les séries effectuées (`PENDING` → `COMPLETED`/`PARTIAL`/`FAILED`/`SKIPPED`)
+avec contrôle de version (`expectedVersion`) et idempotence optionnelle (`clientCommandId`).
+Hors scope actuel : pause/reprise/fin, historique, records, hors ligne, WebSocket, IA.
 
 Les documents du dossier `docs/` restent la source de vérité produit et technique.

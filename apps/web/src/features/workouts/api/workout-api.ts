@@ -1,5 +1,11 @@
-import type { WorkoutSessionDetail } from '@gym-companion/shared';
-import type { CreateWorkoutSessionInput } from '@gym-companion/validation';
+import type {
+  UpdateWorkoutSetResult,
+  WorkoutSessionDetail,
+} from '@gym-companion/shared';
+import type {
+  CreateWorkoutSessionInput,
+  UpdateWorkoutSetInput,
+} from '@gym-companion/validation';
 
 import { apiFetch } from '@/lib/api/client';
 
@@ -26,6 +32,22 @@ export async function createWorkoutSession(
     '/api/v1/workouts',
     {
       method: 'POST',
+      body: JSON.stringify(input),
+    },
+  );
+  return response.data;
+}
+
+export async function updateWorkoutSet(
+  workoutSessionId: string,
+  sessionExerciseId: string,
+  workoutSetId: string,
+  input: UpdateWorkoutSetInput,
+): Promise<UpdateWorkoutSetResult> {
+  const response = await apiFetch<{ data: UpdateWorkoutSetResult }>(
+    `/api/v1/workouts/${encodeURIComponent(workoutSessionId)}/exercises/${encodeURIComponent(sessionExerciseId)}/sets/${encodeURIComponent(workoutSetId)}`,
+    {
+      method: 'PATCH',
       body: JSON.stringify(input),
     },
   );

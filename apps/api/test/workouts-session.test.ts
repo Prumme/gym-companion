@@ -275,6 +275,7 @@ describe('Workout session snapshot API (3.1)', () => {
     expect(data.exercises[0].sets[1].targetWeightKg).toBe(60);
     expect(data.exercises[0].sets[1].targetRir).toBe(2);
     expect(data.exercises[0].sets[1].targetRestSeconds).toBe(120);
+    expect(data.exercises[0].sets[0].status).toBe('PENDING');
     expect(data.permissions.canRecordSets).toBe(true);
     expect(data).not.toHaveProperty('ownerUserId');
     expect(JSON.stringify(data)).not.toContain('exerciseNameSnapshot');

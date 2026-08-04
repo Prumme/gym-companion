@@ -1,35 +1,75 @@
-import type { WorkoutSessionExerciseDetail } from '@gym-companion/shared';
+import type {
+  EffortTrackingMode,
+  WorkoutSessionDetail,
+  WorkoutSessionExerciseDetail,
+  WorkoutSessionSetDetail,
+} from '@gym-companion/shared';
 import { ChevronDown } from 'lucide-react';
 import { useId, useState } from 'react';
 
+import { Button } from '@/components/ui/button';
 import { getMeasurementTypeLabel } from '@/features/exercises/lib/exercise-labels';
 import { cn } from '@/lib/utils';
 
-import { formatWorkoutSetTargetSummary } from '../lib/workout-labels';
+import {
+  formatWorkoutSetActualSummary,
+  formatWorkoutSetTargetSummary,
+  getWorkoutSetStatusLabel,
+} from '../lib/workout-labels';
+import { WorkoutSetFormDialog } from './WorkoutSetFormDialog';
 
 type WorkoutSessionExerciseListProps = {
-  exercises: WorkoutSessionExerciseDetail[];
+  session: WorkoutSessionDetail;
+  effortTrackingMode: EffortTrackingMode;
+  canRecordSets: boolean;
+  onVersionConflict: () => void;
+  highlightedSetId?: string | null;
 };
 
 export function WorkoutSessionExerciseList({
-  exercises,
+  session,
+  effortTrackingMode,
+  canRecordSets,
+  onVersionConflict,
+  highlightedSetId = null,
 }: WorkoutSessionExerciseListProps) {
   return (
     <ol className="flex flex-col gap-3">
-      {exercises.map((exercise) => (
-        <WorkoutSessionExerciseItem key={exercise.id} exercise={exercise} />
+      {session.exercises.map((exercise) => (
+        <WorkoutSessionExerciseItem
+          key={exercise.id}
+          session={session}
+          exercise={exercise}
+          effortTrackingMode={effortTrackingMode}
+          canRecordSets={canRecordSets}
+          onVersionConflict={onVersionConflict}
+          highlightedSetId={highlightedSetId}
+        />
       ))}
     </ol>
   );
 }
 
 function WorkoutSessionExerciseItem({
+  session,
   exercise,
+  effortTrackingMode,
+  canRecordSets,
+  onVersionConflict,
+  highlightedSetId,
 }: {
+  session: WorkoutSessionDetail;
   exercise: WorkoutSessionExerciseDetail;
+  effortTrackingMode: EffortTrackingMode;
+  canRecordSets: boolean;
+  onVersionConflict: () => void;
+  highlightedSetId: string | null;
 }) {
   const titleId = useId();
   const [expanded, setExpanded] = useState(true);
+  const [editingSet, setEditingSet] = useState<WorkoutSessionSetDetail | null>(
+    null,
+  );
 
   return (
     <li className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)]">
@@ -51,11 +91,6 @@ function WorkoutSessionExerciseItem({
               ? ` · repos ${exercise.restSeconds} s`
               : ''}
           </p>
-          {exercise.sourceExerciseArchivedAtCreation ? (
-            <p className="mt-1 text-xs text-[var(--muted)]">
-              Source archivée au moment du démarrage
-            </p>
-          ) : null}
         </div>
         <ChevronDown
           className={cn(
@@ -67,21 +102,80 @@ function WorkoutSessionExerciseItem({
       </button>
 
       {expanded ? (
-        <div id={`${titleId}-panel`} className="border-t border-[var(--border)] px-3 pb-3">
+        <div
+          id={`${titleId}-panel`}
+          className="border-t border-[var(--border)] px-3 pb-3"
+        >
           {exercise.notes ? (
             <p className="mt-3 text-sm text-[var(--muted)]">{exercise.notes}</p>
           ) : null}
           <ol className="mt-3 flex flex-col gap-2">
-            {exercise.sets.map((set) => (
-              <li
-                key={set.id}
-                className="rounded-[var(--radius)] bg-[var(--background)] px-3 py-2 text-sm"
-              >
-                {formatWorkoutSetTargetSummary(set)}
-              </li>
-            ))}
+            {exercise.sets.map((set) => {
+              const actual = formatWorkoutSetActualSummary(set);
+              const highlighted = highlightedSetId === set.id;
+              return (
+                <li
+                  key={set.id}
+                  id={`set-${set.id}`}
+                  className={cn(
+                    'rounded-[var(--radius)] bg-[var(--background)] px-3 py-3',
+                    highlighted
+                      ? 'ring-2 ring-[var(--primary)] ring-offset-2'
+                      : '',
+                  )}
+                >
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">
+                        Série {set.position + 1} ·{' '}
+                        {formatWorkoutSetTargetSummary(set).split(' — ')[0]}
+                      </p>
+                      <p className="mt-1 text-xs text-[var(--muted)]">
+                        Cible :{' '}
+                        {formatWorkoutSetTargetSummary(set)
+                          .split(' — ')
+                          .slice(1)
+                          .join(' — ') || '—'}
+                      </p>
+                      <p className="mt-1 text-xs">
+                        Statut : {getWorkoutSetStatusLabel(set.status)}
+                      </p>
+                      {actual ? (
+                        <p className="mt-1 text-sm">Réalisé : {actual}</p>
+                      ) : null}
+                    </div>
+                    {canRecordSets ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="w-full shrink-0 sm:w-auto"
+                        onClick={() => setEditingSet(set)}
+                      >
+                        {set.status === 'PENDING' ? 'Saisir' : 'Modifier'}
+                      </Button>
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
           </ol>
         </div>
+      ) : null}
+
+      {editingSet ? (
+        <WorkoutSetFormDialog
+          open
+          workoutSessionId={session.id}
+          sessionExerciseId={exercise.id}
+          measurementType={exercise.measurementType}
+          effortTrackingMode={effortTrackingMode}
+          expectedVersion={session.version}
+          set={editingSet}
+          onClose={() => setEditingSet(null)}
+          onVersionConflict={() => {
+            onVersionConflict();
+          }}
+        />
       ) : null}
     </li>
   );

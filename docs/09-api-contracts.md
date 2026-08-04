@@ -1396,11 +1396,42 @@ Requête :
 }
 ```
 
-### 21.2 Modifier
+### 21.2 Modifier une série effectuée (jalon 3.2)
 
 ```text
-PATCH /api/v1/workout-sets/:workoutSetId
+PATCH /api/v1/workouts/:workoutSessionId/exercises/:sessionExerciseId/sets/:workoutSetId
 ```
+
+Requête :
+
+```json
+{
+  "status": "COMPLETED",
+  "actualWeightKg": 60,
+  "actualReps": 10,
+  "actualDurationSeconds": null,
+  "actualDistanceMeters": null,
+  "actualRir": 2,
+  "actualRpe": null,
+  "reachedFailure": false,
+  "notes": null,
+  "expectedVersion": 1,
+  "clientCommandId": "opaque-command-id"
+}
+```
+
+Réponse :
+
+```json
+{
+  "data": {
+    "workoutSet": {},
+    "workoutSessionVersion": 2
+  }
+}
+```
+
+La séance doit être `ACTIVE` (ou `PAUSED`). Une version obsolète retourne `409 WORKOUT_VERSION_CONFLICT`.
 
 ### 21.3 Supprimer
 
@@ -2123,6 +2154,7 @@ PROGRAM_SCHEDULE_DUPLICATE_POSITION
 
 ```text
 WORKOUT_NOT_FOUND
+WORKOUT_NOT_EDITABLE
 WORKOUT_ACTIVE_ALREADY_EXISTS
 WORKOUT_TEMPLATE_NOT_FOUND
 WORKOUT_TEMPLATE_EMPTY
@@ -2134,8 +2166,13 @@ WORKOUT_INVALID_TIMEZONE
 WORKOUT_ALREADY_COMPLETED
 WORKOUT_ALREADY_CANCELLED
 WORKOUT_VERSION_CONFLICT
+WORKOUT_SET_NOT_FOUND
 WORKOUT_SET_INVALID
+WORKOUT_SET_INVALID_STATUS
+WORKOUT_SET_MEASUREMENT_MISMATCH
+WORKOUT_SET_CONFLICTING_EFFORT_VALUES
 WORKOUT_SET_DUPLICATE_COMMAND
+WORKOUT_SET_COMMAND_CONFLICT
 WORKOUT_OFFLINE_CONFLICT
 ```
 
@@ -2256,11 +2293,16 @@ Les endpoints sont implémentés selon la roadmap.
 - interface minimale en lecture seule (`/workouts/active`) ;
 - démarrage depuis le planning et le constructeur de programme.
 
+### Disponible à partir du jalon 3.2
+
+- saisie et validation des séries effectuées ;
+- statuts `PENDING` / `COMPLETED` / `PARTIAL` / `FAILED` / `SKIPPED` ;
+- contrôle de concurrence `expectedVersion` ;
+- idempotence optionnelle via `clientCommandId`.
+
 ### Non disponible (reste phase 3+)
 
 - duplication de programme ou de modèle ;
-- saisie des performances réelles ;
-- validation / échec de série ;
 - pause, reprise, fin, annulation ;
 - historique de séance ;
 - records et progression ;

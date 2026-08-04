@@ -3,7 +3,8 @@ import type {
   WorkoutSessionDetail,
   WorkoutSessionExerciseDetail,
   WorkoutSessionPermissions,
-  WorkoutSessionSetTarget,
+  WorkoutSessionSetDetail,
+  WorkoutSetStatus,
   WorkoutSetType,
   WorkoutStatus,
 } from '@gym-companion/shared';
@@ -13,6 +14,7 @@ export type WorkoutSetSnapshotRow = {
   id: string;
   position: number;
   setType: WorkoutSetType;
+  status: WorkoutSetStatus;
   targetWeightKg: unknown;
   targetRepMin: number | null;
   targetRepMax: number | null;
@@ -22,6 +24,16 @@ export type WorkoutSetSnapshotRow = {
   targetRir: number | null;
   targetRpe: unknown;
   targetRestSeconds: number | null;
+  actualWeightKg: unknown;
+  actualReps: number | null;
+  actualDurationSeconds: number | null;
+  actualDistanceMeters: unknown;
+  actualRir: number | null;
+  actualRpe: unknown;
+  reachedFailure: boolean;
+  notes: string | null;
+  startedAt: Date | null;
+  completedAt: Date | null;
 };
 
 export type WorkoutSessionExerciseSnapshotRow = {
@@ -99,11 +111,12 @@ export function computeActiveWorkoutPermissions(
   };
 }
 
-function toSetTarget(row: WorkoutSetSnapshotRow): WorkoutSessionSetTarget {
+export function toWorkoutSetDetail(row: WorkoutSetSnapshotRow): WorkoutSessionSetDetail {
   return {
     id: row.id,
     position: row.position,
     setType: row.setType,
+    status: row.status,
     targetWeightKg: decimalToNumber(row.targetWeightKg),
     targetRepMin: row.targetRepMin,
     targetRepMax: row.targetRepMax,
@@ -113,6 +126,16 @@ function toSetTarget(row: WorkoutSetSnapshotRow): WorkoutSessionSetTarget {
     targetRir: row.targetRir,
     targetRpe: decimalToNumber(row.targetRpe),
     targetRestSeconds: row.targetRestSeconds,
+    actualWeightKg: decimalToNumber(row.actualWeightKg),
+    actualReps: row.actualReps,
+    actualDurationSeconds: row.actualDurationSeconds,
+    actualDistanceMeters: decimalToNumber(row.actualDistanceMeters),
+    actualRir: row.actualRir,
+    actualRpe: decimalToNumber(row.actualRpe),
+    reachedFailure: row.reachedFailure,
+    notes: row.notes,
+    startedAt: row.startedAt?.toISOString() ?? null,
+    completedAt: row.completedAt?.toISOString() ?? null,
   };
 }
 
@@ -121,7 +144,7 @@ function toExerciseDetail(
 ): WorkoutSessionExerciseDetail {
   const sets = [...row.sets]
     .sort((a, b) => a.position - b.position)
-    .map(toSetTarget);
+    .map(toWorkoutSetDetail);
 
   return {
     id: row.id,
@@ -173,5 +196,23 @@ export function toWorkoutSessionDetail(
     },
     exercises,
     permissions: computeActiveWorkoutPermissions(row.status),
+  };
+}
+
+/** Remplace une série dans un détail de séance (cache frontend / helpers). */
+export function replaceSetInSessionDetail(
+  detail: WorkoutSessionDetail,
+  workoutSet: WorkoutSessionSetDetail,
+  workoutSessionVersion: number,
+): WorkoutSessionDetail {
+  return {
+    ...detail,
+    version: workoutSessionVersion,
+    exercises: detail.exercises.map((exercise) => ({
+      ...exercise,
+      sets: exercise.sets.map((set) =>
+        set.id === workoutSet.id ? workoutSet : set,
+      ),
+    })),
   };
 }
