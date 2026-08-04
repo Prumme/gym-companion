@@ -312,10 +312,11 @@ pnpm dev
   - Détail : `GET /api/v1/workouts/:workoutSessionId`
   - Saisie série : `PATCH /api/v1/workouts/:workoutSessionId/exercises/:sessionExerciseId/sets/:workoutSetId`
   - Pause / reprise / fin / annulation : `POST /api/v1/workouts/:id/{pause|resume|complete|cancel}`
+  - Historique : `GET /api/v1/workouts` (pagination cursor, filtres statut/dates) ; page http://localhost:5173/workouts
   - Détail séance : http://localhost:5173/workouts/:workoutSessionId
   - Minuterie de repos : locale uniquement (localStorage), non synchronisée, aucune donnée serveur
   - Hors ligne (3.5) : file IndexedDB de commandes pour séries + pause/reprise/fin/annulation ; création de séance toujours en ligne
-  - Hors périmètre actuel : démarrage de séance hors ligne, historique paginé, records, progression calculée, WebSocket, Background Sync garanti, IA
+  - Hors périmètre actuel : démarrage de séance hors ligne, records, statistiques, progression calculée, graphiques, WebSocket, Background Sync garanti, IA
 - Mailpit : http://localhost:8025 (`docker compose up -d mailpit`)
 
 Compose complet (profil `full`) :

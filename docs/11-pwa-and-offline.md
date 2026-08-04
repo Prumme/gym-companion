@@ -100,7 +100,7 @@ Exemple conceptuel :
   "name": "Gym Companion",
   "short_name": "Gym",
   "display": "standalone",
-  "start_url": "/app/today",
+  "start_url": "/",
   "scope": "/",
   "theme_color": "#000000",
   "background_color": "#000000"
@@ -882,9 +882,9 @@ Le clic doit :
 Exemples :
 
 ```text
-/app/shared-workouts/:roomId/lobby
-/app/workouts/active
-/app/nutrition/today
+/shared-workouts/:roomId/lobby
+/workouts/active
+/nutrition/today
 ```
 
 ### 34.5 Données sensibles
