@@ -802,6 +802,7 @@ type WorkoutSession = {
   pausedAt: Date | null;
   completedAt: Date | null;
   cancelledAt: Date | null;
+  cancellationReason: string | null;
 
   notes: string | null;
   version: number;
@@ -814,8 +815,10 @@ type WorkoutSession = {
 ### Contraintes
 
 - `localDate` utilise le format `YYYY-MM-DD` ;
-- `version` prépare la concurrence future (initialisée à `1`, non incrémentée en lecture) ;
+- `version` protège les mutations concurrentes (séries et cycle de vie) ;
 - au plus une séance `ACTIVE` ou `PAUSED` par utilisateur (index partiel PostgreSQL) ;
+- `cancellationReason` est renseigné à l’annulation (jalon 3.3) ;
+- l’historique cumulé des pauses n’est pas encore stocké : seul le dernier `pausedAt` est conservé ;
 - les relations sources utilisent `ON DELETE SET NULL` : supprimer un programme ou un modèle ne supprime pas la séance ;
 - l’affichage repose sur les snapshots, pas sur les relations sources.
 
@@ -1861,8 +1864,14 @@ Les décisions suivantes sont confirmées pour le jalon 3.2 :
 - `clientCommandId` offre une idempotence best-effort via l’unicité `(ownerUserId, clientCommandId)` ;
 - `actualWeightKg` sur `ASSISTED_BODYWEIGHT_REPS` représente une assistance éventuelle (pas le poids corporel) ;
 - `reachedFailure` reste distinct de `status = FAILED`.
-- une seule activation courante est autorisée par utilisateur ;
-- la planification hebdomadaire appartient au programme et ne crée aucune séance réelle.
+
+Les décisions suivantes sont confirmées pour le jalon 3.3 :
+
+- transitions `ACTIVE`/`PAUSED` ↔ pause/reprise/fin/annulation via machine à états explicite ;
+- commandes déjà appliquées idempotentes (`noop` sans incrément de version) ;
+- saisie des séries interdite pendant `PAUSED` ;
+- `keepRecordedData` forcé à `true` (effacement des performances reporté) ;
+- idempotence lifecycle via table `WorkoutLifecycleCommand` (`ownerUserId` + `clientCommandId`).
 
 Les décisions encore ouvertes devront être prises avant l’implémentation du module concerné et documentées dans les fichiers techniques.
 

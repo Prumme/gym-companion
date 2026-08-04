@@ -309,6 +309,8 @@ pnpm dev
   - Création snapshot : `POST /api/v1/workouts` (body `{ sourceWorkoutTemplateId, localDate, timezone }`)
   - Détail : `GET /api/v1/workouts/:workoutSessionId`
   - Saisie série : `PATCH /api/v1/workouts/:workoutSessionId/exercises/:sessionExerciseId/sets/:workoutSetId`
+  - Pause / reprise / fin / annulation : `POST /api/v1/workouts/:id/{pause|resume|complete|cancel}`
+  - Détail séance : http://localhost:5173/workouts/:workoutSessionId
   - Hors périmètre actuel : pause, reprise, fin, annulation, historique, hors ligne
 - Mailpit : http://localhost:8025 (`docker compose up -d mailpit`)
 
@@ -346,6 +348,9 @@ les endpoints `GET/POST /api/v1/workouts` et `GET /api/v1/workouts/:id`, et la p
 
 Le jalon **3.2** permet d’enregistrer les séries effectuées (`PENDING` → `COMPLETED`/`PARTIAL`/`FAILED`/`SKIPPED`)
 avec contrôle de version (`expectedVersion`) et idempotence optionnelle (`clientCommandId`).
-Hors scope actuel : pause/reprise/fin, historique, records, hors ligne, WebSocket, IA.
+
+Le jalon **3.3** ajoute le cycle de vie : pause, reprise, fin et annulation
+(`POST .../pause|resume|complete|cancel`), avec libération du verrou d’unicité après fin/annulation.
+Hors scope actuel : historique paginé, records, progression, hors ligne, WebSocket, IA.
 
 Les documents du dossier `docs/` restent la source de vérité produit et technique.

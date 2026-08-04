@@ -1481,3 +1481,177 @@ export function validateWorkoutSetActuals(
 
   return { ok: true, normalized: input };
 }
+
+const workoutClientCommandIdSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(128)
+  .regex(/^[A-Za-z0-9._:-]+$/, 'Identifiant de commande invalide.')
+  .optional();
+
+const expectedVersionSchema = z.number().int().min(1).max(1_000_000_000);
+
+export const pauseWorkoutSessionSchema = z
+  .object({
+    expectedVersion: expectedVersionSchema,
+    clientCommandId: workoutClientCommandIdSchema,
+  })
+  .strict();
+
+export const resumeWorkoutSessionSchema = z
+  .object({
+    expectedVersion: expectedVersionSchema,
+    clientCommandId: workoutClientCommandIdSchema,
+  })
+  .strict();
+
+export const completeWorkoutSessionSchema = z
+  .object({
+    expectedVersion: expectedVersionSchema,
+    clientCommandId: workoutClientCommandIdSchema,
+    notes: z.string().max(2000).nullable().optional(),
+  })
+  .strict();
+
+export const cancelWorkoutSessionSchema = z
+  .object({
+    expectedVersion: expectedVersionSchema,
+    clientCommandId: workoutClientCommandIdSchema,
+    keepRecordedData: z.literal(true),
+    reason: z.string().max(500).nullable(),
+  })
+  .strict();
+
+export type PauseWorkoutSessionInput = z.infer<typeof pauseWorkoutSessionSchema>;
+export type ResumeWorkoutSessionInput = z.infer<
+  typeof resumeWorkoutSessionSchema
+>;
+export type CompleteWorkoutSessionInput = z.infer<
+  typeof completeWorkoutSessionSchema
+>;
+export type CancelWorkoutSessionInput = z.infer<
+  typeof cancelWorkoutSessionSchema
+>;
+
+export type WorkoutLifecycleAction =
+  | 'PAUSE'
+  | 'RESUME'
+  | 'COMPLETE'
+  | 'CANCEL';
+
+export type WorkoutLifecycleStatus =
+  | 'PLANNED'
+  | 'ACTIVE'
+  | 'PAUSED'
+  | 'COMPLETED'
+  | 'CANCELLED';
+
+export type WorkoutLifecycleTransitionResult =
+  | {
+      ok: true;
+      kind: 'apply' | 'noop';
+      nextStatus: Exclude<
+        WorkoutLifecycleStatus,
+        'PLANNED'
+      >;
+    }
+  | {
+      ok: false;
+      code: 'WORKOUT_INVALID_STATUS_TRANSITION';
+      message: string;
+    };
+
+/**
+ * Machine à états des transitions de cycle de vie d’une séance individuelle.
+ * Les commandes déjà appliquées (cible déjà atteinte) sont idempotentes (`noop`).
+ */
+export function resolveWorkoutLifecycleTransition(
+  currentStatus: WorkoutLifecycleStatus,
+  action: WorkoutLifecycleAction,
+): WorkoutLifecycleTransitionResult {
+  if (action === 'PAUSE') {
+    if (currentStatus === 'ACTIVE') {
+      return { ok: true, kind: 'apply', nextStatus: 'PAUSED' };
+    }
+    if (currentStatus === 'PAUSED') {
+      return { ok: true, kind: 'noop', nextStatus: 'PAUSED' };
+    }
+    return {
+      ok: false,
+      code: 'WORKOUT_INVALID_STATUS_TRANSITION',
+      message: 'Seule une séance active peut être mise en pause.',
+    };
+  }
+
+  if (action === 'RESUME') {
+    if (currentStatus === 'PAUSED') {
+      return { ok: true, kind: 'apply', nextStatus: 'ACTIVE' };
+    }
+    if (currentStatus === 'ACTIVE') {
+      return { ok: true, kind: 'noop', nextStatus: 'ACTIVE' };
+    }
+    return {
+      ok: false,
+      code: 'WORKOUT_INVALID_STATUS_TRANSITION',
+      message: 'Seule une séance en pause peut être reprise.',
+    };
+  }
+
+  if (action === 'COMPLETE') {
+    if (currentStatus === 'ACTIVE' || currentStatus === 'PAUSED') {
+      return { ok: true, kind: 'apply', nextStatus: 'COMPLETED' };
+    }
+    if (currentStatus === 'COMPLETED') {
+      return { ok: true, kind: 'noop', nextStatus: 'COMPLETED' };
+    }
+    return {
+      ok: false,
+      code: 'WORKOUT_INVALID_STATUS_TRANSITION',
+      message: 'Cette séance ne peut plus être terminée.',
+    };
+  }
+
+  if (currentStatus === 'ACTIVE' || currentStatus === 'PAUSED') {
+    return { ok: true, kind: 'apply', nextStatus: 'CANCELLED' };
+  }
+  if (currentStatus === 'CANCELLED') {
+    return { ok: true, kind: 'noop', nextStatus: 'CANCELLED' };
+  }
+  return {
+    ok: false,
+    code: 'WORKOUT_INVALID_STATUS_TRANSITION',
+    message: 'Cette séance ne peut plus être annulée.',
+  };
+}
+
+export function buildWorkoutLifecycleFingerprint(
+  action: WorkoutLifecycleAction,
+  payload: Record<string, unknown>,
+): string {
+  const normalized: Record<string, unknown> = { action };
+  for (const key of Object.keys(payload).sort()) {
+    if (key === 'clientCommandId' || key === 'expectedVersion') {
+      continue;
+    }
+    const value = payload[key];
+    if (value === undefined) {
+      continue;
+    }
+    normalized[key] = value;
+  }
+  return JSON.stringify(normalized);
+}
+
+export function normalizeOptionalPlainText(
+  value: string | null | undefined,
+): string | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value == null) {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed === '' ? null : trimmed;
+}

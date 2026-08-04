@@ -19,6 +19,10 @@ vi.mock('../api/workout-api', () => ({
   createWorkoutSession: (...args: unknown[]) => createWorkoutSession(...args),
   updateWorkoutSet: (...args: unknown[]) => updateWorkoutSet(...args),
   getWorkoutSessionDetail: vi.fn(),
+  pauseWorkoutSession: vi.fn(),
+  resumeWorkoutSession: vi.fn(),
+  completeWorkoutSession: vi.fn(),
+  cancelWorkoutSession: vi.fn(),
 }));
 
 vi.mock('@/features/profile/api/profile-api', () => ({
@@ -106,13 +110,17 @@ describe('ActiveWorkoutPage', () => {
     );
 
     expect(await screen.findByText('Séance Push')).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent(
-      '0 séries enregistrées sur 1',
-    );
+    expect(
+      screen.getByText((_, el) =>
+        el?.tagName === 'P' &&
+        el.getAttribute('role') === 'status' &&
+        el.textContent === '0 séries enregistrées sur 1',
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Statut : À faire/i)).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /Pause/i }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('button', { name: /Mettre en pause/i }),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /^Saisir$/i }));
     const dialog = await screen.findByRole('dialog');
@@ -124,9 +132,13 @@ describe('ActiveWorkoutPage', () => {
     );
 
     await waitFor(() => expect(updateWorkoutSet).toHaveBeenCalledTimes(1));
-    expect(screen.getByRole('status')).toHaveTextContent(
-      '1 série enregistrée sur 1',
-    );
+    expect(
+      screen.getByText((_, el) =>
+        el?.tagName === 'P' &&
+        el.getAttribute('role') === 'status' &&
+        el.textContent === '1 série enregistrée sur 1',
+      ),
+    ).toBeInTheDocument();
   });
 });
 

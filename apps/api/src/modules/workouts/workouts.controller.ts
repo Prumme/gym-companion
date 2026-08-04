@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -38,6 +39,70 @@ export class WorkoutsController {
   })
   async create(@CurrentUser() user: AuthenticatedUser, @Body() body: unknown) {
     const data = await this.workoutsService.create(user.id, body);
+    return createSuccessResponse(data);
+  }
+
+  @Post(':workoutSessionId/pause')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Mettre une séance en pause' })
+  async pause(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('workoutSessionId', ParseUUIDPipe) workoutSessionId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.workoutsService.pause(
+      user.id,
+      workoutSessionId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Post(':workoutSessionId/resume')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Reprendre une séance en pause' })
+  async resume(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('workoutSessionId', ParseUUIDPipe) workoutSessionId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.workoutsService.resume(
+      user.id,
+      workoutSessionId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Post(':workoutSessionId/complete')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Terminer une séance' })
+  async complete(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('workoutSessionId', ParseUUIDPipe) workoutSessionId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.workoutsService.complete(
+      user.id,
+      workoutSessionId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Post(':workoutSessionId/cancel')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Annuler une séance' })
+  async cancel(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('workoutSessionId', ParseUUIDPipe) workoutSessionId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.workoutsService.cancel(
+      user.id,
+      workoutSessionId,
+      body,
+    );
     return createSuccessResponse(data);
   }
 

@@ -468,6 +468,7 @@ model WorkoutSession {
   pausedAt                    DateTime?
   completedAt                 DateTime?
   cancelledAt                 DateTime?
+  cancellationReason          String?
   notes                       String?
   version                     Int           @default(1)
   createdAt                   DateTime      @default(now())
@@ -477,12 +478,30 @@ model WorkoutSession {
   sourceProgram           Program?                 @relation(fields: [sourceProgramId], references: [id], onDelete: SetNull)
   sourceWorkoutTemplate   WorkoutTemplate?         @relation(fields: [sourceWorkoutTemplateId], references: [id], onDelete: SetNull)
   exercises               WorkoutSessionExercise[]
+  lifecycleCommands       WorkoutLifecycleCommand[]
 
   @@index([ownerUserId, status])
   @@index([ownerUserId, localDate])
   @@index([sourceProgramId])
   @@index([sourceWorkoutTemplateId])
   @@map("workout_sessions")
+}
+
+/// Idempotence des commandes de cycle de vie (pause / reprise / fin / annulation).
+model WorkoutLifecycleCommand {
+  id                 String   @id @default(uuid()) @db.Uuid
+  ownerUserId        String   @db.Uuid
+  workoutSessionId   String   @db.Uuid
+  clientCommandId    String
+  action             String
+  payloadFingerprint String
+  createdAt          DateTime @default(now())
+
+  workoutSession WorkoutSession @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerUserId, clientCommandId])
+  @@index([workoutSessionId])
+  @@map("workout_lifecycle_commands")
 }
 
 model WorkoutSessionExercise {

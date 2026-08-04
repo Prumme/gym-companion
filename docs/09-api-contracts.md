@@ -1234,8 +1234,8 @@ ne doit être considéré comme disponible.
 
 ## 19. Séances individuelles
 
-> Statut : jalon 3.1 — création et lecture de séance active disponibles.  
-> Pause, reprise, fin, annulation, saisie de performances et historique restent hors périmètre.
+> Statut : jalons 3.1–3.3 — création, lecture, saisie de séries et cycle de vie (pause/reprise/fin/annulation).  
+> Historique paginé, records et progression restent hors périmètre.
 
 ### 19.1 Séance active
 
@@ -1296,15 +1296,49 @@ Non utilisé pour le flux modèle → `ACTIVE` immédiat (3.1).
 
 ### 19.7 Mettre en pause
 
-Hors périmètre du jalon 3.1.
+```text
+POST /api/v1/workouts/:workoutSessionId/pause
+```
+
+Requête :
+
+```json
+{
+  "expectedVersion": 4,
+  "clientCommandId": "opaque-command-id"
+}
+```
+
+Réponse : `200 OK` avec `{ "data": { "workoutSession": WorkoutSessionDetail, "workoutSessionVersion": number } }`.
+
+Transitions : `ACTIVE → PAUSED` (idempotent si déjà `PAUSED` avec la bonne version).
 
 ### 19.8 Reprendre
 
-Hors périmètre du jalon 3.1.
+```text
+POST /api/v1/workouts/:workoutSessionId/resume
+```
+
+Payload identique à pause. Remet `status = ACTIVE` et `pausedAt = null`.
 
 ### 19.9 Terminer
 
-Hors périmètre du jalon 3.1.
+```text
+POST /api/v1/workouts/:workoutSessionId/complete
+```
+
+Requête :
+
+```json
+{
+  "expectedVersion": 8,
+  "clientCommandId": "opaque-command-id",
+  "notes": "Bonne séance."
+}
+```
+
+`notes` est facultatif : absent = conserve les notes existantes ; `null` = efface ; chaîne = remplace.
+Les séries `PENDING` restent inchangées. Aucun record ni progression n’est calculé.
 
 ### 19.10 Annuler
 
@@ -1316,11 +1350,15 @@ Requête :
 
 ```json
 {
+  "expectedVersion": 8,
+  "clientCommandId": "opaque-command-id",
   "keepRecordedData": true,
-  "reason": null,
-  "expectedVersion": 12
+  "reason": "Séance interrompue."
 }
 ```
+
+Pour ce jalon, `keepRecordedData` doit être `true`. Snapshot et performances sont conservés.
+`cancellationReason` est exposé dans le détail.
 
 ## 20. Exercices d’une séance active
 
@@ -1431,7 +1469,7 @@ Réponse :
 }
 ```
 
-La séance doit être `ACTIVE` (ou `PAUSED`). Une version obsolète retourne `409 WORKOUT_VERSION_CONFLICT`.
+La séance doit être `ACTIVE`. Une séance `PAUSED`, `COMPLETED` ou `CANCELLED` retourne `WORKOUT_NOT_EDITABLE`. Une version obsolète retourne `409 WORKOUT_VERSION_CONFLICT`.
 
 ### 21.3 Supprimer
 
@@ -2165,7 +2203,10 @@ WORKOUT_INVALID_LOCAL_DATE
 WORKOUT_INVALID_TIMEZONE
 WORKOUT_ALREADY_COMPLETED
 WORKOUT_ALREADY_CANCELLED
+WORKOUT_INVALID_STATUS_TRANSITION
 WORKOUT_VERSION_CONFLICT
+WORKOUT_DUPLICATE_COMMAND
+WORKOUT_COMMAND_CONFLICT
 WORKOUT_SET_NOT_FOUND
 WORKOUT_SET_INVALID
 WORKOUT_SET_INVALID_STATUS
@@ -2300,11 +2341,17 @@ Les endpoints sont implémentés selon la roadmap.
 - contrôle de concurrence `expectedVersion` ;
 - idempotence optionnelle via `clientCommandId`.
 
+### Disponible à partir du jalon 3.3
+
+- pause / reprise / fin / annulation ;
+- permissions par statut (`canRecordSets=false` en pause) ;
+- page détail `/workouts/:workoutSessionId` (lecture seule pour séances terminées ou annulées) ;
+- motif d’annulation (`cancellationReason`).
+
 ### Non disponible (reste phase 3+)
 
 - duplication de programme ou de modèle ;
-- pause, reprise, fin, annulation ;
-- historique de séance ;
+- historique de séance paginé ;
 - records et progression ;
 - synchronisation hors ligne des séances ;
 - partage Socket.IO ;

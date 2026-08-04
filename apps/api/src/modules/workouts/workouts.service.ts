@@ -5,13 +5,22 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  buildWorkoutLifecycleFingerprint,
+  cancelWorkoutSessionSchema,
+  completeWorkoutSessionSchema,
   createWorkoutSessionSchema,
   localDateStringToUtcDate,
+  normalizeOptionalPlainText,
+  pauseWorkoutSessionSchema,
+  resolveWorkoutLifecycleTransition,
+  resumeWorkoutSessionSchema,
   updateWorkoutSetSchema,
   validateWorkoutSetActuals,
+  type WorkoutLifecycleAction,
 } from '@gym-companion/validation';
 import type {
   UpdateWorkoutSetResult,
+  WorkoutLifecycleResult,
   WorkoutSessionDetail,
 } from '@gym-companion/shared';
 import { Prisma } from '@prisma/client';
@@ -238,6 +247,56 @@ export class WorkoutsService {
     }
   }
 
+  async pause(
+    userId: string,
+    workoutSessionId: string,
+    input: unknown,
+  ): Promise<WorkoutLifecycleResult> {
+    const data = pauseWorkoutSessionSchema.parse(input);
+    return this.transitionLifecycle(userId, workoutSessionId, 'PAUSE', data, {});
+  }
+
+  async resume(
+    userId: string,
+    workoutSessionId: string,
+    input: unknown,
+  ): Promise<WorkoutLifecycleResult> {
+    const data = resumeWorkoutSessionSchema.parse(input);
+    return this.transitionLifecycle(userId, workoutSessionId, 'RESUME', data, {});
+  }
+
+  async complete(
+    userId: string,
+    workoutSessionId: string,
+    input: unknown,
+  ): Promise<WorkoutLifecycleResult> {
+    const data = completeWorkoutSessionSchema.parse(input);
+    const notes = normalizeOptionalPlainText(data.notes);
+    return this.transitionLifecycle(
+      userId,
+      workoutSessionId,
+      'COMPLETE',
+      { ...data, notes },
+      notes === undefined ? {} : { notes },
+    );
+  }
+
+  async cancel(
+    userId: string,
+    workoutSessionId: string,
+    input: unknown,
+  ): Promise<WorkoutLifecycleResult> {
+    const data = cancelWorkoutSessionSchema.parse(input);
+    const reason = normalizeOptionalPlainText(data.reason) ?? null;
+    return this.transitionLifecycle(
+      userId,
+      workoutSessionId,
+      'CANCEL',
+      { ...data, reason },
+      { reason, keepRecordedData: true },
+    );
+  }
+
   async updateSet(
     userId: string,
     workoutSessionId: string,
@@ -265,10 +324,13 @@ export class WorkoutsService {
           });
         }
 
-        if (session.status !== 'ACTIVE' && session.status !== 'PAUSED') {
+        if (session.status !== 'ACTIVE') {
           throw new BadRequestException({
             code: 'WORKOUT_NOT_EDITABLE',
-            message: 'Cette séance n’est plus modifiable.',
+            message:
+              session.status === 'PAUSED'
+                ? 'La séance est en pause : les séries ne sont pas modifiables.'
+                : 'Cette séance n’est plus modifiable.',
           });
         }
 
@@ -438,6 +500,194 @@ export class WorkoutsService {
     }
   }
 
+  private async transitionLifecycle(
+    userId: string,
+    workoutSessionId: string,
+    action: WorkoutLifecycleAction,
+    data: {
+      expectedVersion: number;
+      clientCommandId?: string;
+      notes?: string | null;
+      reason?: string | null;
+    },
+    fingerprintPayload: Record<string, unknown>,
+  ): Promise<WorkoutLifecycleResult> {
+    const fingerprint = buildWorkoutLifecycleFingerprint(
+      action,
+      fingerprintPayload,
+    );
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const session = await tx.workoutSession.findFirst({
+          where: { id: workoutSessionId, ownerUserId: userId },
+        });
+
+        if (!session) {
+          throw new NotFoundException({
+            code: 'WORKOUT_NOT_FOUND',
+            message: 'Séance introuvable.',
+          });
+        }
+
+        if (session.version !== data.expectedVersion) {
+          throw new ConflictException({
+            code: 'WORKOUT_VERSION_CONFLICT',
+            message:
+              'La séance a été modifiée depuis un autre onglet ou appareil.',
+            details: { currentVersion: session.version },
+          });
+        }
+
+        if (data.clientCommandId) {
+          const existing = await tx.workoutLifecycleCommand.findFirst({
+            where: {
+              ownerUserId: userId,
+              clientCommandId: data.clientCommandId,
+            },
+          });
+          if (existing) {
+            if (
+              existing.workoutSessionId !== session.id ||
+              existing.action !== action ||
+              existing.payloadFingerprint !== fingerprint
+            ) {
+              throw new ConflictException({
+                code: 'WORKOUT_COMMAND_CONFLICT',
+                message:
+                  'Cet identifiant de commande a déjà été utilisé avec un autre payload.',
+              });
+            }
+            const detail = await tx.workoutSession.findFirstOrThrow({
+              where: { id: session.id },
+              include: sessionDetailInclude,
+            });
+            const mapped = toWorkoutSessionDetail(
+              detail as WorkoutSessionSnapshotRow,
+            );
+            return {
+              workoutSession: mapped,
+              workoutSessionVersion: mapped.version,
+            };
+          }
+        }
+
+        const transition = resolveWorkoutLifecycleTransition(
+          session.status,
+          action,
+        );
+        if (!transition.ok) {
+          throw new ConflictException({
+            code: transition.code,
+            message: transition.message,
+          });
+        }
+
+        if (transition.kind === 'noop') {
+          if (data.clientCommandId) {
+            await tx.workoutLifecycleCommand.create({
+              data: {
+                ownerUserId: userId,
+                workoutSessionId: session.id,
+                clientCommandId: data.clientCommandId,
+                action,
+                payloadFingerprint: fingerprint,
+              },
+            });
+          }
+          const detail = await tx.workoutSession.findFirstOrThrow({
+            where: { id: session.id },
+            include: sessionDetailInclude,
+          });
+          const mapped = toWorkoutSessionDetail(
+            detail as WorkoutSessionSnapshotRow,
+          );
+          return {
+            workoutSession: mapped,
+            workoutSessionVersion: mapped.version,
+          };
+        }
+
+        const now = new Date();
+        const updateData: Prisma.WorkoutSessionUpdateInput = {
+          status: transition.nextStatus,
+          version: { increment: 1 },
+        };
+
+        if (action === 'PAUSE') {
+          updateData.pausedAt = now;
+          updateData.completedAt = null;
+          updateData.cancelledAt = null;
+          updateData.cancellationReason = null;
+        } else if (action === 'RESUME') {
+          updateData.pausedAt = null;
+        } else if (action === 'COMPLETE') {
+          updateData.completedAt = now;
+          updateData.pausedAt = null;
+          updateData.cancelledAt = null;
+          updateData.cancellationReason = null;
+          if (data.notes !== undefined) {
+            updateData.notes = data.notes;
+          }
+        } else if (action === 'CANCEL') {
+          updateData.cancelledAt = now;
+          updateData.pausedAt = null;
+          updateData.completedAt = null;
+          updateData.cancellationReason = data.reason ?? null;
+        }
+
+        await tx.workoutSession.update({
+          where: { id: session.id },
+          data: updateData,
+        });
+
+        if (data.clientCommandId) {
+          await tx.workoutLifecycleCommand.create({
+            data: {
+              ownerUserId: userId,
+              workoutSessionId: session.id,
+              clientCommandId: data.clientCommandId,
+              action,
+              payloadFingerprint: fingerprint,
+            },
+          });
+        }
+
+        const detail = await tx.workoutSession.findFirstOrThrow({
+          where: { id: session.id },
+          include: sessionDetailInclude,
+        });
+        const mapped = toWorkoutSessionDetail(
+          detail as WorkoutSessionSnapshotRow,
+        );
+        return {
+          workoutSession: mapped,
+          workoutSessionVersion: mapped.version,
+        };
+      });
+    } catch (error) {
+      if (
+        error instanceof ConflictException ||
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code?: string }).code === 'P2002'
+      ) {
+        throw new ConflictException({
+          code: 'WORKOUT_DUPLICATE_COMMAND',
+          message: 'Identifiant de commande déjà utilisé.',
+        });
+      }
+      throw error;
+    }
+  }
+
   private async loadStartableTemplateOrThrow(
     userId: string,
     sourceWorkoutTemplateId: string,
@@ -452,8 +702,8 @@ export class WorkoutsService {
           select: {
             id: true,
             name: true,
-            ownerUserId: true,
             archivedAt: true,
+            ownerUserId: true,
           },
         },
         exercises: {
@@ -465,13 +715,11 @@ export class WorkoutsService {
                 name: true,
                 measurementType: true,
                 archivedAt: true,
-                primaryMuscleGroup: {
-                  select: { name: true },
-                },
+                primaryMuscleGroup: { select: { name: true } },
               },
             },
             equipmentType: {
-              select: { id: true, code: true, name: true },
+              select: { id: true, name: true, code: true },
             },
             sets: {
               orderBy: { position: 'asc' },
@@ -491,8 +739,7 @@ export class WorkoutsService {
     if (template.program.archivedAt) {
       throw new BadRequestException({
         code: 'WORKOUT_TEMPLATE_NOT_STARTABLE',
-        message:
-          'Impossible de démarrer une séance depuis un programme archivé.',
+        message: 'Impossible de démarrer une séance depuis un programme archivé.',
       });
     }
 

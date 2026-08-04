@@ -21,6 +21,7 @@ import { EditProgramPage } from '@/features/programs/pages/EditProgramPage';
 import { PlanningPage } from '@/features/programs/pages/PlanningPage';
 import { ProgramScheduleEditPage } from '@/features/programs/pages/ProgramScheduleEditPage';
 import { ActiveWorkoutPage } from '@/features/workouts/pages/ActiveWorkoutPage';
+import { WorkoutSessionDetailPage } from '@/features/workouts/pages/WorkoutSessionDetailPage';
 
 export const router = createBrowserRouter([
   {
@@ -39,6 +40,10 @@ export const router = createBrowserRouter([
           { path: 'profile', element: <ProfilePage /> },
           { path: 'planning', element: <PlanningPage /> },
           { path: 'workouts/active', element: <ActiveWorkoutPage /> },
+          {
+            path: 'workouts/:workoutSessionId',
+            element: <WorkoutSessionDetailPage />,
+          },
           { path: 'programs', element: <ProgramsPage /> },
           { path: 'programs/new', element: <CreateProgramPage /> },
           { path: 'programs/:programId/edit', element: <EditProgramPage /> },

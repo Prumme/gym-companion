@@ -354,6 +354,11 @@ export type UpdateWorkoutSetResult = {
   workoutSessionVersion: number;
 };
 
+export type WorkoutLifecycleResult = {
+  workoutSession: WorkoutSessionDetail;
+  workoutSessionVersion: number;
+};
+
 export type WorkoutSessionExerciseDetail = {
   id: string;
   position: number;
@@ -382,6 +387,7 @@ export type WorkoutSessionDetail = {
   pausedAt: string | null;
   completedAt: string | null;
   cancelledAt: string | null;
+  cancellationReason: string | null;
   notes: string | null;
   version: number;
   source: {

@@ -193,6 +193,7 @@ describe('workouts.mapper', () => {
     pausedAt: null,
     completedAt: null,
     cancelledAt: null,
+    cancellationReason: null,
     notes: null,
     version: 1,
     sourceProgramId: 'prog-1',
@@ -262,6 +263,26 @@ describe('workouts.mapper', () => {
       canComplete: true,
       canCancel: true,
       canRecordSets: true,
+    });
+  });
+
+  it('désactive la saisie des séries en pause', () => {
+    expect(computeActiveWorkoutPermissions('PAUSED')).toEqual({
+      canPause: false,
+      canResume: true,
+      canComplete: true,
+      canCancel: true,
+      canRecordSets: false,
+    });
+  });
+
+  it('verrouille une séance terminée', () => {
+    expect(computeActiveWorkoutPermissions('COMPLETED')).toEqual({
+      canPause: false,
+      canResume: false,
+      canComplete: false,
+      canCancel: false,
+      canRecordSets: false,
     });
   });
 });

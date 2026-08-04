@@ -62,6 +62,7 @@ export type WorkoutSessionSnapshotRow = {
   pausedAt: Date | null;
   completedAt: Date | null;
   cancelledAt: Date | null;
+  cancellationReason: string | null;
   notes: string | null;
   version: number;
   sourceProgramId: string | null;
@@ -99,7 +100,7 @@ export function computeActiveWorkoutPermissions(
       canResume: true,
       canComplete: true,
       canCancel: true,
-      canRecordSets: true,
+      canRecordSets: false,
     };
   }
   return {
@@ -186,6 +187,7 @@ export function toWorkoutSessionDetail(
     pausedAt: row.pausedAt?.toISOString() ?? null,
     completedAt: row.completedAt?.toISOString() ?? null,
     cancelledAt: row.cancelledAt?.toISOString() ?? null,
+    cancellationReason: row.cancellationReason,
     notes: row.notes,
     version: row.version,
     source: {

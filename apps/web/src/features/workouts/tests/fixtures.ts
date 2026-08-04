@@ -49,6 +49,7 @@ export function createWorkoutSessionDetail(
     pausedAt: null,
     completedAt: null,
     cancelledAt: null,
+    cancellationReason: null,
     notes: null,
     version: 1,
     source: {

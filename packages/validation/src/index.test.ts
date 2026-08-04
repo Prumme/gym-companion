@@ -27,6 +27,10 @@ import {
   reorderWorkoutTemplatesSchema,
   toUpdateProfilePayload,
   updateExercisePreferenceSchema,
+  cancelWorkoutSessionSchema,
+  completeWorkoutSessionSchema,
+  pauseWorkoutSessionSchema,
+  resolveWorkoutLifecycleTransition,
   updateWorkoutSetSchema,
   utcDateToLocalDateString,
   validateProgramScheduleEntries,
@@ -1037,5 +1041,105 @@ describe('validateWorkoutSetActuals', () => {
     });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.code).toBe('WORKOUT_SET_INVALID_STATUS');
+  });
+});
+
+describe('resolveWorkoutLifecycleTransition', () => {
+  it('autorise ACTIVE → PAUSED et pause idempotente', () => {
+    expect(resolveWorkoutLifecycleTransition('ACTIVE', 'PAUSE')).toEqual({
+      ok: true,
+      kind: 'apply',
+      nextStatus: 'PAUSED',
+    });
+    expect(resolveWorkoutLifecycleTransition('PAUSED', 'PAUSE')).toEqual({
+      ok: true,
+      kind: 'noop',
+      nextStatus: 'PAUSED',
+    });
+  });
+
+  it('autorise PAUSED → ACTIVE et reprise idempotente', () => {
+    expect(resolveWorkoutLifecycleTransition('PAUSED', 'RESUME')).toEqual({
+      ok: true,
+      kind: 'apply',
+      nextStatus: 'ACTIVE',
+    });
+    expect(resolveWorkoutLifecycleTransition('ACTIVE', 'RESUME')).toEqual({
+      ok: true,
+      kind: 'noop',
+      nextStatus: 'ACTIVE',
+    });
+  });
+
+  it('autorise fin et annulation depuis ACTIVE/PAUSED', () => {
+    expect(resolveWorkoutLifecycleTransition('ACTIVE', 'COMPLETE')).toMatchObject({
+      ok: true,
+      kind: 'apply',
+      nextStatus: 'COMPLETED',
+    });
+    expect(resolveWorkoutLifecycleTransition('PAUSED', 'COMPLETE')).toMatchObject({
+      ok: true,
+      kind: 'apply',
+      nextStatus: 'COMPLETED',
+    });
+    expect(resolveWorkoutLifecycleTransition('ACTIVE', 'CANCEL')).toMatchObject({
+      ok: true,
+      kind: 'apply',
+      nextStatus: 'CANCELLED',
+    });
+    expect(resolveWorkoutLifecycleTransition('PAUSED', 'CANCEL')).toMatchObject({
+      ok: true,
+      kind: 'apply',
+      nextStatus: 'CANCELLED',
+    });
+  });
+
+  it('refuse les transitions depuis COMPLETED/CANCELLED sauf noop cible', () => {
+    expect(resolveWorkoutLifecycleTransition('COMPLETED', 'PAUSE').ok).toBe(false);
+    expect(resolveWorkoutLifecycleTransition('COMPLETED', 'CANCEL').ok).toBe(false);
+    expect(resolveWorkoutLifecycleTransition('CANCELLED', 'RESUME').ok).toBe(false);
+    expect(resolveWorkoutLifecycleTransition('CANCELLED', 'COMPLETE').ok).toBe(false);
+    expect(resolveWorkoutLifecycleTransition('COMPLETED', 'COMPLETE')).toEqual({
+      ok: true,
+      kind: 'noop',
+      nextStatus: 'COMPLETED',
+    });
+    expect(resolveWorkoutLifecycleTransition('CANCELLED', 'CANCEL')).toEqual({
+      ok: true,
+      kind: 'noop',
+      nextStatus: 'CANCELLED',
+    });
+  });
+
+  it('valide les schémas lifecycle', () => {
+    expect(
+      pauseWorkoutSessionSchema.safeParse({ expectedVersion: 1 }).success,
+    ).toBe(true);
+    expect(
+      completeWorkoutSessionSchema.safeParse({
+        expectedVersion: 2,
+        notes: 'ok',
+      }).success,
+    ).toBe(true);
+    expect(
+      cancelWorkoutSessionSchema.safeParse({
+        expectedVersion: 3,
+        keepRecordedData: true,
+        reason: null,
+      }).success,
+    ).toBe(true);
+    expect(
+      cancelWorkoutSessionSchema.safeParse({
+        expectedVersion: 3,
+        keepRecordedData: false,
+        reason: null,
+      }).success,
+    ).toBe(false);
+    expect(
+      pauseWorkoutSessionSchema.safeParse({
+        expectedVersion: 1,
+        status: 'PAUSED',
+      }).success,
+    ).toBe(false);
   });
 });
