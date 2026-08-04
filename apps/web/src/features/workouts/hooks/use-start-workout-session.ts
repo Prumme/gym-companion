@@ -11,6 +11,8 @@ import {
 
 import { activeWorkoutQueryOptions } from '../api/workout-query-options';
 import { useCreateWorkoutSessionMutation } from '../hooks/use-workout-mutations';
+import { hasPendingTerminalCommand, listSnapshotsForUser } from '../offline/store';
+import { syncWorkoutSession } from '../offline/sync-engine';
 
 export type StartWorkoutConflict = {
   activeWorkoutSessionId: string | null;
@@ -27,6 +29,7 @@ export function useStartWorkoutSession() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<StartWorkoutConflict | null>(null);
+  const [pendingTerminal, setPendingTerminal] = useState(false);
 
   const meQuery = useQuery({
     queryKey: ['me'],
@@ -34,22 +37,39 @@ export function useStartWorkoutSession() {
     staleTime: 60_000,
   });
 
+  const getUserId = useCallback(
+    () => meQuery.data?.data.id ?? null,
+    [meQuery.data?.data.id],
+  );
+
   const requestStart = useCallback(
     async (sourceWorkoutTemplateId: string) => {
       setError(null);
       setConflict(null);
+      setPendingTerminal(false);
 
       if (typeof navigator !== 'undefined' && navigator.onLine === false) {
         setError('Une connexion est nécessaire pour démarrer une séance.');
         return;
       }
 
+      const userId = getUserId();
+      if (userId && (await hasPendingTerminalCommand(userId))) {
+        setPendingTerminal(true);
+        setError(
+          'La fin de cette séance doit encore être synchronisée.',
+        );
+        return;
+      }
+
       const cached = queryClient.getQueryData(
-        activeWorkoutQueryOptions().queryKey,
+        activeWorkoutQueryOptions(getUserId).queryKey,
       );
       let active = cached ?? null;
       if (cached === undefined) {
-        active = await queryClient.fetchQuery(activeWorkoutQueryOptions());
+        active = await queryClient.fetchQuery(
+          activeWorkoutQueryOptions(getUserId),
+        );
       }
 
       if (active) {
@@ -64,7 +84,7 @@ export function useStartWorkoutSession() {
       setPendingTemplateId(sourceWorkoutTemplateId);
       setConfirmOpen(true);
     },
-    [queryClient],
+    [getUserId, queryClient],
   );
 
   const confirmStart = useCallback(async () => {
@@ -78,7 +98,7 @@ export function useStartWorkoutSession() {
     const localDate = todayLocalDateString(timezone);
 
     try {
-      const detail = await createMutation.mutateAsync({
+      await createMutation.mutateAsync({
         sourceWorkoutTemplateId: pendingTemplateId,
         localDate,
         timezone,
@@ -86,7 +106,6 @@ export function useStartWorkoutSession() {
       setConfirmOpen(false);
       setPendingTemplateId(null);
       navigate('/workouts/active', { replace: false });
-      return detail;
     } catch (err) {
       const apiError = err as ApiRequestError;
       if (apiError.code === 'WORKOUT_ACTIVE_ALREADY_EXISTS') {
@@ -101,7 +120,7 @@ export function useStartWorkoutSession() {
             'Une séance est déjà en cours. Ouvre-la pour continuer.',
         });
         void queryClient.invalidateQueries({
-          queryKey: activeWorkoutQueryOptions().queryKey,
+          queryKey: activeWorkoutQueryOptions(getUserId).queryKey,
         });
         return;
       }
@@ -120,11 +139,25 @@ export function useStartWorkoutSession() {
     }
   }, [
     createMutation,
+    getUserId,
     meQuery.data?.data.profile.timezone,
     navigate,
     pendingTemplateId,
     queryClient,
   ]);
+
+  const syncPendingTerminal = useCallback(async () => {
+    const userId = getUserId();
+    if (!userId) return;
+    const snapshots = await listSnapshotsForUser(userId);
+    for (const snapshot of snapshots) {
+      await syncWorkoutSession(userId, snapshot.workoutSessionId, {
+        force: true,
+      });
+    }
+    setPendingTerminal(false);
+    setError(null);
+  }, [getUserId]);
 
   const cancelConfirm = useCallback(() => {
     if (createMutation.isPending) {
@@ -142,6 +175,8 @@ export function useStartWorkoutSession() {
 
   const dismissConflict = useCallback(() => {
     setConflict(null);
+    setPendingTerminal(false);
+    setError(null);
   }, []);
 
   return {
@@ -152,6 +187,8 @@ export function useStartWorkoutSession() {
     pending: createMutation.isPending,
     error,
     conflict,
+    pendingTerminal,
+    syncPendingTerminal,
     openActiveSession,
     dismissConflict,
   };

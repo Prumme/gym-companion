@@ -80,11 +80,6 @@ export function WorkoutLifecycleActions({
   const completeMutation = useCompleteWorkoutSessionMutation(session.id);
   const cancelMutation = useCancelWorkoutSessionMutation(session.id);
 
-  const offline =
-    typeof navigator !== 'undefined' && navigator.onLine === false;
-  const offlineMessage =
-    'Une connexion est nécessaire pour modifier l’état de la séance.';
-
   const progress = computeWorkoutProgress(session);
 
   function handleLifecycleError(error: unknown, preserveDialog: boolean) {
@@ -108,7 +103,6 @@ export function WorkoutLifecycleActions({
   }
 
   async function onPause() {
-    if (offline) return;
     try {
       await pauseMutation.mutateAsync({ expectedVersion: session.version });
       onPaused?.();
@@ -118,7 +112,6 @@ export function WorkoutLifecycleActions({
   }
 
   async function onResume() {
-    if (offline) return;
     try {
       await resumeMutation.mutateAsync({ expectedVersion: session.version });
       onResumed?.();
@@ -128,7 +121,6 @@ export function WorkoutLifecycleActions({
   }
 
   async function onComplete() {
-    if (offline) return;
     try {
       const result = await completeMutation.mutateAsync({
         expectedVersion: session.version,
@@ -143,7 +135,6 @@ export function WorkoutLifecycleActions({
   }
 
   async function onCancel() {
-    if (offline) return;
     try {
       const result = await cancelMutation.mutateAsync({
         expectedVersion: session.version,
@@ -176,11 +167,6 @@ export function WorkoutLifecycleActions({
 
   return (
     <div className="flex flex-col gap-2">
-      {offline && showInlineButtons ? (
-        <p className="text-sm text-[var(--danger)]" role="alert">
-          {offlineMessage}
-        </p>
-      ) : null}
       {versionConflict ? (
         <p className="text-sm text-[var(--danger)]" role="alert">
           La séance a été modifiée depuis un autre onglet ou appareil.
@@ -193,7 +179,7 @@ export function WorkoutLifecycleActions({
             <Button
               type="button"
               variant="secondary"
-              disabled={anyPending || offline}
+              disabled={anyPending}
               onClick={() => {
                 void onPause();
               }}
@@ -204,7 +190,7 @@ export function WorkoutLifecycleActions({
           {session.permissions.canResume ? (
             <Button
               type="button"
-              disabled={anyPending || offline}
+              disabled={anyPending}
               onClick={() => {
                 void onResume();
               }}
@@ -215,7 +201,7 @@ export function WorkoutLifecycleActions({
           {session.permissions.canComplete ? (
             <Button
               type="button"
-              disabled={anyPending || offline}
+              disabled={anyPending}
               onClick={() => {
                 setCompleteNotes(session.notes ?? '');
                 setCompleteOpen(true);
@@ -228,7 +214,7 @@ export function WorkoutLifecycleActions({
             <Button
               type="button"
               variant="destructive"
-              disabled={anyPending || offline}
+              disabled={anyPending}
               onClick={() => {
                 setCancelReason('');
                 setCancelOpen(true);
@@ -324,7 +310,7 @@ export function WorkoutLifecycleActions({
               </Button>
               <Button
                 type="button"
-                disabled={completeMutation.isPending || offline}
+                disabled={completeMutation.isPending}
                 onClick={() => {
                   void onComplete();
                 }}
@@ -397,7 +383,7 @@ export function WorkoutLifecycleActions({
               <Button
                 type="button"
                 variant="destructive"
-                disabled={cancelMutation.isPending || offline}
+                disabled={cancelMutation.isPending}
                 onClick={() => {
                   void onCancel();
                 }}

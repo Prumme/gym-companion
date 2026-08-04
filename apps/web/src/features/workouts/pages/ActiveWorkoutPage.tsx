@@ -7,15 +7,17 @@ import { getMe } from '@/features/profile/api/profile-api';
 import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
 
 import { activeWorkoutQueryOptions } from '../api/workout-query-options';
+import { workoutQueryKeys } from '../api/workout-query-keys';
 import { ActiveExercisePanel } from '../components/ActiveExercisePanel';
 import { ActiveWorkoutHeader } from '../components/ActiveWorkoutHeader';
 import { ExerciseNavigator } from '../components/ExerciseNavigator';
 import { RestTimer } from '../components/RestTimer';
-import {
-  WorkoutLifecycleActions,
-} from '../components/WorkoutLifecycleActions';
+import { WorkoutConflictPanel } from '../components/WorkoutConflictPanel';
+import { WorkoutLifecycleActions } from '../components/WorkoutLifecycleActions';
+import { WorkoutSyncBanner } from '../components/WorkoutSyncBanner';
 import { useRestTimer } from '../hooks/use-rest-timer';
 import { useWorkoutLifecycleControls } from '../hooks/use-workout-lifecycle-controls';
+import { useWorkoutOfflineSync } from '../hooks/use-workout-offline-sync';
 import { useWorkoutExerciseNavigation } from '../hooks/use-workout-exercise-navigation';
 import {
   computeWorkoutProgress,
@@ -25,12 +27,27 @@ import {
 } from '../lib/workout-progress';
 
 export function ActiveWorkoutPage() {
+  const meQuery = useQuery({
+    queryKey: ['me'],
+    queryFn: getMe,
+    staleTime: 60_000,
+  });
+  const userId = meQuery.data?.data.id ?? null;
+
   const query = useQuery({
-    ...activeWorkoutQueryOptions(),
+    ...activeWorkoutQueryOptions(() => userId),
+    enabled: meQuery.isSuccess || meQuery.isError,
     refetchOnWindowFocus: true,
   });
+  const fromLocal =
+    useQuery({
+      queryKey: workoutQueryKeys.activeFromLocal(),
+      queryFn: () => false,
+      staleTime: Infinity,
+      initialData: false,
+    }).data === true;
 
-  if (query.isLoading) {
+  if (meQuery.isLoading || query.isLoading) {
     return (
       <section className="flex flex-col gap-4">
         <h1 className="text-2xl font-semibold">Séance en cours</h1>
@@ -73,6 +90,7 @@ export function ActiveWorkoutPage() {
   return (
     <ActiveWorkoutSessionView
       session={query.data}
+      fromLocalSnapshot={fromLocal}
       onRefetch={() => {
         void query.refetch();
       }}
@@ -82,9 +100,11 @@ export function ActiveWorkoutPage() {
 
 function ActiveWorkoutSessionView({
   session,
+  fromLocalSnapshot,
   onRefetch,
 }: {
   session: WorkoutSessionDetail;
+  fromLocalSnapshot: boolean;
   onRefetch: () => void;
 }) {
   const meQuery = useQuery({
@@ -97,6 +117,7 @@ function ActiveWorkoutSessionView({
   const [cancelOpen, setCancelOpen] = useState(false);
   const [resumeTimerPrompt, setResumeTimerPrompt] = useState(false);
 
+  const offlineSync = useWorkoutOfflineSync(session.id);
   const navigation = useWorkoutExerciseNavigation(session);
   const restTimer = useRestTimer({
     workoutSessionId: session.id,
@@ -133,10 +154,32 @@ function ActiveWorkoutSessionView({
 
   return (
     <section className="flex flex-col gap-4 pb-28">
+      <WorkoutSyncBanner
+        label={offlineSync.label}
+        status={offlineSync.status}
+        pendingCount={offlineSync.pendingCount}
+        browserOffline={offlineSync.browserOffline}
+        fromLocalSnapshot={fromLocalSnapshot}
+        onSyncNow={() => {
+          void offlineSync.syncNow();
+        }}
+        syncDisabled={offlineSync.status === 'CONFLICT'}
+      />
+
+      {offlineSync.status === 'CONFLICT' ||
+      (offlineSync.status === 'ERROR' && offlineSync.conflictCommand) ? (
+        <WorkoutConflictPanel
+          pendingCount={offlineSync.pendingCount}
+          conflictCommand={offlineSync.conflictCommand}
+          onKeepServer={offlineSync.keepServer}
+          onReapplyLocal={offlineSync.reapplyLocal}
+        />
+      ) : null}
+
       <ActiveWorkoutHeader
         session={session}
         progress={progress}
-        offline={lifecycle.offline}
+        offline={false}
         pausePending={lifecycle.pausePending}
         resumePending={lifecycle.resumePending}
         onPause={

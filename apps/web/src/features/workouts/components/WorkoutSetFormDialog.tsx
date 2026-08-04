@@ -209,11 +209,6 @@ export function WorkoutSetFormDialog({
   }
 
   async function submit(values: FormValues) {
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      mutation.reset();
-      return;
-    }
-
     let payload: UpdateWorkoutSetInput = {
       ...values,
       expectedVersion,
@@ -252,8 +247,6 @@ export function WorkoutSetFormDialog({
     }
   }
 
-  const offline =
-    typeof navigator !== 'undefined' && navigator.onLine === false;
   const apiError =
     mutation.error &&
     (mutation.error as ApiRequestError).code !== 'WORKOUT_VERSION_CONFLICT'
@@ -261,9 +254,7 @@ export function WorkoutSetFormDialog({
           mutation.error,
           'Impossible d’enregistrer cette série.',
         )
-      : offline
-        ? 'Une connexion est nécessaire pour enregistrer cette série.'
-        : null;
+      : null;
 
   return (
     <div
@@ -469,7 +460,7 @@ export function WorkoutSetFormDialog({
             >
               Annuler
             </Button>
-            <Button type="submit" disabled={mutation.isPending || offline}>
+            <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending ? 'Enregistrement…' : 'Enregistrer'}
             </Button>
           </div>

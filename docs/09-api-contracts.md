@@ -1481,7 +1481,24 @@ La suppression peut devenir un statut `CANCELLED` si la série a déjà été sy
 
 ## 22. Synchronisation hors ligne
 
-Endpoint groupé proposé :
+### État actuel (jalon 3.5)
+
+La synchronisation hors ligne des séances **réutilise les endpoints métier existants**
+(pas d’endpoint générique `/sync/commands` pour l’instant) :
+
+- `PATCH .../sets/:workoutSetId` avec `clientCommandId` ;
+- `POST .../pause|resume|complete|cancel` avec `clientCommandId`.
+
+Le client maintient une file IndexedDB (`gym-companion-offline`) et rejoue les commandes
+**séquentiellement** lorsque l’application est ouverte.
+
+Création de séance : toujours en ligne.
+
+Background Sync / WebSocket : non garantis.
+
+### Endpoint groupé (évolution future)
+
+Endpoint groupé proposé pour plus tard :
 
 ```text
 POST /api/v1/sync/commands
@@ -2353,11 +2370,19 @@ Les endpoints sont implémentés selon la roadmap.
 - duplication de programme ou de modèle ;
 - historique de séance paginé ;
 - records et progression ;
-- synchronisation hors ligne des séances ;
+- démarrage de séance hors ligne ;
+- endpoint batch `/sync/commands` ;
 - partage Socket.IO ;
 - nutrition ;
 - notifications ;
 - coach IA.
+
+### Disponible depuis le jalon 3.5
+
+- file hors ligne IndexedDB pour séries et cycle de vie ;
+- synchronisation séquentielle à la reprise réseau (app ouverte) ;
+- reçus d’idempotence séries (`WorkoutSetCommand`) et lifecycle ;
+- résolution explicite des conflits.
 
 Créer toutes les routes à l’avance avec des réponses fictives est déconseillé.
 

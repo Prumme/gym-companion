@@ -14,6 +14,8 @@ import { Input } from '@/components/ui/input';
 import { LoadingState } from '@/components/common/LoadingState';
 import { logout } from '@/features/auth/api/auth-api';
 import { getMe, updateProfile, type MeResponse } from '@/features/profile/api/profile-api';
+import { clearWorkoutOfflineDataForUser } from '@/features/workouts/offline/clear-user-data';
+import { hasPendingCommandsForUser } from '@/features/workouts/offline/store';
 import { getApiErrorMessage } from '@/lib/api/client';
 
 function profileToFormValues(profile: MeResponse['data']['profile']): ProfileFormValues {
@@ -42,6 +44,7 @@ export function ProfilePage() {
   const queryClient = useQueryClient();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 
   const meQuery = useQuery({
     queryKey: ['me'],
@@ -215,12 +218,63 @@ export function ProfilePage() {
         variant="secondary"
         type="button"
         onClick={async () => {
+          const userId = meQuery.data?.data.id;
+          if (userId && (await hasPendingCommandsForUser(userId))) {
+            setLogoutConfirmOpen(true);
+            return;
+          }
+          if (userId) {
+            await clearWorkoutOfflineDataForUser(userId);
+          }
           await logout();
           navigate('/login');
         }}
       >
         Se déconnecter
       </Button>
+
+      {logoutConfirmOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          role="presentation"
+          onClick={() => setLogoutConfirmOpen(false)}
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            className="w-full max-w-md rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-lg"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold">Déconnexion</h3>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              Des modifications de séance ne sont pas encore synchronisées.
+            </p>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setLogoutConfirmOpen(false)}
+              >
+                Rester connecté
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={async () => {
+                  const userId = meQuery.data?.data.id;
+                  if (userId) {
+                    await clearWorkoutOfflineDataForUser(userId);
+                  }
+                  await logout();
+                  navigate('/login');
+                }}
+              >
+                Se déconnecter et supprimer les modifications locales
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

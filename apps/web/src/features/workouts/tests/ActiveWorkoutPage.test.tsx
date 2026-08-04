@@ -126,9 +126,11 @@ describe('ActiveWorkoutPage', () => {
     );
 
     await waitFor(() => expect(updateWorkoutSet).toHaveBeenCalledTimes(1));
-    expect(
-      screen.getByText(/1 série enregistrée sur 1/i),
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByText(/1 série enregistrée sur 1/i),
+      ).toBeInTheDocument();
+    });
   });
 
   it('navigue entre exercices et démarre la minuterie après enregistrement', async () => {

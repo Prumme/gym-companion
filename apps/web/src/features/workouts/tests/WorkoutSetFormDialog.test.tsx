@@ -26,12 +26,33 @@ function renderDialog(overrides: Partial<Props> = {}) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
+  client.setQueryData(['me'], {
+    data: {
+      id: 'user-1',
+      email: 'a@example.com',
+      status: 'ACTIVE',
+      role: 'USER',
+      profile: {
+        displayName: 'A',
+        timezone: 'Europe/Paris',
+        weightUnit: 'KG',
+        distanceUnit: 'KM',
+        primaryGoal: 'HYPERTROPHY',
+        experienceLevel: 'INTERMEDIATE',
+        effortTrackingMode: 'RIR',
+        heightCm: null,
+        currentWeightKg: null,
+        weeklyTrainingTarget: null,
+        defaultWorkoutDurationMinutes: null,
+      },
+    },
+  });
 
   render(
     <QueryClientProvider client={client}>
       <WorkoutSetFormDialog
         open
-        workoutSessionId="sess-1"
+        workoutSessionId="bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
         sessionExerciseId="wse-1"
         measurementType="WEIGHT_REPS"
         effortTrackingMode="RIR"
@@ -44,7 +65,7 @@ function renderDialog(overrides: Partial<Props> = {}) {
     </QueryClientProvider>,
   );
 
-  return { onClose, onVersionConflict };
+  return { onClose, onVersionConflict, client };
 }
 
 describe('WorkoutSetFormDialog', () => {
@@ -258,15 +279,15 @@ describe('WorkoutSetFormDialog', () => {
     });
   });
 
-  it('bloque l’enregistrement hors ligne', async () => {
+  it('autorise la saisie hors ligne (file locale)', async () => {
     Object.defineProperty(navigator, 'onLine', {
       configurable: true,
       value: false,
     });
     renderDialog();
     expect(
-      screen.getByText(/Une connexion est nécessaire pour enregistrer cette série/i),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Enregistrer$/i })).toBeDisabled();
+      screen.queryByText(/Une connexion est nécessaire pour enregistrer cette série/i),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Enregistrer$/i })).not.toBeDisabled();
   });
 });

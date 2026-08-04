@@ -366,7 +366,7 @@ describe('Workout lifecycle API (3.3)', () => {
     const idem = await request(app.getHttpServer())
       .post(`/api/v1/workouts/${session.id}/pause`)
       .set('Authorization', `Bearer ${tokenA}`)
-      .send({ expectedVersion: 2, clientCommandId: 'idem-pause' })
+      .send({ expectedVersion: 1, clientCommandId: 'idem-pause' })
       .expect(200);
     expect(idem.body.data.workoutSessionVersion).toBe(2);
 

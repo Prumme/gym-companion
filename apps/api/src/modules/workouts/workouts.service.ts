@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
   buildWorkoutLifecycleFingerprint,
+  buildWorkoutSetCommandFingerprint,
   cancelWorkoutSessionSchema,
   completeWorkoutSessionSchema,
   createWorkoutSessionSchema,
@@ -47,46 +48,6 @@ const sessionDetailInclude = {
     },
   },
 } satisfies Prisma.WorkoutSessionInclude;
-
-function actualPayloadEqual(
-  set: {
-    status: string;
-    actualWeightKg: unknown;
-    actualReps: number | null;
-    actualDurationSeconds: number | null;
-    actualDistanceMeters: unknown;
-    actualRir: number | null;
-    actualRpe: unknown;
-    reachedFailure: boolean;
-    notes: string | null;
-  },
-  normalized: {
-    status: string;
-    actualWeightKg: number | null;
-    actualReps: number | null;
-    actualDurationSeconds: number | null;
-    actualDistanceMeters: number | null;
-    actualRir: number | null;
-    actualRpe: number | null;
-    reachedFailure: boolean;
-    notes: string | null;
-  },
-): boolean {
-  const toNum = (value: unknown) =>
-    value == null ? null : typeof value === 'number' ? value : Number(value);
-
-  return (
-    set.status === normalized.status &&
-    toNum(set.actualWeightKg) === normalized.actualWeightKg &&
-    set.actualReps === normalized.actualReps &&
-    set.actualDurationSeconds === normalized.actualDurationSeconds &&
-    toNum(set.actualDistanceMeters) === normalized.actualDistanceMeters &&
-    set.actualRir === normalized.actualRir &&
-    toNum(set.actualRpe) === normalized.actualRpe &&
-    set.reachedFailure === normalized.reachedFailure &&
-    set.notes === normalized.notes
-  );
-}
 
 @Injectable()
 export class WorkoutsService {
@@ -324,6 +285,95 @@ export class WorkoutsService {
           });
         }
 
+        // Idempotence avant contrôle de version / statut (rejeu après perte de réponse).
+        if (data.clientCommandId) {
+          const existingReceipt = await tx.workoutSetCommand.findFirst({
+            where: {
+              ownerUserId: userId,
+              clientCommandId: data.clientCommandId,
+            },
+          });
+
+          if (existingReceipt) {
+            if (
+              existingReceipt.workoutSessionId !== session.id ||
+              existingReceipt.workoutSetId !== workoutSetId
+            ) {
+              throw new ConflictException({
+                code: 'WORKOUT_SET_COMMAND_CONFLICT',
+                message:
+                  'Cet identifiant de commande est déjà utilisé pour une autre série.',
+              });
+            }
+
+            const exerciseForReceipt = await tx.workoutSessionExercise.findFirst({
+              where: {
+                id: sessionExerciseId,
+                workoutSessionId: session.id,
+              },
+              select: { measurementTypeSnapshot: true },
+            });
+            if (!exerciseForReceipt) {
+              throw new NotFoundException({
+                code: 'WORKOUT_SET_NOT_FOUND',
+                message: 'Série introuvable.',
+              });
+            }
+
+            const receiptValidation = validateWorkoutSetActuals(
+              exerciseForReceipt.measurementTypeSnapshot,
+              {
+                status: data.status,
+                actualWeightKg: data.actualWeightKg,
+                actualReps: data.actualReps,
+                actualDurationSeconds: data.actualDurationSeconds,
+                actualDistanceMeters: data.actualDistanceMeters,
+                actualRir: data.actualRir,
+                actualRpe: data.actualRpe,
+                reachedFailure: data.reachedFailure,
+                notes:
+                  typeof data.notes === 'string' && data.notes.trim() === ''
+                    ? null
+                    : data.notes,
+              },
+            );
+            if (!receiptValidation.ok) {
+              throw new BadRequestException({
+                code: receiptValidation.code,
+                message: receiptValidation.message,
+              });
+            }
+
+            const fingerprint = buildWorkoutSetCommandFingerprint(
+              receiptValidation.normalized,
+            );
+            if (existingReceipt.payloadFingerprint !== fingerprint) {
+              throw new ConflictException({
+                code: 'WORKOUT_SET_COMMAND_CONFLICT',
+                message:
+                  'Cet identifiant de commande a déjà été utilisé avec un autre payload.',
+              });
+            }
+
+            const existingSet = await tx.workoutSet.findFirst({
+              where: { id: workoutSetId, ownerUserId: userId },
+            });
+            if (!existingSet) {
+              throw new NotFoundException({
+                code: 'WORKOUT_SET_NOT_FOUND',
+                message: 'Série introuvable.',
+              });
+            }
+
+            return {
+              workoutSet: toWorkoutSetDetail(
+                existingSet as WorkoutSetSnapshotRow,
+              ),
+              workoutSessionVersion: existingReceipt.appliedVersion,
+            };
+          }
+        }
+
         if (session.status !== 'ACTIVE') {
           throw new BadRequestException({
             code: 'WORKOUT_NOT_EDITABLE',
@@ -402,38 +452,7 @@ export class WorkoutsService {
         }
 
         const normalized = actualValidation.normalized;
-
-        if (data.clientCommandId) {
-          const existingCommand = await tx.workoutSet.findFirst({
-            where: {
-              ownerUserId: userId,
-              clientCommandId: data.clientCommandId,
-            },
-          });
-
-          if (existingCommand) {
-            if (existingCommand.id !== set.id) {
-              throw new ConflictException({
-                code: 'WORKOUT_SET_COMMAND_CONFLICT',
-                message:
-                  'Cet identifiant de commande est déjà utilisé pour une autre série.',
-              });
-            }
-            if (actualPayloadEqual(existingCommand, normalized)) {
-              return {
-                workoutSet: toWorkoutSetDetail(
-                  existingCommand as WorkoutSetSnapshotRow,
-                ),
-                workoutSessionVersion: session.version,
-              };
-            }
-            throw new ConflictException({
-              code: 'WORKOUT_SET_COMMAND_CONFLICT',
-              message:
-                'Cet identifiant de commande a déjà été utilisé avec un autre payload.',
-            });
-          }
-        }
+        const fingerprint = buildWorkoutSetCommandFingerprint(normalized);
 
         const now = new Date();
         const isFinalized =
@@ -471,6 +490,19 @@ export class WorkoutsService {
           data: { version: { increment: 1 } },
           select: { version: true },
         });
+
+        if (data.clientCommandId) {
+          await tx.workoutSetCommand.create({
+            data: {
+              ownerUserId: userId,
+              workoutSessionId: session.id,
+              workoutSetId: set.id,
+              clientCommandId: data.clientCommandId,
+              payloadFingerprint: fingerprint,
+              appliedVersion: updatedSession.version,
+            },
+          });
+        }
 
         return {
           workoutSet: toWorkoutSetDetail(updatedSet as WorkoutSetSnapshotRow),
@@ -530,15 +562,7 @@ export class WorkoutsService {
           });
         }
 
-        if (session.version !== data.expectedVersion) {
-          throw new ConflictException({
-            code: 'WORKOUT_VERSION_CONFLICT',
-            message:
-              'La séance a été modifiée depuis un autre onglet ou appareil.',
-            details: { currentVersion: session.version },
-          });
-        }
-
+        // Idempotence avant contrôle de version (rejeu après perte de réponse).
         if (data.clientCommandId) {
           const existing = await tx.workoutLifecycleCommand.findFirst({
             where: {
@@ -570,6 +594,15 @@ export class WorkoutsService {
               workoutSessionVersion: mapped.version,
             };
           }
+        }
+
+        if (session.version !== data.expectedVersion) {
+          throw new ConflictException({
+            code: 'WORKOUT_VERSION_CONFLICT',
+            message:
+              'La séance a été modifiée depuis un autre onglet ou appareil.',
+            details: { currentVersion: session.version },
+          });
         }
 
         const transition = resolveWorkoutLifecycleTransition(

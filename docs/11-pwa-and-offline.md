@@ -241,6 +241,42 @@ SessionStorage peut être utilisé pour :
 
 ## 8. Schéma IndexedDB proposé
 
+### Implémentation actuelle (jalon 3.5)
+
+Base versionnée :
+
+```text
+gym-companion-offline
+```
+
+Stores :
+
+```text
+workoutSnapshots
+workoutCommands
+workoutSyncState
+```
+
+Cloisonnement : clé logique `userId + workoutSessionId`.
+
+Commandes supportées :
+
+```text
+UPDATE_WORKOUT_SET
+PAUSE_WORKOUT
+RESUME_WORKOUT
+COMPLETE_WORKOUT
+CANCEL_WORKOUT
+```
+
+Non supporté hors ligne : création de séance, édition du snapshot, add/remove/reorder.
+
+La minuterie de repos (3.4) reste dans `localStorage` et ne crée aucune commande.
+
+Synchronisation : lorsque l’application est ouverte (`online`, focus, manuel). Pas de Background Sync garanti.
+
+### Schéma évolutif documenté
+
 Base :
 
 ```text

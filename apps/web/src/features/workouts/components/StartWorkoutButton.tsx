@@ -48,6 +48,46 @@ export function StartWorkoutButton({
         onCancel={start.cancelConfirm}
       />
 
+      {start.pendingTerminal ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          role="presentation"
+          onClick={start.dismissConflict}
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            className="w-full max-w-md rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-lg"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold">Synchronisation requise</h3>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              La fin de cette séance doit encore être synchronisée.
+            </p>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  void start.syncPendingTerminal();
+                }}
+              >
+                Synchroniser maintenant
+              </Button>
+              <Button type="button" onClick={start.openActiveSession}>
+                Ouvrir la séance
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {start.error && !start.confirmOpen && !start.pendingTerminal ? (
+        <p className="mt-2 text-sm text-[var(--danger)]" role="alert">
+          {start.error}
+        </p>
+      ) : null}
+
       <ActiveWorkoutConflictDialog
         conflict={start.conflict}
         onOpen={start.openActiveSession}

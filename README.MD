@@ -314,7 +314,8 @@ pnpm dev
   - Pause / reprise / fin / annulation : `POST /api/v1/workouts/:id/{pause|resume|complete|cancel}`
   - Détail séance : http://localhost:5173/workouts/:workoutSessionId
   - Minuterie de repos : locale uniquement (localStorage), non synchronisée, aucune donnée serveur
-  - Hors périmètre actuel : historique paginé, records, progression calculée, mutations hors ligne, WebSocket, IA
+  - Hors ligne (3.5) : file IndexedDB de commandes pour séries + pause/reprise/fin/annulation ; création de séance toujours en ligne
+  - Hors périmètre actuel : démarrage de séance hors ligne, historique paginé, records, progression calculée, WebSocket, Background Sync garanti, IA
 - Mailpit : http://localhost:8025 (`docker compose up -d mailpit`)
 
 Compose complet (profil `full`) :
@@ -359,7 +360,12 @@ Le jalon **3.4** transforme `/workouts/active` en interface de séance complète
 navigation entre exercices, progression, saisie des séries, actions rapides,
 cycle de vie dans l’en-tête, et **minuterie de repos locale** (non synchronisée,
 restaurable uniquement sur le même navigateur via `localStorage`, aucune entité backend).
-Hors scope actuel : ajout/retrait/réordonnancement d’exercices ou séries, mutations hors ligne,
-historique paginé, records, progression, WebSocket, notifications push, IA.
+
+Le jalon **3.5** ajoute la résilience réseau : snapshot IndexedDB, file de commandes
+(`UPDATE_WORKOUT_SET`, `PAUSE`/`RESUME`/`COMPLETE`/`CANCEL`), application optimiste,
+synchronisation séquentielle à la reprise du réseau (application ouverte), résolution
+explicite des conflits, cloisonnement par utilisateur et nettoyage à la déconnexion.
+La création de séance reste en ligne. Pas de WebSocket ni de Background Sync garanti.
+Hors scope actuel : démarrage hors ligne, édition du snapshot, historique paginé, records, IA.
 
 Les documents du dossier `docs/` restent la source de vérité produit et technique.

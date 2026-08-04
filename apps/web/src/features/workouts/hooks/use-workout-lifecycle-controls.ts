@@ -17,11 +17,8 @@ export function useWorkoutLifecycleControls(
 ) {
   const pauseMutation = usePauseWorkoutSessionMutation(session.id);
   const resumeMutation = useResumeWorkoutSessionMutation(session.id);
-  const offline =
-    typeof navigator !== 'undefined' && navigator.onLine === false;
 
   async function pause() {
-    if (offline) return;
     try {
       await pauseMutation.mutateAsync({ expectedVersion: session.version });
       options.onPaused?.();
@@ -37,7 +34,6 @@ export function useWorkoutLifecycleControls(
   }
 
   async function resume() {
-    if (offline) return;
     try {
       await resumeMutation.mutateAsync({ expectedVersion: session.version });
       options.onResumed?.();
@@ -57,7 +53,7 @@ export function useWorkoutLifecycleControls(
     resume,
     pausePending: pauseMutation.isPending,
     resumePending: resumeMutation.isPending,
-    offline,
+    offline: false,
     pauseError: pauseMutation.error,
     resumeError: resumeMutation.error,
   };

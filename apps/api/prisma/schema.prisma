@@ -479,6 +479,7 @@ model WorkoutSession {
   sourceWorkoutTemplate   WorkoutTemplate?         @relation(fields: [sourceWorkoutTemplateId], references: [id], onDelete: SetNull)
   exercises               WorkoutSessionExercise[]
   lifecycleCommands       WorkoutLifecycleCommand[]
+  setCommands             WorkoutSetCommand[]
 
   @@index([ownerUserId, status])
   @@index([ownerUserId, localDate])
@@ -502,6 +503,25 @@ model WorkoutLifecycleCommand {
   @@unique([ownerUserId, clientCommandId])
   @@index([workoutSessionId])
   @@map("workout_lifecycle_commands")
+}
+
+/// Reçus d’idempotence pour les mises à jour de séries (rejeu hors ligne).
+model WorkoutSetCommand {
+  id                 String   @id @default(uuid()) @db.Uuid
+  ownerUserId        String   @db.Uuid
+  workoutSessionId   String   @db.Uuid
+  workoutSetId       String   @db.Uuid
+  clientCommandId    String
+  payloadFingerprint String
+  appliedVersion     Int
+  createdAt          DateTime @default(now())
+
+  workoutSession WorkoutSession @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerUserId, clientCommandId])
+  @@index([workoutSessionId])
+  @@index([workoutSetId])
+  @@map("workout_set_commands")
 }
 
 model WorkoutSessionExercise {

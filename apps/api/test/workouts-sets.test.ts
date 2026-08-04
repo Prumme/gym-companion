@@ -345,7 +345,60 @@ describe('Workout set recording API (3.2)', () => {
     expect(conflictCmd.body.error.code).toBe('WORKOUT_SET_COMMAND_CONFLICT');
   });
 
+  it('replays set command with stale expectedVersion after lost response', async () => {
+    const detail = await request(app.getHttpServer())
+      .get(`/api/v1/workouts/${sessionId}`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    const currentVersion = detail.body.data.version as number;
+
+    const first = await request(app.getHttpServer())
+      .patch(patchPath())
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({
+        status: 'COMPLETED',
+        actualWeightKg: 62.5,
+        actualReps: 8,
+        actualDurationSeconds: null,
+        actualDistanceMeters: null,
+        actualRir: 1,
+        actualRpe: null,
+        reachedFailure: false,
+        notes: null,
+        expectedVersion: currentVersion,
+        clientCommandId: 'cmd-stale-retry-1',
+      })
+      .expect(200);
+    expect(first.body.data.workoutSessionVersion).toBe(currentVersion + 1);
+
+    const replay = await request(app.getHttpServer())
+      .patch(patchPath())
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({
+        status: 'COMPLETED',
+        actualWeightKg: 62.5,
+        actualReps: 8,
+        actualDurationSeconds: null,
+        actualDistanceMeters: null,
+        actualRir: 1,
+        actualRpe: null,
+        reachedFailure: false,
+        notes: null,
+        expectedVersion: currentVersion,
+        clientCommandId: 'cmd-stale-retry-1',
+      })
+      .expect(200);
+    expect(replay.body.data.workoutSessionVersion).toBe(currentVersion + 1);
+    expect(replay.body.data.workoutSet.actualWeightKg).toBe(62.5);
+  });
+
   it('hides foreign session sets', async () => {
+    const detail = await request(app.getHttpServer())
+      .get(`/api/v1/workouts/${sessionId}`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    const currentVersion = detail.body.data.version as number;
+
     await request(app.getHttpServer())
       .patch(patchPath())
       .set('Authorization', `Bearer ${tokenB}`)
@@ -359,7 +412,7 @@ describe('Workout set recording API (3.2)', () => {
         actualRpe: null,
         reachedFailure: false,
         notes: null,
-        expectedVersion: 5,
+        expectedVersion: currentVersion,
       })
       .expect(404);
 
@@ -370,6 +423,12 @@ describe('Workout set recording API (3.2)', () => {
   });
 
   it('rejects wrong exercise parent', async () => {
+    const detail = await request(app.getHttpServer())
+      .get(`/api/v1/workouts/${sessionId}`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    const currentVersion = detail.body.data.version as number;
+
     await request(app.getHttpServer())
       .patch(
         `/api/v1/workouts/${sessionId}/exercises/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/sets/${setId}`,
@@ -385,7 +444,7 @@ describe('Workout set recording API (3.2)', () => {
         actualRpe: null,
         reachedFailure: false,
         notes: null,
-        expectedVersion: 5,
+        expectedVersion: currentVersion,
       })
       .expect(404);
   });

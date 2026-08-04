@@ -1643,6 +1643,30 @@ export function buildWorkoutLifecycleFingerprint(
   return JSON.stringify(normalized);
 }
 
+export function buildWorkoutSetCommandFingerprint(payload: {
+  status: string;
+  actualWeightKg: number | null;
+  actualReps: number | null;
+  actualDurationSeconds: number | null;
+  actualDistanceMeters: number | null;
+  actualRir: number | null;
+  actualRpe: number | null;
+  reachedFailure: boolean;
+  notes: string | null;
+}): string {
+  return JSON.stringify({
+    status: payload.status,
+    actualWeightKg: payload.actualWeightKg,
+    actualReps: payload.actualReps,
+    actualDurationSeconds: payload.actualDurationSeconds,
+    actualDistanceMeters: payload.actualDistanceMeters,
+    actualRir: payload.actualRir,
+    actualRpe: payload.actualRpe,
+    reachedFailure: payload.reachedFailure,
+    notes: payload.notes,
+  });
+}
+
 export function normalizeOptionalPlainText(
   value: string | null | undefined,
 ): string | null | undefined {

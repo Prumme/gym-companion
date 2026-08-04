@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 
 import { ButtonLink } from '@/components/ui/button';
+import { getMe } from '@/features/profile/api/profile-api';
 import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
 
 import { workoutDetailQueryOptions } from '../api/workout-query-options';
@@ -25,7 +26,16 @@ function formatDateTime(value: string, timeZone: string): string {
 
 export function WorkoutSessionDetailPage() {
   const { workoutSessionId = '' } = useParams();
-  const query = useQuery(workoutDetailQueryOptions(workoutSessionId));
+  const meQuery = useQuery({
+    queryKey: ['me'],
+    queryFn: getMe,
+    staleTime: 60_000,
+  });
+  const userId = meQuery.data?.data.id ?? null;
+  const query = useQuery({
+    ...workoutDetailQueryOptions(workoutSessionId, () => userId),
+    enabled: Boolean(workoutSessionId) && (meQuery.isSuccess || meQuery.isError),
+  });
 
   const session = query.data;
   const progress = useMemo(

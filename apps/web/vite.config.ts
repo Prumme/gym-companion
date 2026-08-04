@@ -38,6 +38,11 @@ export default defineConfig({
         navigateFallback: '/index.html',
         runtimeCaching: [
           {
+            // Ne jamais mettre en cache les API privées (séances, auth, etc.).
+            urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
+            handler: 'NetworkOnly',
+          },
+          {
             urlPattern: ({ request }) => request.destination === 'document',
             handler: 'NetworkFirst',
             options: {

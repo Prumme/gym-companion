@@ -1872,6 +1872,7 @@ Les décisions suivantes sont confirmées pour le jalon 3.3 :
 - saisie des séries interdite pendant `PAUSED` ;
 - `keepRecordedData` forcé à `true` (effacement des performances reporté) ;
 - idempotence lifecycle via table `WorkoutLifecycleCommand` (`ownerUserId` + `clientCommandId`).
+- idempotence séries via table `WorkoutSetCommand` (`ownerUserId` + `clientCommandId`, `payloadFingerprint`, `appliedVersion`) : le rejeu avec `expectedVersion` obsolète après perte de réponse renvoie le reçu sans double effet.
 
 Les décisions encore ouvertes devront être prises avant l’implémentation du module concerné et documentées dans les fichiers techniques.
 
