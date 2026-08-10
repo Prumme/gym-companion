@@ -2246,3 +2246,34 @@ export type {
   CreateAiCoachConversationInput,
   SendAiCoachMessageInput,
 } from './ai-coach-chat';
+
+export {
+  SHARED_WORKOUT_ROOM_DEFAULT_NAME,
+  SHARED_WORKOUT_ROOM_LIST_DEFAULT_LIMIT,
+  SHARED_WORKOUT_ROOM_LIST_MAX_LIMIT,
+  SHARED_WORKOUT_ROOM_NAME_MAX,
+  buildSharedWorkoutRoomCursorFilter,
+  buildSharedWorkoutRoomLifecycleFingerprint,
+  canRenameSharedWorkoutRoom,
+  createSharedWorkoutRoomBodySchema,
+  decodeSharedWorkoutRoomCursor,
+  encodeSharedWorkoutRoomCursor,
+  resolveSharedWorkoutRoomLifecycleTransition,
+  resolveSharedWorkoutRoomName,
+  sharedWorkoutRoomLifecycleActionSchema,
+  sharedWorkoutRoomLifecycleCommandBodySchema,
+  sharedWorkoutRoomListQuerySchema,
+  sharedWorkoutRoomMemberRoleSchema,
+  sharedWorkoutRoomStatusSchema,
+  updateSharedWorkoutRoomBodySchema,
+} from './shared-workout-rooms';
+export type {
+  CreateSharedWorkoutRoomInput,
+  SharedRoomLifecycleTransitionResult,
+  SharedWorkoutRoomCursorPayload,
+  SharedWorkoutRoomLifecycleAction,
+  SharedWorkoutRoomLifecycleCommandInput,
+  SharedWorkoutRoomListQuery,
+  SharedWorkoutRoomStatusValue,
+  UpdateSharedWorkoutRoomInput,
+} from './shared-workout-rooms';

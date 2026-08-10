@@ -8,6 +8,7 @@ import {
   Sparkles,
   Trophy,
   UserRound,
+  Users,
 } from 'lucide-react';
 import { NavLink, Outlet } from 'react-router-dom';
 
@@ -19,6 +20,7 @@ const navItems = [
   { to: '/', label: 'Accueil', icon: Home, end: true },
   { to: '/planning', label: 'Planning', icon: CalendarDays, end: false },
   { to: '/workouts', label: 'Historique', icon: History, end: true },
+  { to: '/shared-workouts', label: 'Partagées', icon: Users, end: false },
   { to: '/records', label: 'Records', icon: Trophy, end: true },
   { to: '/progress', label: 'Progression', icon: ChartColumn, end: true },
   { to: '/coach', label: 'Coach', icon: Sparkles, end: true },

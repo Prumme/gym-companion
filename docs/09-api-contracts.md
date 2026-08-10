@@ -2080,84 +2080,98 @@ JWT obligatoire. Exercice système ou personnel du propriétaire (y compris arch
 
 ## 24. Salles partagées en HTTP
 
-Le temps réel passe par Socket.IO, mais la création et la lecture de base utilisent HTTP.
+> **Shared 5.1 (livré)** — REST uniquement. Socket.IO = Shared 5.3+.
+> Ressource : `/api/v1/shared-workouts` (convention docs ; ne pas confondre avec `/workouts`).
 
-### 24.1 Créer
+JWT obligatoire sur tous les endpoints. Accès lecture = membership ; hors membership → **404 neutre**.
+Mutations rename / lifecycle = owner-only (membre non-owner → **403** `SHARED_WORKOUT_ROOM_NOT_OWNER`).
+
+### 24.1 Créer (Shared 5.1)
 
 ```text
 POST /api/v1/shared-workouts
 ```
 
-Requête :
+Requête (strict) :
 
 ```json
 {
-  "name": "Séance du lundi",
-  "sourceTemplateId": "template-id",
-  "maxParticipants": 3,
-  "targetDurationMinutes": 75,
-  "equipmentIds": ["equipment-1", "equipment-2"],
-  "invitationExpiresAt": "2026-08-03T18:00:00.000Z"
+  "name": "Séance du lundi"
 }
 ```
 
-### 24.2 Détail
+`name` optionnel → défaut serveur `"Séance partagée"`. Interdit client : `ownerUserId`, `status`, `members`, timestamps.
+
+Réponse : détail (`SharedWorkoutRoomDetail`) avec membership `OWNER`.
+
+### 24.2 Liste (Shared 5.1)
+
+```text
+GET /api/v1/shared-workouts?status=&cursor=&limit=
+```
+
+Salles dont l’utilisateur est membre. Tri `updatedAt DESC, id DESC`. `limit` défaut 20, max 50.
+`status` ∈ `LOBBY` | `ACTIVE` | `COMPLETED` | `CANCELLED`.
+
+### 24.3 Détail (Shared 5.1)
 
 ```text
 GET /api/v1/shared-workouts/:roomId
 ```
 
-### 24.3 Résoudre une invitation
+DTO minimal : id, name, status, owner `{ userId, displayName }`, members, timestamps, `isOwner`.
+Pas d’email / tokens / auth.
+
+### 24.4 Renommer (Shared 5.1)
+
+```text
+PATCH /api/v1/shared-workouts/:roomId
+```
+
+```json
+{ "name": "Nouveau nom" }
+```
+
+Uniquement `name`. Autorisé en `LOBBY` / `ACTIVE` ; refusé si terminal.
+
+### 24.5 Lifecycle (Shared 5.1)
+
+```text
+POST /api/v1/shared-workouts/:roomId/start
+POST /api/v1/shared-workouts/:roomId/complete
+POST /api/v1/shared-workouts/:roomId/cancel
+```
+
+Corps :
+
+```json
+{ "clientCommandId": "uuid" }
+```
+
+| Action | Depuis | Timestamps |
+|--------|--------|------------|
+| start | `LOBBY` | `startedAt` |
+| complete | `ACTIVE` | `completedAt` |
+| cancel | `LOBBY` ou `ACTIVE` | `cancelledAt` |
+
+Aucune `WorkoutSession` créée / modifiée. Idempotence + conflit fingerprint via `SharedWorkoutRoomLifecycleCommand`.
+
+Codes : `SHARED_WORKOUT_ROOM_NOT_FOUND`, `SHARED_WORKOUT_ROOM_INVALID_STATUS`, `SHARED_WORKOUT_ROOM_NOT_OWNER`, `SHARED_WORKOUT_ROOM_COMMAND_CONFLICT`, `SHARED_WORKOUT_ROOM_INVALID_CURSOR`.
+
+### 24.6 Invitations / join (Shared 5.2 — non livré)
 
 ```text
 GET /api/v1/shared-workouts/invitations/:invitationCode
-```
-
-La réponse publique doit rester limitée.
-
-### 24.4 Rejoindre
-
-```text
 POST /api/v1/shared-workouts/:roomId/join
-```
-
-Requête :
-
-```json
-{
-  "invitationCode": "ABC123"
-}
-```
-
-### 24.5 Quitter
-
-```text
 POST /api/v1/shared-workouts/:roomId/leave
-```
-
-### 24.6 Révoquer l’invitation
-
-```text
 POST /api/v1/shared-workouts/:roomId/revoke-invitation
-```
-
-### 24.7 Régénérer
-
-```text
 POST /api/v1/shared-workouts/:roomId/regenerate-invitation
 ```
 
-### 24.8 Snapshot
+### 24.7 Snapshot / résumé (Shared 5.3+ — non livré)
 
 ```text
 GET /api/v1/shared-workouts/:roomId/snapshot
-```
-
-Utilisé notamment après reconnexion.
-
-### 24.9 Résumé
-
-```text
 GET /api/v1/shared-workouts/:roomId/summary
 ```
 

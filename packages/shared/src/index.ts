@@ -1129,6 +1129,56 @@ export type CoachingOverview = {
   items: CoachingOverviewItem[];
 };
 
+/** Shared 5.1 — salle de coordination (≠ WorkoutSession). */
+export type SharedWorkoutRoomStatus =
+  | 'LOBBY'
+  | 'ACTIVE'
+  | 'COMPLETED'
+  | 'CANCELLED';
+
+export type SharedWorkoutRoomMemberRole = 'OWNER' | 'MEMBER';
+
+export type SharedWorkoutRoomMemberDto = {
+  userId: string;
+  role: SharedWorkoutRoomMemberRole;
+  displayName: string | null;
+  joinedAt: string;
+};
+
+export type SharedWorkoutRoomListItem = {
+  id: string;
+  name: string;
+  status: SharedWorkoutRoomStatus;
+  memberCount: number;
+  owner: {
+    userId: string;
+    displayName: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+};
+
+export type SharedWorkoutRoomDetail = {
+  id: string;
+  name: string;
+  status: SharedWorkoutRoomStatus;
+  owner: {
+    userId: string;
+    displayName: string | null;
+  };
+  members: SharedWorkoutRoomMemberDto[];
+  startedAt: string | null;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  /** true si l’utilisateur courant est le propriétaire. */
+  isOwner: boolean;
+};
+
+export type SharedWorkoutRoomListResponse =
+  ApiCursorListResponse<SharedWorkoutRoomListItem>;
+
 export function createSuccessResponse<T>(data: T): ApiSuccessResponse<T> {
   return { data };
 }

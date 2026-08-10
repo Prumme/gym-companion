@@ -459,6 +459,16 @@ Idempotence `clientCommandId`, rate limit, boucle d’outils bornée (max 4).
 
 > **Nomenclature :** les jalons techniques **5.1 → 5.6** forment la **Couche Coaching**
 > (livrée sous la Phase 4 produit). La **roadmap Phase 5 — Séances partagées** est
-> distincte et **non commencée**. « 5.6 complete » ≠ séances partagées terminées.
+> distincte : **Shared 5.1** (fondations salle REST) est **livré** ; invitations /
+> Socket.IO restent à venir. « 5.6 complete » ≠ séances partagées terminées.
+
+### Phase 5 produit — Shared 5.1 (livré)
+
+Fondations des salles de séance partagée :
+
+- `SharedWorkoutRoom` + `SharedWorkoutRoomMember` (`OWNER` / `MEMBER`) ;
+- lifecycle `LOBBY` / `ACTIVE` / `COMPLETED` / `CANCELLED` (REST uniquement) ;
+- endpoints `/api/v1/shared-workouts` ; UI `/shared-workouts` ;
+- aucune invitation, aucun Socket.IO, aucune `WorkoutSession` créée automatiquement.
 
 Les documents du dossier `docs/` restent la source de vérité produit et technique.

@@ -1088,39 +1088,94 @@ En 4.1, le contrat API exposé est un DTO dérivé (sans `ownerUserId`, sans lig
 
 ## 29. SharedWorkoutRoom
 
+> **Shared 5.1 (livré)** — modèle minimal ci-dessous.
+> Les champs invitations / template / rotation appartiennent aux jalons ultérieurs.
+
 ```ts
+type SharedWorkoutRoomStatus =
+  | "LOBBY"
+  | "ACTIVE"
+  | "COMPLETED"
+  | "CANCELLED";
+
 type SharedWorkoutRoom = {
-  id: string;
-  hostUserId: string;
+  id: string; // UUID
+  ownerUserId: string;
 
-  sourceTemplateId: string | null;
-
-  name: string;
-  status: SharedRoomStatus;
-
-  invitationCodeHash: string | null;
-  invitationExpiresAt: Date | null;
-  invitationRevokedAt: Date | null;
-
-  maxParticipants: number;
-  targetDurationMinutes: number | null;
-
-  stateVersion: number;
-  rotationAlgorithmVersion: string;
+  name: string; // 1–80, trim ; défaut serveur « Séance partagée »
+  status: SharedWorkoutRoomStatus; // défaut LOBBY
 
   startedAt: Date | null;
   completedAt: Date | null;
+  cancelledAt: Date | null;
 
   createdAt: Date;
   updatedAt: Date;
+
+  // relations
+  owner: User;
+  members: SharedWorkoutRoomMember[];
+  commands: SharedWorkoutRoomLifecycleCommand[];
 };
 ```
 
-### Sécurité
+Index : `ownerUserId`, `status`, `(updatedAt, id)`.
 
-Le code d’invitation peut être stocké sous forme hachée lorsque sa récupération en clair n’est pas nécessaire.
+### Invariants Shared 5.1
 
-## 30. SharedWorkoutParticipant
+- création transactionnelle room + membership `OWNER` ;
+- `ownerUserId` = source autoritative de propriété ;
+- pas d’invitation / code / join persistés ;
+- room ≠ `WorkoutSession` (aucun lien automatique).
+
+### Cible produit (Shared 5.2+)
+
+Champs futurs possibles (non en base en Shared 5.1) :
+
+- `sourceTemplateId` ;
+- invitation code hash / expiration / révocation ;
+- `maxParticipants`, `targetDurationMinutes` ;
+- `stateVersion`, `rotationAlgorithmVersion`.
+
+## 30. SharedWorkoutRoomMember
+
+> **Shared 5.1 (livré).**
+
+```ts
+type SharedWorkoutRoomMemberRole = "OWNER" | "MEMBER";
+
+type SharedWorkoutRoomMember = {
+  id: string;
+  roomId: string;
+  userId: string;
+  role: SharedWorkoutRoomMemberRole;
+  joinedAt: Date;
+};
+```
+
+Contraintes : `UNIQUE(roomId, userId)` ; index `userId`, `roomId`.
+
+### SharedWorkoutRoomLifecycleCommand
+
+Idempotence start / complete / cancel (miroir `WorkoutLifecycleCommand`) :
+
+```ts
+type SharedWorkoutRoomLifecycleCommand = {
+  id: string;
+  ownerUserId: string;
+  roomId: string;
+  clientCommandId: string;
+  action: string;
+  payloadFingerprint: string;
+  createdAt: Date;
+};
+```
+
+`UNIQUE(ownerUserId, clientCommandId)`.
+
+## 30bis. SharedWorkoutParticipant (cible Shared 5.2+)
+
+Ancien nom conceptuel du participant enrichi (présence, stations). **Non créé en Shared 5.1** — le membership minimal est `SharedWorkoutRoomMember`.
 
 ```ts
 type SharedWorkoutParticipant = {
@@ -1755,11 +1810,12 @@ L’audit ne doit pas contenir :
 
 ### Partage
 
-- `SharedWorkoutRoom.hostUserId` ;
+- `SharedWorkoutRoom.ownerUserId` ;
 - `SharedWorkoutRoom.status` ;
-- `SharedWorkoutParticipant.sharedWorkoutRoomId` ;
-- `SharedWorkoutParticipant.userId` ;
-- `RealtimeCommand.commandId` unique.
+- `SharedWorkoutRoomMember.userId` ;
+- `SharedWorkoutRoomMember.(roomId, userId)` unique ;
+- `SharedWorkoutRoomLifecycleCommand.(ownerUserId, clientCommandId)` unique ;
+- (futur) `SharedWorkoutParticipant.*` / `RealtimeCommand.commandId`.
 
 ### Nutrition
 
@@ -2048,14 +2104,17 @@ Index utiles : `(ownerUserId, updatedAt)` conversations ; `(conversationId, crea
 **Dettes d’exploitation (volontaires) :** busy lock et rate limiter IA restent **process-local / mémoire**
 (pas Redis) — acceptable monolithe mono-instance.
 
-### Phase 5 produit (séances partagées — non implémenté)
+### Phase 5 produit (séances partagées — Shared 5.1 livré)
 
-Ne pas confondre avec la Couche Coaching 5.1–5.6. Modèles futurs :
-- SharedWorkoutParticipant ;
+Livré : `SharedWorkoutRoom`, `SharedWorkoutRoomMember`, `SharedWorkoutRoomLifecycleCommand`.
+
+Modèles futurs (Shared 5.2+) :
+- SharedWorkoutParticipant (enrichi) ;
 - SharedWorkoutStation ;
 - SharedParticipantExercisePlan ;
 - SharedRotationAssignment ;
-- RealtimeCommand.
+- RealtimeCommand ;
+- invitation / join (tables dédiées).
 
 ### Phase 6
 

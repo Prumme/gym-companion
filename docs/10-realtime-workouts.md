@@ -1,5 +1,16 @@
 # Séances partagées en temps réel
 
+## 0. Statut d’implémentation
+
+> **Shared 5.1 = REST uniquement.**
+>
+> Les fondations salle (`SharedWorkoutRoom`, membership, lifecycle HTTP) sont livrées
+> via `/api/v1/shared-workouts`. **Aucun** gateway Socket.IO, room socket, événement
+> de présence ni snapshot live n’est configuré en Shared 5.1.
+>
+> Socket.IO démarre dans un jalon ultérieur (**Shared 5.3+**). Ce document décrit
+> la **cible** temps réel ; ne pas le lire comme déjà livré.
+
 ## 1. Objectif de ce document
 
 Ce document définit le fonctionnement temps réel des séances partagées.

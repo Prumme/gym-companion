@@ -86,12 +86,26 @@ Tous les endpoints :
 
 restent **NetworkOnly** dans le service worker (comme l’ensemble de `/api/`).
 
-Précisions :
+Précisions coaching :
 
 - **pas** de queue IndexedDB pour les messages chat ;
 - **pas** d’explication IA générée offline ;
 - les résultats sportifs officiels (records, progression, recommandations, plateau, CoachSummary) restent **serveur-authoritative** ;
 - l’historique de conversation déjà présent dans TanStack Query peut rester visible offline, sans nouvel envoi.
+
+### Shared workouts — NetworkOnly (Shared 5.1)
+
+```text
+/api/v1/shared-workouts/*
+```
+
+également **NetworkOnly**. Serveur authoritative ; **aucune** queue offline IndexedDB
+pour les rooms. Création / mutations nécessitent une connexion ; message UI :
+
+```text
+Une connexion est nécessaire pour gérer une séance partagée.
+```
+
 | Notifications push           | Dépend de la plateforme |              Sans objet |                   Sans objet |
 | Export                       |                     Non |                     Non |                          Non |
 
@@ -221,7 +235,7 @@ Recommandation :
 - TanStack Query pour le cache mémoire ;
 - IndexedDB pour les données explicitement nécessaires ;
 - pas de cache opaque généralisé des endpoints privés dans le service worker ;
-- en particulier `/api/v1/coaching/*` → **NetworkOnly** (voir §3).
+- en particulier `/api/v1/coaching/*` et `/api/v1/shared-workouts/*` → **NetworkOnly** (voir §3).
 
 ### 6.5 Réponses d’authentification
 

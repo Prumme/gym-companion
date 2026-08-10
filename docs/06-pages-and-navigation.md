@@ -77,13 +77,13 @@ Structure cible (routes livrées en gras conceptuel via commentaires) :
 │   ├── active                      # séance interactive (jalons 3.4–3.5)
 │   └── :workoutSessionId           # détail ; lecture seule si COMPLETED/CANCELLED
 │
-├── shared-workouts                 # phase 5 — futur
-│   ├── new
-│   ├── join
-│   └── :roomId
-│       ├── lobby
-│       ├── active
-│       └── summary
+├── shared-workouts                 # Shared 5.1 livré (fondations)
+│   ├── new                         # livré
+│   ├── join                        # Shared 5.2 — futur
+│   └── :roomId                     # livré (lobby / active / terminal unifiés)
+│       ├── lobby                   # futur (alias possible)
+│       ├── active                  # futur (alias possible)
+│       └── summary                 # futur
 │
 ├── progress                        # livré (4.3–4.5 + coaching sections)
 │   ├── (overview = /progress)
@@ -112,7 +112,8 @@ Structure cible (routes livrées en gras conceptuel via commentaires) :
 
 > Routes coaching livrées : `/coach`, `/coach/chat`, `/progress/exercises/:exerciseId`.
 > `/coach/proposals/:proposalId` reste **futur** (génération de programme) — hors Couche Coaching 5.1–5.6.
-> « Phase 5 » dans l’arbre (`shared-workouts`) = roadmap **Séances partagées**, distincte des jalons coaching 5.x.
+> « Phase 5 » / Shared (`shared-workouts`) = roadmap **Séances partagées** : **Shared 5.1 livré**
+> (`/shared-workouts`, `/new`, `/:roomId`) ; join / lobby dédié / Socket.IO = jalons suivants.
 
 ## 4. Navigation mobile principale
 
@@ -215,6 +216,7 @@ Sections livrées :
 - Records (`/records`) ;
 - Progression (`/progress`, `/progress/exercises/:exerciseId`) ;
 - Coach (`/coach`) ;
+- Séances partagées (`/shared-workouts`) — Shared 5.1 ;
 - Programmes ;
 - Exercices ;
 - Profil.
@@ -222,8 +224,8 @@ Sections livrées :
 Sections futures :
 
 - Nutrition ;
-- Séances partagées ;
-- Coach IA ;
+- Invitations / join shared (Shared 5.2+) ;
+- Coach IA (génération programme) ;
 - Paramètres avancés.
 
 La navigation desktop peut afficher davantage d’informations, mais les routes et concepts doivent rester identiques à la version mobile.
@@ -919,7 +921,16 @@ Hors scope 4.5 : autres formules, 1RM RIR/RPE, recommandations, matérialisation
 /shared-workouts/new
 ```
 
-### Étapes
+> **Shared 5.1 (livré)** — formulaire minimal (nom optionnel).  
+> Sélection de modèle, équipements, capacité et invitation = jalons ultérieurs.
+
+### Shared 5.1 — étapes
+
+1. Saisir un nom de salle (ou laisser le défaut serveur).
+2. Créer la salle.
+3. Naviguer vers `/shared-workouts/:roomId` (lobby owner seul).
+
+### Cible produit (ultérieur)
 
 1. Choisir une séance.
 2. Définir les équipements disponibles.
@@ -927,14 +938,28 @@ Hors scope 4.5 : autres formules, 1RM RIR/RPE, recommandations, matérialisation
 4. Créer la salle.
 5. Partager l’invitation.
 
-### Informations
+### Informations Shared 5.1
 
-- nom ;
-- modèle ;
-- capacité ;
-- durée cible ;
-- équipements ;
-- expiration du code.
+- nom (1–80, trim ; défaut « Séance partagée »).
+
+### Liste
+
+```text
+/shared-workouts
+```
+
+Affiche les salles dont l’utilisateur est membre (filtre `status`, pagination cursor).
+État vide + CTA « Créer une salle ».
+
+### Lobby / détail unifié Shared 5.1
+
+```text
+/shared-workouts/:roomId
+```
+
+Selon `status` : préparation (LOBBY), en cours (ACTIVE), terminée / annulée (read-only).
+Actions owner : renommer (LOBBY/ACTIVE), démarrer, terminer, annuler.
+Message discret : invitations à venir — **pas** de bouton Inviter factice.
 
 ## 27. Rejoindre une séance partagée
 

@@ -706,6 +706,24 @@ Tester :
 
 ### 17.3 Séance partagée
 
+#### Shared 5.1 (fondations REST — livré)
+
+Tester :
+
+- création room + membership OWNER transactionnelle ;
+- échec membership → aucune room orpheline ;
+- liste membership (MEMBER fixture visible en lecture) ;
+- IDOR : non-membre → 404 sur GET/PATCH/lifecycle ;
+- owner-only : MEMBER → read OK, mutations 403 ;
+- lifecycle LOBBY→ACTIVE→COMPLETED ; LOBBY/ACTIVE→CANCELLED ;
+- refus transitions invalides / états terminaux ;
+- timestamps ; concurrence complete vs cancel ;
+- idempotence `clientCommandId` ;
+- aucune `WorkoutSession` créée/modifiée ;
+- UI liste / création / lobby ; offline message ; pas de Socket.IO.
+
+#### Cible produit (Shared 5.2+)
+
 Tester :
 
 - station ;

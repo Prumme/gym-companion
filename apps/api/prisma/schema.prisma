@@ -73,6 +73,9 @@ model User {
   workoutSets             WorkoutSet[]
   loadRecommendationDecisions LoadRecommendationDecision[]
   aiCoachConversations    AiCoachConversation[]
+  ownedSharedWorkoutRooms SharedWorkoutRoom[]             @relation("SharedWorkoutRoomOwner")
+  sharedWorkoutRoomMemberships SharedWorkoutRoomMember[]
+  sharedWorkoutRoomLifecycleCommands SharedWorkoutRoomLifecycleCommand[]
 
   @@index([status])
   @@map("users")
@@ -710,4 +713,72 @@ model AiCoachToolInvocation {
 
   @@index([assistantMessageId, createdAt])
   @@map("ai_coach_tool_invocations")
+}
+
+/// Shared 5.1 — salle de coordination (≠ WorkoutSession individuelle).
+enum SharedWorkoutRoomStatus {
+  LOBBY
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum SharedWorkoutRoomMemberRole {
+  OWNER
+  MEMBER
+}
+
+model SharedWorkoutRoom {
+  id           String                   @id @default(uuid()) @db.Uuid
+  ownerUserId  String                   @db.Uuid
+  name         String
+  status       SharedWorkoutRoomStatus  @default(LOBBY)
+  startedAt    DateTime?
+  completedAt  DateTime?
+  cancelledAt  DateTime?
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+
+  owner      User                                @relation("SharedWorkoutRoomOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  members    SharedWorkoutRoomMember[]
+  commands   SharedWorkoutRoomLifecycleCommand[]
+
+  @@index([ownerUserId])
+  @@index([status])
+  @@index([updatedAt, id])
+  @@map("shared_workout_rooms")
+}
+
+model SharedWorkoutRoomMember {
+  id       String                      @id @default(uuid()) @db.Uuid
+  roomId   String                      @db.Uuid
+  userId   String                      @db.Uuid
+  role     SharedWorkoutRoomMemberRole
+  joinedAt DateTime                    @default(now())
+
+  room SharedWorkoutRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@index([userId])
+  @@index([roomId])
+  @@map("shared_workout_room_members")
+}
+
+/// Idempotence start / complete / cancel (pattern WorkoutLifecycleCommand).
+model SharedWorkoutRoomLifecycleCommand {
+  id                 String   @id @default(uuid()) @db.Uuid
+  ownerUserId        String   @db.Uuid
+  roomId             String   @db.Uuid
+  clientCommandId    String
+  action             String
+  payloadFingerprint String
+  createdAt          DateTime @default(now())
+
+  room SharedWorkoutRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User              @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerUserId, clientCommandId])
+  @@index([roomId])
+  @@map("shared_workout_room_lifecycle_commands")
 }

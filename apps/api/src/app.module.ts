@@ -14,6 +14,7 @@ import { WorkoutsModule } from './modules/workouts/workouts.module';
 import { PersonalRecordsModule } from './modules/personal-records/personal-records.module';
 import { ProgressModule } from './modules/progress/progress.module';
 import { CoachingModule } from './modules/coaching/coaching.module';
+import { SharedWorkoutsModule } from './modules/shared-workouts/shared-workouts.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { CoachingModule } from './modules/coaching/coaching.module';
     PersonalRecordsModule,
     ProgressModule,
     CoachingModule,
+    SharedWorkoutsModule,
   ],
   providers: [
     {

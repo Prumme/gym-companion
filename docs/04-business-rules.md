@@ -773,16 +773,61 @@ Le conflit ne doit pas être résolu silencieusement en supprimant les données 
 
 ## 18. Séances partagées
 
-### 18.1 Rôles
+> **Shared 5.1 (livré)** : fondations salle REST uniquement.
+> Invitations (5.2), présence / Socket.IO (5.3+) et rotation restent futurs.
+> Les sous-sections 18.3+ décrivent la cible produit ; 18.0–18.2bis fixent le livré.
 
-Rôles initiaux :
+### 18.0 Shared 5.1 — Fondations
 
-- `HOST` ;
-- `PARTICIPANT`.
+Une `SharedWorkoutRoom` est un **conteneur de coordination**. Elle n’est pas :
 
+- un `WorkoutTemplate` ;
+- une `WorkoutSession` individuelle ;
+- un programme ;
+- une recommandation Coach.
+
+Démarrer / terminer / annuler une salle **ne crée, ne modifie et ne termine** aucune `WorkoutSession`.
+
+### 18.1 Rôles (Shared 5.1)
+
+Rôles membres :
+
+- `OWNER` — propriétaire ; source autoritative aussi via `ownerUserId` ;
+- `MEMBER` — membre ordinaire (préparé pour Shared 5.2 ; non créable via API en 5.1).
+
+À la création : `ownerUserId = currentUser` **et** membership `OWNER` dans la même transaction.
+
+Nomenclature historique `HOST` / `PARTICIPANT` = synonymes conceptuels de `OWNER` / `MEMBER`.
 Un rôle `OBSERVER` pourra être ajouté plus tard.
 
-### 18.2 Autorité
+### 18.1bis Accès et mutations (Shared 5.1)
+
+- Lecture : uniquement les utilisateurs présents dans `SharedWorkoutRoomMember` (sinon **404 neutre**).
+- Mutations rename / start / complete / cancel : **owner-only** (`ownerUserId`).
+- Membre non-owner visible : lecture OK, mutations → **403** `SHARED_WORKOUT_ROOM_NOT_OWNER`.
+- Pas de suppression physique UI ; `CANCELLED` suffit pour retirer une salle inutilisée.
+- Rename autorisé uniquement en `LOBBY` / `ACTIVE` (historique terminal stable).
+
+### 18.2 Lifecycle (Shared 5.1)
+
+Statuts : `LOBBY` | `ACTIVE` | `COMPLETED` | `CANCELLED`.
+
+Transitions autorisées :
+
+```text
+LOBBY → ACTIVE → COMPLETED
+LOBBY → CANCELLED
+ACTIVE → CANCELLED
+```
+
+Interdites : `COMPLETED → *`, `CANCELLED → *`, `ACTIVE → LOBBY`, `LOBBY → COMPLETED`.
+
+Timestamps : création → tous null ; start → `startedAt` ; complete → `completedAt` ; cancel → `cancelledAt` (un seul terminal).
+
+Idempotence lifecycle via `clientCommandId` (`SharedWorkoutRoomLifecycleCommand`), même principe que les `WorkoutSession`.
+Concurrence : update conditionnel sur `status` — un seul résultat lifecycle gagne.
+
+### 18.2bis Autorité (cible produit)
 
 Le serveur possède l’état autoritaire de la salle.
 
