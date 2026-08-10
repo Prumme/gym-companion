@@ -435,4 +435,11 @@ par `sourceExerciseId` + équipement stable. Statuts
 **Aucune** prescription (deload, changement d’exercice…), aucune table Prisma,
 aucune IA. Indépendant de 5.1/5.2.
 
+Le jalon **5.4** ajoute le **Coach déterministe explicatif** : composition des
+résultats 4.x / 5.1 / 5.2 / 5.3 en synthèse lisible (statut, headline, notices,
+actions). Endpoints `GET /api/v1/coaching/exercises/:id/summary` et
+`GET /api/v1/coaching/overview`. Route `/coach` + section Coach sur la
+progression d’exercice. **Aucun LLM**, aucune persistance de résumé, aucune
+mutation métier.
+
 Les documents du dossier `docs/` restent la source de vérité produit et technique.

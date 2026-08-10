@@ -1,5 +1,7 @@
 import type {
+  CoachingOverview,
   DecideLoadRecommendationResult,
+  ExerciseCoachSummary,
   LoadRecommendation,
   LoadRecommendationDecisionListResponse,
   PlateauAnalysis,
@@ -53,6 +55,28 @@ export async function getPlateauAnalysis(
   const suffix = search.toString();
   const response = await apiFetch<{ data: PlateauAnalysis }>(
     `/api/v1/coaching/exercises/${encodeURIComponent(exerciseId)}/plateau-analysis${suffix ? `?${suffix}` : ''}`,
+  );
+  return response.data;
+}
+
+export async function getExerciseCoachSummary(
+  exerciseId: string,
+  params: { equipmentId?: string; from?: string; to?: string } = {},
+): Promise<ExerciseCoachSummary> {
+  const search = new URLSearchParams();
+  if (params.equipmentId) search.set('equipmentId', params.equipmentId);
+  if (params.from) search.set('from', params.from);
+  if (params.to) search.set('to', params.to);
+  const suffix = search.toString();
+  const response = await apiFetch<{ data: ExerciseCoachSummary }>(
+    `/api/v1/coaching/exercises/${encodeURIComponent(exerciseId)}/summary${suffix ? `?${suffix}` : ''}`,
+  );
+  return response.data;
+}
+
+export async function getCoachingOverview(): Promise<CoachingOverview> {
+  const response = await apiFetch<{ data: CoachingOverview }>(
+    '/api/v1/coaching/overview',
   );
   return response.data;
 }

@@ -7,6 +7,7 @@ import { ButtonLink } from '@/components/ui/button';
 import { LoadingState } from '@/components/common/LoadingState';
 import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
 import { PlateauAnalysisSection } from '@/features/coaching/components/PlateauAnalysisSection';
+import { ExerciseCoachSummarySection } from '@/features/coaching/components/ExerciseCoachSummarySection';
 
 import {
   exerciseProgressQueryOptions,
@@ -270,6 +271,13 @@ export function ExerciseProgressPage() {
           isLoading={strengthQuery.isLoading}
           isError={strengthQuery.isError}
           onRetry={() => void strengthQuery.refetch()}
+        />
+      ) : null}
+
+      {exerciseId ? (
+        <ExerciseCoachSummarySection
+          exerciseId={exerciseId}
+          enabled={progressQuery.isSuccess}
         />
       ) : null}
 

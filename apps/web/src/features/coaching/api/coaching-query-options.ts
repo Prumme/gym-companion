@@ -3,6 +3,8 @@ import { queryOptions } from '@tanstack/react-query';
 import {
   getLoadRecommendation,
   getPlateauAnalysis,
+  getCoachingOverview,
+  getExerciseCoachSummary,
   listLoadRecommendationDecisions,
 } from './coaching-api';
 import { coachingQueryKeys } from './coaching-query-keys';
@@ -37,6 +39,25 @@ export function plateauAnalysisQueryOptions(
   return queryOptions({
     queryKey: coachingQueryKeys.plateauAnalysis(exerciseId, filters),
     queryFn: () => getPlateauAnalysis(exerciseId, filters),
+    staleTime: 30_000,
+  });
+}
+
+export function exerciseCoachSummaryQueryOptions(
+  exerciseId: string,
+  filters: { equipmentId?: string; from?: string; to?: string } = {},
+) {
+  return queryOptions({
+    queryKey: coachingQueryKeys.exerciseSummary(exerciseId, filters),
+    queryFn: () => getExerciseCoachSummary(exerciseId, filters),
+    staleTime: 30_000,
+  });
+}
+
+export function coachingOverviewQueryOptions() {
+  return queryOptions({
+    queryKey: coachingQueryKeys.overview(),
+    queryFn: () => getCoachingOverview(),
     staleTime: 30_000,
   });
 }

@@ -1982,6 +1982,14 @@ L’analyse de plateau est **dérivée à la lecture** :
 - calcul depuis séances `COMPLETED` + snapshots (`sourceExerciseId`, équipement, cibles, perfs) ;
 - le statut n’est **pas** matérialisé : il évolue avec de nouvelles séances.
 
+### Jalon 5.4 — Coach explicatif (hors tables)
+
+Les synthèses Coach (`ExerciseCoachSummary`, `CoachingOverview`) sont **dérivées** :
+
+- pas de modèle Prisma `CoachSummary` / `CoachInsight` / `CoachAlert` ;
+- composition des résultats progression / force / load reco / plateau / décisions ;
+- aucun texte généré par LLM.
+
 ### Phase 5
 
 - SharedWorkoutRoom ;

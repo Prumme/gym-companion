@@ -71,5 +71,14 @@ describe('coaching invalidation (5.1)', () => {
       'ex-1',
       null,
     ]);
+    expect(coachingQueryKeys.overview()).toEqual(['coaching', 'overview']);
+    expect(coachingQueryKeys.exerciseSummary('ex-1')).toEqual([
+      'coaching',
+      'exercise-summary',
+      'ex-1',
+      null,
+      null,
+      null,
+    ]);
   });
 });

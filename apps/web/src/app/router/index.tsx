@@ -26,6 +26,7 @@ import { WorkoutsHistoryPage } from '@/features/workouts/pages/WorkoutsHistoryPa
 import { PersonalRecordsPage } from '@/features/personal-records/pages/PersonalRecordsPage';
 import { ExerciseProgressPage } from '@/features/progress/pages/ExerciseProgressPage';
 import { ProgressOverviewPage } from '@/features/progress/pages/ProgressOverviewPage';
+import { CoachOverviewPage } from '@/features/coaching/pages/CoachOverviewPage';
 
 export const router = createBrowserRouter([
   {
@@ -50,6 +51,7 @@ export const router = createBrowserRouter([
             path: 'progress/exercises/:exerciseId',
             element: <ExerciseProgressPage />,
           },
+          { path: 'coach', element: <CoachOverviewPage /> },
           { path: 'workouts/active', element: <ActiveWorkoutPage /> },
           {
             path: 'workouts/:workoutSessionId',

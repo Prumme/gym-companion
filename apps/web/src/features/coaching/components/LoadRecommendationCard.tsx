@@ -93,6 +93,12 @@ export function LoadRecommendationCard({
           workoutTemplateExerciseId,
         ),
       });
+      void queryClient.invalidateQueries({
+        queryKey: coachingQueryKeys.exerciseSummaries(),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: coachingQueryKeys.overview(),
+      });
       setDialogMode(null);
       setDialogError(null);
       setStaleNotice(null);

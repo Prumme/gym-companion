@@ -122,7 +122,7 @@ Proposition alignée sur la phase 3 livrée :
 Accueil | Planning | Historique | Records | Progression | Programmes | Exercices | Profil
 ```
 
-Routes : `/`, `/planning`, `/workouts`, `/records`, `/progress`, `/programs`, `/exercises`, `/profile`.
+Routes : `/`, `/planning`, `/workouts`, `/records`, `/progress`, `/coach`, `/programs`, `/exercises`, `/profile`.
 Progression par exercice : `/progress/exercises/:exerciseId` (jalon 4.3).
 
 ### 4.1 Accueil / Planning
@@ -171,7 +171,17 @@ Routes et navigation livrées en phase 4 :
 - métriques compatibles avec le type de mesure ;
 - graphique + liste accessible des points ;
 - mêmes presets de période que le dashboard (`?period=all` = tout l’historique) ;
-- section **Force estimée** (e1RM Epley V1) pour `WEIGHT_REPS`.
+- section **Force estimée** (e1RM Epley V1) pour `WEIGHT_REPS` ;
+- section **Analyse de progression** / plateau (5.3) ;
+- section **Coach** (5.4) — synthèse déterministe + actions de navigation.
+
+#### `/coach` (jalon 5.4)
+
+Synthèse Coach déterministe (pas d’IA) :
+
+- titre + courte explication ;
+- cartes d’attention (REVIEW / PLATEAU / WATCH / PROGRESSING) ;
+- liens vers `/progress/exercises/:id`.
 
 ### 4.6 Profil
 
@@ -188,6 +198,7 @@ Sections livrées :
 - Historique (`/workouts`) ;
 - Records (`/records`) ;
 - Progression (`/progress`, `/progress/exercises/:exerciseId`) ;
+- Coach (`/coach`) ;
 - Programmes ;
 - Exercices ;
 - Profil.
@@ -1177,6 +1188,10 @@ Les performances privées d’un autre participant ne sont affichées que s’il
 Une variation journalière ne doit pas être présentée comme une tendance significative.
 
 ## 37. Coach IA
+
+> La route `/coach` est d’abord livrée en jalon **5.4** comme Coach **déterministe**
+> (synthèse des moteurs existants, sans LLM). La couche conversationnelle / propositions
+> IA ci-dessous reste hors 5.4.
 
 ### Route
 

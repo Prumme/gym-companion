@@ -89,20 +89,26 @@ données historiques
 → plateau déterministe (5.3)
 → recommandations déterministes (5.1)
 → décision utilisateur (5.2)
-→ future couche IA explicative
+→ CoachSummary déterministe (5.4)
+→ future couche LLM
+→ reformulation / explication / conversation
 ```
+
+Le LLM futur recevra des **faits structurés** provenant du Coach (statut, recommandation,
+raisons, plateau, progression, e1RM, décision récente, notices). Il ne devra pas recevoir
+un accès direct non filtré à toute la base. Il ne doit **pas** inventer un plateau ni
+contourner la décision utilisateur.
 
 L’IA future ne doit **pas** devenir la seule source des règles de progression.
 Elle ne doit **pas** pouvoir contourner l’étape « décision utilisateur » pour
 modifier directement le programme.
-Elle peut expliquer un plateau, mais ne doit **pas** inventer son existence sans
-données structurées du moteur 5.3.
 
 Le jalon 5.1 livre le moteur déterministe (lecture seule).
 Le jalon 5.2 livre l’application confirmée (ACCEPTED / ADJUSTED / IGNORED), sans
 auto-apply et sans appel OpenAI.
 Le jalon 5.3 livre le signal de stagnation (NONE / WATCH / PLATEAU / …), sans
 prescription corrective.
+Le jalon 5.4 livre le Coach explicatif déterministe (composition, `/coach`), sans LLM.
 
 ### 3.3 Les sorties sont structurées
 

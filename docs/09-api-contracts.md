@@ -1974,6 +1974,25 @@ type PlateauAnalysis = {
 - Warmups exclus ; WORKING ; e1RM Epley V1 ; tolérances 1 % / 1 kg.
 - Lecture seule ; NetworkOnly ; invalidation après `COMPLETE` serveur (`coachingQueryKeys.all`).
 
+### 23.2sexies Coach déterministe (jalon 5.4)
+
+Composition **dérivée** des moteurs existants (aucune table, aucun LLM).
+
+```text
+GET /api/v1/coaching/exercises/:exerciseId/summary
+GET /api/v1/coaching/overview
+```
+
+JWT obligatoire. Summary : exercice accessible ; étranger → `404 EXERCISE_NOT_FOUND`.
+
+Query summary optionnelle : `equipmentId?`, `from?`, `to?`.
+
+Statut UI : `NO_DATA` | `BUILDING_HISTORY` | `PROGRESSING` | `STABLE` | `WATCH` | `PLATEAU` | `REVIEW`.
+
+Priorité : REVIEW > PLATEAU > WATCH > PROGRESSING > STABLE > BUILDING_HISTORY > NO_DATA.
+
+Overview : exercices récents (90 j), max 5 items, priorités REVIEW/PLATEAU/WATCH/PROGRESSING (peut être vide).
+
 ### 23.3 Records (jalon 4.1)
 
 Calculés **à la demande** depuis l’historique (pas de table `PersonalRecord`).

@@ -924,6 +924,125 @@ export type PlateauAnalysis = {
   };
 };
 
+/** Statuts UI du Coach déterministe (jalon 5.4 — dérivé, non persisté). */
+export type ExerciseCoachStatus =
+  | 'NO_DATA'
+  | 'BUILDING_HISTORY'
+  | 'PROGRESSING'
+  | 'STABLE'
+  | 'WATCH'
+  | 'PLATEAU'
+  | 'REVIEW';
+
+export type ExerciseCoachHeadline = {
+  title: string;
+  description: string;
+};
+
+export type CoachLoadRecommendationSummary = {
+  action: LoadRecommendationAction;
+  currentWeightKg: number | null;
+  suggestedWeightKg: number | null;
+  reasons: LoadRecommendationReason[];
+  workoutCount: number;
+  actionable: boolean;
+  workoutTemplateExerciseId: string | null;
+  programId: string | null;
+};
+
+export type CoachPlateauSummary = {
+  status: PlateauStatus;
+  reasons: PlateauReason[];
+  analyzedWorkoutCount: number;
+  firstWorkoutDate: string | null;
+  latestWorkoutDate: string | null;
+};
+
+export type CoachProgressSummary = {
+  maxWeightKg: {
+    first: number | null;
+    latest: number | null;
+    change: number | null;
+  };
+  maxReps: {
+    first: number | null;
+    latest: number | null;
+    change: number | null;
+  };
+  workoutCount: number;
+};
+
+export type CoachStrengthSummary = {
+  latestEstimatedOneRepMaxKg: number | null;
+  bestEstimatedOneRepMaxKg: number | null;
+  changeKg: number | null;
+  changePercent: number | null;
+};
+
+export type CoachDecisionSummary = {
+  decisionType: LoadRecommendationDecisionType;
+  recommendationAction: LoadRecommendationAction;
+  recommendedWeightKg: number | null;
+  appliedWeightKg: number | null;
+  createdAt: string;
+};
+
+export type CoachActionType =
+  | 'VIEW_LOAD_RECOMMENDATION'
+  | 'VIEW_PROGRESS'
+  | 'VIEW_RECORDS'
+  | 'VIEW_HISTORY'
+  | 'VIEW_PROGRAM';
+
+export type CoachAction = {
+  type: CoachActionType;
+  label: string;
+  href: string;
+};
+
+export type CoachNoticeSeverity = 'INFO' | 'ATTENTION';
+
+export type CoachNotice = {
+  code: string;
+  severity: CoachNoticeSeverity;
+  message: string;
+};
+
+export type ExerciseCoachSummary = {
+  exercise: {
+    id: string;
+    name: string;
+    archived: boolean | null;
+    measurementType: ExerciseMeasurementType;
+  };
+  supported: boolean;
+  status: ExerciseCoachStatus;
+  headline: ExerciseCoachHeadline;
+  loadRecommendation: CoachLoadRecommendationSummary | null;
+  plateau: CoachPlateauSummary | null;
+  progress: CoachProgressSummary | null;
+  strength: CoachStrengthSummary | null;
+  recentDecision: CoachDecisionSummary | null;
+  actions: CoachAction[];
+  notices: CoachNotice[];
+  generatedFrom: {
+    latestWorkoutDate: string | null;
+    workoutCount: number;
+  };
+};
+
+export type CoachingOverviewItem = {
+  exerciseId: string;
+  exerciseName: string;
+  status: ExerciseCoachStatus;
+  headline: string;
+  latestWorkoutDate: string | null;
+};
+
+export type CoachingOverview = {
+  items: CoachingOverviewItem[];
+};
+
 export function createSuccessResponse<T>(data: T): ApiSuccessResponse<T> {
   return { data };
 }

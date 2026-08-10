@@ -2124,3 +2124,26 @@ export type {
   PlateauStatus,
   PlateauWorkoutPoint,
 } from './plateau-analysis';
+
+export {
+  COACH_OVERVIEW_RECENCY_DAYS,
+  COACH_OVERVIEW_LIMIT,
+  COACH_OVERVIEW_CANDIDATE_LIMIT,
+  buildExerciseCoachActions,
+  buildExerciseCoachNotices,
+  compareExerciseCoachStatusPriority,
+  inferSignificantRecentProgress,
+  resolveExerciseCoachHeadline,
+  resolveExerciseCoachStatus,
+  exerciseCoachSummaryQuerySchema,
+} from './exercise-coach';
+export type {
+  CoachActionDraft,
+  CoachActionType,
+  CoachNoticeDraft,
+  CoachNoticeSeverity,
+  ExerciseCoachHeadline,
+  ExerciseCoachStatus,
+  ExerciseCoachSummaryQuery,
+  ResolveExerciseCoachStatusInput,
+} from './exercise-coach';

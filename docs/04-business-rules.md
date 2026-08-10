@@ -577,6 +577,20 @@ Statuts :
 
 Indépendant de 5.1/5.2 : un `PLATEAU` n’altère pas `INCREASE`/`HOLD`/`DECREASE`.
 
+### 13.3quater Coach déterministe (jalon 5.4)
+
+Le Coach **explique** ; il ne **décide** pas et n’**applique** rien.
+
+```text
+données → métriques → moteurs 4.x/5.1/5.2/5.3 → Coach explicatif → future LLM
+```
+
+- Aucun LLM / prompt / OpenAI.
+- Aucune table `CoachSummary` / `CoachInsight`.
+- Statut UI dérivé (priorité : REVIEW > PLATEAU > WATCH > PROGRESSING > STABLE > BUILDING_HISTORY > NO_DATA).
+- HOLD 5.1 ne devient pas WATCH sans signal plateau.
+- Actions = navigation uniquement (`VIEW_*`), jamais de mutation.
+
 ### 13.4 Cas de progression
 
 Une augmentation peut être proposée lorsqu’un utilisateur réussit de manière répétée les séries prévues avec une marge suffisante.

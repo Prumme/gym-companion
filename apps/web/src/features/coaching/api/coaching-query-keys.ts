@@ -24,4 +24,18 @@ export const coachingQueryKeys = {
       exerciseId,
       filters.equipmentId ?? null,
     ] as const,
+  overview: () => [...coachingQueryKeys.all, 'overview'] as const,
+  exerciseSummaries: () =>
+    [...coachingQueryKeys.all, 'exercise-summary'] as const,
+  exerciseSummary: (
+    exerciseId: string,
+    filters: { equipmentId?: string; from?: string; to?: string } = {},
+  ) =>
+    [
+      ...coachingQueryKeys.exerciseSummaries(),
+      exerciseId,
+      filters.equipmentId ?? null,
+      filters.from ?? null,
+      filters.to ?? null,
+    ] as const,
 };

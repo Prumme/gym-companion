@@ -5,6 +5,7 @@ import {
   Dumbbell,
   History,
   Home,
+  Sparkles,
   Trophy,
   UserRound,
 } from 'lucide-react';
@@ -20,6 +21,7 @@ const navItems = [
   { to: '/workouts', label: 'Historique', icon: History, end: true },
   { to: '/records', label: 'Records', icon: Trophy, end: true },
   { to: '/progress', label: 'Progression', icon: ChartColumn, end: true },
+  { to: '/coach', label: 'Coach', icon: Sparkles, end: true },
   { to: '/programs', label: 'Programmes', icon: ClipboardList, end: false },
   { to: '/exercises', label: 'Exercices', icon: Dumbbell, end: false },
   { to: '/profile', label: 'Profil', icon: UserRound, end: false },

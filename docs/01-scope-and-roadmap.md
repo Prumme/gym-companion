@@ -456,6 +456,18 @@ Transformer les données enregistrées en informations utiles (records, progress
 
 **Restent hors 5.3 :** deload, changement d’exercice / rep range / volume, fatigue, readiness, IA, notifications.
 
+**Livré en jalon 5.4 (Coach déterministe explicatif) :**
+
+- composition des moteurs existants (progression, force, load reco, plateau, décisions) ;
+- statut UI `NO_DATA` / `BUILDING_HISTORY` / `PROGRESSING` / `STABLE` / `WATCH` / `PLATEAU` / `REVIEW` ;
+- headlines / notices / actions déterministes (pas de LLM) ;
+- endpoints `GET /api/v1/coaching/exercises/:id/summary` et `GET /api/v1/coaching/overview` ;
+- page `/coach` + section Coach sur `/progress/exercises/:id` ;
+- overview limité (récence 90 j, max 5 items, priorité REVIEW/PLATEAU/WATCH/PROGRESSING) ;
+- **aucune** table Coach, aucune prescription, aucune IA.
+
+**Restent hors 5.4 :** chat, streaming, prompts OpenAI, génération de séance/programme, deload auto, nutrition.
+
 ### 7.4 Hors périmètre
 
 - Analyse prédictive complexe.

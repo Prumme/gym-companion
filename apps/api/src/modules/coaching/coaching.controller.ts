@@ -17,13 +17,47 @@ import {
   type AuthenticatedUser,
 } from '../../common/guards/jwt-auth.guard';
 import { CoachingService } from './coaching.service';
+import { CoachSummaryService } from './coach-summary.service';
 
 @ApiTags('coaching')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller()
 export class CoachingController {
-  constructor(private readonly coachingService: CoachingService) {}
+  constructor(
+    private readonly coachingService: CoachingService,
+    private readonly coachSummaryService: CoachSummaryService,
+  ) {}
+
+  @Get('api/v1/coaching/overview')
+  @ApiOperation({
+    summary:
+      'Vue Coach globale : exercices récents nécessitant potentiellement attention',
+  })
+  async getCoachingOverview(@CurrentUser() user: AuthenticatedUser) {
+    const data = await this.coachSummaryService.getCoachingOverview(user.id);
+    return createSuccessResponse(data);
+  }
+
+  @Get('api/v1/coaching/exercises/:exerciseId/summary')
+  @ApiOperation({
+    summary: 'Synthèse Coach déterministe pour un exercice (lecture seule)',
+  })
+  @ApiQuery({ name: 'equipmentId', required: false, type: String })
+  @ApiQuery({ name: 'from', required: false, type: String })
+  @ApiQuery({ name: 'to', required: false, type: String })
+  async getExerciseCoachSummary(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
+    @Query() query: Record<string, string | undefined>,
+  ) {
+    const data = await this.coachSummaryService.getExerciseCoachSummary(
+      user.id,
+      exerciseId,
+      query,
+    );
+    return createSuccessResponse(data);
+  }
 
   @Get(
     'api/v1/coaching/exercises/:exerciseId/plateau-analysis',
