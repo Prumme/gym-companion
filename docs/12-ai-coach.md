@@ -110,6 +110,25 @@ prescription corrective.
 Le jalon 5.4 livre le Coach explicatif déterministe (composition, `/coach`), sans LLM.
 Le jalon 5.5 livre l’explication LLM à la demande (pas de chat, pas de mémoire,
 pas d’application d’action, pas de génération de programme).
+Le jalon 5.6 livre le **chat multi-tour** avec outils lecture seule allowlistés.
+
+### Sécurité chat 5.6
+
+```text
+LLM
+→ aucun accès DB direct
+→ outils allowlistés
+→ outils lecture seule
+→ validation Zod
+→ owner JWT côté serveur
+→ output minimisé
+```
+
+Le texte utilisateur et les données textuelles (noms d’exercices, notes) sont non fiables.
+Les permissions ne sont **jamais** définies par le prompt : l’absence d’outil d’écriture est le garde-fou principal.
+
+Données envoyées au provider : messages récents bornés (12), contexte exercice minimal, outputs tools minimisés.
+Non envoyés : tokens, email, ownerUserId, historique complet, base brute.
 
 ### Limitations 5.5
 

@@ -19,6 +19,11 @@ export function CoachOverviewPage() {
           Une synthèse basée sur tes séances, ta progression et tes
           recommandations récentes.
         </p>
+        <div className="mt-4">
+          <ButtonLink to="/coach/chat" className="min-h-10">
+            Discuter avec le Coach
+          </ButtonLink>
+        </div>
       </header>
 
       {query.isLoading ? <LoadingState label="Chargement du Coach…" /> : null}

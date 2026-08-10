@@ -1,6 +1,10 @@
 import type {
+  AiCoachChatAnswer,
   AiCoachExplanationInput,
   AiCoachExplanationResult,
+  AiCoachConversationTurnInput,
+  AiCoachConversationTurnResult,
+  AiCoachToolDefinition,
 } from '@gym-companion/validation';
 
 export const AI_COACH_PROVIDER = Symbol('AI_COACH_PROVIDER');
@@ -11,12 +15,36 @@ export type AiCoachProviderRequest = {
   model: string;
 };
 
+export type AiCoachConversationProviderRequest = {
+  input: AiCoachConversationTurnInput;
+  tools: AiCoachToolDefinition[];
+  timeoutMs: number;
+  model: string;
+  pendingToolLoop?: Array<
+    | {
+        role: 'assistant';
+        content: string | null;
+        tool_calls: Array<{
+          id: string;
+          type: 'function';
+          function: { name: string; arguments: string };
+        }>;
+      }
+    | { role: 'tool'; tool_call_id: string; content: string }
+  >;
+  forceFinalAnswer?: boolean;
+};
+
 export interface AiCoachProvider {
   readonly name: string;
 
   explainExerciseCoachSummary(
     request: AiCoachProviderRequest,
   ): Promise<AiCoachExplanationResult>;
+
+  generateConversationTurn(
+    request: AiCoachConversationProviderRequest,
+  ): Promise<AiCoachConversationTurnResult>;
 }
 
 export class AiCoachProviderError extends Error {
@@ -33,3 +61,5 @@ export class AiCoachProviderError extends Error {
     this.name = 'AiCoachProviderError';
   }
 }
+
+export type { AiCoachChatAnswer };

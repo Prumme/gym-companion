@@ -607,6 +607,14 @@ La sortie 5.5 ne contient **aucun** champ décisionnel (`action`, `suggestedWeig
 - feature flag `AI_COACH_ENABLED` ;
 - provider `fake` interdit en production.
 
+### 20.8 Chat multi-tour (5.6)
+
+- outils lecture seule uniquement ;
+- boucle d’outils bornée ;
+- IDOR tool : `ownerUserId` jamais pris depuis les arguments LLM ;
+- conversations isolées par propriétaire ;
+- pas de queue offline pour les messages IA.
+
 ## 21. Emails
 
 Les emails ne doivent pas contenir plus d’informations que nécessaire.

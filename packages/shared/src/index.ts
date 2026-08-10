@@ -1057,6 +1057,66 @@ export type ExerciseCoachExplanationResponse = {
   };
 };
 
+export type AiCoachChatReference =
+  | {
+      type: 'EXERCISE';
+      exerciseId: string;
+      label: string;
+    }
+  | {
+      type: 'WORKOUT';
+      workoutSessionId: string;
+      label: string;
+    }
+  | {
+      type: 'PROGRESS';
+      exerciseId: string;
+      label: string;
+    };
+
+export type AiCoachConversationListItem = {
+  id: string;
+  title: string | null;
+  contextExercise: {
+    id: string;
+    name: string;
+  } | null;
+  lastMessagePreview: string | null;
+  updatedAt: string;
+};
+
+export type AiCoachConversationMessage = {
+  id: string;
+  role: 'USER' | 'ASSISTANT';
+  content: string;
+  references: AiCoachChatReference[];
+  suggestedFollowUps: string[];
+  createdAt: string;
+};
+
+export type AiCoachConversationDetail = {
+  id: string;
+  title: string | null;
+  contextExercise: {
+    id: string;
+    name: string;
+    measurementType: ExerciseMeasurementType;
+  } | null;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  messages: AiCoachConversationMessage[];
+  pagination: {
+    nextCursor: string | null;
+    hasMore: boolean;
+  };
+};
+
+export type SendAiCoachMessageResponse = {
+  userMessage: AiCoachConversationMessage;
+  assistantMessage: AiCoachConversationMessage | null;
+};
+
 export type CoachingOverviewItem = {
   exerciseId: string;
   exerciseName: string;

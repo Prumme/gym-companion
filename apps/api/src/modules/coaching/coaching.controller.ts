@@ -16,6 +16,7 @@ import {
   JwtAuthGuard,
   type AuthenticatedUser,
 } from '../../common/guards/jwt-auth.guard';
+import { AiCoachChatService } from './ai/ai-coach-chat.service';
 import { AiCoachExplanationService } from './ai/ai-coach-explanation.service';
 import { CoachSummaryService } from './coach-summary.service';
 import { CoachingService } from './coaching.service';
@@ -29,6 +30,7 @@ export class CoachingController {
     private readonly coachingService: CoachingService,
     private readonly coachSummaryService: CoachSummaryService,
     private readonly aiCoachExplanationService: AiCoachExplanationService,
+    private readonly aiCoachChatService: AiCoachChatService,
   ) {}
 
   @Get('api/v1/coaching/overview')
@@ -77,6 +79,75 @@ export class CoachingController {
         exerciseId,
         body ?? {},
       );
+    return createSuccessResponse(data);
+  }
+
+  @Post('api/v1/coaching/conversations')
+  @ApiOperation({ summary: 'Crée une conversation Coach (5.6)' })
+  async createAiCoachConversation(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: unknown,
+  ) {
+    const data = await this.aiCoachChatService.createConversation(
+      user.id,
+      body ?? {},
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Get('api/v1/coaching/conversations')
+  @ApiOperation({ summary: 'Liste les conversations Coach' })
+  @ApiQuery({ name: 'cursor', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async listAiCoachConversations(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: Record<string, string | undefined>,
+  ) {
+    return this.aiCoachChatService.listConversations(user.id, query);
+  }
+
+  @Get('api/v1/coaching/conversations/:conversationId')
+  @ApiOperation({ summary: 'Détail d’une conversation Coach' })
+  @ApiQuery({ name: 'cursor', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async getAiCoachConversation(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('conversationId', ParseUUIDPipe) conversationId: string,
+    @Query() query: Record<string, string | undefined>,
+  ) {
+    const data = await this.aiCoachChatService.getConversation(
+      user.id,
+      conversationId,
+      query,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Post('api/v1/coaching/conversations/:conversationId/messages')
+  @ApiOperation({ summary: 'Envoie un message dans une conversation Coach' })
+  async sendAiCoachMessage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('conversationId', ParseUUIDPipe) conversationId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.aiCoachChatService.sendMessage(
+      user.id,
+      conversationId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Post('api/v1/coaching/conversations/:conversationId/archive')
+  @ApiOperation({ summary: 'Archive une conversation Coach' })
+  async archiveAiCoachConversation(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('conversationId', ParseUUIDPipe) conversationId: string,
+  ) {
+    const data = await this.aiCoachChatService.archiveConversation(
+      user.id,
+      conversationId,
+    );
     return createSuccessResponse(data);
   }
 

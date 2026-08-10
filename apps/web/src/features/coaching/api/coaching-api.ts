@@ -1,4 +1,7 @@
 import type {
+  AiCoachConversationDetail,
+  AiCoachConversationListItem,
+  ApiCursorListResponse,
   CoachingOverview,
   DecideLoadRecommendationResult,
   ExerciseCoachExplanationResponse,
@@ -6,6 +9,7 @@ import type {
   LoadRecommendation,
   LoadRecommendationDecisionListResponse,
   PlateauAnalysis,
+  SendAiCoachMessageResponse,
 } from '@gym-companion/shared';
 import type { DecideLoadRecommendationInput } from '@gym-companion/validation';
 
@@ -92,6 +96,67 @@ export async function generateExerciseCoachExplanation(
       method: 'POST',
       body: JSON.stringify(input),
     },
+  );
+  return response.data;
+}
+
+export async function createAiCoachConversation(input: {
+  exerciseId?: string;
+} = {}): Promise<AiCoachConversationDetail> {
+  const response = await apiFetch<{ data: AiCoachConversationDetail }>(
+    '/api/v1/coaching/conversations',
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+  );
+  return response.data;
+}
+
+export async function listAiCoachConversations(params: {
+  cursor?: string;
+  limit?: number;
+} = {}): Promise<ApiCursorListResponse<AiCoachConversationListItem>> {
+  const search = new URLSearchParams();
+  if (params.cursor) search.set('cursor', params.cursor);
+  if (params.limit != null) search.set('limit', String(params.limit));
+  const suffix = search.toString();
+  return apiFetch<ApiCursorListResponse<AiCoachConversationListItem>>(
+    `/api/v1/coaching/conversations${suffix ? `?${suffix}` : ''}`,
+  );
+}
+
+export async function getAiCoachConversation(
+  conversationId: string,
+): Promise<AiCoachConversationDetail> {
+  const response = await apiFetch<{ data: AiCoachConversationDetail }>(
+    `/api/v1/coaching/conversations/${encodeURIComponent(conversationId)}`,
+  );
+  return response.data;
+}
+
+export async function sendAiCoachMessage(
+  conversationId: string,
+  input: { content: string; clientCommandId: string },
+): Promise<SendAiCoachMessageResponse> {
+  const response = await apiFetch<{ data: SendAiCoachMessageResponse }>(
+    `/api/v1/coaching/conversations/${encodeURIComponent(conversationId)}/messages`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+  );
+  return response.data;
+}
+
+export async function archiveAiCoachConversation(
+  conversationId: string,
+): Promise<{ id: string; archivedAt: string }> {
+  const response = await apiFetch<{
+    data: { id: string; archivedAt: string };
+  }>(
+    `/api/v1/coaching/conversations/${encodeURIComponent(conversationId)}/archive`,
+    { method: 'POST', body: JSON.stringify({}) },
   );
   return response.data;
 }

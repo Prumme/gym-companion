@@ -186,6 +186,16 @@ Synthèse Coach déterministe (overview sans appel LLM) :
 
 Les explications IA se génèrent uniquement depuis le détail exercice, jamais en masse sur `/coach`.
 
+#### `/coach/chat` (jalon 5.6)
+
+Chat multi-tour :
+
+- liste des conversations ;
+- messages USER / ASSISTANT ;
+- références cliquables (exercice / progression / séance) ;
+- suggestions de suivi ;
+- offline → action désactivée.
+
 ### 4.6 Profil
 
 Accès au profil et à la déconnexion (`/profile`), avec confirmation si des commandes hors ligne sont en attente.

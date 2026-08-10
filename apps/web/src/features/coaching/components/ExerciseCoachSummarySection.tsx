@@ -168,6 +168,18 @@ function CoachSummaryContent({
         summary={summary}
         aiAvailable={aiAvailable}
       />
+
+      {aiAvailable ? (
+        <div className="mt-4">
+          <ButtonLink
+            to={`/coach/chat?exerciseId=${encodeURIComponent(summary.exercise.id)}`}
+            variant="secondary"
+            className="min-h-10"
+          >
+            En parler avec le Coach
+          </ButtonLink>
+        </div>
+      ) : null}
     </section>
   );
 }

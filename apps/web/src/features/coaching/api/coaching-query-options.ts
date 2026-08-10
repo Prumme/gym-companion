@@ -5,6 +5,8 @@ import {
   getPlateauAnalysis,
   getCoachingOverview,
   getExerciseCoachSummary,
+  getAiCoachConversation,
+  listAiCoachConversations,
   listLoadRecommendationDecisions,
 } from './coaching-api';
 import { coachingQueryKeys } from './coaching-query-keys';
@@ -59,5 +61,21 @@ export function coachingOverviewQueryOptions() {
     queryKey: coachingQueryKeys.overview(),
     queryFn: () => getCoachingOverview(),
     staleTime: 30_000,
+  });
+}
+
+export function aiCoachConversationsQueryOptions() {
+  return queryOptions({
+    queryKey: coachingQueryKeys.conversations(),
+    queryFn: () => listAiCoachConversations({ limit: 20 }),
+    staleTime: 15_000,
+  });
+}
+
+export function aiCoachConversationQueryOptions(conversationId: string) {
+  return queryOptions({
+    queryKey: coachingQueryKeys.conversation(conversationId),
+    queryFn: () => getAiCoachConversation(conversationId),
+    staleTime: 5_000,
   });
 }

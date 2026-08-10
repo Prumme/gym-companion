@@ -608,6 +608,21 @@ métriques déterministes
 - Aucune table `AiExplanation` / persistance du texte généré.
 - Rate limit + timeout côté serveur ; erreurs contrôlées (`AI_COACH_*`).
 
+### 13.3sexies Chat Coach multi-tour (jalon 5.6)
+
+```text
+message utilisateur
+→ LLM
+→ outils READ ONLY allowlistés
+→ services déterministes
+→ réponse structurée
+```
+
+- Tables `AiCoachConversation` / `AiCoachMessage` / `AiCoachToolInvocation`.
+- Aucun outil `update/create/delete/apply_*`.
+- `ownerUserId` toujours injecté depuis le JWT ; IDs étrangers → inaccessible.
+- Texte utilisateur = contenu non fiable ; permissions définies par le registre, pas le prompt.
+
 ### 13.4 Cas de progression
 
 Une augmentation peut être proposée lorsqu’un utilisateur réussit de manière répétée les séries prévues avec une marge suffisante.

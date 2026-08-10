@@ -27,6 +27,7 @@ import { PersonalRecordsPage } from '@/features/personal-records/pages/PersonalR
 import { ExerciseProgressPage } from '@/features/progress/pages/ExerciseProgressPage';
 import { ProgressOverviewPage } from '@/features/progress/pages/ProgressOverviewPage';
 import { CoachOverviewPage } from '@/features/coaching/pages/CoachOverviewPage';
+import { CoachChatPage } from '@/features/coaching/pages/CoachChatPage';
 
 export const router = createBrowserRouter([
   {
@@ -52,6 +53,7 @@ export const router = createBrowserRouter([
             element: <ExerciseProgressPage />,
           },
           { path: 'coach', element: <CoachOverviewPage /> },
+          { path: 'coach/chat', element: <CoachChatPage /> },
           { path: 'workouts/active', element: <ActiveWorkoutPage /> },
           {
             path: 'workouts/:workoutSessionId',

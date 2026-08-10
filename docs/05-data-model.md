@@ -1999,6 +1999,13 @@ Les explications LLM (`ExerciseCoachExplanationResponse`) sont **éphémères** 
 - non stockées dans IndexedDB ;
 - fingerprint `coachSummaryFingerprint` dérivé du summary (staleness UI uniquement).
 
+### Jalon 5.6 — Chat Coach (tables dédiées)
+
+- `AiCoachConversation` (owner, contexte exercice optionnel, archivage) ;
+- `AiCoachMessage` (USER / ASSISTANT, idempotence `clientCommandId`) ;
+- `AiCoachToolInvocation` (audit minimal des outils) ;
+- pas de raw provider payload / pas de chaîne de pensée.
+
 ### Phase 5
 
 - SharedWorkoutRoom ;

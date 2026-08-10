@@ -72,6 +72,7 @@ model User {
   workoutSessions         WorkoutSession[]
   workoutSets             WorkoutSet[]
   loadRecommendationDecisions LoadRecommendationDecision[]
+  aiCoachConversations    AiCoachConversation[]
 
   @@index([status])
   @@map("users")
@@ -225,6 +226,7 @@ model Exercise {
   workoutTemplateExercises WorkoutTemplateExercise[]
   workoutSessionExercises  WorkoutSessionExercise[]
   loadRecommendationDecisions LoadRecommendationDecision[]
+  aiCoachConversations     AiCoachConversation[]
 
   @@index([ownerUserId])
   @@index([source])
@@ -646,4 +648,66 @@ model LoadRecommendationDecision {
   @@index([ownerUserId, createdAt])
   @@index([workoutTemplateExerciseId, createdAt])
   @@map("load_recommendation_decisions")
+}
+
+enum AiCoachMessageRole {
+  USER
+  ASSISTANT
+}
+
+/// Conversation multi-tour Coach IA (jalon 5.6).
+model AiCoachConversation {
+  id                 String    @id @default(uuid()) @db.Uuid
+  ownerUserId        String    @db.Uuid
+  title              String?
+  contextExerciseId  String?   @db.Uuid
+  archivedAt         DateTime?
+  /// Verrou logique soft : génération en cours (optionnel, aussi en mémoire).
+  generationStartedAt DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  owner           User             @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  contextExercise Exercise?        @relation(fields: [contextExerciseId], references: [id], onDelete: SetNull)
+  messages        AiCoachMessage[]
+
+  @@index([ownerUserId, updatedAt])
+  @@index([ownerUserId, archivedAt, updatedAt])
+  @@map("ai_coach_conversations")
+}
+
+model AiCoachMessage {
+  id                         String             @id @default(uuid()) @db.Uuid
+  conversationId             String             @db.Uuid
+  role                       AiCoachMessageRole
+  content                    String
+  clientCommandId            String?
+  payloadFingerprint         String?
+  providerRequestId          String?
+  generatedFromSchemaVersion String?
+  promptVersion              String?
+  referencesJson             Json?
+  suggestedFollowUpsJson     Json?
+  createdAt                  DateTime           @default(now())
+
+  conversation    AiCoachConversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  toolInvocations AiCoachToolInvocation[]
+
+  @@unique([conversationId, clientCommandId])
+  @@index([conversationId, createdAt])
+  @@map("ai_coach_messages")
+}
+
+model AiCoachToolInvocation {
+  id                 String   @id @default(uuid()) @db.Uuid
+  assistantMessageId String   @db.Uuid
+  toolName           String
+  inputSnapshot      Json
+  outputSummary      Json
+  createdAt          DateTime @default(now())
+
+  assistantMessage AiCoachMessage @relation(fields: [assistantMessageId], references: [id], onDelete: Cascade)
+
+  @@index([assistantMessageId, createdAt])
+  @@map("ai_coach_tool_invocations")
 }

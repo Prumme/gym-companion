@@ -38,4 +38,7 @@ export const coachingQueryKeys = {
       filters.from ?? null,
       filters.to ?? null,
     ] as const,
+  conversations: () => [...coachingQueryKeys.all, 'conversations'] as const,
+  conversation: (conversationId: string) =>
+    [...coachingQueryKeys.conversations(), conversationId] as const,
 };

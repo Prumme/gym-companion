@@ -450,4 +450,10 @@ uniquement (pas au chargement de `/coach`). Feature flag serveur
 Sortie structurée validée ; le LLM ne décide ni charge, ni plateau, ni programme.
 Aucune table de génération ; fallback sur le Coach 5.4 en cas d’indisponibilité.
 
+Le jalon **5.6** ajoute le **chat multi-tour** (`/coach/chat`) avec outils
+**lecture seule** (summary, progression, force, records, séances). Conversations
+persistées (`AiCoachConversation` / `AiCoachMessage` / `AiCoachToolInvocation`).
+Aucun outil de mutation ; le LLM n’accède jamais à Prisma directement.
+Idempotence `clientCommandId`, rate limit, boucle d’outils bornée (max 4).
+
 Les documents du dossier `docs/` restent la source de vérité produit et technique.

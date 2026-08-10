@@ -2032,6 +2032,22 @@ Codes d’erreur : `AI_COACH_DISABLED` | `AI_COACH_UNAVAILABLE` | `AI_COACH_TIME
 
 NetworkOnly. Aucune mutation métier. Coach déterministe inchangé si l’IA échoue.
 
+### 23.2octies Chat Coach (jalon 5.6)
+
+```text
+POST   /api/v1/coaching/conversations
+GET    /api/v1/coaching/conversations
+GET    /api/v1/coaching/conversations/:conversationId
+POST   /api/v1/coaching/conversations/:conversationId/messages
+POST   /api/v1/coaching/conversations/:conversationId/archive
+```
+
+JWT obligatoire. Message : `{ content, clientCommandId }`.
+
+Outils allowlistés : `get_exercise_coach_summary`, `get_exercise_progress`, `get_exercise_strength`, `get_personal_records`, `get_recent_workouts`, `get_workout_detail`.
+
+Codes : `AI_COACH_MESSAGE_COMMAND_CONFLICT`, `AI_COACH_CONVERSATION_BUSY`, `AI_COACH_CONVERSATION_NOT_FOUND`, plus codes 5.5.
+
 ### 23.3 Records (jalon 4.1)
 
 Calculés **à la demande** depuis l’historique (pas de table `PersonalRecord`).

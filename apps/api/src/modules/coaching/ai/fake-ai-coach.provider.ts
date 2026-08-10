@@ -1,10 +1,13 @@
 import type {
+  AiCoachChatAnswer,
+  AiCoachConversationTurnResult,
   AiCoachExplanationInput,
   AiCoachExplanationResult,
 } from '@gym-companion/validation';
 
 import {
   AiCoachProviderError,
+  type AiCoachConversationProviderRequest,
   type AiCoachProvider,
   type AiCoachProviderRequest,
 } from './ai-coach-provider';
@@ -16,9 +19,19 @@ export type FakeAiCoachBehavior =
   | { mode: 'unavailable' }
   | { mode: 'rate_limited' };
 
+export type FakeChatBehavior =
+  | { mode: 'answer'; answer: AiCoachChatAnswer }
+  | {
+      mode: 'tools_then_answer';
+      toolCalls: Array<{ name: string; arguments: Record<string, unknown> }>;
+      answer: AiCoachChatAnswer;
+    }
+  | { mode: 'timeout' }
+  | { mode: 'unavailable' }
+  | { mode: 'invalid' };
+
 /**
  * Provider factice pour tests uniquement.
- * Ne doit jamais être activé silencieusement en production.
  */
 export class FakeAiCoachProvider implements AiCoachProvider {
   readonly name = 'fake';
@@ -26,6 +39,24 @@ export class FakeAiCoachProvider implements AiCoachProvider {
   lastInput: AiCoachExplanationInput | null = null;
   callCount = 0;
   behavior: FakeAiCoachBehavior = { mode: 'success' };
+
+  chatCallCount = 0;
+  chatBehavior: FakeChatBehavior = {
+    mode: 'answer',
+    answer: {
+      message: 'Réponse de test.',
+      references: [],
+      suggestedFollowUps: [],
+    },
+  };
+  lastChatRequest: AiCoachConversationProviderRequest | null = null;
+  private chatPhase = 0;
+
+  resetChat(): void {
+    this.chatCallCount = 0;
+    this.chatPhase = 0;
+    this.lastChatRequest = null;
+  }
 
   async explainExerciseCoachSummary(
     request: AiCoachProviderRequest,
@@ -71,6 +102,61 @@ export class FakeAiCoachProvider implements AiCoachProvider {
       default: {
         const _exhaustive: never = this.behavior;
         throw new Error(`Unknown fake behavior: ${JSON.stringify(_exhaustive)}`);
+      }
+    }
+  }
+
+  async generateConversationTurn(
+    request: AiCoachConversationProviderRequest,
+  ): Promise<AiCoachConversationTurnResult> {
+    this.chatCallCount += 1;
+    this.lastChatRequest = request;
+
+    switch (this.chatBehavior.mode) {
+      case 'timeout':
+        throw new AiCoachProviderError(
+          'AI_COACH_TIMEOUT',
+          'Délai d’attente du fournisseur IA dépassé.',
+        );
+      case 'unavailable':
+        throw new AiCoachProviderError(
+          'AI_COACH_UNAVAILABLE',
+          'Fournisseur IA indisponible.',
+        );
+      case 'invalid':
+        throw new AiCoachProviderError(
+          'AI_COACH_INVALID_RESPONSE',
+          'Réponse chat hors schéma.',
+        );
+      case 'answer':
+        return {
+          kind: 'answer',
+          answer: this.chatBehavior.answer,
+          providerRequestId: 'fake-req',
+        };
+      case 'tools_then_answer': {
+        if (request.forceFinalAnswer || this.chatPhase > 0) {
+          return {
+            kind: 'answer',
+            answer: this.chatBehavior.answer,
+            providerRequestId: 'fake-req-final',
+          };
+        }
+        this.chatPhase += 1;
+        return {
+          kind: 'tool_calls',
+          toolCalls: this.chatBehavior.toolCalls.map((call, index) => ({
+            id: `tool-${index}`,
+            name: call.name,
+            argumentsJson: JSON.stringify(call.arguments),
+          })),
+          providerRequestId: 'fake-req-tools',
+          assistantContent: null,
+        };
+      }
+      default: {
+        const _exhaustive: never = this.chatBehavior;
+        throw new Error(`Unknown chat behavior: ${JSON.stringify(_exhaustive)}`);
       }
     }
   }

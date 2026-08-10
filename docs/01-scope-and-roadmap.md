@@ -480,6 +480,17 @@ Transformer les données enregistrées en informations utiles (records, progress
 
 **Restent hors 5.5 :** chat multi-tour, mémoire conversationnelle, function calling, génération de programme/séance, RAG, embeddings, WebSocket.
 
+**Livré en jalon 5.6 (chat Coach multi-tour, outils lecture seule) :**
+
+- conversations persistées + messages USER/ASSISTANT ;
+- outils allowlistés `get_*` uniquement (summary, progress, strength, records, workouts) ;
+- boucle tool calling bornée (`AI_COACH_MAX_TOOL_CALLS_PER_TURN = 4`) ;
+- endpoints conversations / messages / archive ;
+- route `/coach/chat` + lien depuis `/coach` et progression exercice ;
+- **aucune** mutation métier via outils.
+
+**Restent hors 5.6 :** outils d’écriture, application de reco depuis le chat, génération de programme, mémoire longue durée, RAG, web, nutrition, WebSocket.
+
 ### 7.4 Hors périmètre
 
 - Analyse prédictive complexe.
