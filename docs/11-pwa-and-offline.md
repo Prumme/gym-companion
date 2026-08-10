@@ -93,14 +93,16 @@ Précisions coaching :
 - les résultats sportifs officiels (records, progression, recommandations, plateau, CoachSummary) restent **serveur-authoritative** ;
 - l’historique de conversation déjà présent dans TanStack Query peut rester visible offline, sans nouvel envoi.
 
-### Shared workouts — NetworkOnly (Shared 5.1)
+### Shared workouts — NetworkOnly (Shared 5.1 + 5.2)
 
 ```text
 /api/v1/shared-workouts/*
+/api/v1/shared-workout-invitations/*
 ```
 
 également **NetworkOnly**. Serveur authoritative ; **aucune** queue offline IndexedDB
-pour les rooms. Création / mutations nécessitent une connexion ; message UI :
+pour les rooms ni les invitations. Création / invite / accept / decline / leave /
+mutations lifecycle nécessitent une connexion ; message UI :
 
 ```text
 Une connexion est nécessaire pour gérer une séance partagée.
@@ -235,7 +237,8 @@ Recommandation :
 - TanStack Query pour le cache mémoire ;
 - IndexedDB pour les données explicitement nécessaires ;
 - pas de cache opaque généralisé des endpoints privés dans le service worker ;
-- en particulier `/api/v1/coaching/*` et `/api/v1/shared-workouts/*` → **NetworkOnly** (voir §3).
+- en particulier `/api/v1/coaching/*`, `/api/v1/shared-workouts/*` et
+  `/api/v1/shared-workout-invitations/*` → **NetworkOnly** (voir §3).
 
 ### 6.5 Réponses d’authentification
 

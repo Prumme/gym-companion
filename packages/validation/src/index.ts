@@ -2277,3 +2277,20 @@ export type {
   SharedWorkoutRoomStatusValue,
   UpdateSharedWorkoutRoomInput,
 } from './shared-workout-rooms';
+export {
+  buildSharedWorkoutRoomInvitationCursorFilter,
+  canAcceptSharedWorkoutRoomInvitation,
+  canInviteToSharedWorkoutRoom,
+  canLeaveSharedWorkoutRoom,
+  createSharedWorkoutRoomInvitationBodySchema,
+  decodeSharedWorkoutRoomInvitationCursor,
+  encodeSharedWorkoutRoomInvitationCursor,
+  sharedWorkoutRoomInvitationListQuerySchema,
+  sharedWorkoutRoomInvitationStatusSchema,
+} from './shared-workout-invitations';
+export type {
+  CreateSharedWorkoutRoomInvitationInput,
+  SharedWorkoutRoomInvitationCursorPayload,
+  SharedWorkoutRoomInvitationListQuery,
+  SharedWorkoutRoomInvitationStatusValue,
+} from './shared-workout-invitations';

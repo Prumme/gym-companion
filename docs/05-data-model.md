@@ -1088,8 +1088,8 @@ En 4.1, le contrat API exposé est un DTO dérivé (sans `ownerUserId`, sans lig
 
 ## 29. SharedWorkoutRoom
 
-> **Shared 5.1 (livré)** — modèle minimal ci-dessous.
-> Les champs invitations / template / rotation appartiennent aux jalons ultérieurs.
+> **Shared 5.1 + 5.2 (livrés)** — modèle ci-dessous.
+> Template / codes publics / rotation appartiennent aux jalons ultérieurs.
 
 ```ts
 type SharedWorkoutRoomStatus =
@@ -1116,30 +1116,32 @@ type SharedWorkoutRoom = {
   owner: User;
   members: SharedWorkoutRoomMember[];
   commands: SharedWorkoutRoomLifecycleCommand[];
+  invitations: SharedWorkoutRoomInvitation[]; // Shared 5.2
 };
 ```
 
 Index : `ownerUserId`, `status`, `(updatedAt, id)`.
 
-### Invariants Shared 5.1
+### Invariants Shared 5.1 / 5.2
 
 - création transactionnelle room + membership `OWNER` ;
 - `ownerUserId` = source autoritative de propriété ;
-- pas d’invitation / code / join persistés ;
+- membership actif = `leftAt IS NULL` ;
+- invitations email persistées (pas de code public en 5.2) ;
 - room ≠ `WorkoutSession` (aucun lien automatique).
 
-### Cible produit (Shared 5.2+)
+### Cible produit (Shared 5.3+)
 
-Champs futurs possibles (non en base en Shared 5.1) :
+Champs futurs possibles (non en base) :
 
 - `sourceTemplateId` ;
-- invitation code hash / expiration / révocation ;
+- invitation code hash / expiration / révocation (codes publics) ;
 - `maxParticipants`, `targetDurationMinutes` ;
 - `stateVersion`, `rotationAlgorithmVersion`.
 
 ## 30. SharedWorkoutRoomMember
 
-> **Shared 5.1 (livré).**
+> **Shared 5.1 + `leftAt` Shared 5.2 (livrés).**
 
 ```ts
 type SharedWorkoutRoomMemberRole = "OWNER" | "MEMBER";
@@ -1150,10 +1152,14 @@ type SharedWorkoutRoomMember = {
   userId: string;
   role: SharedWorkoutRoomMemberRole;
   joinedAt: Date;
+  /** null = actif ; non-null = a quitté (Shared 5.2). */
+  leftAt: Date | null;
 };
 ```
 
-Contraintes : `UNIQUE(roomId, userId)` ; index `userId`, `roomId`.
+Contraintes : `UNIQUE(roomId, userId)` ; index `userId`, `roomId`, `(userId, leftAt)`.
+
+Leave = soft (`leftAt`) ; rejoin via accept réutilise la ligne et remet `leftAt = null`.
 
 ### SharedWorkoutRoomLifecycleCommand
 
@@ -1173,9 +1179,38 @@ type SharedWorkoutRoomLifecycleCommand = {
 
 `UNIQUE(ownerUserId, clientCommandId)`.
 
-## 30bis. SharedWorkoutParticipant (cible Shared 5.2+)
+## 30bis. SharedWorkoutRoomInvitation (Shared 5.2 — livré)
 
-Ancien nom conceptuel du participant enrichi (présence, stations). **Non créé en Shared 5.1** — le membership minimal est `SharedWorkoutRoomMember`.
+Invitation directe vers un compte existant (email). Pas de code / token public.
+
+```ts
+type SharedWorkoutRoomInvitationStatus =
+  | "PENDING"
+  | "ACCEPTED"
+  | "DECLINED"
+  | "CANCELLED";
+
+type SharedWorkoutRoomInvitation = {
+  id: string;
+  roomId: string;
+  invitedByUserId: string;
+  inviteeUserId: string;
+  status: SharedWorkoutRoomInvitationStatus; // défaut PENDING
+  createdAt: Date;
+  respondedAt: Date | null; // accept / decline
+  cancelledAt: Date | null; // cancel owner ou auto terminal room
+};
+```
+
+Index : `(inviteeUserId, status, createdAt)`, `(roomId, status, createdAt)`,
+`(roomId, inviteeUserId)`, `(createdAt, id)`.
+
+Index unique partiel : une seule ligne `PENDING` par `(roomId, inviteeUserId)`.
+
+## 30ter. SharedWorkoutParticipant (cible Shared 5.3+)
+
+Ancien nom conceptuel du participant enrichi (présence, stations). **Non créé** —
+le membership minimal est `SharedWorkoutRoomMember` (+ invitations Shared 5.2).
 
 ```ts
 type SharedWorkoutParticipant = {
@@ -1814,7 +1849,10 @@ L’audit ne doit pas contenir :
 - `SharedWorkoutRoom.status` ;
 - `SharedWorkoutRoomMember.userId` ;
 - `SharedWorkoutRoomMember.(roomId, userId)` unique ;
+- `SharedWorkoutRoomMember.(userId, leftAt)` ;
 - `SharedWorkoutRoomLifecycleCommand.(ownerUserId, clientCommandId)` unique ;
+- `SharedWorkoutRoomInvitation.(inviteeUserId, status, createdAt)` ;
+- `SharedWorkoutRoomInvitation` unique partiel `(roomId, inviteeUserId) WHERE status = PENDING` ;
 - (futur) `SharedWorkoutParticipant.*` / `RealtimeCommand.commandId`.
 
 ### Nutrition
@@ -1911,7 +1949,10 @@ L’activation courante utilise `ProgramActivation` et impose une contrainte d�
 ### Agrégat salle partagée
 
 - SharedWorkoutRoom ;
-- SharedWorkoutParticipant ;
+- SharedWorkoutRoomMember ;
+- SharedWorkoutRoomInvitation ; *(Shared 5.2)*
+- SharedWorkoutRoomLifecycleCommand ;
+- SharedWorkoutParticipant ; *(cible Shared 5.3+)*
 - SharedWorkoutStation ;
 - SharedRotationAssignment ;
 - RealtimeCommand.
@@ -2104,17 +2145,18 @@ Index utiles : `(ownerUserId, updatedAt)` conversations ; `(conversationId, crea
 **Dettes d’exploitation (volontaires) :** busy lock et rate limiter IA restent **process-local / mémoire**
 (pas Redis) — acceptable monolithe mono-instance.
 
-### Phase 5 produit (séances partagées — Shared 5.1 livré)
+### Phase 5 produit (séances partagées — Shared 5.1 + 5.2 livrés)
 
-Livré : `SharedWorkoutRoom`, `SharedWorkoutRoomMember`, `SharedWorkoutRoomLifecycleCommand`.
+Livré : `SharedWorkoutRoom`, `SharedWorkoutRoomMember` (+ `leftAt`),
+`SharedWorkoutRoomLifecycleCommand`, `SharedWorkoutRoomInvitation`.
 
-Modèles futurs (Shared 5.2+) :
+Modèles futurs (Shared 5.3+) :
 - SharedWorkoutParticipant (enrichi) ;
 - SharedWorkoutStation ;
 - SharedParticipantExercisePlan ;
 - SharedRotationAssignment ;
 - RealtimeCommand ;
-- invitation / join (tables dédiées).
+- codes d’invitation publics (si retenus).
 
 ### Phase 6
 

@@ -1179,6 +1179,35 @@ export type SharedWorkoutRoomDetail = {
 export type SharedWorkoutRoomListResponse =
   ApiCursorListResponse<SharedWorkoutRoomListItem>;
 
+/** Shared 5.2 — invitation directe (email). */
+export type SharedWorkoutRoomInvitationStatus =
+  | 'PENDING'
+  | 'ACCEPTED'
+  | 'DECLINED'
+  | 'CANCELLED';
+
+export type SharedWorkoutRoomInvitationDto = {
+  id: string;
+  room: {
+    id: string;
+    name: string;
+    status: SharedWorkoutRoomStatus;
+  };
+  inviter: {
+    displayName: string | null;
+  };
+  invitee: {
+    displayName: string | null;
+  };
+  status: SharedWorkoutRoomInvitationStatus;
+  createdAt: string;
+  respondedAt: string | null;
+  cancelledAt: string | null;
+};
+
+export type SharedWorkoutRoomInvitationListResponse =
+  ApiCursorListResponse<SharedWorkoutRoomInvitationDto>;
+
 export function createSuccessResponse<T>(data: T): ApiSuccessResponse<T> {
   return { data };
 }

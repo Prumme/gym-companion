@@ -1,4 +1,7 @@
-import type { SharedWorkoutRoomStatus } from '@gym-companion/shared';
+import type {
+  SharedWorkoutRoomInvitationStatus,
+  SharedWorkoutRoomStatus,
+} from '@gym-companion/shared';
 
 const STATUS_LABELS: Record<SharedWorkoutRoomStatus, string> = {
   LOBBY: 'En préparation',
@@ -7,8 +10,24 @@ const STATUS_LABELS: Record<SharedWorkoutRoomStatus, string> = {
   CANCELLED: 'Annulée',
 };
 
+const INVITATION_STATUS_LABELS: Record<
+  SharedWorkoutRoomInvitationStatus,
+  string
+> = {
+  PENDING: 'En attente',
+  ACCEPTED: 'Acceptée',
+  DECLINED: 'Refusée',
+  CANCELLED: 'Annulée',
+};
+
 export function getSharedWorkoutRoomStatusLabel(
   status: SharedWorkoutRoomStatus,
 ): string {
   return STATUS_LABELS[status];
+}
+
+export function getSharedWorkoutInvitationStatusLabel(
+  status: SharedWorkoutRoomInvitationStatus,
+): string {
+  return INVITATION_STATUS_LABELS[status];
 }

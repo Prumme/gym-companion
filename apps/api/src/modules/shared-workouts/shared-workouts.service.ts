@@ -9,17 +9,26 @@ import { Prisma } from '@prisma/client';
 import type {
   ApiCursorListResponse,
   SharedWorkoutRoomDetail,
+  SharedWorkoutRoomInvitationDto,
   SharedWorkoutRoomListItem,
 } from '@gym-companion/shared';
 import {
   buildSharedWorkoutRoomCursorFilter,
+  buildSharedWorkoutRoomInvitationCursorFilter,
   buildSharedWorkoutRoomLifecycleFingerprint,
+  canAcceptSharedWorkoutRoomInvitation,
+  canInviteToSharedWorkoutRoom,
+  canLeaveSharedWorkoutRoom,
   canRenameSharedWorkoutRoom,
   createSharedWorkoutRoomBodySchema,
+  createSharedWorkoutRoomInvitationBodySchema,
   decodeSharedWorkoutRoomCursor,
+  decodeSharedWorkoutRoomInvitationCursor,
   encodeSharedWorkoutRoomCursor,
+  encodeSharedWorkoutRoomInvitationCursor,
   resolveSharedWorkoutRoomLifecycleTransition,
   resolveSharedWorkoutRoomName,
+  sharedWorkoutRoomInvitationListQuerySchema,
   sharedWorkoutRoomLifecycleCommandBodySchema,
   sharedWorkoutRoomListQuerySchema,
   updateSharedWorkoutRoomBodySchema,
@@ -28,13 +37,19 @@ import {
 } from '@gym-companion/validation';
 
 import { PrismaService } from '../../database/prisma/prisma.service';
+import { toSharedWorkoutRoomInvitationDto } from './shared-workout-invitations.mapper';
 import {
   toSharedWorkoutRoomDetail,
   toSharedWorkoutRoomListItem,
 } from './shared-workouts.mapper';
 
+const activeMemberSome = (userId: string) => ({
+  members: { some: { userId, leftAt: null } },
+});
+
 const roomInclude = {
   members: {
+    where: { leftAt: null },
     include: {
       user: {
         select: {
@@ -42,6 +57,16 @@ const roomInclude = {
         },
       },
     },
+  },
+} as const;
+
+const invitationInclude = {
+  room: { select: { id: true, name: true, status: true } },
+  invitedBy: {
+    select: { profile: { select: { displayName: true } } },
+  },
+  invitee: {
+    select: { profile: { select: { displayName: true } } },
   },
 } as const;
 
@@ -65,7 +90,7 @@ export class SharedWorkoutsService {
     const name = resolveSharedWorkoutRoomName(parsed.data.name);
 
     const room = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.sharedWorkoutRoom.create({
+      return tx.sharedWorkoutRoom.create({
         data: {
           ownerUserId: userId,
           name,
@@ -79,7 +104,6 @@ export class SharedWorkoutsService {
         },
         include: roomInclude,
       });
-      return created;
     });
 
     return toSharedWorkoutRoomDetail(room, userId);
@@ -116,11 +140,7 @@ export class SharedWorkoutsService {
     const rows = await this.prisma.sharedWorkoutRoom.findMany({
       where: {
         AND: [
-          {
-            members: {
-              some: { userId },
-            },
-          },
+          activeMemberSome(userId),
           parsed.data.status ? { status: parsed.data.status } : {},
           cursorFilter ?? {},
         ],
@@ -152,7 +172,7 @@ export class SharedWorkoutsService {
     userId: string,
     roomId: string,
   ): Promise<SharedWorkoutRoomDetail> {
-    const room = await this.findMemberRoomOrThrow(userId, roomId);
+    const room = await this.findActiveMemberRoomOrThrow(userId, roomId);
     return toSharedWorkoutRoomDetail(room, userId);
   }
 
@@ -170,7 +190,7 @@ export class SharedWorkoutsService {
       });
     }
 
-    const room = await this.findMemberRoomOrThrow(userId, roomId);
+    const room = await this.findActiveMemberRoomOrThrow(userId, roomId);
     this.assertOwner(room.ownerUserId, userId);
 
     if (!canRenameSharedWorkoutRoom(room.status as SharedWorkoutRoomStatusValue)) {
@@ -213,6 +233,437 @@ export class SharedWorkoutsService {
     return this.transitionLifecycle(userId, roomId, 'CANCEL', body);
   }
 
+  async inviteMember(
+    userId: string,
+    roomId: string,
+    body: unknown,
+  ): Promise<SharedWorkoutRoomInvitationDto> {
+    const parsed = createSharedWorkoutRoomInvitationBodySchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: 'Données d’invitation invalides.',
+        fieldErrors: parsed.error.flatten().fieldErrors,
+      });
+    }
+
+    const room = await this.findActiveMemberRoomOrThrow(userId, roomId);
+    this.assertOwner(room.ownerUserId, userId);
+
+    if (!canInviteToSharedWorkoutRoom(room.status as SharedWorkoutRoomStatusValue)) {
+      throw new BadRequestException({
+        code: 'SHARED_WORKOUT_INVITATION_CANNOT_CREATE',
+        message: 'Impossible d’inviter dans une salle terminée ou annulée.',
+      });
+    }
+
+    const invitee = await this.prisma.user.findUnique({
+      where: { email: parsed.data.inviteeEmail },
+      select: { id: true, status: true },
+    });
+
+    // Anti-énumération : même code pour inexistant / inactif.
+    if (!invitee || invitee.status !== 'ACTIVE') {
+      throw new BadRequestException({
+        code: 'SHARED_WORKOUT_INVITATION_CANNOT_CREATE',
+        message: 'Impossible d’envoyer cette invitation.',
+      });
+    }
+
+    if (invitee.id === userId) {
+      throw new BadRequestException({
+        code: 'SHARED_WORKOUT_INVITATION_CANNOT_CREATE',
+        message: 'Tu ne peux pas t’inviter toi-même.',
+      });
+    }
+
+    const activeMembership = await this.prisma.sharedWorkoutRoomMember.findFirst(
+      {
+        where: {
+          roomId,
+          userId: invitee.id,
+          leftAt: null,
+        },
+      },
+    );
+    if (activeMembership) {
+      throw new BadRequestException({
+        code: 'SHARED_WORKOUT_ROOM_ALREADY_MEMBER',
+        message: 'Cet utilisateur est déjà membre de la salle.',
+      });
+    }
+
+    try {
+      const invitation = await this.prisma.sharedWorkoutRoomInvitation.create({
+        data: {
+          roomId,
+          invitedByUserId: userId,
+          inviteeUserId: invitee.id,
+          status: 'PENDING',
+        },
+        include: invitationInclude,
+      });
+      return toSharedWorkoutRoomInvitationDto(invitation);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException({
+          code: 'SHARED_WORKOUT_INVITATION_ALREADY_PENDING',
+          message: 'Une invitation est déjà en attente pour cet utilisateur.',
+        });
+      }
+      throw error;
+    }
+  }
+
+  async listRoomInvitations(
+    userId: string,
+    roomId: string,
+    query: Record<string, string | undefined>,
+  ): Promise<ApiCursorListResponse<SharedWorkoutRoomInvitationDto>> {
+    const room = await this.findActiveMemberRoomOrThrow(userId, roomId);
+    this.assertOwner(room.ownerUserId, userId);
+    return this.listInvitations({ roomId }, query);
+  }
+
+  async listReceivedInvitations(
+    userId: string,
+    query: Record<string, string | undefined>,
+  ): Promise<ApiCursorListResponse<SharedWorkoutRoomInvitationDto>> {
+    return this.listInvitations({ inviteeUserId: userId }, query);
+  }
+
+  async acceptInvitation(
+    userId: string,
+    invitationId: string,
+  ): Promise<SharedWorkoutRoomInvitationDto> {
+    try {
+      const result = await this.prisma.$transaction(async (tx) => {
+        const invitation = await tx.sharedWorkoutRoomInvitation.findFirst({
+          where: { id: invitationId, inviteeUserId: userId },
+          include: invitationInclude,
+        });
+        if (!invitation) {
+          throw new NotFoundException({
+            code: 'SHARED_WORKOUT_INVITATION_NOT_FOUND',
+            message: 'Invitation introuvable.',
+          });
+        }
+
+        if (invitation.status === 'ACCEPTED') {
+          return invitation;
+        }
+        if (invitation.status !== 'PENDING') {
+          throw new ConflictException({
+            code: 'SHARED_WORKOUT_INVITATION_INVALID_STATUS',
+            message: 'Cette invitation ne peut plus être acceptée.',
+          });
+        }
+
+        const room = await tx.sharedWorkoutRoom.findUniqueOrThrow({
+          where: { id: invitation.roomId },
+          select: { status: true },
+        });
+
+        if (
+          !canAcceptSharedWorkoutRoomInvitation(
+            room.status as SharedWorkoutRoomStatusValue,
+          )
+        ) {
+          throw new BadRequestException({
+            code: 'SHARED_WORKOUT_ROOM_INVALID_STATUS',
+            message: 'La salle n’accepte plus de nouveaux membres.',
+          });
+        }
+
+        const now = new Date();
+        const claimed = await tx.sharedWorkoutRoomInvitation.updateMany({
+          where: { id: invitationId, status: 'PENDING', inviteeUserId: userId },
+          data: { status: 'ACCEPTED', respondedAt: now },
+        });
+        if (claimed.count !== 1) {
+          throw new ConflictException({
+            code: 'SHARED_WORKOUT_INVITATION_INVALID_STATUS',
+            message: 'Cette invitation a déjà été traitée.',
+          });
+        }
+
+        const existingMember = await tx.sharedWorkoutRoomMember.findUnique({
+          where: {
+            roomId_userId: {
+              roomId: invitation.roomId,
+              userId,
+            },
+          },
+        });
+
+        if (existingMember) {
+          if (existingMember.leftAt == null) {
+            // Déjà membre actif (course rare) — invitation acceptée, OK.
+          } else {
+            await tx.sharedWorkoutRoomMember.update({
+              where: { id: existingMember.id },
+              data: { role: 'MEMBER', leftAt: null },
+            });
+          }
+        } else {
+          await tx.sharedWorkoutRoomMember.create({
+            data: {
+              roomId: invitation.roomId,
+              userId,
+              role: 'MEMBER',
+            },
+          });
+        }
+
+        return tx.sharedWorkoutRoomInvitation.findUniqueOrThrow({
+          where: { id: invitationId },
+          include: invitationInclude,
+        });
+      });
+
+      return toSharedWorkoutRoomInvitationDto(result);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException({
+          code: 'SHARED_WORKOUT_ROOM_ALREADY_MEMBER',
+          message: 'Membership concurrent détecté.',
+        });
+      }
+      throw error;
+    }
+  }
+
+  async declineInvitation(
+    userId: string,
+    invitationId: string,
+  ): Promise<SharedWorkoutRoomInvitationDto> {
+    const invitation = await this.prisma.sharedWorkoutRoomInvitation.findFirst({
+      where: { id: invitationId, inviteeUserId: userId },
+      include: invitationInclude,
+    });
+    if (!invitation) {
+      throw new NotFoundException({
+        code: 'SHARED_WORKOUT_INVITATION_NOT_FOUND',
+        message: 'Invitation introuvable.',
+      });
+    }
+
+    if (invitation.status === 'DECLINED') {
+      return toSharedWorkoutRoomInvitationDto(invitation);
+    }
+    if (invitation.status !== 'PENDING') {
+      throw new ConflictException({
+        code: 'SHARED_WORKOUT_INVITATION_INVALID_STATUS',
+        message: 'Cette invitation ne peut plus être refusée.',
+      });
+    }
+
+    const now = new Date();
+    const updated = await this.prisma.sharedWorkoutRoomInvitation.updateMany({
+      where: { id: invitationId, status: 'PENDING', inviteeUserId: userId },
+      data: { status: 'DECLINED', respondedAt: now },
+    });
+    if (updated.count !== 1) {
+      throw new ConflictException({
+        code: 'SHARED_WORKOUT_INVITATION_INVALID_STATUS',
+        message: 'Cette invitation a déjà été traitée.',
+      });
+    }
+
+    const refreshed = await this.prisma.sharedWorkoutRoomInvitation.findUniqueOrThrow(
+      {
+        where: { id: invitationId },
+        include: invitationInclude,
+      },
+    );
+    return toSharedWorkoutRoomInvitationDto(refreshed);
+  }
+
+  async cancelInvitation(
+    userId: string,
+    roomId: string,
+    invitationId: string,
+  ): Promise<SharedWorkoutRoomInvitationDto> {
+    const room = await this.findActiveMemberRoomOrThrow(userId, roomId);
+    this.assertOwner(room.ownerUserId, userId);
+
+    const invitation = await this.prisma.sharedWorkoutRoomInvitation.findFirst({
+      where: { id: invitationId, roomId },
+      include: invitationInclude,
+    });
+    if (!invitation) {
+      throw new NotFoundException({
+        code: 'SHARED_WORKOUT_INVITATION_NOT_FOUND',
+        message: 'Invitation introuvable.',
+      });
+    }
+
+    if (invitation.status === 'CANCELLED') {
+      return toSharedWorkoutRoomInvitationDto(invitation);
+    }
+    if (invitation.status !== 'PENDING') {
+      throw new ConflictException({
+        code: 'SHARED_WORKOUT_INVITATION_INVALID_STATUS',
+        message: 'Seule une invitation en attente peut être annulée.',
+      });
+    }
+
+    const now = new Date();
+    const updated = await this.prisma.sharedWorkoutRoomInvitation.updateMany({
+      where: { id: invitationId, roomId, status: 'PENDING' },
+      data: { status: 'CANCELLED', cancelledAt: now },
+    });
+    if (updated.count !== 1) {
+      throw new ConflictException({
+        code: 'SHARED_WORKOUT_INVITATION_INVALID_STATUS',
+        message: 'Cette invitation a déjà été traitée.',
+      });
+    }
+
+    const refreshed = await this.prisma.sharedWorkoutRoomInvitation.findUniqueOrThrow(
+      {
+        where: { id: invitationId },
+        include: invitationInclude,
+      },
+    );
+    return toSharedWorkoutRoomInvitationDto(refreshed);
+  }
+
+  async leaveRoom(
+    userId: string,
+    roomId: string,
+  ): Promise<{ left: true }> {
+    const room = await this.prisma.sharedWorkoutRoom.findFirst({
+      where: {
+        id: roomId,
+        members: { some: { userId } },
+      },
+      include: {
+        members: {
+          where: { userId },
+        },
+      },
+    });
+    if (!room) {
+      throw new NotFoundException({
+        code: 'SHARED_WORKOUT_ROOM_NOT_FOUND',
+        message: 'Salle introuvable.',
+      });
+    }
+
+    const membership = room.members[0];
+    if (!membership) {
+      throw new NotFoundException({
+        code: 'SHARED_WORKOUT_ROOM_NOT_FOUND',
+        message: 'Salle introuvable.',
+      });
+    }
+
+    if (membership.role === 'OWNER' || room.ownerUserId === userId) {
+      throw new ForbiddenException({
+        code: 'SHARED_WORKOUT_ROOM_OWNER_CANNOT_LEAVE',
+        message: 'Le propriétaire ne peut pas quitter sa salle.',
+      });
+    }
+
+    if (membership.leftAt != null) {
+      return { left: true };
+    }
+
+    if (!canLeaveSharedWorkoutRoom(room.status as SharedWorkoutRoomStatusValue)) {
+      throw new BadRequestException({
+        code: 'SHARED_WORKOUT_ROOM_INVALID_STATUS',
+        message: 'Impossible de quitter une salle terminée ou annulée.',
+      });
+    }
+
+    const updated = await this.prisma.sharedWorkoutRoomMember.updateMany({
+      where: {
+        roomId,
+        userId,
+        role: 'MEMBER',
+        leftAt: null,
+      },
+      data: { leftAt: new Date() },
+    });
+    if (updated.count !== 1) {
+      throw new BadRequestException({
+        code: 'SHARED_WORKOUT_ROOM_MEMBER_NOT_ACTIVE',
+        message: 'Tu n’es plus membre actif de cette salle.',
+      });
+    }
+
+    return { left: true };
+  }
+
+  private async listInvitations(
+    scope: { roomId?: string; inviteeUserId?: string },
+    query: Record<string, string | undefined>,
+  ): Promise<ApiCursorListResponse<SharedWorkoutRoomInvitationDto>> {
+    const parsed = sharedWorkoutRoomInvitationListQuerySchema.safeParse(query);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: 'Paramètres de liste invalides.',
+        fieldErrors: parsed.error.flatten().fieldErrors,
+      });
+    }
+
+    let cursorFilter:
+      | ReturnType<typeof buildSharedWorkoutRoomInvitationCursorFilter>
+      | undefined;
+    if (parsed.data.cursor) {
+      try {
+        cursorFilter = buildSharedWorkoutRoomInvitationCursorFilter(
+          decodeSharedWorkoutRoomInvitationCursor(parsed.data.cursor),
+        );
+      } catch {
+        throw new BadRequestException({
+          code: 'SHARED_WORKOUT_INVITATION_INVALID_CURSOR',
+          message: 'Curseur de pagination invalide.',
+        });
+      }
+    }
+
+    const limit = parsed.data.limit;
+    const rows = await this.prisma.sharedWorkoutRoomInvitation.findMany({
+      where: {
+        AND: [
+          scope.roomId ? { roomId: scope.roomId } : {},
+          scope.inviteeUserId ? { inviteeUserId: scope.inviteeUserId } : {},
+          parsed.data.status ? { status: parsed.data.status } : {},
+          cursorFilter ?? {},
+        ],
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+      include: invitationInclude,
+    });
+
+    const hasMore = rows.length > limit;
+    const page = hasMore ? rows.slice(0, limit) : rows;
+    const last = page[page.length - 1];
+    const nextCursor =
+      hasMore && last
+        ? encodeSharedWorkoutRoomInvitationCursor({
+            version: 1,
+            createdAt: last.createdAt.toISOString(),
+            id: last.id,
+          })
+        : null;
+
+    return {
+      data: page.map(toSharedWorkoutRoomInvitationDto),
+      pagination: { nextCursor, hasMore },
+    };
+  }
+
   private async transitionLifecycle(
     userId: string,
     roomId: string,
@@ -238,7 +689,7 @@ export class SharedWorkoutsService {
         const room = await tx.sharedWorkoutRoom.findFirst({
           where: {
             id: roomId,
-            members: { some: { userId } },
+            ...activeMemberSome(userId),
           },
           include: roomInclude,
         });
@@ -314,6 +765,16 @@ export class SharedWorkoutsService {
               message: 'La salle a changé d’état. Réessaie.',
             });
           }
+
+          if (
+            transition.nextStatus === 'COMPLETED' ||
+            transition.nextStatus === 'CANCELLED'
+          ) {
+            await tx.sharedWorkoutRoomInvitation.updateMany({
+              where: { roomId, status: 'PENDING' },
+              data: { status: 'CANCELLED', cancelledAt: now },
+            });
+          }
         }
 
         await tx.sharedWorkoutRoomLifecycleCommand.create({
@@ -347,11 +808,11 @@ export class SharedWorkoutsService {
     }
   }
 
-  private async findMemberRoomOrThrow(userId: string, roomId: string) {
+  private async findActiveMemberRoomOrThrow(userId: string, roomId: string) {
     const room = await this.prisma.sharedWorkoutRoom.findFirst({
       where: {
         id: roomId,
-        members: { some: { userId } },
+        ...activeMemberSome(userId),
       },
       include: roomInclude,
     });

@@ -29,6 +29,7 @@ import { ProgressOverviewPage } from '@/features/progress/pages/ProgressOverview
 import { CoachOverviewPage } from '@/features/coaching/pages/CoachOverviewPage';
 import { CoachChatPage } from '@/features/coaching/pages/CoachChatPage';
 import { CreateSharedWorkoutRoomPage } from '@/features/shared-workouts/pages/CreateSharedWorkoutRoomPage';
+import { SharedWorkoutInvitationsPage } from '@/features/shared-workouts/pages/SharedWorkoutInvitationsPage';
 import { SharedWorkoutRoomDetailPage } from '@/features/shared-workouts/pages/SharedWorkoutRoomDetailPage';
 import { SharedWorkoutsPage } from '@/features/shared-workouts/pages/SharedWorkoutsPage';
 
@@ -51,6 +52,10 @@ export const router = createBrowserRouter([
           { path: 'workouts', element: <WorkoutsHistoryPage /> },
           { path: 'shared-workouts', element: <SharedWorkoutsPage /> },
           { path: 'shared-workouts/new', element: <CreateSharedWorkoutRoomPage /> },
+          {
+            path: 'shared-workouts/invitations',
+            element: <SharedWorkoutInvitationsPage />,
+          },
           {
             path: 'shared-workouts/:roomId',
             element: <SharedWorkoutRoomDetailPage />,

@@ -1,9 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import {
+  acceptSharedWorkoutInvitation,
+  cancelRoomInvitation,
   cancelSharedWorkoutRoom,
   completeSharedWorkoutRoom,
   createSharedWorkoutRoom,
+  declineSharedWorkoutInvitation,
+  inviteToSharedWorkoutRoom,
+  leaveSharedWorkoutRoom,
   startSharedWorkoutRoom,
   updateSharedWorkoutRoom,
 } from '../api/shared-workouts-api';
@@ -20,7 +25,18 @@ function invalidateRoomQueries(
     void queryClient.invalidateQueries({
       queryKey: sharedWorkoutRoomQueryKeys.detail(roomId),
     });
+    void queryClient.invalidateQueries({
+      queryKey: sharedWorkoutRoomQueryKeys.roomInvitations(roomId),
+    });
   }
+}
+
+function invalidateReceivedInvitations(
+  queryClient: ReturnType<typeof useQueryClient>,
+) {
+  void queryClient.invalidateQueries({
+    queryKey: [...sharedWorkoutRoomQueryKeys.all, 'received-invitations'],
+  });
 }
 
 export function useCreateSharedWorkoutRoomMutation() {
@@ -62,6 +78,7 @@ export function useCompleteSharedWorkoutRoomMutation(roomId: string) {
       completeSharedWorkoutRoom(roomId, clientCommandId),
     onSuccess: () => {
       invalidateRoomQueries(queryClient, roomId);
+      invalidateReceivedInvitations(queryClient);
     },
   });
 }
@@ -73,6 +90,71 @@ export function useCancelSharedWorkoutRoomMutation(roomId: string) {
       cancelSharedWorkoutRoom(roomId, clientCommandId),
     onSuccess: () => {
       invalidateRoomQueries(queryClient, roomId);
+      invalidateReceivedInvitations(queryClient);
+    },
+  });
+}
+
+export function useInviteSharedWorkoutRoomMutation(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { inviteeEmail: string }) =>
+      inviteToSharedWorkoutRoom(roomId, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: sharedWorkoutRoomQueryKeys.roomInvitations(roomId),
+      });
+    },
+  });
+}
+
+export function useCancelRoomInvitationMutation(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (invitationId: string) =>
+      cancelRoomInvitation(roomId, invitationId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: sharedWorkoutRoomQueryKeys.roomInvitations(roomId),
+      });
+      invalidateReceivedInvitations(queryClient);
+    },
+  });
+}
+
+export function useAcceptInvitationMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: acceptSharedWorkoutInvitation,
+    onSuccess: (invitation) => {
+      invalidateReceivedInvitations(queryClient);
+      invalidateRoomQueries(queryClient, invitation.room.id);
+    },
+  });
+}
+
+export function useDeclineInvitationMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: declineSharedWorkoutInvitation,
+    onSuccess: (invitation) => {
+      invalidateReceivedInvitations(queryClient);
+      void queryClient.invalidateQueries({
+        queryKey: sharedWorkoutRoomQueryKeys.roomInvitations(invitation.room.id),
+      });
+    },
+  });
+}
+
+export function useLeaveSharedWorkoutRoomMutation(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => leaveSharedWorkoutRoom(roomId),
+    onSuccess: () => {
+      invalidateRoomQueries(queryClient, roomId);
+      void queryClient.removeQueries({
+        queryKey: sharedWorkoutRoomQueryKeys.detail(roomId),
+      });
     },
   });
 }

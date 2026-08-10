@@ -36,7 +36,7 @@ export class SharedWorkoutsController {
 
   @Get()
   @ApiOperation({
-    summary: 'Lister les salles dont l’utilisateur est membre (cursor)',
+    summary: 'Lister les salles dont l’utilisateur est membre actif (cursor)',
   })
   async list(
     @CurrentUser() user: AuthenticatedUser,
@@ -45,8 +45,64 @@ export class SharedWorkoutsController {
     return this.sharedWorkoutsService.listRooms(user.id, query);
   }
 
+  @Get(':roomId/invitations')
+  @ApiOperation({ summary: 'Lister les invitations d’une salle (owner)' })
+  async listRoomInvitations(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('roomId', ParseUUIDPipe) roomId: string,
+    @Query() query: Record<string, string | undefined>,
+  ) {
+    return this.sharedWorkoutsService.listRoomInvitations(
+      user.id,
+      roomId,
+      query,
+    );
+  }
+
+  @Post(':roomId/invitations')
+  @ApiOperation({ summary: 'Inviter un compte existant par email (owner)' })
+  async invite(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('roomId', ParseUUIDPipe) roomId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.sharedWorkoutsService.inviteMember(
+      user.id,
+      roomId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Post(':roomId/invitations/:invitationId/cancel')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Annuler une invitation PENDING (owner)' })
+  async cancelInvitation(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('roomId', ParseUUIDPipe) roomId: string,
+    @Param('invitationId', ParseUUIDPipe) invitationId: string,
+  ) {
+    const data = await this.sharedWorkoutsService.cancelInvitation(
+      user.id,
+      roomId,
+      invitationId,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Post(':roomId/leave')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Quitter une salle (MEMBER actif)' })
+  async leave(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('roomId', ParseUUIDPipe) roomId: string,
+  ) {
+    const data = await this.sharedWorkoutsService.leaveRoom(user.id, roomId);
+    return createSuccessResponse(data);
+  }
+
   @Get(':roomId')
-  @ApiOperation({ summary: 'Détail d’une salle (membership requis)' })
+  @ApiOperation({ summary: 'Détail d’une salle (membership actif requis)' })
   async get(
     @CurrentUser() user: AuthenticatedUser,
     @Param('roomId', ParseUUIDPipe) roomId: string,

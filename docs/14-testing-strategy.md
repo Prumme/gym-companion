@@ -722,16 +722,41 @@ Tester :
 - aucune `WorkoutSession` créée/modifiée ;
 - UI liste / création / lobby ; offline message ; pas de Socket.IO.
 
-#### Cible produit (Shared 5.2+)
+#### Shared 5.2 (invitations / leave — livré)
+
+Tester machine à états invitation :
+
+- invite email (trim + lowercase) → `PENDING` ;
+- accept → `ACCEPTED` + membership `MEMBER` ;
+- decline → `DECLINED` ;
+- cancel owner → `CANCELLED` ;
+- accept/decline déjà dans l’état cible = idempotent ;
+- transition invalide → `SHARED_WORKOUT_INVITATION_INVALID_STATUS` ;
+- unique partiel : 2e `PENDING` même invitee → `SHARED_WORKOUT_INVITATION_ALREADY_PENDING` ;
+- anti-énumération : email inconnu / inactif → `SHARED_WORKOUT_INVITATION_CANNOT_CREATE` ;
+- auto-invite / salle terminale → même code ;
+- déjà membre actif → `SHARED_WORKOUT_ROOM_ALREADY_MEMBER` ;
+- complete / cancel room → annule les `PENDING` ; start ne les annule pas ;
+- accept concurrent (race claim PENDING) ;
+- IDOR : non-invitee → 404 sur accept/decline ; non-owner → 403 invite/cancel ;
+- leave MEMBER → `leftAt` ; OWNER → `SHARED_WORKOUT_ROOM_OWNER_CANNOT_LEAVE` ;
+- leave répété idempotent ; leave en salle terminale refusé ;
+- rejoin : leave puis nouvelle invite acceptée → `leftAt = null` ;
+- listes / détail n’exposent que membres actifs ;
+- UI `/shared-workouts/invitations`, invite sur détail, leave MEMBER ;
+- NetworkOnly / message connexion ; pas de Socket.IO ; pas de `WorkoutSession` auto.
+
+#### Cible produit (Shared 5.3+)
 
 Tester :
 
 - station ;
 - charge personnelle ;
-- statut des participants ;
+- statut des participants (présence Socket.IO) ;
 - déconnexion ;
 - changement de rotation ;
-- restrictions de rôle.
+- restrictions de rôle ;
+- codes / liens d’invitation publics (si retenus).
 
 ### 17.4 Nutrition
 
@@ -1139,7 +1164,8 @@ Vérifications prioritaires :
 - entrée HTML ;
 - requête brute ;
 - accès admin ;
-- code d’invitation ;
+- invitation email (anti-énumération, IDOR invitee/owner) ;
+- code d’invitation public (futur) ;
 - événement Socket.IO étranger ;
 - export d’un autre utilisateur.
 

@@ -11,10 +11,17 @@ const getSharedWorkoutRoom = vi.fn();
 
 vi.mock('../api/shared-workouts-api', () => ({
   getSharedWorkoutRoom: (...args: unknown[]) => getSharedWorkoutRoom(...args),
+  listRoomInvitations: vi.fn(async () => ({
+    data: [],
+    pagination: { nextCursor: null, hasMore: false },
+  })),
   updateSharedWorkoutRoom: vi.fn(),
   startSharedWorkoutRoom: vi.fn(),
   completeSharedWorkoutRoom: vi.fn(),
   cancelSharedWorkoutRoom: vi.fn(),
+  inviteToSharedWorkoutRoom: vi.fn(),
+  cancelRoomInvitation: vi.fn(),
+  leaveSharedWorkoutRoom: vi.fn(),
 }));
 
 function roomFixture(
@@ -74,10 +81,8 @@ describe('SharedWorkoutRoomDetailPage', () => {
       await screen.findByRole('heading', { name: /séance duo/i }),
     ).toBeInTheDocument();
     expect(screen.getByText(/en préparation/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /démarrer la séance partagée/i }),
+    expect(screen.getByRole('button', { name: /démarrer la séance partagée/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/invitations seront disponibles/i)).toBeInTheDocument();
   });
 
   it('affiche ACTIVE avec terminer / annuler', async () => {
@@ -120,7 +125,7 @@ describe('SharedWorkoutRoomDetailPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('membre non-owner : lecture seule', async () => {
+  it('membre non-owner : lecture seule + leave', async () => {
     getSharedWorkoutRoom.mockResolvedValue(
       roomFixture({
         isOwner: false,
@@ -149,5 +154,8 @@ describe('SharedWorkoutRoomDetailPage', () => {
     expect(
       screen.queryByRole('button', { name: /renommer/i }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /quitter la salle/i }),
+    ).toBeInTheDocument();
   });
 });

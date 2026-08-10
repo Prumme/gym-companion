@@ -773,9 +773,9 @@ Le conflit ne doit pas être résolu silencieusement en supprimant les données 
 
 ## 18. Séances partagées
 
-> **Shared 5.1 (livré)** : fondations salle REST uniquement.
-> Invitations (5.2), présence / Socket.IO (5.3+) et rotation restent futurs.
-> Les sous-sections 18.3+ décrivent la cible produit ; 18.0–18.2bis fixent le livré.
+> **Shared 5.1 + 5.2 (livrés)** : fondations salle REST + invitations email / leave.
+> Présence / Socket.IO (Shared 5.3+) et rotation restent futurs.
+> Les sous-sections 18.3+ décrivent la cible produit ; 18.0–18.2quater fixent le livré.
 
 ### 18.0 Shared 5.1 — Fondations
 
@@ -788,27 +788,33 @@ Une `SharedWorkoutRoom` est un **conteneur de coordination**. Elle n’est pas :
 
 Démarrer / terminer / annuler une salle **ne crée, ne modifie et ne termine** aucune `WorkoutSession`.
 
-### 18.1 Rôles (Shared 5.1)
+### 18.1 Rôles (Shared 5.1 / 5.2)
 
 Rôles membres :
 
 - `OWNER` — propriétaire ; source autoritative aussi via `ownerUserId` ;
-- `MEMBER` — membre ordinaire (préparé pour Shared 5.2 ; non créable via API en 5.1).
+- `MEMBER` — membre ordinaire (créé à l’acceptation d’une invitation en Shared 5.2).
 
 À la création : `ownerUserId = currentUser` **et** membership `OWNER` dans la même transaction.
+
+Membership **actif** = ligne `SharedWorkoutRoomMember` avec `leftAt IS NULL`.
+Les listes / détail / lecture n’exposent que les membres actifs.
 
 Nomenclature historique `HOST` / `PARTICIPANT` = synonymes conceptuels de `OWNER` / `MEMBER`.
 Un rôle `OBSERVER` pourra être ajouté plus tard.
 
-### 18.1bis Accès et mutations (Shared 5.1)
+### 18.1bis Accès et mutations (Shared 5.1 / 5.2)
 
-- Lecture : uniquement les utilisateurs présents dans `SharedWorkoutRoomMember` (sinon **404 neutre**).
+- Lecture salle : uniquement membership **actif** (sinon **404 neutre**).
 - Mutations rename / start / complete / cancel : **owner-only** (`ownerUserId`).
-- Membre non-owner visible : lecture OK, mutations → **403** `SHARED_WORKOUT_ROOM_NOT_OWNER`.
+- Membre non-owner actif : lecture OK, mutations lifecycle → **403** `SHARED_WORKOUT_ROOM_NOT_OWNER`.
+- Invite / liste invitations salle / cancel invitation : **owner-only**.
+- Accept / decline : **invitee uniquement** (identité JWT).
+- Leave : MEMBER actif uniquement ; OWNER → **403** `SHARED_WORKOUT_ROOM_OWNER_CANNOT_LEAVE`.
 - Pas de suppression physique UI ; `CANCELLED` suffit pour retirer une salle inutilisée.
 - Rename autorisé uniquement en `LOBBY` / `ACTIVE` (historique terminal stable).
 
-### 18.2 Lifecycle (Shared 5.1)
+### 18.2 Lifecycle (Shared 5.1 / 5.2)
 
 Statuts : `LOBBY` | `ACTIVE` | `COMPLETED` | `CANCELLED`.
 
@@ -827,7 +833,41 @@ Timestamps : création → tous null ; start → `startedAt` ; complete → `com
 Idempotence lifecycle via `clientCommandId` (`SharedWorkoutRoomLifecycleCommand`), même principe que les `WorkoutSession`.
 Concurrence : update conditionnel sur `status` — un seul résultat lifecycle gagne.
 
-### 18.2bis Autorité (cible produit)
+Effet invitations (Shared 5.2) :
+
+- `complete` / `cancel` → toutes les invitations `PENDING` de la salle passent à `CANCELLED` (`cancelledAt`) ;
+- `start` **ne** annule **pas** les invitations `PENDING` (invitation encore acceptables en `ACTIVE`).
+
+### 18.2bis Invitations (Shared 5.2)
+
+Invitation **directe par email exact** vers un compte existant. Pas de username / handle.
+Normalisation : `trim` + `toLowerCase` (identique auth).
+
+Statuts invitation : `PENDING` | `ACCEPTED` | `DECLINED` | `CANCELLED`.
+
+Règles :
+
+- invite autorisée en `LOBBY` / `ACTIVE` uniquement (salle terminale → `SHARED_WORKOUT_INVITATION_CANNOT_CREATE`) ;
+- invitee doit être `ACTIVE` ; sinon (inconnu / inactif) → **même** code `SHARED_WORKOUT_INVITATION_CANNOT_CREATE` (anti-énumération) ;
+- auto-invitation interdite (`SHARED_WORKOUT_INVITATION_CANNOT_CREATE`) ;
+- déjà membre actif → `SHARED_WORKOUT_ROOM_ALREADY_MEMBER` ;
+- une seule `PENDING` par `(roomId, inviteeUserId)` (index unique partiel) → conflit `SHARED_WORKOUT_INVITATION_ALREADY_PENDING` ;
+- accept / decline / cancel owner : transition depuis `PENDING` uniquement ; accept/decline déjà dans l’état cible = idempotent ; autre statut → `SHARED_WORKOUT_INVITATION_INVALID_STATUS` ;
+- accept : crée membership `MEMBER` ou clear `leftAt` (rejoin) ; salle doit être `LOBBY` / `ACTIVE` ;
+- decline : `DECLINED` + `respondedAt` ;
+- cancel owner : `CANCELLED` + `cancelledAt` ;
+- **pas** de code / lien public en Shared 5.2.
+
+### 18.2ter Leave et rejoin (Shared 5.2)
+
+- Leave = soft leave : `leftAt = now` (pas de suppression de ligne).
+- Autorisé en `LOBBY` / `ACTIVE` pour un MEMBER actif ; salle terminale → `SHARED_WORKOUT_ROOM_INVALID_STATUS`.
+- Leave déjà effectué → idempotent `{ left: true }`.
+- OWNER ne peut pas leave.
+- Après leave, l’utilisateur n’est plus membre actif (404 neutre sur la salle).
+- Rejoin uniquement via **nouvelle** invitation acceptée (réutilise la ligne member, `leftAt = null`).
+
+### 18.2quater Autorité (cible produit)
 
 Le serveur possède l’état autoritaire de la salle.
 

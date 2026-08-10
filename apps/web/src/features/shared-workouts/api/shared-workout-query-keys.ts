@@ -1,4 +1,7 @@
-import type { SharedWorkoutRoomStatus } from '@gym-companion/shared';
+import type {
+  SharedWorkoutRoomInvitationStatus,
+  SharedWorkoutRoomStatus,
+} from '@gym-companion/shared';
 
 export const sharedWorkoutRoomQueryKeys = {
   all: ['shared-workouts'] as const,
@@ -8,4 +11,10 @@ export const sharedWorkoutRoomQueryKeys = {
   details: () => [...sharedWorkoutRoomQueryKeys.all, 'detail'] as const,
   detail: (roomId: string) =>
     [...sharedWorkoutRoomQueryKeys.details(), roomId] as const,
+  roomInvitations: (roomId: string, filters: { status?: SharedWorkoutRoomInvitationStatus } = {}) =>
+    [...sharedWorkoutRoomQueryKeys.all, 'room-invitations', roomId, filters] as const,
+  receivedInvitations: (
+    filters: { status?: SharedWorkoutRoomInvitationStatus } = {},
+  ) =>
+    [...sharedWorkoutRoomQueryKeys.all, 'received-invitations', filters] as const,
 };

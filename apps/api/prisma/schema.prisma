@@ -76,6 +76,8 @@ model User {
   ownedSharedWorkoutRooms SharedWorkoutRoom[]             @relation("SharedWorkoutRoomOwner")
   sharedWorkoutRoomMemberships SharedWorkoutRoomMember[]
   sharedWorkoutRoomLifecycleCommands SharedWorkoutRoomLifecycleCommand[]
+  sharedWorkoutRoomInvitationsSent     SharedWorkoutRoomInvitation[] @relation("SharedWorkoutInvitationInviter")
+  sharedWorkoutRoomInvitationsReceived SharedWorkoutRoomInvitation[] @relation("SharedWorkoutInvitationInvitee")
 
   @@index([status])
   @@map("users")
@@ -728,6 +730,13 @@ enum SharedWorkoutRoomMemberRole {
   MEMBER
 }
 
+enum SharedWorkoutRoomInvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+}
+
 model SharedWorkoutRoom {
   id           String                   @id @default(uuid()) @db.Uuid
   ownerUserId  String                   @db.Uuid
@@ -739,9 +748,10 @@ model SharedWorkoutRoom {
   createdAt    DateTime                 @default(now())
   updatedAt    DateTime                 @updatedAt
 
-  owner      User                                @relation("SharedWorkoutRoomOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
-  members    SharedWorkoutRoomMember[]
-  commands   SharedWorkoutRoomLifecycleCommand[]
+  owner        User                                @relation("SharedWorkoutRoomOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  members      SharedWorkoutRoomMember[]
+  commands     SharedWorkoutRoomLifecycleCommand[]
+  invitations  SharedWorkoutRoomInvitation[]
 
   @@index([ownerUserId])
   @@index([status])
@@ -755,6 +765,8 @@ model SharedWorkoutRoomMember {
   userId   String                      @db.Uuid
   role     SharedWorkoutRoomMemberRole
   joinedAt DateTime                    @default(now())
+  /// null = membre actif ; non-null = a quitté (Shared 5.2).
+  leftAt   DateTime?
 
   room SharedWorkoutRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
   user User              @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -762,6 +774,7 @@ model SharedWorkoutRoomMember {
   @@unique([roomId, userId])
   @@index([userId])
   @@index([roomId])
+  @@index([userId, leftAt])
   @@map("shared_workout_room_members")
 }
 
@@ -781,4 +794,26 @@ model SharedWorkoutRoomLifecycleCommand {
   @@unique([ownerUserId, clientCommandId])
   @@index([roomId])
   @@map("shared_workout_room_lifecycle_commands")
+}
+
+/// Shared 5.2 — invitation directe vers un compte existant (email).
+model SharedWorkoutRoomInvitation {
+  id              String                            @id @default(uuid()) @db.Uuid
+  roomId          String                            @db.Uuid
+  invitedByUserId String                            @db.Uuid
+  inviteeUserId   String                            @db.Uuid
+  status          SharedWorkoutRoomInvitationStatus @default(PENDING)
+  createdAt       DateTime                          @default(now())
+  respondedAt     DateTime?
+  cancelledAt     DateTime?
+
+  room      SharedWorkoutRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  invitedBy User              @relation("SharedWorkoutInvitationInviter", fields: [invitedByUserId], references: [id], onDelete: Cascade)
+  invitee   User              @relation("SharedWorkoutInvitationInvitee", fields: [inviteeUserId], references: [id], onDelete: Cascade)
+
+  @@index([inviteeUserId, status, createdAt])
+  @@index([roomId, status, createdAt])
+  @@index([roomId, inviteeUserId])
+  @@index([createdAt, id])
+  @@map("shared_workout_room_invitations")
 }

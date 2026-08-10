@@ -10,6 +10,7 @@ type MemberRow = {
   userId: string;
   role: string;
   joinedAt: Date;
+  leftAt: Date | null;
   user: {
     profile: { displayName: string } | null;
   };
@@ -28,6 +29,10 @@ type RoomRow = {
   members: MemberRow[];
 };
 
+function activeMembers(members: MemberRow[]): MemberRow[] {
+  return members.filter((member) => member.leftAt == null);
+}
+
 export function toSharedWorkoutRoomMemberDto(
   member: MemberRow,
 ): SharedWorkoutRoomMemberDto {
@@ -43,7 +48,8 @@ export function toSharedWorkoutRoomDetail(
   room: RoomRow,
   viewerUserId: string,
 ): SharedWorkoutRoomDetail {
-  const ownerMember = room.members.find((member) => member.role === 'OWNER');
+  const members = activeMembers(room.members);
+  const ownerMember = members.find((member) => member.role === 'OWNER');
   return {
     id: room.id,
     name: room.name,
@@ -52,11 +58,11 @@ export function toSharedWorkoutRoomDetail(
       userId: room.ownerUserId,
       displayName:
         ownerMember?.user.profile?.displayName ??
-        room.members.find((member) => member.userId === room.ownerUserId)?.user
+        members.find((member) => member.userId === room.ownerUserId)?.user
           .profile?.displayName ??
         null,
     },
-    members: room.members
+    members: members
       .slice()
       .sort((a, b) => {
         if (a.role === 'OWNER' && b.role !== 'OWNER') return -1;
@@ -76,12 +82,13 @@ export function toSharedWorkoutRoomDetail(
 export function toSharedWorkoutRoomListItem(
   room: RoomRow,
 ): SharedWorkoutRoomListItem {
-  const ownerMember = room.members.find((member) => member.role === 'OWNER');
+  const members = activeMembers(room.members);
+  const ownerMember = members.find((member) => member.role === 'OWNER');
   return {
     id: room.id,
     name: room.name,
     status: room.status as SharedWorkoutRoomStatus,
-    memberCount: room.members.length,
+    memberCount: members.length,
     owner: {
       userId: room.ownerUserId,
       displayName: ownerMember?.user.profile?.displayName ?? null,

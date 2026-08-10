@@ -2,14 +2,16 @@
 
 ## 0. Statut d’implémentation
 
-> **Shared 5.1 = REST uniquement.**
+> **Shared 5.1 + Shared 5.2 = REST uniquement.**
 >
-> Les fondations salle (`SharedWorkoutRoom`, membership, lifecycle HTTP) sont livrées
-> via `/api/v1/shared-workouts`. **Aucun** gateway Socket.IO, room socket, événement
-> de présence ni snapshot live n’est configuré en Shared 5.1.
+> Fondations salle, invitations email, accept/decline/cancel et leave sont livrés
+> en HTTP (`/api/v1/shared-workouts`, `/api/v1/shared-workout-invitations`).
+> **Aucun** gateway Socket.IO, room socket, événement de présence ni snapshot live
+> n’est configuré en Shared 5.1 / 5.2.
 >
-> Socket.IO démarre dans un jalon ultérieur (**Shared 5.3+**). Ce document décrit
-> la **cible** temps réel ; ne pas le lire comme déjà livré.
+> Les événements Socket.IO `room:join` / `room:leave` / présence appartiennent à
+> **Shared 5.3+**. Ce document décrit la **cible** temps réel ; ne pas le lire
+> comme déjà livré.
 
 ## 1. Objectif de ce document
 
@@ -59,18 +61,19 @@ Le client ne décide pas seul :
 HTTP est utilisé pour :
 
 - créer une salle ;
-- résoudre une invitation ;
-- rejoindre une salle ;
+- inviter par email / accepter / refuser / annuler une invitation *(Shared 5.2 livré)* ;
+- quitter une salle (leave soft) *(Shared 5.2 livré)* ;
+- résoudre un code d’invitation public *(futur)* ;
+- rejoindre via code *(futur)* ;
 - récupérer un snapshot ;
 - consulter le résumé ;
-- quitter définitivement ;
 - modifier des paramètres hors séance.
 
-Socket.IO est utilisé pour :
+Socket.IO est utilisé pour *(Shared 5.3+)* :
 
 - synchroniser l’état actif ;
 - enregistrer des commandes pendant la séance ;
-- diffuser les changements ;
+- diffuser les changements (dont join/leave temps réel) ;
 - gérer la présence ;
 - gérer les rotations ;
 - gérer les reconnexions rapides.

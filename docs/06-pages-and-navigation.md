@@ -58,7 +58,7 @@ Structure cible (routes livrées en gras conceptuel via commentaires) :
 ├── forgot-password
 ├── reset-password
 ├── verify-email                    # futur
-├── invite/:invitationCode          # futur
+├── invite/:invitationCode          # futur (codes publics — hors Shared 5.2)
 │
 ├── profile                         # livré
 ├── planning                        # livré
@@ -77,10 +77,11 @@ Structure cible (routes livrées en gras conceptuel via commentaires) :
 │   ├── active                      # séance interactive (jalons 3.4–3.5)
 │   └── :workoutSessionId           # détail ; lecture seule si COMPLETED/CANCELLED
 │
-├── shared-workouts                 # Shared 5.1 livré (fondations)
+├── shared-workouts                 # Shared 5.1 + 5.2 livrés
 │   ├── new                         # livré
-│   ├── join                        # Shared 5.2 — futur
-│   └── :roomId                     # livré (lobby / active / terminal unifiés)
+│   ├── invitations                 # Shared 5.2 — invitations reçues
+│   ├── join                        # futur (codes / liens publics)
+│   └── :roomId                     # livré (lobby / active / terminal + invite UI)
 │       ├── lobby                   # futur (alias possible)
 │       ├── active                  # futur (alias possible)
 │       └── summary                 # futur
@@ -112,8 +113,9 @@ Structure cible (routes livrées en gras conceptuel via commentaires) :
 
 > Routes coaching livrées : `/coach`, `/coach/chat`, `/progress/exercises/:exerciseId`.
 > `/coach/proposals/:proposalId` reste **futur** (génération de programme) — hors Couche Coaching 5.1–5.6.
-> « Phase 5 » / Shared (`shared-workouts`) = roadmap **Séances partagées** : **Shared 5.1 livré**
-> (`/shared-workouts`, `/new`, `/:roomId`) ; join / lobby dédié / Socket.IO = jalons suivants.
+> « Phase 5 » / Shared (`shared-workouts`) = roadmap **Séances partagées** :
+> **Shared 5.1 + 5.2 livrés** (`/shared-workouts`, `/new`, `/invitations`, `/:roomId`) ;
+> join par code / lobby dédié / Socket.IO = jalons suivants.
 
 ## 4. Navigation mobile principale
 
@@ -216,7 +218,7 @@ Sections livrées :
 - Records (`/records`) ;
 - Progression (`/progress`, `/progress/exercises/:exerciseId`) ;
 - Coach (`/coach`) ;
-- Séances partagées (`/shared-workouts`) — Shared 5.1 ;
+- Séances partagées (`/shared-workouts`, `/shared-workouts/invitations`) — Shared 5.1 + 5.2 ;
 - Programmes ;
 - Exercices ;
 - Profil.
@@ -224,7 +226,7 @@ Sections livrées :
 Sections futures :
 
 - Nutrition ;
-- Invitations / join shared (Shared 5.2+) ;
+- Join shared par code / lien public (hors Shared 5.2) ;
 - Coach IA (génération programme) ;
 - Paramètres avancés.
 
@@ -922,13 +924,15 @@ Hors scope 4.5 : autres formules, 1RM RIR/RPE, recommandations, matérialisation
 ```
 
 > **Shared 5.1 (livré)** — formulaire minimal (nom optionnel).  
-> Sélection de modèle, équipements, capacité et invitation = jalons ultérieurs.
+> Sélection de modèle, équipements et capacité = jalons ultérieurs.
+> Invitation par email = Shared 5.2 (depuis le détail salle).
 
 ### Shared 5.1 — étapes
 
 1. Saisir un nom de salle (ou laisser le défaut serveur).
 2. Créer la salle.
-3. Naviguer vers `/shared-workouts/:roomId` (lobby owner seul).
+3. Naviguer vers `/shared-workouts/:roomId`.
+4. *(Shared 5.2)* Inviter des comptes par email depuis le détail.
 
 ### Cible produit (ultérieur)
 
@@ -936,7 +940,7 @@ Hors scope 4.5 : autres formules, 1RM RIR/RPE, recommandations, matérialisation
 2. Définir les équipements disponibles.
 3. Définir les options de salle.
 4. Créer la salle.
-5. Partager l’invitation.
+5. Partager un code / lien public (hors Shared 5.2).
 
 ### Informations Shared 5.1
 
@@ -948,29 +952,43 @@ Hors scope 4.5 : autres formules, 1RM RIR/RPE, recommandations, matérialisation
 /shared-workouts
 ```
 
-Affiche les salles dont l’utilisateur est membre (filtre `status`, pagination cursor).
-État vide + CTA « Créer une salle ».
+Affiche les salles dont l’utilisateur est **membre actif** (filtre `status`, pagination cursor).
+État vide + CTA « Créer une salle ». Lien vers `/shared-workouts/invitations`.
 
-### Lobby / détail unifié Shared 5.1
+### Lobby / détail unifié Shared 5.1 + 5.2
 
 ```text
 /shared-workouts/:roomId
 ```
 
 Selon `status` : préparation (LOBBY), en cours (ACTIVE), terminée / annulée (read-only).
-Actions owner : renommer (LOBBY/ACTIVE), démarrer, terminer, annuler.
-Message discret : invitations à venir — **pas** de bouton Inviter factice.
+Actions owner : renommer (LOBBY/ACTIVE), démarrer, terminer, annuler ;
+inviter par email + lister / annuler les `PENDING` (LOBBY/ACTIVE).
+Actions MEMBER actif : quitter la salle (LOBBY/ACTIVE).
+Membres affichés = memberships actifs uniquement (`leftAt IS NULL`).
+
+### Invitations reçues (Shared 5.2)
+
+```text
+/shared-workouts/invitations
+```
+
+Liste des invitations reçues (filtre `status`, cursor). Actions : accepter / refuser
+les `PENDING`. Acceptation → membership `MEMBER` puis navigation vers la salle.
 
 ## 27. Rejoindre une séance partagée
 
-### Routes
+> **Shared 5.2 livré** via invitations email (`/shared-workouts/invitations`).
+> Les routes ci-dessous (codes / liens publics) restent **futures**.
+
+### Routes futures (codes)
 
 ```text
 /invite/:invitationCode
 /shared-workouts/join
 ```
 
-### Contenu
+### Contenu (cible codes)
 
 - informations de la salle ;
 - hôte ;
@@ -979,7 +997,7 @@ Message discret : invitations à venir — **pas** de bouton Inviter factice.
 - validité de l’invitation ;
 - bouton Rejoindre.
 
-### États
+### États (cible codes)
 
 - invitation valide ;
 - expirée ;
@@ -991,13 +1009,16 @@ Message discret : invitations à venir — **pas** de bouton Inviter factice.
 
 ## 28. Lobby d’une séance partagée
 
+> En Shared 5.1 / 5.2 le lobby est unifié sur `/shared-workouts/:roomId`
+> (invite email + leave). Route dédiée / présence / codes = jalons suivants.
+
 ### Route
 
 ```text
 /shared-workouts/:roomId/lobby
 ```
 
-### Contenu
+### Contenu (cible)
 
 - hôte ;
 - participants ;
@@ -1005,7 +1026,7 @@ Message discret : invitations à venir — **pas** de bouton Inviter factice.
 - équipements ;
 - séance ;
 - rotation proposée ;
-- code d’invitation ;
+- code d’invitation (futur) ;
 - durée cible.
 
 ### Actions de l’hôte
@@ -1424,7 +1445,8 @@ Routes sous `/admin` avec rôle adapté.
 
 ### Séance partagée
 
-L’utilisateur doit être membre de la salle ou posséder une invitation valide.
+L’utilisateur doit être **membre actif** de la salle, ou accéder aux invitations
+reçues (`/shared-workouts/invitations`) pour accept / decline.
 
 ## 44. Gestion des redirections
 

@@ -22,7 +22,7 @@ Deux axes de numérotation coexistent volontairement ; ils ne doivent **pas** ê
 | Libellé | Signification |
 |---------|----------------|
 | **Couche Coaching — jalons techniques 5.1 → 5.6** | Moteurs déterministes + Coach + IA explicative + chat READ ONLY, livrés **sous la Phase 4** produit (records / stats / progression / coaching). |
-| **Roadmap produit Phase 5 — Séances partagées** | Collaboration multi-utilisateurs (salles, invitations, Socket.IO). **En cours** — Shared 5.1 livré (fondations salle REST). |
+| **Roadmap produit Phase 5 — Séances partagées** | Collaboration multi-utilisateurs (salles, invitations, Socket.IO). **En cours** — Shared 5.1 + 5.2 livrés (salle REST, invitations email / leave). |
 
 Un tag ou un libellé du type `phase-5.6-complete` / « jalon 5.6 livré » signifie uniquement que la **couche coaching** est clôturée — **pas** que la roadmap « Séances partagées » est terminée.
 
@@ -358,7 +358,7 @@ La phase 3 est terminée lorsque :
 > et **Couche Coaching 5.1 → 5.6** (recommandations, décisions, plateau, Coach déterministe,
 > explication IA, chat READ ONLY).
 >
-> La phase **produit** suivante est la **Phase 5 — Séances partagées** (**en cours**, Shared 5.1 livré).
+> La phase **produit** suivante est la **Phase 5 — Séances partagées** (**en cours**, Shared 5.1 + 5.2 livrés).
 > Voir §2.0 pour la nomenclature.  
 > La liste et le détail historique de base sont déjà livrés en phase 3 (jalon 3.6).  
 > La phase 4 transforme ces données en records, statistiques et visualisation.
@@ -547,7 +547,7 @@ La phase est terminée lorsque :
 > | Jalon | Contenu | Statut |
 > |-------|---------|--------|
 > | **Shared 5.1** | Fondations salle (`SharedWorkoutRoom` / membership / lifecycle REST) | **Livré** |
-> | Shared 5.2 | Invitations / rejoindre | Non commencé |
+> | **Shared 5.2** | Invitations email / accept-decline / leave | **Livré** |
 > | Shared 5.3 | Présence temps réel / Socket.IO | Non commencé |
 > | Shared 5.4+ | Coordination séances membres, rotation, etc. | Non commencé |
 
@@ -560,10 +560,31 @@ Livré :
 - modèles `SharedWorkoutRoom`, `SharedWorkoutRoomMember`, `SharedWorkoutRoomLifecycleCommand` ;
 - statuts `LOBBY` → `ACTIVE` → `COMPLETED`, et `LOBBY`/`ACTIVE` → `CANCELLED` ;
 - création transactionnelle (room + membership `OWNER`) ;
-- liste (membership), détail, rename (LOBBY/ACTIVE), start / complete / cancel ;
+- liste (membership actif), détail, rename (LOBBY/ACTIVE), start / complete / cancel ;
 - API `/api/v1/shared-workouts` ; UI `/shared-workouts`, `/new`, `/:roomId` ;
 - JWT, IDOR 404 neutre, owner-only mutations, idempotence `clientCommandId` ;
-- **pas** d’invitations, join, Socket.IO, présence, ni lien auto `WorkoutSession`.
+- **pas** de Socket.IO, présence, ni lien auto `WorkoutSession`.
+
+### 8.0bis Shared 5.2 — Invitations et leave (livré)
+
+Adhésion multi-membres via invitation **par email exact** (compte existant `ACTIVE`).
+Pas de username / handle ; normalisation email = trim + lowercase (comme auth).
+
+Livré :
+
+- modèle `SharedWorkoutRoomInvitation` (`PENDING` / `ACCEPTED` / `DECLINED` / `CANCELLED`) ;
+- `SharedWorkoutRoomMember.leftAt` — membership actif = `leftAt IS NULL` ;
+- index unique partiel : une seule invitation `PENDING` par `(roomId, inviteeUserId)` ;
+- owner : invite, liste invitations salle, cancel `PENDING` ;
+- invitee : liste reçues, accept, decline ;
+- MEMBER actif : leave (soft) ; OWNER ne peut pas leave ;
+- accept sur ex-membre → rejoin (`leftAt = null`) ;
+- `COMPLETED` / `CANCEL` room → annulation auto des `PENDING` ; `START` ne les annule pas ;
+- anti-énumération : utilisateur inconnu / inactif → `SHARED_WORKOUT_INVITATION_CANNOT_CREATE` ;
+- API sous `/api/v1/shared-workouts` + `/api/v1/shared-workout-invitations` ;
+- UI `/shared-workouts/invitations`, invite sur détail salle, leave pour MEMBER ;
+- REST uniquement, NetworkOnly ; **pas** de code / lien public, **pas** de Socket.IO,
+  **pas** de `WorkoutSession` auto.
 
 ### 8.1 Objectif
 
@@ -576,11 +597,11 @@ Permettre à plusieurs utilisateurs de réaliser une même séance en organisant
 - Création d’une séance partagée. *(Shared 5.1)*
 - Sélection d’un modèle. *(ultérieur)*
 - Séance libre. *(ultérieur)*
-- Code d’invitation. *(Shared 5.2)*
-- Lien d’invitation. *(Shared 5.2)*
-- Expiration du code. *(Shared 5.2)*
-- Révocation du code. *(Shared 5.2)*
-- Liste des participants. *(Shared 5.1 : owner seul ; multi-membres dès 5.2)*
+- Invitation par email (compte existant). *(Shared 5.2)*
+- Acceptation / refus / annulation d’invitation. *(Shared 5.2)*
+- Quitter une salle (MEMBER) / rejoindre via nouvelle invitation. *(Shared 5.2)*
+- Code / lien d’invitation publics, expiration. *(ultérieur — hors Shared 5.2)*
+- Liste des participants. *(Shared 5.1 : owner ; Shared 5.2 : multi-membres actifs)*
 
 #### Préparation
 

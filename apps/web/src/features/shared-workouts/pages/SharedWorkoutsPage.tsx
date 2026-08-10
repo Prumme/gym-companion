@@ -56,6 +56,13 @@ export function SharedWorkoutsPage() {
           <p className="mt-1 text-sm text-[var(--muted)]">
             Prépare une salle privée pour t’entraîner à plusieurs.
           </p>
+          <ButtonLink
+            to="/shared-workouts/invitations"
+            variant="ghost"
+            className="mt-2 px-0"
+          >
+            Invitations reçues
+          </ButtonLink>
         </div>
         <ButtonLink
           to="/shared-workouts/new"
@@ -75,7 +82,8 @@ export function SharedWorkoutsPage() {
           role="status"
           className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-3 text-sm"
         >
-          Une connexion est nécessaire pour gérer une séance partagée.
+          Une connexion est nécessaire pour gérer les invitations et les
+          membres.
         </p>
       ) : null}
 
