@@ -11,6 +11,7 @@ import { ProgramsModule } from './modules/programs/programs.module';
 import { ReferenceModule } from './modules/reference/reference.module';
 import { UsersModule } from './modules/users/users.module';
 import { WorkoutsModule } from './modules/workouts/workouts.module';
+import { PersonalRecordsModule } from './modules/personal-records/personal-records.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { WorkoutsModule } from './modules/workouts/workouts.module';
     ExercisesModule,
     ProgramsModule,
     WorkoutsModule,
+    PersonalRecordsModule,
   ],
   providers: [
     {

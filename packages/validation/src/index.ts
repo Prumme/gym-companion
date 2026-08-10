@@ -1892,3 +1892,36 @@ export function buildWorkoutHistoryCursorFilter(
     ],
   };
 }
+
+export {
+  comparePersonalRecordPrimary,
+  comparePersonalRecordTieBreak,
+  comparePersonalRecordsSort,
+  decodePersonalRecordsCursor,
+  encodePersonalRecordsCursor,
+  getPersonalRecordPrincipalValue,
+  isBetterPersonalRecordCandidate,
+  isPersonalRecordAfterCursor,
+  isSetEligibleForPersonalRecord,
+  listPersonalRecordsLimitSchema,
+  parsePersonalRecordsQuery,
+  personalRecordGroupKey,
+  personalRecordTypeSchema,
+  personalRecordsQuerySchema,
+  resolveRecordTypesForMeasurement,
+  selectCurrentPersonalRecords,
+  selectCurrentPersonalRecordsWithType,
+} from './personal-records';
+export type {
+  ExerciseMeasurementTypeForRecords,
+  PersonalRecordCandidate,
+  PersonalRecordEligibilityInput,
+  PersonalRecordSetValues,
+  PersonalRecordType,
+  PersonalRecordsCursorPayload,
+  PersonalRecordsQuery,
+  PersonalRecordsQueryParseErrorCode,
+  PersonalRecordsQueryParseResult,
+  PersonalRecordsSortKey,
+  WorkoutSetTypeForRecords,
+} from './personal-records';

@@ -333,7 +333,7 @@ La phase 3 est terminée lorsque :
 
 ## 7. Phase 4 — Records, statistiques et progression
 
-> Statut : **future**.  
+> Statut : **en cours** (jalon **4.1** livré : records simples en lecture).  
 > La liste et le détail historique de base sont déjà livrés en phase 3 (jalon 3.6).  
 > La phase 4 transforme ces données en records, statistiques et visualisation.
 
@@ -358,13 +358,19 @@ Transformer les données enregistrées en informations utiles (records, progress
 
 ### 7.3 Records initiaux
 
-- charge maximale ;
-- répétitions maximales ;
+**Livré en 4.1 (calcul à la demande, sans matérialisation) :**
+
+- charge maximale (`MAX_WEIGHT`) ;
+- répétitions maximales (`MAX_REPS`) ;
+- meilleure durée (`MAX_DURATION`) ;
+- meilleure distance (`MAX_DISTANCE`).
+
+**Restent hors 4.1 :**
+
 - volume maximal sur une série ;
 - volume maximal sur une séance ;
 - meilleur 1RM estimé ;
-- meilleure durée ;
-- meilleure distance.
+- graphiques / tendances / comparaison de périodes.
 
 ### 7.4 Hors périmètre
 

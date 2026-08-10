@@ -316,7 +316,7 @@ pnpm dev
   - Détail séance : http://localhost:5173/workouts/:workoutSessionId
   - Minuterie de repos : locale uniquement (localStorage), non synchronisée, aucune donnée serveur
   - Hors ligne (3.5) : file IndexedDB de commandes pour séries + pause/reprise/fin/annulation ; création de séance toujours en ligne
-  - Hors périmètre actuel : démarrage de séance hors ligne, records, statistiques, progression calculée, graphiques, WebSocket, Background Sync garanti, IA
+  - Hors périmètre actuel : démarrage de séance hors ligne, 1RM / volume / graphiques / progression temporelle, WebSocket, Background Sync garanti, IA
 - Mailpit : http://localhost:8025 (`docker compose up -d mailpit`)
 
 Compose complet (profil `full`) :
@@ -373,5 +373,12 @@ filtres statut/dates/programme/modèle), page `/workouts`, détail lecture seule
 `COMPLETED`/`CANCELLED`, invalidation après fin/annulation, et affichage local des séances
 terminales en attente de sync. Hors scope : records, progression, graphiques, volume officiel,
 modification/suppression/duplication d’historique, IndexedDB d’archives complètes.
+
+Le jalon **4.1** ajoute les records personnels simples en lecture : calcul à la demande depuis
+les séances/séries `COMPLETED` (hors échauffement), endpoints
+`GET /api/v1/personal-records` et `GET /api/v1/exercises/:exerciseId/personal-records`,
+page `/records` et section sur le détail d’exercice. Pas de table `PersonalRecord`, pas de 1RM,
+pas de volume, pas de graphiques. Invalidation TanStack Query uniquement après `COMPLETE_WORKOUT`
+confirmé serveur.
 
 Les documents du dossier `docs/` restent la source de vérité produit et technique.

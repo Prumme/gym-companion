@@ -435,6 +435,48 @@ export type WorkoutHistoryListItem = {
 export type WorkoutHistoryListResponse =
   ApiCursorListResponse<WorkoutHistoryListItem>;
 
+/** Types de records personnels simples (jalon 4.1 — calcul à la demande). */
+export type PersonalRecordType =
+  | 'MAX_WEIGHT'
+  | 'MAX_REPS'
+  | 'MAX_DURATION'
+  | 'MAX_DISTANCE';
+
+export type PersonalRecord = {
+  exerciseId: string;
+  exercise: {
+    id: string;
+    name: string;
+    measurementType: ExerciseMeasurementType;
+    archived: boolean | null;
+  };
+  equipment: {
+    id: string | null;
+    name: string | null;
+  };
+  recordType: PersonalRecordType;
+  value: number;
+  context: {
+    weightKg: number | null;
+    reps: number | null;
+    durationSeconds: number | null;
+    distanceMeters: number | null;
+    rir: number | null;
+    rpe: number | null;
+    reachedFailure: boolean;
+    setType: WorkoutSetType;
+  };
+  achievedOn: string;
+  achievedAt: string | null;
+  source: {
+    workoutSessionId: string;
+    workoutSessionExerciseId: string;
+    workoutSetId: string;
+  };
+};
+
+export type PersonalRecordListResponse = ApiCursorListResponse<PersonalRecord>;
+
 export function createSuccessResponse<T>(data: T): ApiSuccessResponse<T> {
   return { data };
 }

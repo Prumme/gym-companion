@@ -3,7 +3,7 @@ import type {
   WorkoutLifecycleResult,
   WorkoutSessionDetail,
 } from '@gym-companion/shared';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type {
   CancelWorkoutSessionInput,
   CompleteWorkoutSessionInput,
@@ -24,6 +24,7 @@ import {
   updateWorkoutSet,
 } from '../api/workout-api';
 import { workoutQueryKeys } from '../api/workout-query-keys';
+import { personalRecordQueryKeys } from '@/features/personal-records/api/personal-record-query-keys';
 import { applyUpdateWorkoutSetResult } from '../lib/workout-cache';
 import { createClientCommandId } from '../offline/command-id';
 import { enqueueWorkoutCommand } from '../offline/enqueue';
@@ -56,6 +57,19 @@ function applyLifecycleToCache(
       queryKey: workoutQueryKeys.pendingTerminalLocal(),
     });
   }
+  if (session.status === 'COMPLETED') {
+    void queryClient.invalidateQueries({
+      queryKey: personalRecordQueryKeys.all,
+    });
+  }
+}
+
+/** Exposé pour tests d’invalidation des records (jalon 4.1). */
+export function applyLifecycleToCacheForTest(
+  queryClient: QueryClient,
+  session: WorkoutSessionDetail,
+) {
+  applyLifecycleToCache(queryClient, session);
 }
 
 function shouldEnqueueOffline(error: unknown): boolean {

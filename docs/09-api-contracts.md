@@ -1690,12 +1690,35 @@ Réponse possible :
 }
 ```
 
-### 23.3 Records
+### 23.3 Records (jalon 4.1)
+
+Calculés **à la demande** depuis l’historique (pas de table `PersonalRecord`).
 
 ```text
 GET /api/v1/personal-records
 GET /api/v1/exercises/:exerciseId/personal-records
 ```
+
+#### Liste globale
+
+Query :
+
+| Paramètre | Type | Notes |
+|-----------|------|--------|
+| `exerciseId` | uuid? | Filtre optionnel |
+| `recordType` | `MAX_WEIGHT` \| `MAX_REPS` \| `MAX_DURATION` \| `MAX_DISTANCE`? | |
+| `cursor` | string? | Opaque |
+| `limit` | 1–100 (défaut 20) | |
+
+Réponse : records **courants** (une entrée par exercice + équipement stable + type), pagination cursor. Tri : `achievedOn DESC`, `exerciseId ASC`, équipement, `recordType ASC`.
+
+Éligibilité : séance `COMPLETED`, série `COMPLETED`, `setType ≠ WARMUP`, `sourceExerciseId` non null. Snapshots de séance uniquement. Pas de 1RM, volume, ni graphiques.
+
+Codes d’erreur utiles : `PERSONAL_RECORD_INVALID_TYPE`, `PERSONAL_RECORD_INVALID_CURSOR`, `EXERCISE_NOT_FOUND` (endpoint exercice).
+
+#### Par exercice
+
+JWT obligatoire. Exercice système ou personnel du propriétaire (y compris archivé). Corps : `{ "data": PersonalRecord[] }` (liste vide si aucune perf). 404 neutre si inaccessible.
 
 ## 24. Salles partagées en HTTP
 

@@ -12,6 +12,7 @@ import { ExerciseManagementSection } from '../components/ExerciseManagementSecti
 import { ExercisePreferenceSection } from '../components/ExercisePreferenceSection';
 import { ExerciseSourceBadge } from '../components/ExerciseSourceBadge';
 import { getMeasurementTypeLabel } from '../lib/exercise-labels';
+import { ExercisePersonalRecordsSection } from '@/features/personal-records/components/ExercisePersonalRecordsSection';
 
 type DetailLocationState = {
   from?: string;
@@ -148,6 +149,8 @@ export function ExerciseDetailPage() {
           {exercise.instructions?.trim() || 'Aucune instruction.'}
         </p>
       </section>
+
+      <ExercisePersonalRecordsSection exerciseId={exercise.id} />
 
       <ExerciseManagementSection
         exercise={exercise}

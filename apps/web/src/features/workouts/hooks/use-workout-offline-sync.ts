@@ -5,6 +5,7 @@ import type { WorkoutSessionDetail } from '@gym-companion/shared';
 import { getMe } from '@/features/profile/api/profile-api';
 
 import { workoutQueryKeys } from '../api/workout-query-keys';
+import { personalRecordQueryKeys } from '@/features/personal-records/api/personal-record-query-keys';
 import { subscribeWorkoutSync } from '../offline/broadcast';
 import {
   discardLocalChanges,
@@ -36,6 +37,11 @@ function applySyncedSessionToCache(
     });
     void queryClient.invalidateQueries({
       queryKey: workoutQueryKeys.pendingTerminalLocal(),
+    });
+  }
+  if (session.status === 'COMPLETED') {
+    void queryClient.invalidateQueries({
+      queryKey: personalRecordQueryKeys.all,
     });
   }
 }

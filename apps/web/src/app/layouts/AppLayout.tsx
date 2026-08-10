@@ -4,6 +4,7 @@ import {
   Dumbbell,
   History,
   Home,
+  Trophy,
   UserRound,
 } from 'lucide-react';
 import { NavLink, Outlet } from 'react-router-dom';
@@ -16,6 +17,7 @@ const navItems = [
   { to: '/', label: 'Accueil', icon: Home, end: true },
   { to: '/planning', label: 'Planning', icon: CalendarDays, end: false },
   { to: '/workouts', label: 'Historique', icon: History, end: true },
+  { to: '/records', label: 'Records', icon: Trophy, end: true },
   { to: '/programs', label: 'Programmes', icon: ClipboardList, end: false },
   { to: '/exercises', label: 'Exercices', icon: Dumbbell, end: false },
   { to: '/profile', label: 'Profil', icon: UserRound, end: false },

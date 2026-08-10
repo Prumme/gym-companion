@@ -119,10 +119,10 @@ La navigation mobile utilise une barre inférieure persistante hors séance acti
 Proposition alignée sur la phase 3 livrée :
 
 ```text
-Accueil | Planning | Historique | Programmes | Exercices | Profil
+Accueil | Planning | Historique | Records | Programmes | Exercices | Profil
 ```
 
-Routes : `/`, `/planning`, `/workouts`, `/programs`, `/exercises`, `/profile`.
+Routes : `/`, `/planning`, `/workouts`, `/records`, `/programs`, `/exercises`, `/profile`.
 
 ### 4.1 Accueil / Planning
 
@@ -132,15 +132,19 @@ Accès au planning hebdomadaire, au programme courant et au démarrage d’une s
 
 Accès à `/workouts` (séances `COMPLETED` / `CANCELLED`).
 
-### 4.3 Programmes et exercices
+### 4.3 Records
 
-Accès aux programmes, modèles et catalogue d’exercices (`/programs`, `/exercises`).
+Accès à `/records` (jalon 4.1) : records personnels courants calculés à la demande. Pas de page `/progress` ni de graphiques.
 
-### 4.4 Progression
+### 4.4 Programmes et exercices
 
-Phase 4 — **future** (records, statistiques, graphiques). Non présente dans la barre livrée en phase 3.
+Accès aux programmes, modèles et catalogue d’exercices (`/programs`, `/exercises`). Le détail exercice affiche une section « Records personnels ».
 
-### 4.5 Profil
+### 4.5 Progression enrichie
+
+Phase 4 ultérieure — statistiques, graphiques, 1RM, volume (hors 4.1).
+
+### 4.6 Profil
 
 Accès au profil et à la déconnexion (`/profile`), avec confirmation si des commandes hors ligne sont en attente.
 
@@ -148,11 +152,12 @@ Accès au profil et à la déconnexion (`/profile`), avec confirmation si des co
 
 Sur desktop, la navigation principale peut utiliser une barre latérale ou la même barre que le mobile.
 
-Sections livrées en phase 3 :
+Sections livrées :
 
 - Accueil ;
 - Planning ;
 - Historique (`/workouts`) ;
+- Records (`/records`) ;
 - Programmes ;
 - Exercices ;
 - Profil.
@@ -741,14 +746,37 @@ L’utilisateur peut sélectionner directement un exercice.
 
 - calendrier ;
 - recherche plein texte ;
-- records / progression / graphiques ;
 - duplication ou relance d’une ancienne séance ;
 - modification / suppression définitive ;
 - route concurrente `/history/workouts` (non utilisée).
 
+## 23bis. Records personnels (jalon 4.1)
+
+Route livrée :
+
+```text
+/records
+```
+
+- titre « Records personnels » ;
+- liste des records courants groupés par exercice ;
+- type, valeur, contexte, date, équipement si disponible ;
+- liens vers la séance source et l’exercice ;
+- état vide avec actions vers programmes / historique ;
+- bandeau si fin de séance locale non encore synchronisée (sans annoncer de record officiel) ;
+- section miroir sur `/exercises/:exerciseId`.
+
+### Hors périmètre 4.1
+
+- `/progress` ;
+- graphiques ;
+- 1RM estimé ;
+- volume ;
+- table `PersonalRecord` matérialisée.
+
 ## 24. Vue globale de progression
 
-> Phase 4 — **future**. Non livrée en phase 3.
+> Phase 4 — **partiellement démarrée** (4.1 records simples). Graphiques / overview restent futurs.
 
 ### Route
 

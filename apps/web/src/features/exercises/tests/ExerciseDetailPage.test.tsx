@@ -8,11 +8,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ExerciseDetailPage } from '../pages/ExerciseDetailPage';
 import { createExerciseListItem } from './fixtures';
 
-const getExercise = vi.fn();
-const updateExercisePreference = vi.fn();
-const resetExercisePreference = vi.fn();
-const archiveExercise = vi.fn();
-const restoreExercise = vi.fn();
+const {
+  getExercise,
+  updateExercisePreference,
+  resetExercisePreference,
+  archiveExercise,
+  restoreExercise,
+  listExercisePersonalRecords,
+} = vi.hoisted(() => ({
+  getExercise: vi.fn(),
+  updateExercisePreference: vi.fn(),
+  resetExercisePreference: vi.fn(),
+  archiveExercise: vi.fn(),
+  restoreExercise: vi.fn(),
+  listExercisePersonalRecords: vi.fn(),
+}));
+
+vi.mock('@/features/personal-records/api/personal-records-api', () => ({
+  listExercisePersonalRecords: (...args: unknown[]) =>
+    listExercisePersonalRecords(...args),
+  listPersonalRecords: vi.fn(),
+}));
 
 vi.mock('../api/exercise-api', async () => {
   const actual = await vi.importActual<typeof import('../api/exercise-api')>(
@@ -97,6 +113,8 @@ describe('ExerciseDetailPage preferences', () => {
     resetExercisePreference.mockReset();
     archiveExercise.mockReset();
     restoreExercise.mockReset();
+    listExercisePersonalRecords.mockReset();
+    listExercisePersonalRecords.mockResolvedValue([]);
   });
 
   it('loads detail and shows preferences', async () => {
@@ -268,6 +286,8 @@ describe('ExerciseDetailPage management', () => {
     resetExercisePreference.mockReset();
     archiveExercise.mockReset();
     restoreExercise.mockReset();
+    listExercisePersonalRecords.mockReset();
+    listExercisePersonalRecords.mockResolvedValue([]);
   });
 
   it('hides edit/archive for system exercises', async () => {

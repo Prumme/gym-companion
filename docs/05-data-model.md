@@ -1015,7 +1015,9 @@ L’idempotence opérationnelle de la phase 3 repose sur `WorkoutSetCommand` et 
 
 ## 28. PersonalRecord
 
-Cache ou matérialisation d’un record calculé.
+> **Jalon 4.1** : aucune table `PersonalRecord` n’est créée. Les records sont **calculés à la demande** depuis les snapshots de séances `COMPLETED` et séries `COMPLETED` (hors `WARMUP`). Les séances terminées restent la source de vérité.
+
+Cette section décrit une **matérialisation future** éventuelle si l’agrégation à la demande devient réellement coûteuse (notifications immédiates, volumes très élevés, etc.). Elle n’est pas implémentée en 4.1.
 
 ```ts
 type PersonalRecord = {
@@ -1049,7 +1051,7 @@ type PersonalRecord = {
 };
 ```
 
-Les records peuvent aussi être calculés à la demande. Cette table sert si les calculs deviennent coûteux ou si l’on souhaite notifier immédiatement un record.
+En 4.1, le contrat API exposé est un DTO dérivé (sans `ownerUserId`, sans ligne Prisma) : types `MAX_WEIGHT` | `MAX_REPS` | `MAX_DURATION` | `MAX_DISTANCE` uniquement. Pas de 1RM estimé, pas de volume, pas de graphiques.
 
 ## 29. SharedWorkoutRoom
 
