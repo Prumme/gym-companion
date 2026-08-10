@@ -919,9 +919,10 @@ Par défaut, les autres participants peuvent voir :
   nom / timestamps — **pas** l’ID ni les perfs)* ;
 - progression générale (exercice courant nom snapshot + compteurs séries /
   exercices) *(Shared 5.5 — **pas** poids/reps/RIR/notes)* ;
-- station *(Shared 5.6+)* ;
-- sync détaillée des séries *(Shared 5.6+)* ;
-- disponibilité / ready *(Shared 5.6+)*.
+- file d’équipement logique (display name + position) *(Shared 5.6)* ;
+- station physique / inventaire *(Shared 5.7+)* ;
+- sync détaillée des séries *(Shared 5.7+)* ;
+- disponibilité / ready *(Shared 5.7+)*.
 
 Ils ne doivent pas voir automatiquement :
 

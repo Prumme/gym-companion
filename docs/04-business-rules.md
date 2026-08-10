@@ -958,6 +958,19 @@ cibles détaillées.
 shared et l’exercice courant serveur ne sont officiels qu’après sync REST.
 Pas de commande IndexedDB dédiée Shared 5.5.
 
+### 18.2octies Coordination d’équipement (Shared 5.6)
+
+**Limite :** coordonne un `EquipmentType` logique, pas N machines physiques
+identiques. Pas d’inventaire de salle. `bodyweight` exclu.
+
+**Règles :**
+
+- request / release / cancel online-only + `clientCommandId` ;
+- équipement résolu depuis current exercise (pas d’ID arbitraire client) ;
+- FIFO `requestedAt ASC, id ASC` ; OWNER = MEMBER pour la file ;
+- disconnect / presence:left **ne** libère **pas** ;
+- dette connue : pas de lease timeout / force release (membre peut oublier).
+
 ### 18.3 Capacité
 
 La première version accepte de deux à cinq participants.

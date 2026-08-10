@@ -25,6 +25,7 @@ export function useSharedWorkoutRoomRealtime(
   const [connectionStatus, setConnectionStatus] =
     useState<SharedWorkoutRealtimeConnectionStatus>('disconnected');
   const progressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const equipmentTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const online =
     typeof navigator === 'undefined' ? true : navigator.onLine;
   const shouldConnect =
@@ -49,6 +50,12 @@ export function useSharedWorkoutRoomRealtime(
       void queryClient.invalidateQueries({
         queryKey: sharedWorkoutRoomQueryKeys.myWorkoutSession(roomId),
       });
+      void queryClient.invalidateQueries({
+        queryKey: sharedWorkoutRoomQueryKeys.equipmentCoordination(roomId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: sharedWorkoutRoomQueryKeys.myEquipment(roomId),
+      });
     }
 
     function invalidateProgressCoalesced() {
@@ -58,6 +65,21 @@ export function useSharedWorkoutRoomRealtime(
       progressTimer.current = setTimeout(() => {
         progressTimer.current = null;
         invalidateRoom();
+      }, 200);
+    }
+
+    function invalidateEquipmentCoalesced() {
+      if (equipmentTimer.current) {
+        clearTimeout(equipmentTimer.current);
+      }
+      equipmentTimer.current = setTimeout(() => {
+        equipmentTimer.current = null;
+        void queryClient.invalidateQueries({
+          queryKey: sharedWorkoutRoomQueryKeys.equipmentCoordination(roomId),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: sharedWorkoutRoomQueryKeys.myEquipment(roomId),
+        });
       }, 200);
     }
 
@@ -87,6 +109,8 @@ export function useSharedWorkoutRoomRealtime(
         if (event.roomId !== roomId) return;
         if (event.reason === 'MEMBER_WORKOUT_PROGRESS_CHANGED') {
           invalidateProgressCoalesced();
+        } else if (event.reason === 'EQUIPMENT_COORDINATION_CHANGED') {
+          invalidateEquipmentCoalesced();
         } else {
           invalidateRoom();
         }
@@ -106,6 +130,10 @@ export function useSharedWorkoutRoomRealtime(
       if (progressTimer.current) {
         clearTimeout(progressTimer.current);
         progressTimer.current = null;
+      }
+      if (equipmentTimer.current) {
+        clearTimeout(equipmentTimer.current);
+        equipmentTimer.current = null;
       }
       sharedWorkoutRealtimeClient.unsubscribe(roomId);
       sharedWorkoutRealtimeClient.disconnect();

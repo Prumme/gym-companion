@@ -2355,6 +2355,23 @@ polluer l’API Phase 3 pour tous les clients).
 Pour les **autres** membres : pas d’IDs d’exercice. Projection backend minimale
 (statuts de sets uniquement en DB ; jamais exposés dans le JSON).
 
+### 24.6sexies Coordination équipement (Shared 5.6 — livré)
+
+```text
+GET  /api/v1/shared-workouts/:roomId/equipment-coordination
+GET  /api/v1/shared-workouts/:roomId/my-equipment
+POST /api/v1/shared-workouts/:roomId/my-equipment/request
+POST /api/v1/shared-workouts/:roomId/my-equipment/release
+POST /api/v1/shared-workouts/:roomId/my-equipment/cancel
+```
+
+Body mutations : `{ "clientCommandId": "uuid" }` (strict — pas d’equipmentId).
+Équipement résolu depuis current exercise. Room ACTIVE + membership + member session.
+
+Erreurs notables : `SHARED_EQUIPMENT_NOT_COORDINATABLE`, `SHARED_EQUIPMENT_STILL_USING`,
+`SHARED_EQUIPMENT_NOT_USING`, `SHARED_EQUIPMENT_NOT_WAITING`,
+`SHARED_EQUIPMENT_COMMAND_CONFLICT`.
+
 #### Erreurs (Shared 5.4)
 
 | Code | HTTP | Cas |

@@ -120,7 +120,10 @@ function ActiveWorkoutSessionView({
 
   const offlineSync = useWorkoutOfflineSync(session.id);
   const navigation = useWorkoutExerciseNavigation(session);
-  useSyncSharedCurrentExercise(session.id, navigation.selectedExerciseId);
+  const sharedSync = useSyncSharedCurrentExercise(
+    session.id,
+    navigation.selectedExerciseId,
+  );
   const restTimer = useRestTimer({
     workoutSessionId: session.id,
     enabled: true,
@@ -167,6 +170,12 @@ function ActiveWorkoutSessionView({
         }}
         syncDisabled={offlineSync.status === 'CONFLICT'}
       />
+
+      {sharedSync.syncError ? (
+        <p className="text-sm text-[var(--danger)]" role="alert">
+          {sharedSync.syncError}
+        </p>
+      ) : null}
 
       {offlineSync.status === 'CONFLICT' ||
       (offlineSync.status === 'ERROR' && offlineSync.conflictCommand) ? (

@@ -13,6 +13,10 @@ export const sharedWorkoutRoomQueryKeys = {
     [...sharedWorkoutRoomQueryKeys.details(), roomId] as const,
   myWorkoutSession: (roomId: string) =>
     [...sharedWorkoutRoomQueryKeys.all, 'my-workout-session', roomId] as const,
+  equipmentCoordination: (roomId: string) =>
+    [...sharedWorkoutRoomQueryKeys.all, 'equipment-coordination', roomId] as const,
+  myEquipment: (roomId: string) =>
+    [...sharedWorkoutRoomQueryKeys.all, 'my-equipment', roomId] as const,
   workoutSessionContext: (workoutSessionId: string) =>
     [
       ...sharedWorkoutRoomQueryKeys.all,

@@ -2315,6 +2315,20 @@ export {
 } from './shared-workout-current-exercise';
 export type { SetMySharedCurrentExerciseInput } from './shared-workout-current-exercise';
 export {
+  NON_COORDINATABLE_EQUIPMENT_CODES,
+  isCoordinatableEquipmentCode,
+  sharedWorkoutEquipmentQueueStatusSchema,
+  sharedWorkoutEquipmentCommandActionSchema,
+  sharedWorkoutEquipmentCommandBodySchema,
+  buildSharedWorkoutEquipmentCommandFingerprint,
+  computeWaitingQueuePosition,
+} from './shared-workout-equipment';
+export type {
+  SharedWorkoutEquipmentQueueStatusValue,
+  SharedWorkoutEquipmentCommandAction,
+  SharedWorkoutEquipmentCommandInput,
+} from './shared-workout-equipment';
+export {
   buildExerciseProgressSummary,
   buildWorkoutProgressSummary,
   isExerciseFullyProcessed,

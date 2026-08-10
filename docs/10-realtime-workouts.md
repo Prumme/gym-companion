@@ -83,6 +83,7 @@ Raisons `room:changed` :
 RENAMED | STARTED | COMPLETED | CANCELLED | MEMBER_JOINED | MEMBER_LEFT
 | MEMBER_WORKOUT_CHANGED
 | MEMBER_CURRENT_EXERCISE_CHANGED | MEMBER_WORKOUT_PROGRESS_CHANGED
+| EQUIPMENT_COORDINATION_CHANGED
 ```
 
 `MEMBER_WORKOUT_CHANGED` (Shared 5.4) = hint d’invalidation du **résumé**
@@ -92,6 +93,9 @@ commande de sync de séries ni un snapshot workout.
 `MEMBER_CURRENT_EXERCISE_CHANGED` / `MEMBER_WORKOUT_PROGRESS_CHANGED`
 (Shared 5.5) = hints d’invalidation pour exercice courant / compteurs —
 **sans aucune donnée sportive** dans le packet.
+
+`EQUIPMENT_COORDINATION_CHANGED` (Shared 5.6) = hint file / occupation
+équipement logique — packet compact uniquement ; REST authoritative.
 
 #### Règles d’émission
 

@@ -1,6 +1,8 @@
 import type {
   ApiCursorListResponse,
+  MySharedWorkoutEquipmentState,
   MySharedWorkoutSessionDto,
+  SharedWorkoutEquipmentCoordinationDto,
   SharedWorkoutRoomDetail,
   SharedWorkoutRoomInvitationDto,
   SharedWorkoutRoomInvitationStatus,
@@ -232,6 +234,66 @@ export async function getSharedWorkoutSessionContext(
 ): Promise<SharedWorkoutSessionContextDto> {
   const response = await apiFetch<{ data: SharedWorkoutSessionContextDto }>(
     `/api/v1/shared-workouts/by-workout-session/${encodeURIComponent(workoutSessionId)}/context`,
+  );
+  return response.data;
+}
+
+export async function getSharedWorkoutEquipmentCoordination(
+  roomId: string,
+): Promise<SharedWorkoutEquipmentCoordinationDto> {
+  const response = await apiFetch<{ data: SharedWorkoutEquipmentCoordinationDto }>(
+    `/api/v1/shared-workouts/${encodeURIComponent(roomId)}/equipment-coordination`,
+  );
+  return response.data;
+}
+
+export async function getMySharedEquipment(
+  roomId: string,
+): Promise<MySharedWorkoutEquipmentState> {
+  const response = await apiFetch<{ data: MySharedWorkoutEquipmentState }>(
+    `/api/v1/shared-workouts/${encodeURIComponent(roomId)}/my-equipment`,
+  );
+  return response.data;
+}
+
+export async function requestMySharedEquipment(
+  roomId: string,
+  clientCommandId: string,
+): Promise<MySharedWorkoutEquipmentState> {
+  const response = await apiFetch<{ data: MySharedWorkoutEquipmentState }>(
+    `/api/v1/shared-workouts/${encodeURIComponent(roomId)}/my-equipment/request`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ clientCommandId }),
+    },
+  );
+  return response.data;
+}
+
+export async function releaseMySharedEquipment(
+  roomId: string,
+  clientCommandId: string,
+): Promise<MySharedWorkoutEquipmentState> {
+  const response = await apiFetch<{ data: MySharedWorkoutEquipmentState }>(
+    `/api/v1/shared-workouts/${encodeURIComponent(roomId)}/my-equipment/release`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ clientCommandId }),
+    },
+  );
+  return response.data;
+}
+
+export async function cancelMySharedEquipmentWaiting(
+  roomId: string,
+  clientCommandId: string,
+): Promise<MySharedWorkoutEquipmentState> {
+  const response = await apiFetch<{ data: MySharedWorkoutEquipmentState }>(
+    `/api/v1/shared-workouts/${encodeURIComponent(roomId)}/my-equipment/cancel`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ clientCommandId }),
+    },
   );
   return response.data;
 }

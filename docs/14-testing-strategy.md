@@ -821,7 +821,21 @@ Tester :
 - UI cartes membres (ACTIVE/PAUSED/COMPLETED) ; sync sélection depuis
   `/workouts/active` (online only) ; coalescing refetch progress.
 
-#### Cible produit (Shared 5.6+)
+#### Shared 5.6 (coordination équipements — livré)
+
+Tester :
+
+- unique USING (course request) ;
+- FIFO release/promotion ;
+- cancel waiting ; cancel vs promotion race ;
+- current exercise USING refuse / WAITING auto-cancel ;
+- leave / workout terminal / room terminal cleanup ;
+- socket disconnect ≠ release ;
+- forged equipmentId rejeté ; outsider 404 ;
+- privacy DTO ; realtime EQUIPMENT_COORDINATION_CHANGED ;
+- UI section Équipements + warnings leave/complete.
+
+#### Cible produit (Shared 5.7+)
 
 Tester :
 

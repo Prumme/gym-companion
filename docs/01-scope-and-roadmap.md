@@ -22,7 +22,7 @@ Deux axes de numérotation coexistent volontairement ; ils ne doivent **pas** ê
 | Libellé | Signification |
 |---------|----------------|
 | **Couche Coaching — jalons techniques 5.1 → 5.6** | Moteurs déterministes + Coach + IA explicative + chat READ ONLY, livrés **sous la Phase 4** produit (records / stats / progression / coaching). |
-| **Roadmap produit Phase 5 — Séances partagées** | Collaboration multi-utilisateurs (salles, invitations, Socket.IO). **En cours** — Shared 5.1 → 5.5 livrés (salle REST, invitations, présence, rattachement `WorkoutSession`, progression live). |
+| **Roadmap produit Phase 5 — Séances partagées** | Collaboration multi-utilisateurs (salles, invitations, Socket.IO). **En cours** — Shared 5.1 → 5.6 livrés (salle, invitations, présence, séances, progression, coordination équipements). |
 
 Un tag ou un libellé du type `phase-5.6-complete` / « jalon 5.6 livré » signifie uniquement que la **couche coaching** est clôturée — **pas** que la roadmap « Séances partagées » est terminée.
 
@@ -551,7 +551,8 @@ La phase est terminée lorsque :
 > | **Shared 5.3** | Présence Socket.IO + invalidation REST (pas de sync workout) | **Livré** |
 > | **Shared 5.4** | Rattachement / création `WorkoutSession` individuelle par membre | **Livré** |
 > | **Shared 5.5** | Exercice courant + progression live (compteurs, sans perfs) | **Livré** |
-> | Shared 5.6+ | Rotation, sync séries détaillées, stations, snapshot workout partagé, etc. | Non commencé |
+> | **Shared 5.6** | Coordination équipements logiques + file FIFO | **Livré** |
+> | Shared 5.7+ | Inventaire physique, sync séries détaillées, stations, snapshot workout, etc. | Non commencé |
 
 ### 8.0 Shared 5.1 — Fondations des salles (livré)
 
@@ -671,6 +672,24 @@ progression des autres (sans performances) :
 
 Hors Shared 5.5 : rotation machines, sync séries détaillées, stations,
 édition cross-user, timer partagé, ready state, chat, leaderboard → **Shared 5.6+**.
+
+### 8.0sexies Shared 5.6 — Coordination des équipements (livré)
+
+File d’attente FIFO sur une **ressource logique** `EquipmentType` (pas
+d’inventaire physique « 3 poulies »).
+
+- équipement dérivé du snapshot `WorkoutSessionExercise.equipmentTypeId` ;
+- `bodyweight` non coordonnable ; action explicite « Utiliser » (pas d’auto-occupy) ;
+- `SharedWorkoutEquipmentQueueEntry` : WAITING / USING / RELEASED / CANCELLED ;
+- unique partiel : au plus un USING par (room, equipment) ;
+- release → promotion atomique du premier WAITING ;
+- disconnect socket ≠ release ; leave / workout terminal / room terminal nettoient ;
+- USING + changement d’exercice vers autre équipement → refus ;
+- WAITING + changement d’exercice → CANCELLED auto ;
+- realtime `EQUIPMENT_COORDINATION_CHANGED` (hint → refetch REST).
+
+Hors Shared 5.6 : inventaire gym, machines numérotées, ETA, timeout lease,
+force-release owner, sync poids/reps → **Shared 5.7+**.
 
 ### 8.1 Objectif
 

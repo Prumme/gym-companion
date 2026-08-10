@@ -1296,7 +1296,61 @@ export type SharedWorkoutRoomChangeReason =
   | 'MEMBER_LEFT'
   | 'MEMBER_WORKOUT_CHANGED'
   | 'MEMBER_CURRENT_EXERCISE_CHANGED'
-  | 'MEMBER_WORKOUT_PROGRESS_CHANGED';
+  | 'MEMBER_WORKOUT_PROGRESS_CHANGED'
+  | 'EQUIPMENT_COORDINATION_CHANGED';
+
+/** Shared 5.6 — occupation / file d’attente d’un EquipmentType logique. */
+export type SharedWorkoutEquipmentQueueStatus =
+  | 'WAITING'
+  | 'USING'
+  | 'RELEASED'
+  | 'CANCELLED';
+
+export type SharedWorkoutEquipmentState = {
+  equipment: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  using: {
+    userId: string;
+    displayName: string | null;
+    since: string;
+  } | null;
+  waiting: {
+    position: number;
+    userId: string;
+    displayName: string | null;
+    requestedAt: string;
+  }[];
+};
+
+export type SharedWorkoutEquipmentCoordinationDto = {
+  equipment: SharedWorkoutEquipmentState[];
+};
+
+export type MySharedWorkoutEquipmentState =
+  | {
+      available: false;
+      equipment: null;
+      state: 'NONE';
+      queuePosition: null;
+      occupiedBy: null;
+    }
+  | {
+      available: boolean;
+      equipment: {
+        id: string;
+        name: string;
+        code: string;
+      };
+      state: 'AVAILABLE' | 'USING' | 'WAITING';
+      queuePosition: number | null;
+      occupiedBy: {
+        userId: string;
+        displayName: string | null;
+      } | null;
+    };
 
 export type SharedWorkoutRoomSubscribeInput = {
   roomId: string;

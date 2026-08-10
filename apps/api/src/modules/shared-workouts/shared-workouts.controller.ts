@@ -19,6 +19,7 @@ import {
   JwtAuthGuard,
   type AuthenticatedUser,
 } from '../../common/guards/jwt-auth.guard';
+import { SharedWorkoutEquipmentCoordinationService } from './shared-workout-equipment-coordination.service';
 import { SharedWorkoutsService } from './shared-workouts.service';
 
 @ApiTags('shared-workouts')
@@ -26,7 +27,10 @@ import { SharedWorkoutsService } from './shared-workouts.service';
 @Controller('api/v1/shared-workouts')
 @UseGuards(JwtAuthGuard)
 export class SharedWorkoutsController {
-  constructor(private readonly sharedWorkoutsService: SharedWorkoutsService) {}
+  constructor(
+    private readonly sharedWorkoutsService: SharedWorkoutsService,
+    private readonly equipmentCoordination: SharedWorkoutEquipmentCoordinationService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Créer une salle de séance partagée (LOBBY + OWNER)' })
@@ -180,6 +184,84 @@ export class SharedWorkoutsController {
     @Body() body: unknown,
   ) {
     const data = await this.sharedWorkoutsService.setMyCurrentExercise(
+      user.id,
+      roomId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Get(':roomId/equipment-coordination')
+  @ApiOperation({
+    summary: 'État de coordination des équipements (Shared 5.6)',
+  })
+  async getEquipmentCoordination(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('roomId', ParseUUIDPipe) roomId: string,
+  ) {
+    const data = await this.equipmentCoordination.getCoordination(
+      user.id,
+      roomId,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Get(':roomId/my-equipment')
+  @ApiOperation({
+    summary: 'Mon état d’équipement courant (Shared 5.6)',
+  })
+  async getMyEquipment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('roomId', ParseUUIDPipe) roomId: string,
+  ) {
+    const data = await this.equipmentCoordination.getMyEquipment(
+      user.id,
+      roomId,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Post(':roomId/my-equipment/request')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Demander / utiliser l’équipement courant' })
+  async requestEquipment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('roomId', ParseUUIDPipe) roomId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.equipmentCoordination.request(
+      user.id,
+      roomId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Post(':roomId/my-equipment/release')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Libérer l’équipement (USING)' })
+  async releaseEquipment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('roomId', ParseUUIDPipe) roomId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.equipmentCoordination.release(
+      user.id,
+      roomId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Post(':roomId/my-equipment/cancel')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Quitter la file d’attente (WAITING)' })
+  async cancelEquipmentWaiting(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('roomId', ParseUUIDPipe) roomId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.equipmentCoordination.cancelWaiting(
       user.id,
       roomId,
       body,

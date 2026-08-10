@@ -54,6 +54,7 @@ import {
   type WorkoutSessionSnapshotRow,
 } from '../workouts/workouts.mapper';
 import { toSharedWorkoutRoomInvitationDto } from './shared-workout-invitations.mapper';
+import { SharedWorkoutEquipmentCoordinationService } from './shared-workout-equipment-coordination.service';
 import { SharedWorkoutRealtimePublisher } from './shared-workout-realtime.publisher';
 import {
   toSharedWorkoutRoomDetail,
@@ -124,6 +125,7 @@ export class SharedWorkoutsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly realtime: SharedWorkoutRealtimePublisher,
+    private readonly equipmentCoordination: SharedWorkoutEquipmentCoordinationService,
     @Inject(forwardRef(() => WorkoutsService))
     private readonly workoutsService: WorkoutsService,
   ) {}
@@ -669,6 +671,12 @@ export class SharedWorkoutsService {
       }
     }
 
+    await this.equipmentCoordination.assertCanChangeCurrentExercise(
+      userId,
+      roomId,
+      nextExerciseId,
+    );
+
     await this.prisma.sharedWorkoutRoomMemberSession.update({
       where: { id: member.memberSession.id },
       data: {
@@ -676,6 +684,12 @@ export class SharedWorkoutsService {
         currentExerciseChangedAt: new Date(),
       },
     });
+
+    await this.equipmentCoordination.afterCurrentExerciseChanged(
+      userId,
+      roomId,
+      nextExerciseId,
+    );
 
     this.realtime.emitRoomChanged(
       roomId,
@@ -1100,23 +1114,36 @@ export class SharedWorkoutsService {
       });
     }
 
-    const updated = await this.prisma.sharedWorkoutRoomMember.updateMany({
-      where: {
-        roomId,
-        userId,
-        role: 'MEMBER',
-        leftAt: null,
-      },
-      data: { leftAt: new Date() },
-    });
-    if (updated.count !== 1) {
-      throw new BadRequestException({
-        code: 'SHARED_WORKOUT_ROOM_MEMBER_NOT_ACTIVE',
-        message: 'Tu n’es plus membre actif de cette salle.',
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.sharedWorkoutRoomMember.updateMany({
+        where: {
+          roomId,
+          userId,
+          role: 'MEMBER',
+          leftAt: null,
+        },
+        data: { leftAt: new Date() },
       });
-    }
+      if (result.count !== 1) {
+        throw new BadRequestException({
+          code: 'SHARED_WORKOUT_ROOM_MEMBER_NOT_ACTIVE',
+          message: 'Tu n’es plus membre actif de cette salle.',
+        });
+      }
+
+      const equipmentChanged =
+        await this.equipmentCoordination.cleanupMemberLeave(
+          roomId,
+          membership.id,
+          tx,
+        );
+      return { equipmentChanged };
+    });
 
     this.realtime.emitRoomChanged(roomId, 'MEMBER_LEFT');
+    if (updated.equipmentChanged) {
+      this.realtime.emitRoomChanged(roomId, 'EQUIPMENT_COORDINATION_CHANGED');
+    }
     this.realtime.evictUserFromRoom(roomId, userId);
     return { left: true };
   }
@@ -1295,6 +1322,7 @@ export class SharedWorkoutsService {
               where: { roomId, status: 'PENDING' },
               data: { status: 'CANCELLED', cancelledAt: now },
             });
+            await this.equipmentCoordination.cleanupRoomTerminal(roomId, tx);
           }
         }
 

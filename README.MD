@@ -459,13 +459,14 @@ Idempotence `clientCommandId`, rate limit, boucle d’outils bornée (max 4).
 
 > **Nomenclature :** les jalons techniques **5.1 → 5.6** forment la **Couche Coaching**
 > (livrée sous la Phase 4 produit). La **roadmap Phase 5 — Séances partagées** est
-> distincte : **Shared 5.1 → 5.5** sont **livrés** ; codes d’invitation publics,
-> rotation et sync séries détaillées (Shared 5.6+) restent à venir.
+> distincte : **Shared 5.1 → 5.6** sont **livrés** ; codes d’invitation publics,
+> sync séries détaillées / stations physiques (Shared 5.7+) restent à venir.
 > « 5.6 complete » ≠ séances partagées terminées.
 
-### Phase 5 produit — Shared 5.1 → 5.5 (livrés)
+### Phase 5 produit — Shared 5.1 → 5.6 (livrés)
 
-Fondations des salles, adhésion, présence, rattachement et progression live :
+Fondations des salles, adhésion, présence, rattachement, progression live et
+coordination d’équipement logique :
 
 - `SharedWorkoutRoom` + `SharedWorkoutRoomMember` (`OWNER` / `MEMBER`, `leftAt`) ;
 - lifecycle `LOBBY` / `ACTIVE` / `COMPLETED` / `CANCELLED` (REST autoritaire) ;
@@ -475,12 +476,11 @@ Fondations des salles, adhésion, présence, rattachement et progression live :
   (multi-onglets) + événements `room:changed` (invalidation TanStack Query) ;
 - **Shared 5.4** : `SharedWorkoutRoomMemberSession` — rattachement / création
   d’une `WorkoutSession` individuelle par membre (`/my-workout-session`) ;
-  résumé `memberWorkout` + `myWorkoutSessionId` ; `MEMBER_WORKOUT_CHANGED` ;
-- **Shared 5.5** : exercice courant de coordination + progression live
-  (séries / exercices traités, sans performances) ;
-  `PUT .../current-exercise` ; `GET .../by-workout-session/:id/context` ;
-  reasons `MEMBER_CURRENT_EXERCISE_CHANGED` / `MEMBER_WORKOUT_PROGRESS_CHANGED` ;
-  **pas** de sync poids/reps, rotation, stations ni snapshot workout partagé ;
+- **Shared 5.5** : exercice courant + progression live (compteurs, sans perfs) ;
+- **Shared 5.6** : file FIFO `SharedWorkoutEquipmentQueueEntry` sur `EquipmentType`
+  logique (pas d’inventaire physique) — request / WAITING / USING / release /
+  promotion ; `EQUIPMENT_COORDINATION_CHANGED` ; disconnect ≠ release ;
+  **pas** de sync poids/reps, machines numérotées, ETA, timer partagé ;
 - **pas** de code d’invitation public, **pas** de création auto de séance au
   start de salle, **pas** de modèle Presence en base.
 

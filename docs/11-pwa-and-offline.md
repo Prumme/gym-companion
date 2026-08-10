@@ -126,6 +126,9 @@ indépendamment de la room.
 offline ; la progression partagée n’est officielle qu’après sync serveur des
 commandes set. L’exercice courant shared n’est **pas** mis en file IndexedDB.
 
+**Shared 5.6 — équipements :** request / release / cancel = **online only**.
+Disconnect socket **≠** release (occupation reste USING). Pas de queue IndexedDB.
+
 ## 4. Installation PWA
 
 ### 4.1 Manifeste

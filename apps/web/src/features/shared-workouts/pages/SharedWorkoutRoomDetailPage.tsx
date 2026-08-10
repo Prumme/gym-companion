@@ -8,9 +8,11 @@ import { Button, ButtonLink } from '@/components/ui/button';
 import { getApiErrorMessage } from '@/lib/api/client';
 
 import {
+  mySharedEquipmentQueryOptions,
   sharedWorkoutRoomDetailQueryOptions,
   sharedWorkoutRoomInvitationsQueryOptions,
 } from '../api/shared-workout-query-options';
+import { SharedWorkoutEquipmentSection } from '../components/SharedWorkoutEquipmentSection';
 import { SharedWorkoutMySessionSection } from '../components/SharedWorkoutMySessionSection';
 import {
   useCancelRoomInvitationMutation,
@@ -57,6 +59,10 @@ export function SharedWorkoutRoomDetailPage() {
   const invitationsQuery = useQuery({
     ...sharedWorkoutRoomInvitationsQueryOptions(roomId),
     enabled: Boolean(roomId) && canManageInvites,
+  });
+  const myEquipmentQuery = useQuery({
+    ...mySharedEquipmentQueryOptions(roomId),
+    enabled: Boolean(roomId) && room?.status === 'ACTIVE',
   });
 
   const [renameOpen, setRenameOpen] = useState(false);
@@ -143,10 +149,18 @@ export function SharedWorkoutRoomDetailPage() {
       const status = member.memberWorkout?.status;
       return status === 'ACTIVE' || status === 'PAUSED';
     }).length;
+    const parts: string[] = [];
     if (inProgress > 0) {
-      return `${inProgress} membre${inProgress > 1 ? 's' : ''} ${inProgress > 1 ? 'ont' : 'a'} encore une séance en cours.\nTerminer la salle ne terminera pas leurs séances personnelles.\n\nTerminer la séance partagée ?`;
+      parts.push(
+        `${inProgress} membre${inProgress > 1 ? 's' : ''} ${inProgress > 1 ? 'ont' : 'a'} encore une séance en cours.`,
+      );
+      parts.push(
+        'Terminer la salle ne terminera pas leurs séances personnelles.',
+      );
     }
-    return 'Terminer la séance partagée ?';
+    parts.push('Les équipements partagés seront libérés.');
+    parts.push('Terminer la séance partagée ?');
+    return parts.join('\n\n');
   }
 
   async function handleLeave() {
@@ -158,9 +172,21 @@ export function SharedWorkoutRoomDetailPage() {
       selfMember?.memberWorkout.status === 'ACTIVE' ||
       selfMember?.memberWorkout.status === 'PAUSED';
 
-    const leaveMessage = selfInProgress
-      ? 'Ta séance personnelle restera active après avoir quitté la salle.\n\nQuitter cette séance partagée ?'
-      : 'Quitter cette séance partagée ?\n\nTu n’auras plus accès à cette salle après l’avoir quittée.';
+    const usingEquipment = myEquipmentQuery.data?.state === 'USING';
+    const leaveMessage = [
+      selfInProgress
+        ? 'Ta séance personnelle restera active après avoir quitté la salle.'
+        : null,
+      usingEquipment
+        ? 'Tu utilises actuellement un équipement partagé. Il sera libéré automatiquement si tu quittes la salle.'
+        : null,
+      'Quitter cette séance partagée ?',
+      !selfInProgress
+        ? 'Tu n’auras plus accès à cette salle après l’avoir quittée.'
+        : null,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
 
     if (!window.confirm(leaveMessage)) {
       return;
@@ -450,6 +476,12 @@ export function SharedWorkoutRoomDetailPage() {
         offline={offline}
       />
 
+      <SharedWorkoutEquipmentSection
+        roomId={roomId}
+        offline={offline}
+        enabled={room.status === 'ACTIVE'}
+      />
+
       {canManageInvites ? (
         <section
           aria-labelledby="invitations-heading"
@@ -605,7 +637,10 @@ export function SharedWorkoutRoomDetailPage() {
                 variant="secondary"
                 disabled={pending}
                 onClick={() =>
-                  void runLifecycle('cancel', 'Annuler cette salle active ?')
+                  void runLifecycle(
+                    'cancel',
+                    'Annuler cette salle active ?\n\nLes équipements partagés seront libérés.',
+                  )
                 }
               >
                 Annuler

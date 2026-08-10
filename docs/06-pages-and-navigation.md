@@ -988,6 +988,12 @@ La sélection d’exercice dans `/workouts/active` synchronise l’exercice cour
 serveur (online, room ACTIVE) via `PUT .../current-exercise` — **sans** transformer
 l’écran workout en lobby partagé. Aucune nouvelle page obligatoire.
 
+**Équipements (Shared 5.6)** — section sur la même route ACTIVE :
+
+- listes USING / WAITING par équipement logique ;
+- actions Utiliser / Rejoindre la file / Quitter / Libérer dans Ma séance ;
+- warnings leave / complete si occupation active.
+
 - LOBBY : message indiquant que le rattachement sera possible après le lancement ;
 - ACTIVE : GET `my-workout-session` ; rattacher une séance `ACTIVE`/`PAUSED`
   existante, ou créer depuis un template du programme actif ; lien « Ouvrir ma

@@ -76,6 +76,7 @@ model User {
   ownedSharedWorkoutRooms SharedWorkoutRoom[]             @relation("SharedWorkoutRoomOwner")
   sharedWorkoutRoomMemberships SharedWorkoutRoomMember[]
   sharedWorkoutRoomLifecycleCommands SharedWorkoutRoomLifecycleCommand[]
+  sharedWorkoutEquipmentCommands SharedWorkoutEquipmentCommand[]
   sharedWorkoutRoomInvitationsSent     SharedWorkoutRoomInvitation[] @relation("SharedWorkoutInvitationInviter")
   sharedWorkoutRoomInvitationsReceived SharedWorkoutRoomInvitation[] @relation("SharedWorkoutInvitationInvitee")
 
@@ -186,6 +187,7 @@ model EquipmentType {
   preferredInPreferences   UserExercisePreference[]
   workoutTemplateExercises WorkoutTemplateExercise[]
   workoutSessionExercises  WorkoutSessionExercise[]
+  sharedEquipmentQueueEntries SharedWorkoutEquipmentQueueEntry[]
 
   @@index([isActive])
   @@map("equipment_types")
@@ -756,6 +758,8 @@ model SharedWorkoutRoom {
   members      SharedWorkoutRoomMember[]
   commands     SharedWorkoutRoomLifecycleCommand[]
   invitations  SharedWorkoutRoomInvitation[]
+  equipmentQueueEntries SharedWorkoutEquipmentQueueEntry[]
+  equipmentCommands     SharedWorkoutEquipmentCommand[]
 
   @@index([ownerUserId])
   @@index([status])
@@ -776,6 +780,7 @@ model SharedWorkoutRoomMember {
   user User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// Shared 5.4 — au plus une WorkoutSession rattachée par membership.
   memberSession SharedWorkoutRoomMemberSession?
+  equipmentQueueEntries SharedWorkoutEquipmentQueueEntry[]
 
   @@unique([roomId, userId])
   @@index([userId])
@@ -841,4 +846,52 @@ model SharedWorkoutRoomInvitation {
   @@index([roomId, inviteeUserId])
   @@index([createdAt, id])
   @@map("shared_workout_room_invitations")
+}
+
+/// Shared 5.6 — file d’attente / occupation d’un EquipmentType logique (pas d’inventaire physique).
+enum SharedWorkoutEquipmentQueueStatus {
+  WAITING
+  USING
+  RELEASED
+  CANCELLED
+}
+
+model SharedWorkoutEquipmentQueueEntry {
+  id              String                            @id @default(uuid()) @db.Uuid
+  roomId          String                            @db.Uuid
+  roomMemberId    String                            @db.Uuid
+  equipmentTypeId String                            @db.Uuid
+  status          SharedWorkoutEquipmentQueueStatus
+  requestedAt     DateTime                          @default(now())
+  acquiredAt      DateTime?
+  releasedAt      DateTime?
+  createdAt       DateTime                          @default(now())
+  updatedAt       DateTime                          @updatedAt
+
+  room          SharedWorkoutRoom       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomMember    SharedWorkoutRoomMember @relation(fields: [roomMemberId], references: [id], onDelete: Cascade)
+  equipmentType EquipmentType           @relation(fields: [equipmentTypeId], references: [id], onDelete: Restrict)
+
+  @@index([roomId, equipmentTypeId, status])
+  @@index([roomMemberId, status])
+  @@index([roomId, status, requestedAt, id])
+  @@map("shared_workout_equipment_queue_entries")
+}
+
+/// Idempotence request / release / cancel (Shared 5.6).
+model SharedWorkoutEquipmentCommand {
+  id                 String   @id @default(uuid()) @db.Uuid
+  ownerUserId        String   @db.Uuid
+  roomId             String   @db.Uuid
+  clientCommandId    String
+  action             String
+  payloadFingerprint String
+  createdAt          DateTime @default(now())
+
+  room SharedWorkoutRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User              @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerUserId, clientCommandId])
+  @@index([roomId])
+  @@map("shared_workout_equipment_commands")
 }

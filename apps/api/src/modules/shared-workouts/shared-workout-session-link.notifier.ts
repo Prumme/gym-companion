@@ -2,10 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { isProcessedSetStatus } from '@gym-companion/validation';
 
 import { PrismaService } from '../../database/prisma/prisma.service';
+import { SharedWorkoutEquipmentCoordinationService } from './shared-workout-equipment-coordination.service';
 import { SharedWorkoutRealtimePublisher } from './shared-workout-realtime.publisher';
 
 /**
- * Pont Shared 5.4/5.5 : après mutation WorkoutSession liée à une room ACTIVE
+ * Pont Shared 5.4/5.5/5.6 : après mutation WorkoutSession liée à une room ACTIVE
  * et membership actif, émet un hint realtime (après commit).
  */
 @Injectable()
@@ -13,6 +14,7 @@ export class SharedWorkoutSessionLinkNotifier {
   constructor(
     private readonly prisma: PrismaService,
     private readonly realtime: SharedWorkoutRealtimePublisher,
+    private readonly equipmentCoordination: SharedWorkoutEquipmentCoordinationService,
   ) {}
 
   async notifyIfLinked(workoutSessionId: string): Promise<void> {
@@ -47,7 +49,7 @@ export class SharedWorkoutSessionLinkNotifier {
   }
 
   /**
-   * Shared 5.5 — nettoie l’exercice courant après lifecycle terminal.
+   * Shared 5.5 / 5.6 — nettoie exercice courant + file équipement après lifecycle terminal.
    */
   async clearCurrentExerciseAfterTerminal(
     workoutSessionId: string,
@@ -57,7 +59,6 @@ export class SharedWorkoutSessionLinkNotifier {
       select: {
         id: true,
         currentWorkoutSessionExerciseId: true,
-        roomMember: { select: { roomId: true, userId: true, leftAt: true } },
       },
     });
     if (!link) return;
@@ -72,7 +73,7 @@ export class SharedWorkoutSessionLinkNotifier {
       });
     }
 
-    // Lifecycle broadcast géré par notifyIfLinked après transition.
+    await this.equipmentCoordination.cleanupWorkoutTerminal(workoutSessionId);
   }
 
   private async findActiveRoomLink(workoutSessionId: string): Promise<{

@@ -1255,12 +1255,37 @@ Migration Shared 5.5 : `20260810180000_shared_member_current_exercise`
 
 Relation inverse sur `WorkoutSession` : `sharedRoomMemberSession?` (optionnelle).
 
-## 30quater. SharedWorkoutParticipant (cible Shared 5.6+)
+## 30quater. SharedWorkoutEquipmentQueueEntry (Shared 5.6 — livré)
 
-Ancien nom conceptuel du participant enrichi (stations, ready, etc.). **Non créé**.
+File d’attente / occupation d’un `EquipmentType` **logique** (pas d’inventaire
+physique). Migration : `20260810190000_shared_equipment_coordination`.
+
+```ts
+type SharedWorkoutEquipmentQueueEntry = {
+  id: string;
+  roomId: string;
+  roomMemberId: string;
+  equipmentTypeId: string;
+  status: 'WAITING' | 'USING' | 'RELEASED' | 'CANCELLED';
+  requestedAt: Date;
+  acquiredAt: Date | null;
+  releasedAt: Date | null;
+};
+```
+
+Contraintes SQL partielles :
+
+- unique `(roomId, equipmentTypeId) WHERE status = 'USING'` ;
+- unique `(roomId, roomMemberId, equipmentTypeId) WHERE status IN ('WAITING','USING')`.
+
+Idempotence : `SharedWorkoutEquipmentCommand` `(ownerUserId, clientCommandId)`.
+
+## 30quinquies. SharedWorkoutParticipant (cible Shared 5.7+)
+
+Ancien nom conceptuel du participant enrichi (stations physiques, ready, etc.). **Non créé**.
 Membership = `SharedWorkoutRoomMember` ; présence Shared 5.3 = mémoire process
 (pas de table) ; lien séance = `SharedWorkoutRoomMemberSession` (Shared 5.4) ;
-exercice courant / progression = Shared 5.5.
+exercice courant / progression = Shared 5.5 ; équipement logique = Shared 5.6.
 Ne pas confondre membership, présence en ligne et rattachement de séance.
 
 ```ts
