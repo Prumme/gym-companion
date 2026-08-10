@@ -317,6 +317,18 @@ resource.ownerUserId === authenticatedUser.id
 
 ou une règle d’accès équivalente.
 
+### 11.1 Shared 5.4 — ownership séance / room
+
+- attach / create : identity JWT uniquement ; jamais de `userId` client ;
+- invariant : `roomMember.userId === workoutSession.ownerUserId` ;
+- séance absente **ou** d’un autre utilisateur → **404** `WORKOUT_NOT_FOUND`
+  (neutre, anti-énumération) ;
+- détail salle : `myWorkoutSessionId` = séance du **viewer** seulement ;
+  jamais les IDs des autres membres ;
+- `memberWorkout` = résumé statut/nom/timestamps **sans** perfs ni ID croisé ;
+- aucun endpoint Shared 5.4 ne permet d’écrire / lire le détail de la séance
+  d’un autre membre (pas de cross-write, pas d’IDOR via room).
+
 ## 12. Validation des entrées
 
 Valider :
@@ -415,7 +427,7 @@ Limiter les méthodes HTTP autorisées.
 
 ## 15. Sécurité WebSocket
 
-### 15.0 Shared 5.3 (présence + invalidation)
+### 15.0 Shared 5.3 / 5.4 (présence + invalidation)
 
 Livré sur le namespace `/shared-workouts` :
 
@@ -427,7 +439,9 @@ Livré sur le namespace `/shared-workouts` :
 - payloads serveur minimaux : `roomId`, `userId`, `connectedUserIds`, `reason` —
   pas d’email, pas de token, pas d’objet Prisma ;
 - CORS socket = `CORS_ALLOWED_ORIGINS` (comme REST) ;
-- présence en mémoire process (pas de persistance de tracking long terme).
+- présence en mémoire process (pas de persistance de tracking long terme) ;
+- Shared 5.4 : `MEMBER_WORKOUT_CHANGED` n’embarque **aucun** détail de séance
+  (pas d’ID, pas de perfs) — invalidation uniquement.
 
 ### 15.1 Authentification
 
@@ -894,9 +908,11 @@ Par défaut, les autres participants peuvent voir :
 
 - nom affiché ;
 - présence en ligne *(Shared 5.3 : userId dans `presence:*` / snapshot ; pas d’email)* ;
-- station *(Shared 5.4+)* ;
-- statut de progression *(Shared 5.4+)* ;
-- disponibilité *(Shared 5.4+)*.
+- résumé de statut de séance rattachée *(Shared 5.4 : `memberWorkout.status` /
+  nom / timestamps — **pas** l’ID ni les perfs)* ;
+- station *(Shared 5.5+)* ;
+- statut de progression détaillé *(Shared 5.5+)* ;
+- disponibilité *(Shared 5.5+)*.
 
 Ils ne doivent pas voir automatiquement :
 
@@ -907,6 +923,8 @@ Ils ne doivent pas voir automatiquement :
 - notes personnelles ;
 - statistiques complètes ;
 - données IA ;
+- l’identifiant ni le détail des `WorkoutSession` / séries des autres
+  *(Shared 5.4)* ;
 - JWT / tokens / emails dans les événements socket.
 
 ## 33. Visibilité des profils

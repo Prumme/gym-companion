@@ -2080,12 +2080,12 @@ JWT obligatoire. Exercice système ou personnel du propriétaire (y compris arch
 
 ## 24. Salles partagées en HTTP
 
-> **Shared 5.1 + 5.2 + 5.3 (livrés).** Les endpoints REST ci-dessous sont
-> **inchangés** par Shared 5.3 (aucune route HTTP de présence).
+> **Shared 5.1 → 5.4 (livrés).** Shared 5.3 n’ajoute aucune route HTTP de présence.
+> Shared 5.4 ajoute `/my-workout-session` (attach / create).
 > Socket.IO (présence + `room:changed`) : voir `docs/10-realtime-workouts.md`.
 > Ressources : `/api/v1/shared-workouts` et `/api/v1/shared-workout-invitations`
 > (ne pas confondre avec `/workouts`). Invitation **par email** (compte existant) ;
-> **pas** de codes / liens publics en Shared 5.2 / 5.3.
+> **pas** de codes / liens publics en Shared 5.2–5.4.
 
 JWT obligatoire sur tous les endpoints. Accès lecture salle = membership **actif**
 (`leftAt IS NULL`) ; hors membership → **404 neutre**.
@@ -2125,8 +2125,10 @@ Salles dont l’utilisateur est **membre actif**. Tri `updatedAt DESC, id DESC`.
 GET /api/v1/shared-workouts/:roomId
 ```
 
-DTO minimal : id, name, status, owner `{ userId, displayName }`, members **actifs**,
-timestamps, `isOwner`. Pas d’email / tokens / auth.
+DTO : id, name, status, owner `{ userId, displayName }`, members **actifs**
+(chaque membre inclut `memberWorkout` résumé Shared 5.4), timestamps, `isOwner`,
+`myWorkoutSessionId` (ID de la séance du **viewer** uniquement, sinon `null`).
+Pas d’email / tokens / auth. **Jamais** l’ID de séance des autres membres.
 
 ### 24.4 Renommer (Shared 5.1)
 
@@ -2216,7 +2218,7 @@ MEMBER actif uniquement → `{ "left": true }` (`leftAt`). OWNER → **403**
 `SHARED_WORKOUT_ROOM_OWNER_CANNOT_LEAVE`. Leave répété = idempotent.
 Salle terminale → `SHARED_WORKOUT_ROOM_INVALID_STATUS`.
 
-### 24.6ter Codes / join publics (futur — hors Shared 5.2 / 5.3)
+### 24.6ter Codes / join publics (futur — hors Shared 5.2–5.4)
 
 ```text
 GET  /api/v1/shared-workouts/invitations/:invitationCode
@@ -2225,7 +2227,94 @@ POST /api/v1/shared-workouts/:roomId/revoke-invitation
 POST /api/v1/shared-workouts/:roomId/regenerate-invitation
 ```
 
-### 24.7 Snapshot / résumé (Shared 5.4+ — non livré)
+### 24.6quater Ma séance individuelle (Shared 5.4 — livré)
+
+Association volontaire d’une `WorkoutSession` à la membership du current user.
+REST autoritaire ; salle `ACTIVE` requise pour attach / create.
+Lifecycle salle ≠ lifecycle séance.
+
+#### GET — état attach / create
+
+```text
+GET /api/v1/shared-workouts/:roomId/my-workout-session
+```
+
+Réponse `MySharedWorkoutSessionDto` :
+
+```json
+{
+  "linked": true,
+  "workoutSession": {
+    "id": "…",
+    "status": "ACTIVE",
+    "workoutName": "Push A",
+    "startedAt": "2026-08-10T12:00:00.000Z"
+  },
+  "activeWorkoutElsewhere": null
+}
+```
+
+Si non lié : `linked: false`, `workoutSession: null`, et éventuellement
+`activeWorkoutElsewhere` (séance `ACTIVE`/`PAUSED` du viewer, avec
+`linkedToOtherRoom`).
+
+#### POST attach
+
+```text
+POST /api/v1/shared-workouts/:roomId/my-workout-session/attach
+```
+
+```json
+{ "workoutSessionId": "uuid" }
+```
+
+Rattache une séance `ACTIVE`/`PAUSED` **du viewer**. Idempotent si déjà liée
+à la même séance. Réponse : `MySharedWorkoutSessionDto`. Émet
+`MEMBER_WORKOUT_CHANGED` après commit.
+
+#### POST create
+
+```text
+POST /api/v1/shared-workouts/:roomId/my-workout-session/create
+```
+
+```json
+{
+  "workoutTemplateId": "uuid",
+  "localDate": "2026-08-10",
+  "timezone": "Europe/Paris"
+}
+```
+
+`localDate` / `timezone` optionnels (fallback profil serveur). Création snapshot
+via `WorkoutsService.createFromTemplateInTransaction` **et** association dans
+**une** transaction. Réponse 201 :
+
+```json
+{
+  "mySession": { "…MySharedWorkoutSessionDto…" },
+  "workoutSession": { "…WorkoutSessionDetail…" }
+}
+```
+
+Émet `MEMBER_WORKOUT_CHANGED` après commit.
+
+#### Erreurs (Shared 5.4)
+
+| Code | HTTP | Cas |
+|------|------|-----|
+| `VALIDATION_ERROR` | 400 | Corps invalide |
+| `SHARED_WORKOUT_ROOM_NOT_FOUND` | 404 | Hors membership actif (neutre) |
+| `SHARED_WORKOUT_ROOM_NOT_ACTIVE` | 400 | Salle non `ACTIVE` (attach/create) |
+| `SHARED_WORKOUT_ROOM_MEMBER_NOT_ACTIVE` | 403 | Membership inactive |
+| `WORKOUT_NOT_FOUND` | 404 | Séance absente **ou** d’un autre user (anti-IDOR) |
+| `SHARED_WORKOUT_SESSION_NOT_ATTACHABLE` | 400 | Statut ≠ `ACTIVE`/`PAUSED` |
+| `SHARED_WORKOUT_MEMBER_SESSION_ALREADY_EXISTS` | 409 | Membership déjà liée |
+| `SHARED_WORKOUT_SESSION_ALREADY_LINKED` | 409 | Séance déjà liée à une room |
+| `WORKOUT_ACTIVE_ALREADY_EXISTS` | 409 | Conflit unicité séance en cours (create) |
+| (+ erreurs create template Phase 3) | | template introuvable, etc. |
+
+### 24.7 Snapshot / résumé (Shared 5.5+ — non livré)
 
 ```text
 GET /api/v1/shared-workouts/:roomId/snapshot

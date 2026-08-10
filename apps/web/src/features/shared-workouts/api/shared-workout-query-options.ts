@@ -1,6 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 
 import {
+  getMySharedWorkoutSession,
   getSharedWorkoutRoom,
   listReceivedInvitations,
   listRoomInvitations,
@@ -25,6 +26,14 @@ export function sharedWorkoutRoomDetailQueryOptions(roomId: string) {
   return queryOptions({
     queryKey: sharedWorkoutRoomQueryKeys.detail(roomId),
     queryFn: () => getSharedWorkoutRoom(roomId),
+    enabled: Boolean(roomId),
+  });
+}
+
+export function mySharedWorkoutSessionQueryOptions(roomId: string) {
+  return queryOptions({
+    queryKey: sharedWorkoutRoomQueryKeys.myWorkoutSession(roomId),
+    queryFn: () => getMySharedWorkoutSession(roomId),
     enabled: Boolean(roomId),
   });
 }

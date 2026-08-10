@@ -27,6 +27,7 @@ import { workoutQueryKeys } from '../api/workout-query-keys';
 import { personalRecordQueryKeys } from '@/features/personal-records/api/personal-record-query-keys';
 import { progressQueryKeys } from '@/features/progress/api/progress-query-keys';
 import { coachingQueryKeys } from '@/features/coaching/api/coaching-query-keys';
+import { sharedWorkoutRoomQueryKeys } from '@/features/shared-workouts/api/shared-workout-query-keys';
 import { applyUpdateWorkoutSetResult } from '../lib/workout-cache';
 import { createClientCommandId } from '../offline/command-id';
 import { enqueueWorkoutCommand } from '../offline/enqueue';
@@ -70,6 +71,10 @@ function applyLifecycleToCache(
       queryKey: coachingQueryKeys.all,
     });
   }
+  // Shared 5.4 — résumé room si la séance est liée.
+  void queryClient.invalidateQueries({
+    queryKey: sharedWorkoutRoomQueryKeys.all,
+  });
 }
 
 /** Exposé pour tests d’invalidation des records (jalon 4.1). */

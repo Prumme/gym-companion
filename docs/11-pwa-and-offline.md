@@ -93,7 +93,7 @@ Précisions coaching :
 - les résultats sportifs officiels (records, progression, recommandations, plateau, CoachSummary) restent **serveur-authoritative** ;
 - l’historique de conversation déjà présent dans TanStack Query peut rester visible offline, sans nouvel envoi.
 
-### Shared workouts — NetworkOnly (Shared 5.1 + 5.2 + 5.3)
+### Shared workouts — NetworkOnly (Shared 5.1 → 5.4)
 
 ```text
 /api/v1/shared-workouts/*
@@ -101,19 +101,23 @@ Précisions coaching :
 ```
 
 également **NetworkOnly**. Serveur authoritative ; **aucune** queue offline IndexedDB
-pour les rooms ni les invitations. Création / invite / accept / decline / leave /
-mutations lifecycle nécessitent une connexion ; message UI :
+pour les rooms, invitations, ni l’**association** séance↔salle (Shared 5.4).
+Création / invite / accept / decline / leave / mutations lifecycle / attach /
+create `my-workout-session` nécessitent une connexion ; message UI :
 
 ```text
 Une connexion est nécessaire pour gérer une séance partagée.
 ```
 
-**Socket.IO Shared 5.3 :** indisponible hors ligne. Pas de file d’événements
-présence / `room:changed`. L’UI affiche « Présence inconnue » ; le détail salle
-reste consultable / actionnable via REST dès que le réseau revient (pas de
-prétention que les autres sont synchronisés).
-| Notifications push           | Dépend de la plateforme |              Sans objet |                   Sans objet |
-| Export                       |                     Non |                     Non |                          Non |
+**Socket.IO Shared 5.3 / 5.4 :** indisponible hors ligne. Pas de file d’événements
+présence / `room:changed` / `MEMBER_WORKOUT_CHANGED`. L’UI affiche « Présence
+inconnue » ; le détail salle reste consultable / actionnable via REST dès que
+le réseau revient (pas de prétention que les autres sont synchronisés).
+
+**Shared 5.4 — association online-only :** rattacher ou créer une séance depuis
+la room exige le réseau. Une fois la `WorkoutSession` créée, elle conserve le
+mode dégradé Phase 3 (IndexedDB / file de commandes) pour **ses** séries —
+indépendamment de la room.
 
 ## 4. Installation PWA
 
@@ -783,44 +787,50 @@ Au changement de compte :
 
 Une séance partagée ne peut pas continuer normalement sans réseau.
 
-### 30.0 Shared 5.3 (présence)
+### 30.0 Shared 5.3 / 5.4 (présence + association)
 
 Hors ligne / socket coupé :
 
 - fermer ou ignorer Socket.IO ;
 - **ne pas** mettre en file `room:subscribe`, `presence:*` ni `room:changed` ;
 - afficher présence indisponible (« Présence inconnue ») ;
-- conserver l’UI REST (détail, membres) sans inventer l’état des autres.
+- conserver l’UI REST (détail, membres) sans inventer l’état des autres ;
+- **ne pas** tenter attach / create `my-workout-session` hors ligne
+  (message connexion) ;
+- si une `WorkoutSession` individuelle est déjà liée, ses séries suivent
+  le offline Phase 3 (indépendant de la room).
 
 ### 30.1 Comportement autorisé
 
 Le participant peut éventuellement :
 
 - consulter le dernier snapshot REST chargé ;
-- saisir une série localement *(cible Shared 5.4+)* ;
+- saisir une série localement sur **sa** séance individuelle déjà créée
+  *(Phase 3 offline ; sync séries entre membres = Shared 5.5+)* ;
 - conserver une note ;
-- voir que la rotation est figée *(cible Shared 5.4+)*.
+- voir que la rotation est figée *(cible Shared 5.5+)*.
 
 ### 30.2 Comportement interdit
 
 Le client ne doit pas :
 
 - changer seul de station ;
-- considérer la série comme confirmée ;
+- considérer la série comme confirmée auprès des autres ;
 - afficher les autres comme synchronisés ou « en ligne » sans socket ;
 - terminer la salle hors ligne ;
+- rattacher / créer une séance depuis la room hors ligne ;
 - appliquer une nouvelle rotation ;
 - rejouer une file d’événements Socket.IO à la reconnexion.
 
 ### 30.3 Retour du réseau
 
-À la reconnexion (Shared 5.3) :
+À la reconnexion (Shared 5.3 / 5.4) :
 
 1. reconnect Socket.IO + `room:subscribe` ;
-2. refetch REST du détail salle ;
+2. refetch REST du détail salle (+ « ma séance ») ;
 3. rétablir les libellés de présence depuis le snapshot socket.
 
-*(Shared 5.4+ : snapshot workout, conflits de séries, etc.)*
+*(Shared 5.5+ : snapshot workout, conflits de séries, etc.)*
 
 ## 31. Nutrition hors ligne
 

@@ -22,7 +22,7 @@ Deux axes de numérotation coexistent volontairement ; ils ne doivent **pas** ê
 | Libellé | Signification |
 |---------|----------------|
 | **Couche Coaching — jalons techniques 5.1 → 5.6** | Moteurs déterministes + Coach + IA explicative + chat READ ONLY, livrés **sous la Phase 4** produit (records / stats / progression / coaching). |
-| **Roadmap produit Phase 5 — Séances partagées** | Collaboration multi-utilisateurs (salles, invitations, Socket.IO). **En cours** — Shared 5.1 + 5.2 + 5.3 livrés (salle REST, invitations email / leave, présence Socket.IO + invalidation). |
+| **Roadmap produit Phase 5 — Séances partagées** | Collaboration multi-utilisateurs (salles, invitations, Socket.IO). **En cours** — Shared 5.1 → 5.4 livrés (salle REST, invitations, présence, rattachement `WorkoutSession`). |
 
 Un tag ou un libellé du type `phase-5.6-complete` / « jalon 5.6 livré » signifie uniquement que la **couche coaching** est clôturée — **pas** que la roadmap « Séances partagées » est terminée.
 
@@ -358,7 +358,7 @@ La phase 3 est terminée lorsque :
 > et **Couche Coaching 5.1 → 5.6** (recommandations, décisions, plateau, Coach déterministe,
 > explication IA, chat READ ONLY).
 >
-> La phase **produit** suivante est la **Phase 5 — Séances partagées** (**en cours**, Shared 5.1 + 5.2 + 5.3 livrés).
+> La phase **produit** suivante est la **Phase 5 — Séances partagées** (**en cours**, Shared 5.1 → 5.4 livrés).
 > Voir §2.0 pour la nomenclature.  
 > La liste et le détail historique de base sont déjà livrés en phase 3 (jalon 3.6).  
 > La phase 4 transforme ces données en records, statistiques et visualisation.
@@ -549,7 +549,8 @@ La phase est terminée lorsque :
 > | **Shared 5.1** | Fondations salle (`SharedWorkoutRoom` / membership / lifecycle REST) | **Livré** |
 > | **Shared 5.2** | Invitations email / accept-decline / leave | **Livré** |
 > | **Shared 5.3** | Présence Socket.IO + invalidation REST (pas de sync workout) | **Livré** |
-> | Shared 5.4+ | Coordination séances membres, rotation, sync séries, etc. | Non commencé |
+> | **Shared 5.4** | Rattachement / création `WorkoutSession` individuelle par membre | **Livré** |
+> | Shared 5.5+ | Rotation, sync séries, stations, snapshot workout partagé, etc. | Non commencé |
 
 ### 8.0 Shared 5.1 — Fondations des salles (livré)
 
@@ -611,7 +612,36 @@ Livré :
 - hors ligne navigateur : présence indisponible, page REST toujours utilisable ;
 - **une** instance API ; adapter Redis = dette future (multi-instance).
 
-Hors Shared 5.3 : sync workout, rotation, codes publics, `WorkoutSession` auto.
+Hors Shared 5.3 : sync workout, rotation, codes publics, `WorkoutSession` auto
+(rattachement volontaire = Shared 5.4).
+
+### 8.0quater Shared 5.4 — Séance individuelle rattachée (livré)
+
+Association optionnelle d’une `WorkoutSession` personnelle à une membership
+active. **Lifecycle salle ≠ lifecycle séance** : start / complete / cancel de la
+salle ne crée, ne termine et ne modifie aucune séance individuelle.
+
+Livré :
+
+- modèle `SharedWorkoutRoomMemberSession` (`UNIQUE roomMemberId`,
+  `UNIQUE workoutSessionId`) ;
+- endpoints `/api/v1/shared-workouts/:roomId/my-workout-session`
+  (GET, POST attach, POST create) ;
+- détail salle : `members[].memberWorkout` (résumé
+  `NOT_STARTED|ACTIVE|PAUSED|COMPLETED|CANCELLED`) + `myWorkoutSessionId`
+  pour le viewer uniquement (jamais l’ID des autres) ;
+- ownership : `roomMember.userId === workoutSession.ownerUserId` ;
+- attach : séance `ACTIVE`/`PAUSED` du viewer, salle `ACTIVE`, pas déjà liée ;
+- create : `WorkoutsService.createFromTemplateInTransaction` + association
+  **atomiques** ;
+- realtime : raison `MEMBER_WORKOUT_CHANGED` après attach/create et après
+  mutation lifecycle d’une séance liée (invalidation statut uniquement) ;
+- UI section **Ma séance** sur `/shared-workouts/:roomId` ;
+- association **online-only** (NetworkOnly) ; la séance individuelle conserve
+  le mode offline Phase 3 une fois créée.
+
+Hors Shared 5.4 : sync séries, rotation, stations, snapshot workout partagé,
+codes publics, détail / IDs des séances des autres membres → **Shared 5.5+**.
 
 ### 8.1 Objectif
 
@@ -633,26 +663,27 @@ Permettre à plusieurs utilisateurs de réaliser une même séance en organisant
 #### Préparation
 
 - Confirmation de présence / libellés en ligne. *(Shared 5.3 — présence socket ; ready explicite = futur)*
-- Sélection des équipements disponibles. *(Shared 5.4+)*
-- Sélection des exercices compatibles. *(Shared 5.4+)*
-- Récupération des charges personnelles. *(Shared 5.4+)*
-- Définition d’une durée cible facultative. *(Shared 5.4+)*
-- Calcul d’une rotation initiale. *(Shared 5.4+)*
-- Possibilité de modifier la rotation. *(Shared 5.4+)*
+- Rattachement / création de sa `WorkoutSession` individuelle. *(Shared 5.4)*
+- Sélection des équipements disponibles. *(Shared 5.5+)*
+- Sélection des exercices compatibles. *(Shared 5.5+)*
+- Récupération des charges personnelles. *(Shared 5.5+)*
+- Définition d’une durée cible facultative. *(Shared 5.5+)*
+- Calcul d’une rotation initiale. *(Shared 5.5+)*
+- Possibilité de modifier la rotation. *(Shared 5.5+)*
 
 #### Temps réel
 
 - Connexion Socket.IO authentifiée. *(Shared 5.3)*
 - Rooms Socket.IO + subscribe/unsubscribe. *(Shared 5.3)*
 - Présence en ligne (éphémère). *(Shared 5.3)*
-- Invalidation d’état salle (`room:changed`). *(Shared 5.3)*
-- Série terminée. *(Shared 5.4+)*
-- Série échouée. *(Shared 5.4+)*
-- Changement de station. *(Shared 5.4+)*
-- Chronomètre. *(Shared 5.4+)*
-- Accusés de réception commandes workout. *(Shared 5.4+)*
-- Versions d’état workout. *(Shared 5.4+)*
-- Reconnexion + snapshot workout complet. *(Shared 5.4+ ; Shared 5.3 : re-subscribe + REST refetch)*
+- Invalidation d’état salle (`room:changed`). *(Shared 5.3 ; Shared 5.4 : + `MEMBER_WORKOUT_CHANGED`)*
+- Série terminée. *(Shared 5.5+)*
+- Série échouée. *(Shared 5.5+)*
+- Changement de station. *(Shared 5.5+)*
+- Chronomètre. *(Shared 5.5+)*
+- Accusés de réception commandes workout. *(Shared 5.5+)*
+- Versions d’état workout. *(Shared 5.5+)*
+- Reconnexion + snapshot workout complet. *(Shared 5.5+ ; Shared 5.3–5.4 : re-subscribe + REST refetch)*
 
 #### Fin de séance
 

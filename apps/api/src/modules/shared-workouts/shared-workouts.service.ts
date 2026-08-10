@@ -2,17 +2,23 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
+  forwardRef,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type {
   ApiCursorListResponse,
+  MySharedWorkoutSessionDto,
   SharedWorkoutRoomDetail,
   SharedWorkoutRoomInvitationDto,
   SharedWorkoutRoomListItem,
+  WorkoutSessionDetail,
+  WorkoutStatus,
 } from '@gym-companion/shared';
 import {
+  attachMySharedWorkoutSessionBodySchema,
   buildSharedWorkoutRoomCursorFilter,
   buildSharedWorkoutRoomInvitationCursorFilter,
   buildSharedWorkoutRoomLifecycleFingerprint,
@@ -20,6 +26,7 @@ import {
   canInviteToSharedWorkoutRoom,
   canLeaveSharedWorkoutRoom,
   canRenameSharedWorkoutRoom,
+  createMySharedWorkoutSessionBodySchema,
   createSharedWorkoutRoomBodySchema,
   createSharedWorkoutRoomInvitationBodySchema,
   decodeSharedWorkoutRoomCursor,
@@ -32,11 +39,17 @@ import {
   sharedWorkoutRoomLifecycleCommandBodySchema,
   sharedWorkoutRoomListQuerySchema,
   updateSharedWorkoutRoomBodySchema,
+  utcDateToLocalDateString,
   type SharedWorkoutRoomLifecycleAction,
   type SharedWorkoutRoomStatusValue,
 } from '@gym-companion/validation';
 
 import { PrismaService } from '../../database/prisma/prisma.service';
+import { WorkoutsService } from '../workouts/workouts.service';
+import {
+  toWorkoutSessionDetail,
+  type WorkoutSessionSnapshotRow,
+} from '../workouts/workouts.mapper';
 import { toSharedWorkoutRoomInvitationDto } from './shared-workout-invitations.mapper';
 import { SharedWorkoutRealtimePublisher } from './shared-workout-realtime.publisher';
 import {
@@ -55,6 +68,19 @@ const roomInclude = {
       user: {
         select: {
           profile: { select: { displayName: true } },
+        },
+      },
+      memberSession: {
+        include: {
+          workoutSession: {
+            select: {
+              id: true,
+              name: true,
+              status: true,
+              startedAt: true,
+              completedAt: true,
+            },
+          },
         },
       },
     },
@@ -76,6 +102,8 @@ export class SharedWorkoutsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly realtime: SharedWorkoutRealtimePublisher,
+    @Inject(forwardRef(() => WorkoutsService))
+    private readonly workoutsService: WorkoutsService,
   ) {}
 
   async createRoom(
@@ -178,6 +206,317 @@ export class SharedWorkoutsService {
   ): Promise<SharedWorkoutRoomDetail> {
     const room = await this.findActiveMemberRoomOrThrow(userId, roomId);
     return toSharedWorkoutRoomDetail(room, userId);
+  }
+
+  /**
+   * Shared 5.4 — état attach/create pour le current user.
+   */
+  async getMyWorkoutSession(
+    userId: string,
+    roomId: string,
+  ): Promise<MySharedWorkoutSessionDto> {
+    const room = await this.findActiveMemberRoomOrThrow(userId, roomId);
+    const member = room.members.find((m) => m.userId === userId);
+    if (!member) {
+      throw new ForbiddenException({
+        code: 'SHARED_WORKOUT_ROOM_MEMBER_NOT_ACTIVE',
+        message: 'Tu n’es pas membre actif de cette salle.',
+      });
+    }
+
+    const linked = member.memberSession?.workoutSession ?? null;
+    if (linked) {
+      return {
+        linked: true,
+        workoutSession: {
+          id: linked.id,
+          status: linked.status as WorkoutStatus,
+          workoutName: linked.name,
+          startedAt: linked.startedAt.toISOString(),
+        },
+        activeWorkoutElsewhere: null,
+      };
+    }
+
+    const active = await this.prisma.workoutSession.findFirst({
+      where: {
+        ownerUserId: userId,
+        status: { in: ['ACTIVE', 'PAUSED'] },
+      },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        sharedRoomMemberSession: { select: { id: true } },
+      },
+    });
+
+    if (!active) {
+      return {
+        linked: false,
+        workoutSession: null,
+        activeWorkoutElsewhere: null,
+      };
+    }
+
+    return {
+      linked: false,
+      workoutSession: null,
+      activeWorkoutElsewhere: {
+        id: active.id,
+        status: active.status as 'ACTIVE' | 'PAUSED',
+        workoutName: active.name,
+        linkedToOtherRoom: active.sharedRoomMemberSession != null,
+      },
+    };
+  }
+
+  /**
+   * Shared 5.4 — rattache une séance ACTIVE/PAUSED existante.
+   */
+  async attachMyWorkoutSession(
+    userId: string,
+    roomId: string,
+    body: unknown,
+  ): Promise<MySharedWorkoutSessionDto> {
+    const parsed = attachMySharedWorkoutSessionBodySchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: 'Données de rattachement invalides.',
+        fieldErrors: parsed.error.flatten().fieldErrors,
+      });
+    }
+
+    const room = await this.findActiveMemberRoomOrThrow(userId, roomId);
+    if (room.status !== 'ACTIVE') {
+      throw new BadRequestException({
+        code: 'SHARED_WORKOUT_ROOM_NOT_ACTIVE',
+        message:
+          'Les séances individuelles ne peuvent être rattachées que lorsque la salle est active.',
+      });
+    }
+
+    const member = await this.prisma.sharedWorkoutRoomMember.findFirst({
+      where: { roomId, userId, leftAt: null },
+      include: {
+        memberSession: {
+          include: {
+            workoutSession: {
+              select: {
+                id: true,
+                name: true,
+                status: true,
+                startedAt: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!member) {
+      throw new ForbiddenException({
+        code: 'SHARED_WORKOUT_ROOM_MEMBER_NOT_ACTIVE',
+        message: 'Tu n’es pas membre actif de cette salle.',
+      });
+    }
+
+    const targetSessionId = parsed.data.workoutSessionId;
+
+    // Idempotence : déjà lié à la même séance.
+    if (member.memberSession) {
+      if (member.memberSession.workoutSessionId === targetSessionId) {
+        const ws = member.memberSession.workoutSession;
+        return {
+          linked: true,
+          workoutSession: {
+            id: ws.id,
+            status: ws.status as WorkoutStatus,
+            workoutName: ws.name,
+            startedAt: ws.startedAt.toISOString(),
+          },
+          activeWorkoutElsewhere: null,
+        };
+      }
+      throw new ConflictException({
+        code: 'SHARED_WORKOUT_MEMBER_SESSION_ALREADY_EXISTS',
+        message: 'Une séance est déjà rattachée à cette salle pour toi.',
+      });
+    }
+
+    // Ownership neutre : séance absente ou étrangère → 404.
+    const session = await this.prisma.workoutSession.findFirst({
+      where: { id: targetSessionId, ownerUserId: userId },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        startedAt: true,
+        sharedRoomMemberSession: { select: { id: true, roomMemberId: true } },
+      },
+    });
+    if (!session) {
+      throw new NotFoundException({
+        code: 'WORKOUT_NOT_FOUND',
+        message: 'Séance introuvable.',
+      });
+    }
+
+    if (session.status !== 'ACTIVE' && session.status !== 'PAUSED') {
+      throw new BadRequestException({
+        code: 'SHARED_WORKOUT_SESSION_NOT_ATTACHABLE',
+        message:
+          'Seules les séances en cours ou en pause peuvent être rattachées.',
+      });
+    }
+
+    if (session.sharedRoomMemberSession) {
+      throw new ConflictException({
+        code: 'SHARED_WORKOUT_SESSION_ALREADY_LINKED',
+        message: 'Cette séance est déjà rattachée à une salle.',
+      });
+    }
+
+    try {
+      await this.prisma.sharedWorkoutRoomMemberSession.create({
+        data: {
+          roomMemberId: member.id,
+          workoutSessionId: session.id,
+        },
+      });
+    } catch (error) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code?: string }).code === 'P2002'
+      ) {
+        // Course : recharger l’état déterministe.
+        return this.getMyWorkoutSession(userId, roomId);
+      }
+      throw error;
+    }
+
+    this.realtime.emitRoomChanged(roomId, 'MEMBER_WORKOUT_CHANGED');
+    return this.getMyWorkoutSession(userId, roomId);
+  }
+
+  /**
+   * Shared 5.4 — crée une WorkoutSession + association (atomique).
+   */
+  async createMyWorkoutSession(
+    userId: string,
+    roomId: string,
+    body: unknown,
+  ): Promise<{
+    mySession: MySharedWorkoutSessionDto;
+    workoutSession: WorkoutSessionDetail;
+  }> {
+    const parsed = createMySharedWorkoutSessionBodySchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: 'Données de création invalides.',
+        fieldErrors: parsed.error.flatten().fieldErrors,
+      });
+    }
+
+    const room = await this.findActiveMemberRoomOrThrow(userId, roomId);
+    if (room.status !== 'ACTIVE') {
+      throw new BadRequestException({
+        code: 'SHARED_WORKOUT_ROOM_NOT_ACTIVE',
+        message:
+          'Les séances individuelles ne peuvent être démarrées que lorsque la salle est active.',
+      });
+    }
+
+    const member = await this.prisma.sharedWorkoutRoomMember.findFirst({
+      where: { roomId, userId, leftAt: null },
+      include: { memberSession: true },
+    });
+    if (!member) {
+      throw new ForbiddenException({
+        code: 'SHARED_WORKOUT_ROOM_MEMBER_NOT_ACTIVE',
+        message: 'Tu n’es pas membre actif de cette salle.',
+      });
+    }
+
+    if (member.memberSession) {
+      throw new ConflictException({
+        code: 'SHARED_WORKOUT_MEMBER_SESSION_ALREADY_EXISTS',
+        message: 'Une séance est déjà rattachée à cette salle pour toi.',
+      });
+    }
+
+    const profile = await this.prisma.userProfile.findUnique({
+      where: { userId },
+      select: { timezone: true },
+    });
+    const timezone =
+      parsed.data.timezone?.trim() || profile?.timezone || 'Europe/Paris';
+    const localDate =
+      parsed.data.localDate ?? utcDateToLocalDateString(new Date());
+
+    try {
+      const created = await this.prisma.$transaction(async (tx) => {
+        const session = await this.workoutsService.createFromTemplateInTransaction(
+          tx,
+          userId,
+          {
+            sourceWorkoutTemplateId: parsed.data.workoutTemplateId,
+            localDate,
+            timezone,
+          },
+        );
+
+        await tx.sharedWorkoutRoomMemberSession.create({
+          data: {
+            roomMemberId: member.id,
+            workoutSessionId: session.id,
+          },
+        });
+
+        return session;
+      });
+
+      this.realtime.emitRoomChanged(roomId, 'MEMBER_WORKOUT_CHANGED');
+
+      const workoutSession = toWorkoutSessionDetail(
+        created as WorkoutSessionSnapshotRow,
+      );
+      const mySession = await this.getMyWorkoutSession(userId, roomId);
+      return { mySession, workoutSession };
+    } catch (error) {
+      if (
+        error instanceof ConflictException ||
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException
+      ) {
+        throw error;
+      }
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code?: string }).code === 'P2002'
+      ) {
+        // Conflit unicité séance active ou association — état cohérent via GET.
+        const mySession = await this.getMyWorkoutSession(userId, roomId);
+        if (mySession.linked && mySession.workoutSession) {
+          const detail = await this.workoutsService.getById(
+            userId,
+            mySession.workoutSession.id,
+          );
+          return { mySession, workoutSession: detail };
+        }
+        throw new ConflictException({
+          code: 'WORKOUT_ACTIVE_ALREADY_EXISTS',
+          message: 'Une séance est déjà en cours.',
+        });
+      }
+      throw error;
+    }
   }
 
   async updateRoom(

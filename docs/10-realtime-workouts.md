@@ -18,7 +18,18 @@ Livré **uniquement** :
 - présence en ligne des membres abonnés ;
 - hints d’invalidation (`room:changed`) pour refetch REST.
 
-**Hors Shared 5.3 (cible Shared 5.4+)** — ce document décrit aussi la cible
+### Shared 5.4 — Invalidation statut séance membre (livré)
+
+Ajoute la raison `MEMBER_WORKOUT_CHANGED` sur `room:changed` après :
+
+- attach / create `my-workout-session` ;
+- mutation lifecycle d’une `WorkoutSession` déjà liée à la room.
+
+Effet client : invalidation TanStack Query (détail salle + « ma séance ») —
+**statut / résumé uniquement**. **Pas** de sync de séries, stations ni snapshot
+workout.
+
+**Hors Shared 5.3–5.4 (cible Shared 5.5+)** — ce document décrit aussi la cible
 workout sync ; ne pas la lire comme livrée :
 
 - sync séries / stations / rotation ;
@@ -26,7 +37,7 @@ workout sync ; ne pas la lire comme livrée :
 - snapshot workout live ;
 - chronomètre partagé.
 
-### Protocole Shared 5.3 (livré)
+### Protocole Shared 5.3 / 5.4 (livré)
 
 | Élément | Valeur |
 |---------|--------|
@@ -57,7 +68,12 @@ Raisons `room:changed` :
 
 ```text
 RENAMED | STARTED | COMPLETED | CANCELLED | MEMBER_JOINED | MEMBER_LEFT
+| MEMBER_WORKOUT_CHANGED
 ```
+
+`MEMBER_WORKOUT_CHANGED` (Shared 5.4) = hint d’invalidation du **résumé**
+séance membre (`memberWorkout` / `myWorkoutSessionId`). Ce n’est **pas** une
+commande de sync de séries ni un snapshot workout.
 
 #### Règles d’émission
 
@@ -66,6 +82,7 @@ RENAMED | STARTED | COMPLETED | CANCELLED | MEMBER_JOINED | MEMBER_LEFT
 - Leave REST → `MEMBER_LEFT` + eviction sockets (+ `presence:left` si était en ligne).
 - Accept invitation → `MEMBER_JOINED` ; présence « en ligne » seulement après `subscribe`.
 - Membership ≠ présence.
+- Shared 5.4 : attach/create + lifecycle workout lié → `MEMBER_WORKOUT_CHANGED`.
 
 #### Client web
 
@@ -75,11 +92,11 @@ RENAMED | STARTED | COMPLETED | CANCELLED | MEMBER_JOINED | MEMBER_LEFT
 - Libellés : En ligne / Hors ligne / Présence inconnue
 - Navigateur offline : socket non utilisé ; page REST toujours utilisable ; **pas** de file d’événements socket
 
-#### Reconnexion (Shared 5.3)
+#### Reconnexion (Shared 5.3 / 5.4)
 
 1. reconnect Socket.IO avec JWT frais si besoin ;
 2. `room:subscribe` → ack + `presence:snapshot` ;
-3. refetch REST du détail salle.
+3. refetch REST du détail salle (+ « ma séance » si Shared 5.4).
 
 Pas de replay d’événements manqués ni de snapshot workout.
 
@@ -134,8 +151,8 @@ Le client ne décide pas seul :
 - de la validation définitive d’une série ;
 - de la fin de la séance.
 
-En Shared 5.3, l’autorité métier reste **REST** ; le socket informe seulement
-présence et besoin de refetch.
+En Shared 5.3–5.4, l’autorité métier reste **REST** ; le socket informe seulement
+présence et besoin de refetch (`MEMBER_WORKOUT_CHANGED` = statut séance membre).
 
 ### 2.2 HTTP et Socket.IO ont des responsabilités différentes
 
@@ -145,20 +162,21 @@ HTTP est utilisé pour :
 - inviter par email / accepter / refuser / annuler une invitation *(Shared 5.2 livré)* ;
 - quitter une salle (leave soft) *(Shared 5.2 livré)* ;
 - rename / start / complete / cancel *(Shared 5.1 livré)* ;
+- rattacher / créer ma `WorkoutSession` (`/my-workout-session`) *(Shared 5.4 livré)* ;
 - résoudre un code d’invitation public *(futur)* ;
 - rejoindre via code *(futur)* ;
-- récupérer un snapshot workout *(Shared 5.4+)* ;
+- récupérer un snapshot workout *(Shared 5.5+)* ;
 - consulter le résumé ;
 - modifier des paramètres hors séance.
 
-Socket.IO Shared 5.3 (livré) :
+Socket.IO Shared 5.3–5.4 (livré) :
 
 - `room:subscribe` / `room:unsubscribe` ;
 - présence (`presence:*`) ;
-- invalidation (`room:changed`) ;
+- invalidation (`room:changed`, y compris `MEMBER_WORKOUT_CHANGED`) ;
 - reconnexion via re-subscribe + refetch REST.
 
-Socket.IO Shared 5.4+ (cible, non livré) :
+Socket.IO Shared 5.5+ (cible, non livré) :
 
 - synchroniser l’état workout actif ;
 - enregistrer des commandes pendant la séance ;

@@ -2302,3 +2302,11 @@ export type {
   SharedWorkoutRoomSubscribeBody,
   SharedWorkoutRoomUnsubscribeBody,
 } from './shared-workout-realtime';
+export {
+  attachMySharedWorkoutSessionBodySchema,
+  createMySharedWorkoutSessionBodySchema,
+} from './shared-workout-member-sessions';
+export type {
+  AttachMySharedWorkoutSessionInput,
+  CreateMySharedWorkoutSessionInput,
+} from './shared-workout-member-sessions';

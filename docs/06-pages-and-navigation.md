@@ -77,11 +77,11 @@ Structure cible (routes livrées en gras conceptuel via commentaires) :
 │   ├── active                      # séance interactive (jalons 3.4–3.5)
 │   └── :workoutSessionId           # détail ; lecture seule si COMPLETED/CANCELLED
 │
-├── shared-workouts                 # Shared 5.1 + 5.2 + 5.3 livrés
+├── shared-workouts                 # Shared 5.1 → 5.4 livrés
 │   ├── new                         # livré
 │   ├── invitations                 # Shared 5.2 — invitations reçues
 │   ├── join                        # futur (codes / liens publics)
-│   └── :roomId                     # livré (lobby / active / terminal + invite + présence 5.3)
+│   └── :roomId                     # livré (lobby + Ma séance 5.4 + présence 5.3)
 │       ├── lobby                   # futur (alias possible)
 │       ├── active                  # futur (alias possible)
 │       └── summary                 # futur
@@ -114,8 +114,9 @@ Structure cible (routes livrées en gras conceptuel via commentaires) :
 > Routes coaching livrées : `/coach`, `/coach/chat`, `/progress/exercises/:exerciseId`.
 > `/coach/proposals/:proposalId` reste **futur** (génération de programme) — hors Couche Coaching 5.1–5.6.
 > « Phase 5 » / Shared (`shared-workouts`) = roadmap **Séances partagées** :
-> **Shared 5.1 + 5.2 + 5.3 livrés** (`/shared-workouts`, `/new`, `/invitations`, `/:roomId`
-> avec présence Socket.IO) ; join par code / lobby dédié / sync workout = jalons suivants.
+> **Shared 5.1 → 5.4 livrés** (`/shared-workouts`, `/new`, `/invitations`, `/:roomId`
+> avec présence Socket.IO + section Ma séance) ; join par code / rotation /
+> sync séries = **Shared 5.5+**.
 
 ## 4. Navigation mobile principale
 
@@ -218,7 +219,7 @@ Sections livrées :
 - Records (`/records`) ;
 - Progression (`/progress`, `/progress/exercises/:exerciseId`) ;
 - Coach (`/coach`) ;
-- Séances partagées (`/shared-workouts`, `/shared-workouts/invitations`) — Shared 5.1 + 5.2 + 5.3 ;
+- Séances partagées (`/shared-workouts`, `/shared-workouts/invitations`) — Shared 5.1 → 5.4 ;
 - Programmes ;
 - Exercices ;
 - Profil.
@@ -955,7 +956,7 @@ Hors scope 4.5 : autres formules, 1RM RIR/RPE, recommandations, matérialisation
 Affiche les salles dont l’utilisateur est **membre actif** (filtre `status`, pagination cursor).
 État vide + CTA « Créer une salle ». Lien vers `/shared-workouts/invitations`.
 
-### Lobby / détail unifié Shared 5.1 + 5.2 + 5.3
+### Lobby / détail unifié Shared 5.1 → 5.4
 
 ```text
 /shared-workouts/:roomId
@@ -972,6 +973,18 @@ hook `useSharedWorkoutRoomRealtime` ; libellés texte par membre
 « En ligne » / « Hors ligne » / « Présence inconnue » (socket indisponible).
 `room:changed` → invalidation TanStack Query (refetch REST). Hors ligne navigateur :
 présence masquée, actions REST selon NetworkOnly.
+
+**Ma séance (Shared 5.4)** — section sur la même route (`SharedWorkoutMySessionSection`) :
+
+- LOBBY : message indiquant que le rattachement sera possible après le lancement ;
+- ACTIVE : GET `my-workout-session` ; rattacher une séance `ACTIVE`/`PAUSED`
+  existante, ou créer depuis un template du programme actif ; lien « Ouvrir ma
+  séance » vers `/workouts/:id` ou `/workouts/active` ;
+- COMPLETED / CANCELLED : lecture du lien éventuel + ouverture en détail ;
+- résumé `memberWorkout` visible par membre (statut / nom) ; **pas** d’ID ni
+  de détail des séances des autres ;
+- attach / create **online-only** (message connexion si offline) ;
+- `MEMBER_WORKOUT_CHANGED` → refetch détail + « ma séance ».
 
 ### Invitations reçues (Shared 5.2)
 
@@ -1015,9 +1028,9 @@ les `PENDING`. Acceptation → membership `MEMBER` puis navigation vers la salle
 
 ## 28. Lobby d’une séance partagée
 
-> En Shared 5.1–5.3 le lobby est unifié sur `/shared-workouts/:roomId`
-> (invite email + leave + présence Socket.IO). Route dédiée / codes publics /
-> rotation = Shared 5.4+.
+> En Shared 5.1–5.4 le lobby est unifié sur `/shared-workouts/:roomId`
+> (invite email + leave + présence Socket.IO + Ma séance). Route dédiée /
+> codes publics / rotation = **Shared 5.5+**.
 
 ### Route (cible — alias optionnel)
 
@@ -1025,14 +1038,15 @@ les `PENDING`. Acceptation → membership `MEMBER` puis navigation vers la salle
 /shared-workouts/:roomId/lobby
 ```
 
-### Contenu livré sur `/:roomId` (Shared 5.1–5.3)
+### Contenu livré sur `/:roomId` (Shared 5.1–5.4)
 
 - hôte / membres actifs ;
 - libellés de présence en ligne (Shared 5.3) ;
 - invite email + leave (Shared 5.2) ;
-- lifecycle owner (Shared 5.1).
+- lifecycle owner (Shared 5.1) ;
+- section **Ma séance** : attach / create + résumé `memberWorkout` (Shared 5.4).
 
-### Contenu cible (Shared 5.4+)
+### Contenu cible (Shared 5.5+)
 
 - équipements ;
 - séance / plans ;

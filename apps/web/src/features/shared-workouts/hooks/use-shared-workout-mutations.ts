@@ -1,10 +1,15 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { workoutQueryKeys } from '@/features/workouts/api/workout-query-keys';
+import { persistServerSnapshot } from '@/features/workouts/offline/store';
+
 import {
   acceptSharedWorkoutInvitation,
+  attachMySharedWorkoutSession,
   cancelRoomInvitation,
   cancelSharedWorkoutRoom,
   completeSharedWorkoutRoom,
+  createMySharedWorkoutSession,
   createSharedWorkoutRoom,
   declineSharedWorkoutInvitation,
   inviteToSharedWorkoutRoom,
@@ -24,6 +29,9 @@ function invalidateRoomQueries(
   if (roomId) {
     void queryClient.invalidateQueries({
       queryKey: sharedWorkoutRoomQueryKeys.detail(roomId),
+    });
+    void queryClient.invalidateQueries({
+      queryKey: sharedWorkoutRoomQueryKeys.myWorkoutSession(roomId),
     });
     void queryClient.invalidateQueries({
       queryKey: sharedWorkoutRoomQueryKeys.roomInvitations(roomId),
@@ -155,6 +163,48 @@ export function useLeaveSharedWorkoutRoomMutation(roomId: string) {
       void queryClient.removeQueries({
         queryKey: sharedWorkoutRoomQueryKeys.detail(roomId),
       });
+    },
+  });
+}
+
+export function useAttachMySharedWorkoutSessionMutation(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { workoutSessionId: string }) =>
+      attachMySharedWorkoutSession(roomId, input),
+    onSuccess: () => {
+      invalidateRoomQueries(queryClient, roomId);
+      void queryClient.invalidateQueries({
+        queryKey: workoutQueryKeys.active(),
+      });
+    },
+  });
+}
+
+export function useCreateMySharedWorkoutSessionMutation(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      workoutTemplateId: string;
+      localDate?: string;
+      timezone?: string;
+    }) => createMySharedWorkoutSession(roomId, input),
+    onSuccess: async (result) => {
+      invalidateRoomQueries(queryClient, roomId);
+      queryClient.setQueryData(
+        workoutQueryKeys.active(),
+        result.workoutSession,
+      );
+      queryClient.setQueryData(
+        workoutQueryKeys.detail(result.workoutSession.id),
+        result.workoutSession,
+      );
+      const userId = queryClient.getQueryData<{ data: { id: string } }>([
+        'me',
+      ])?.data?.id;
+      if (userId) {
+        await persistServerSnapshot(userId, result.workoutSession);
+      }
     },
   });
 }

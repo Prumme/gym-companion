@@ -11,6 +11,8 @@ export const sharedWorkoutRoomQueryKeys = {
   details: () => [...sharedWorkoutRoomQueryKeys.all, 'detail'] as const,
   detail: (roomId: string) =>
     [...sharedWorkoutRoomQueryKeys.details(), roomId] as const,
+  myWorkoutSession: (roomId: string) =>
+    [...sharedWorkoutRoomQueryKeys.all, 'my-workout-session', roomId] as const,
   roomInvitations: (roomId: string, filters: { status?: SharedWorkoutRoomInvitationStatus } = {}) =>
     [...sharedWorkoutRoomQueryKeys.all, 'room-invitations', roomId, filters] as const,
   receivedInvitations: (

@@ -1138,11 +1138,28 @@ export type SharedWorkoutRoomStatus =
 
 export type SharedWorkoutRoomMemberRole = 'OWNER' | 'MEMBER';
 
+/** Shared 5.4 — résumé séance individuelle d’un membre (sans perfs). */
+export type SharedWorkoutRoomMemberWorkoutStatus =
+  | 'NOT_STARTED'
+  | 'ACTIVE'
+  | 'PAUSED'
+  | 'COMPLETED'
+  | 'CANCELLED';
+
+export type SharedWorkoutRoomMemberWorkoutSummary = {
+  status: SharedWorkoutRoomMemberWorkoutStatus;
+  workoutName: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+};
+
 export type SharedWorkoutRoomMemberDto = {
   userId: string;
   role: SharedWorkoutRoomMemberRole;
   displayName: string | null;
   joinedAt: string;
+  /** Résumé séance rattachée (NOT_STARTED si aucune). */
+  memberWorkout: SharedWorkoutRoomMemberWorkoutSummary;
 };
 
 export type SharedWorkoutRoomListItem = {
@@ -1174,6 +1191,34 @@ export type SharedWorkoutRoomDetail = {
   updatedAt: string;
   /** true si l’utilisateur courant est le propriétaire. */
   isOwner: boolean;
+  /**
+   * ID de la WorkoutSession du viewer s’il en a rattaché une.
+   * Jamais l’ID des autres membres (Shared 5.4).
+   */
+  myWorkoutSessionId: string | null;
+};
+
+/**
+ * Shared 5.4 — état « ma séance » pour le lobby (attach / create).
+ */
+export type MySharedWorkoutSessionDto = {
+  linked: boolean;
+  workoutSession: {
+    id: string;
+    status: WorkoutStatus;
+    workoutName: string;
+    startedAt: string;
+  } | null;
+  /**
+   * Séance ACTIVE/PAUSED du viewer non rattachée à cette room
+   * (candidat attach, ou déjà liée ailleurs).
+   */
+  activeWorkoutElsewhere: {
+    id: string;
+    status: WorkoutStatus;
+    workoutName: string;
+    linkedToOtherRoom: boolean;
+  } | null;
 };
 
 export type SharedWorkoutRoomListResponse =
@@ -1219,7 +1264,8 @@ export type SharedWorkoutRoomChangeReason =
   | 'COMPLETED'
   | 'CANCELLED'
   | 'MEMBER_JOINED'
-  | 'MEMBER_LEFT';
+  | 'MEMBER_LEFT'
+  | 'MEMBER_WORKOUT_CHANGED';
 
 export type SharedWorkoutRoomSubscribeInput = {
   roomId: string;

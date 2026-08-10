@@ -625,7 +625,7 @@ Les tests doivent vérifier :
 
 ## 16. Tests WebSocket
 
-### 16.0 Shared 5.3 (présence + invalidation — livré)
+### 16.0 Shared 5.3 / 5.4 (présence + invalidation — livré)
 
 Tester :
 
@@ -637,10 +637,13 @@ Tester :
 - leave REST → `MEMBER_LEFT` + eviction sockets + `presence:left` ;
 - accept invitation → `MEMBER_JOINED` ; présence online seulement après subscribe ;
 - rename / start / complete / cancel → `room:changed` **après** commit ;
+- attach / create / lifecycle workout lié → `MEMBER_WORKOUT_CHANGED` **après**
+  commit (Shared 5.4) ;
 - complete / cancel → clear présence + refuse nouveau subscribe ;
 - payload invalidation minimal (`roomId`, `reason`) ;
 - frontend : invalidation Query sur `room:changed` ; libellés présence ;
-- hors ligne : pas de file socket.
+- hors ligne : pas de file socket ;
+- **pas** de sync séries / rotation / snapshot workout.
 
 ### 16.1 Connexion
 
@@ -658,7 +661,7 @@ Tester :
 - salle terminée ;
 - participant retiré.
 
-### 16.3 Commandes *(cible Shared 5.4+)*
+### 16.3 Commandes *(cible Shared 5.5+)*
 
 - commande valide ;
 - mauvaise version ;
@@ -679,12 +682,13 @@ Vérifier que :
 ### 16.5 Reconnexion
 
 - déconnexion ;
-- délai de grâce *(Shared 5.4+)* ;
+- délai de grâce *(Shared 5.5+)* ;
 - reconnexion ;
 - re-subscribe + snapshot présence *(Shared 5.3)* ;
-- snapshot workout *(Shared 5.4+)* ;
-- commande en attente *(Shared 5.4+)* ;
-- commande déjà appliquée *(Shared 5.4+)*.
+- refetch REST « ma séance » *(Shared 5.4)* ;
+- snapshot workout *(Shared 5.5+)* ;
+- commande en attente *(Shared 5.5+)* ;
+- commande déjà appliquée *(Shared 5.5+)*.
 
 ### 16.6 Redémarrage
 
@@ -778,7 +782,27 @@ Tester :
 - offline : présence indisponible, pas de file d’événements ;
 - **pas** de sync séries / rotation / snapshot workout.
 
-#### Cible produit (Shared 5.4+)
+#### Shared 5.4 (séance individuelle rattachée — livré)
+
+Tester :
+
+- GET `my-workout-session` (lié / non lié / `activeWorkoutElsewhere`) ;
+- attach séance `ACTIVE`/`PAUSED` du viewer sur salle `ACTIVE` ;
+- attach idempotent (même ID) ; conflit si autre séance déjà liée ;
+- attach refusé : salle non ACTIVE, statut non attachable, séance déjà liée
+  ailleurs, séance d’un autre user → 404 `WORKOUT_NOT_FOUND` (IDOR) ;
+- create depuis template + association **atomique** (échec association →
+  aucune séance orpheline ; rollback transaction) ;
+- create conflit si membership déjà liée / séance active existante ;
+- détail salle : `memberWorkout` résumé ; `myWorkoutSessionId` viewer only ;
+- **indépendance** : complete/cancel room ne termine pas la séance ;
+  complete/cancel séance ne change pas le statut room ;
+- lifecycle séance liée → `MEMBER_WORKOUT_CHANGED` ;
+- pas de cross-write / pas d’exposition d’ID des autres ;
+- UI section Ma séance ; attach/create online-only ;
+- **pas** de sync séries / rotation.
+
+#### Cible produit (Shared 5.5+)
 
 Tester :
 
@@ -1197,6 +1221,8 @@ Vérifications prioritaires :
 - requête brute ;
 - accès admin ;
 - invitation email (anti-énumération, IDOR invitee/owner) ;
+- Shared 5.4 : attach IDOR (séance étrangère → 404) ; pas de cross-write ;
+  `myWorkoutSessionId` viewer-only ;
 - code d’invitation public (futur) ;
 - événement Socket.IO étranger ;
 - export d’un autre utilisateur.

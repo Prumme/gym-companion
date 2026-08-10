@@ -459,14 +459,13 @@ Idempotence `clientCommandId`, rate limit, boucle d’outils bornée (max 4).
 
 > **Nomenclature :** les jalons techniques **5.1 → 5.6** forment la **Couche Coaching**
 > (livrée sous la Phase 4 produit). La **roadmap Phase 5 — Séances partagées** est
-> distincte : **Shared 5.1** (fondations salle REST), **Shared 5.2** (invitations
-> email / leave) et **Shared 5.3** (présence Socket.IO + invalidation) sont **livrés** ;
-> codes d’invitation publics et sync workout temps réel restent à venir.
+> distincte : **Shared 5.1 → 5.4** sont **livrés** ; codes d’invitation publics,
+> rotation et sync séries (Shared 5.5+) restent à venir.
 > « 5.6 complete » ≠ séances partagées terminées.
 
-### Phase 5 produit — Shared 5.1 + 5.2 + 5.3 (livrés)
+### Phase 5 produit — Shared 5.1 → 5.4 (livrés)
 
-Fondations des salles, adhésion et présence :
+Fondations des salles, adhésion, présence et rattachement de séances individuelles :
 
 - `SharedWorkoutRoom` + `SharedWorkoutRoomMember` (`OWNER` / `MEMBER`, `leftAt`) ;
 - lifecycle `LOBBY` / `ACTIVE` / `COMPLETED` / `CANCELLED` (REST autoritaire) ;
@@ -474,8 +473,11 @@ Fondations des salles, adhésion et présence :
   decline / cancel ; leave MEMBER ; UI `/shared-workouts`, `/invitations` ;
 - **Shared 5.3** : namespace Socket.IO `/shared-workouts` — présence en mémoire
   (multi-onglets) + événements `room:changed` (invalidation TanStack Query) ;
-  **pas** de sync séries / rotation / snapshot workout ;
-- **pas** de code d’invitation public, **pas** de `WorkoutSession` créée
-  automatiquement, **pas** de modèle Presence en base.
+- **Shared 5.4** : `SharedWorkoutRoomMemberSession` — rattachement / création
+  d’une `WorkoutSession` individuelle par membre (`/my-workout-session`) ;
+  résumé `memberWorkout` + `myWorkoutSessionId` ; `MEMBER_WORKOUT_CHANGED` ;
+  **pas** de sync séries / rotation / snapshot workout partagé ;
+- **pas** de code d’invitation public, **pas** de création auto de séance au
+  start de salle, **pas** de modèle Presence en base.
 
 Les documents du dossier `docs/` restent la source de vérité produit et technique.

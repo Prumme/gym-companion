@@ -492,6 +492,8 @@ model WorkoutSession {
   exercises               WorkoutSessionExercise[]
   lifecycleCommands       WorkoutLifecycleCommand[]
   setCommands             WorkoutSetCommand[]
+  /// Shared 5.4 — lien optionnel vers une membership de salle (au plus une).
+  sharedRoomMemberSession SharedWorkoutRoomMemberSession?
 
   @@index([ownerUserId, status])
   @@index([ownerUserId, localDate])
@@ -770,12 +772,28 @@ model SharedWorkoutRoomMember {
 
   room SharedWorkoutRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
   user User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Shared 5.4 — au plus une WorkoutSession rattachée par membership.
+  memberSession SharedWorkoutRoomMemberSession?
 
   @@unique([roomId, userId])
   @@index([userId])
   @@index([roomId])
   @@index([userId, leftAt])
   @@map("shared_workout_room_members")
+}
+
+/// Shared 5.4 — rattachement d’une WorkoutSession individuelle à une membership.
+/// Ownership invariant : roomMember.userId === workoutSession.ownerUserId (garanti métier).
+model SharedWorkoutRoomMemberSession {
+  id               String   @id @default(uuid()) @db.Uuid
+  roomMemberId     String   @unique @db.Uuid
+  workoutSessionId String   @unique @db.Uuid
+  attachedAt       DateTime @default(now())
+
+  roomMember     SharedWorkoutRoomMember @relation(fields: [roomMemberId], references: [id], onDelete: Cascade)
+  workoutSession WorkoutSession          @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
+
+  @@map("shared_workout_room_member_sessions")
 }
 
 /// Idempotence start / complete / cancel (pattern WorkoutLifecycleCommand).

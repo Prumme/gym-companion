@@ -101,6 +101,58 @@ export class SharedWorkoutsController {
     return createSuccessResponse(data);
   }
 
+  @Get(':roomId/my-workout-session')
+  @ApiOperation({
+    summary: 'État de ma séance individuelle rattachée (Shared 5.4)',
+  })
+  async getMyWorkoutSession(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('roomId', ParseUUIDPipe) roomId: string,
+  ) {
+    const data = await this.sharedWorkoutsService.getMyWorkoutSession(
+      user.id,
+      roomId,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Post(':roomId/my-workout-session/attach')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Rattacher ma séance ACTIVE/PAUSED à la salle (Shared 5.4)',
+  })
+  async attachMyWorkoutSession(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('roomId', ParseUUIDPipe) roomId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.sharedWorkoutsService.attachMyWorkoutSession(
+      user.id,
+      roomId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Post(':roomId/my-workout-session/create')
+  @HttpCode(201)
+  @ApiOperation({
+    summary:
+      'Créer ma séance depuis un template et la rattacher (Shared 5.4)',
+  })
+  async createMyWorkoutSession(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('roomId', ParseUUIDPipe) roomId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.sharedWorkoutsService.createMyWorkoutSession(
+      user.id,
+      roomId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
   @Get(':roomId')
   @ApiOperation({ summary: 'Détail d’une salle (membership actif requis)' })
   async get(

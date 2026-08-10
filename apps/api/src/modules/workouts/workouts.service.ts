@@ -1,8 +1,10 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
+  forwardRef,
 } from '@nestjs/common';
 import {
   buildWorkoutHistoryCursorFilter,
@@ -33,6 +35,7 @@ import type {
 import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../database/prisma/prisma.service';
+import { SharedWorkoutSessionLinkNotifier } from '../shared-workouts/shared-workout-session-link.notifier';
 import {
   buildWorkoutSessionSnapshotFromTemplate,
   type TemplateForSnapshot,
@@ -46,7 +49,7 @@ import {
   type WorkoutSessionSnapshotRow,
 } from './workouts.mapper';
 
-const sessionDetailInclude = {
+export const workoutSessionDetailInclude = {
   exercises: {
     orderBy: { position: 'asc' as const },
     include: {
@@ -56,6 +59,14 @@ const sessionDetailInclude = {
     },
   },
 } satisfies Prisma.WorkoutSessionInclude;
+
+const sessionDetailInclude = workoutSessionDetailInclude;
+
+export type CreateWorkoutSessionInTxParams = {
+  sourceWorkoutTemplateId: string;
+  localDate: string;
+  timezone: string;
+};
 
 const historyListInclude = {
   _count: { select: { exercises: true } },
@@ -79,7 +90,11 @@ const historyListInclude = {
 
 @Injectable()
 export class WorkoutsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => SharedWorkoutSessionLinkNotifier))
+    private readonly sharedSessionLinkNotifier: SharedWorkoutSessionLinkNotifier,
+  ) {}
 
   async listHistory(
     userId: string,
@@ -198,97 +213,10 @@ export class WorkoutsService {
     input: unknown,
   ): Promise<WorkoutSessionDetail> {
     const data = createWorkoutSessionSchema.parse(input);
-
-    const template = await this.loadStartableTemplateOrThrow(
-      userId,
-      data.sourceWorkoutTemplateId,
-    );
-
-    const built = buildWorkoutSessionSnapshotFromTemplate(template);
-    if (!built.ok) {
-      throw new BadRequestException({
-        code: built.error.code,
-        message: built.error.message,
-      });
-    }
-
-    const snapshot = built.snapshot;
-    const localDate = localDateStringToUtcDate(data.localDate);
-    const startedAt = new Date();
-
     try {
       const created = await this.prisma.$transaction(async (tx) => {
-        const existing = await tx.workoutSession.findFirst({
-          where: {
-            ownerUserId: userId,
-            status: { in: ['ACTIVE', 'PAUSED'] },
-          },
-          select: { id: true },
-        });
-        if (existing) {
-          throw new ConflictException({
-            code: 'WORKOUT_ACTIVE_ALREADY_EXISTS',
-            message: 'Une séance est déjà en cours.',
-            details: { activeWorkoutSessionId: existing.id },
-          });
-        }
-
-        const session = await tx.workoutSession.create({
-          data: {
-            ownerUserId: userId,
-            sourceProgramId: snapshot.sourceProgramId,
-            sourceWorkoutTemplateId: snapshot.sourceWorkoutTemplateId,
-            programNameSnapshot: snapshot.programNameSnapshot,
-            workoutTemplateNameSnapshot: snapshot.workoutTemplateNameSnapshot,
-            name: snapshot.name,
-            status: 'ACTIVE',
-            localDate,
-            timezone: data.timezone,
-            startedAt,
-            version: 1,
-            exercises: {
-              create: snapshot.exercises.map((exercise) => ({
-                sourceExerciseId: exercise.sourceExerciseId,
-                sourceTemplateExerciseId: exercise.sourceTemplateExerciseId,
-                exerciseNameSnapshot: exercise.exerciseNameSnapshot,
-                measurementTypeSnapshot: exercise.measurementTypeSnapshot,
-                position: exercise.position,
-                primaryMuscleGroupNameSnapshot:
-                  exercise.primaryMuscleGroupNameSnapshot,
-                sourceExerciseArchivedAtCreation:
-                  exercise.sourceExerciseArchivedAtCreation,
-                equipmentTypeId: exercise.equipmentTypeId,
-                equipmentNameSnapshot: exercise.equipmentNameSnapshot,
-                equipmentCodeSnapshot: exercise.equipmentCodeSnapshot,
-                notesSnapshot: exercise.notesSnapshot,
-                restSecondsSnapshot: exercise.restSecondsSnapshot,
-                sets: {
-                  create: exercise.sets.map((set) => ({
-                    ownerUserId: userId,
-                    sourceTemplateSetId: set.sourceTemplateSetId,
-                    position: set.position,
-                    setType: set.setType,
-                    status: 'PENDING',
-                    targetWeightKg: set.targetWeightKg,
-                    targetRepMin: set.targetRepMin,
-                    targetRepMax: set.targetRepMax,
-                    targetDurationSeconds: set.targetDurationSeconds,
-                    targetDistanceMeters: set.targetDistanceMeters,
-                    targetIntensityPercent: set.targetIntensityPercent,
-                    targetRir: set.targetRir,
-                    targetRpe: set.targetRpe,
-                    targetRestSeconds: set.targetRestSeconds,
-                  })),
-                },
-              })),
-            },
-          },
-          include: sessionDetailInclude,
-        });
-
-        return session;
+        return this.createFromTemplateInTransaction(tx, userId, data);
       });
-
       return toWorkoutSessionDetail(created as WorkoutSessionSnapshotRow);
     } catch (error) {
       if (
@@ -324,6 +252,102 @@ export class WorkoutsService {
         message: 'La création du snapshot de séance a échoué.',
       });
     }
+  }
+
+  /**
+   * Source unique de création de snapshot (Phase 3 + Shared 5.4).
+   * Peut s’exécuter dans une transaction externe (association room).
+   */
+  async createFromTemplateInTransaction(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    params: CreateWorkoutSessionInTxParams,
+  ) {
+    const template = await this.loadStartableTemplateOrThrow(
+      userId,
+      params.sourceWorkoutTemplateId,
+      tx,
+    );
+
+    const built = buildWorkoutSessionSnapshotFromTemplate(template);
+    if (!built.ok) {
+      throw new BadRequestException({
+        code: built.error.code,
+        message: built.error.message,
+      });
+    }
+
+    const snapshot = built.snapshot;
+    const localDate = localDateStringToUtcDate(params.localDate);
+    const startedAt = new Date();
+
+    const existing = await tx.workoutSession.findFirst({
+      where: {
+        ownerUserId: userId,
+        status: { in: ['ACTIVE', 'PAUSED'] },
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new ConflictException({
+        code: 'WORKOUT_ACTIVE_ALREADY_EXISTS',
+        message: 'Une séance est déjà en cours.',
+        details: { activeWorkoutSessionId: existing.id },
+      });
+    }
+
+    return tx.workoutSession.create({
+      data: {
+        ownerUserId: userId,
+        sourceProgramId: snapshot.sourceProgramId,
+        sourceWorkoutTemplateId: snapshot.sourceWorkoutTemplateId,
+        programNameSnapshot: snapshot.programNameSnapshot,
+        workoutTemplateNameSnapshot: snapshot.workoutTemplateNameSnapshot,
+        name: snapshot.name,
+        status: 'ACTIVE',
+        localDate,
+        timezone: params.timezone,
+        startedAt,
+        version: 1,
+        exercises: {
+          create: snapshot.exercises.map((exercise) => ({
+            sourceExerciseId: exercise.sourceExerciseId,
+            sourceTemplateExerciseId: exercise.sourceTemplateExerciseId,
+            exerciseNameSnapshot: exercise.exerciseNameSnapshot,
+            measurementTypeSnapshot: exercise.measurementTypeSnapshot,
+            position: exercise.position,
+            primaryMuscleGroupNameSnapshot:
+              exercise.primaryMuscleGroupNameSnapshot,
+            sourceExerciseArchivedAtCreation:
+              exercise.sourceExerciseArchivedAtCreation,
+            equipmentTypeId: exercise.equipmentTypeId,
+            equipmentNameSnapshot: exercise.equipmentNameSnapshot,
+            equipmentCodeSnapshot: exercise.equipmentCodeSnapshot,
+            notesSnapshot: exercise.notesSnapshot,
+            restSecondsSnapshot: exercise.restSecondsSnapshot,
+            sets: {
+              create: exercise.sets.map((set) => ({
+                ownerUserId: userId,
+                sourceTemplateSetId: set.sourceTemplateSetId,
+                position: set.position,
+                setType: set.setType,
+                status: 'PENDING',
+                targetWeightKg: set.targetWeightKg,
+                targetRepMin: set.targetRepMin,
+                targetRepMax: set.targetRepMax,
+                targetDurationSeconds: set.targetDurationSeconds,
+                targetDistanceMeters: set.targetDistanceMeters,
+                targetIntensityPercent: set.targetIntensityPercent,
+                targetRir: set.targetRir,
+                targetRpe: set.targetRpe,
+                targetRestSeconds: set.targetRestSeconds,
+              })),
+            },
+          })),
+        },
+      },
+      include: sessionDetailInclude,
+    });
   }
 
   async pause(
@@ -668,7 +692,7 @@ export class WorkoutsService {
     );
 
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
         const session = await tx.workoutSession.findFirst({
           where: { id: workoutSessionId, ownerUserId: userId },
         });
@@ -710,6 +734,7 @@ export class WorkoutsService {
             return {
               workoutSession: mapped,
               workoutSessionVersion: mapped.version,
+              statusChanged: false as const,
             };
           }
         }
@@ -756,6 +781,7 @@ export class WorkoutsService {
           return {
             workoutSession: mapped,
             workoutSessionVersion: mapped.version,
+            statusChanged: false as const,
           };
         }
 
@@ -814,8 +840,18 @@ export class WorkoutsService {
         return {
           workoutSession: mapped,
           workoutSessionVersion: mapped.version,
+          statusChanged: true as const,
         };
       });
+
+      if (result.statusChanged) {
+        await this.sharedSessionLinkNotifier.notifyIfLinked(workoutSessionId);
+      }
+
+      return {
+        workoutSession: result.workoutSession,
+        workoutSessionVersion: result.workoutSessionVersion,
+      };
     } catch (error) {
       if (
         error instanceof ConflictException ||
@@ -842,8 +878,9 @@ export class WorkoutsService {
   private async loadStartableTemplateOrThrow(
     userId: string,
     sourceWorkoutTemplateId: string,
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<TemplateForSnapshot> {
-    const template = await this.prisma.workoutTemplate.findFirst({
+    const template = await db.workoutTemplate.findFirst({
       where: {
         id: sourceWorkoutTemplateId,
         ownerUserId: userId,

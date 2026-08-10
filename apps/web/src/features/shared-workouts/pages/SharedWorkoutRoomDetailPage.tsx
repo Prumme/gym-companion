@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Pencil, Users } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -10,6 +10,7 @@ import {
   sharedWorkoutRoomDetailQueryOptions,
   sharedWorkoutRoomInvitationsQueryOptions,
 } from '../api/shared-workout-query-options';
+import { SharedWorkoutMySessionSection } from '../components/SharedWorkoutMySessionSection';
 import {
   useCancelRoomInvitationMutation,
   useCancelSharedWorkoutRoomMutation,
@@ -23,6 +24,7 @@ import { useSharedWorkoutRoomRealtime } from '../hooks/use-shared-workout-room-r
 import {
   getSharedWorkoutInvitationStatusLabel,
   getSharedWorkoutRoomStatusLabel,
+  memberWorkoutLabel,
 } from '../lib/shared-workout-labels';
 
 function createClientCommandId(): string {
@@ -32,6 +34,7 @@ function createClientCommandId(): string {
 export function SharedWorkoutRoomDetailPage() {
   const { roomId = '' } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const query = useQuery(sharedWorkoutRoomDetailQueryOptions(roomId));
   const updateMutation = useUpdateSharedWorkoutRoomMutation(roomId);
   const startMutation = useStartSharedWorkoutRoomMutation(roomId);
@@ -132,12 +135,31 @@ export function SharedWorkoutRoomDetailPage() {
     }
   }
 
+  function buildCompleteConfirmMessage(): string {
+    const inProgress = (room?.members ?? []).filter((member) => {
+      const status = member.memberWorkout?.status;
+      return status === 'ACTIVE' || status === 'PAUSED';
+    }).length;
+    if (inProgress > 0) {
+      return `${inProgress} membre${inProgress > 1 ? 's' : ''} ${inProgress > 1 ? 'ont' : 'a'} encore une séance en cours.\nTerminer la salle ne terminera pas leurs séances personnelles.\n\nTerminer la séance partagée ?`;
+    }
+    return 'Terminer la séance partagée ?';
+  }
+
   async function handleLeave() {
-    if (
-      !window.confirm(
-        'Quitter cette séance partagée ?\n\nTu n’auras plus accès à cette salle après l’avoir quittée.',
-      )
-    ) {
+    const meId = queryClient.getQueryData<{ data: { id: string } }>([
+      'me',
+    ])?.data?.id;
+    const selfMember = room?.members.find((member) => member.userId === meId);
+    const selfInProgress =
+      selfMember?.memberWorkout.status === 'ACTIVE' ||
+      selfMember?.memberWorkout.status === 'PAUSED';
+
+    const leaveMessage = selfInProgress
+      ? 'Ta séance personnelle restera active après avoir quitté la salle.\n\nQuitter cette séance partagée ?'
+      : 'Quitter cette séance partagée ?\n\nTu n’auras plus accès à cette salle après l’avoir quittée.';
+
+    if (!window.confirm(leaveMessage)) {
       return;
     }
     if (offline) {
@@ -305,7 +327,7 @@ export function SharedWorkoutRoomDetailPage() {
           <Users className="size-5" aria-hidden="true" />
           Membres ({room.members.length})
         </h2>
-        <ul className="mt-3 flex flex-col gap-2">
+        <ul className="mt-3 flex flex-col gap-3">
           {room.members.map((member) => {
             const isOnline = connectedUserIds.has(member.userId);
             const presenceLabel = !realtimeAvailable
@@ -313,16 +335,23 @@ export function SharedWorkoutRoomDetailPage() {
               : isOnline
                 ? 'En ligne'
                 : 'Hors ligne';
+            const workoutLabel = memberWorkoutLabel(
+              member.memberWorkout.status,
+              member.memberWorkout.workoutName,
+            );
             return (
               <li
                 key={member.userId}
-                className="flex items-center justify-between gap-2 text-sm"
+                className="flex flex-col gap-1 text-sm sm:flex-row sm:items-start sm:justify-between sm:gap-3"
               >
-                <span>
-                  {member.displayName ?? 'Participant'}
-                  {member.role === 'OWNER' ? ' (propriétaire)' : ''}
-                </span>
-                <span className="flex items-center gap-2 text-[var(--muted)]">
+                <div className="min-w-0">
+                  <p className="font-medium">
+                    {member.displayName ?? 'Participant'}
+                    {member.role === 'OWNER' ? ' (propriétaire)' : ''}
+                  </p>
+                  <p className="text-[var(--muted)]">Séance : {workoutLabel}</p>
+                </div>
+                <span className="flex shrink-0 items-center gap-2 text-[var(--muted)]">
                   <span
                     aria-hidden="true"
                     className={`inline-block size-2 rounded-full ${
@@ -338,6 +367,13 @@ export function SharedWorkoutRoomDetailPage() {
           })}
         </ul>
       </section>
+
+      <SharedWorkoutMySessionSection
+        roomId={roomId}
+        roomStatus={room.status}
+        myWorkoutSessionId={room.myWorkoutSessionId}
+        offline={offline}
+      />
 
       {canManageInvites ? (
         <section
@@ -484,7 +520,7 @@ export function SharedWorkoutRoomDetailPage() {
                 type="button"
                 disabled={pending}
                 onClick={() =>
-                  void runLifecycle('complete', 'Terminer la séance partagée ?')
+                  void runLifecycle('complete', buildCompleteConfirmMessage())
                 }
               >
                 Terminer

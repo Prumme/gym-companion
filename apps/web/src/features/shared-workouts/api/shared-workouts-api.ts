@@ -1,10 +1,12 @@
 import type {
   ApiCursorListResponse,
+  MySharedWorkoutSessionDto,
   SharedWorkoutRoomDetail,
   SharedWorkoutRoomInvitationDto,
   SharedWorkoutRoomInvitationStatus,
   SharedWorkoutRoomListItem,
   SharedWorkoutRoomStatus,
+  WorkoutSessionDetail,
 } from '@gym-companion/shared';
 
 import { apiFetch } from '@/lib/api/client';
@@ -157,6 +159,55 @@ export async function leaveSharedWorkoutRoom(
   const response = await apiFetch<{ data: { left: true } }>(
     `/api/v1/shared-workouts/${encodeURIComponent(roomId)}/leave`,
     { method: 'POST' },
+  );
+  return response.data;
+}
+
+export async function getMySharedWorkoutSession(
+  roomId: string,
+): Promise<MySharedWorkoutSessionDto> {
+  const response = await apiFetch<{ data: MySharedWorkoutSessionDto }>(
+    `/api/v1/shared-workouts/${encodeURIComponent(roomId)}/my-workout-session`,
+  );
+  return response.data;
+}
+
+export async function attachMySharedWorkoutSession(
+  roomId: string,
+  input: { workoutSessionId: string },
+): Promise<MySharedWorkoutSessionDto> {
+  const response = await apiFetch<{ data: MySharedWorkoutSessionDto }>(
+    `/api/v1/shared-workouts/${encodeURIComponent(roomId)}/my-workout-session/attach`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+  );
+  return response.data;
+}
+
+export async function createMySharedWorkoutSession(
+  roomId: string,
+  input: {
+    workoutTemplateId: string;
+    localDate?: string;
+    timezone?: string;
+  },
+): Promise<{
+  mySession: MySharedWorkoutSessionDto;
+  workoutSession: WorkoutSessionDetail;
+}> {
+  const response = await apiFetch<{
+    data: {
+      mySession: MySharedWorkoutSessionDto;
+      workoutSession: WorkoutSessionDetail;
+    };
+  }>(
+    `/api/v1/shared-workouts/${encodeURIComponent(roomId)}/my-workout-session/create`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
   );
   return response.data;
 }

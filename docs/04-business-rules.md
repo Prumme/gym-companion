@@ -773,10 +773,11 @@ Le conflit ne doit pas être résolu silencieusement en supprimant les données 
 
 ## 18. Séances partagées
 
-> **Shared 5.1 + 5.2 + 5.3 (livrés)** : fondations salle REST + invitations email /
-> leave + présence Socket.IO / invalidation.
-> Rotation, sync séries et snapshot workout restent Shared 5.4+.
-> Les sous-sections 18.3+ décrivent la cible produit ; 18.0–18.2quinquies fixent le livré.
+> **Shared 5.1 → 5.4 (livrés)** : fondations salle REST + invitations email /
+> leave + présence Socket.IO / invalidation + rattachement de `WorkoutSession`
+> individuelle par membre.
+> Rotation, sync séries et snapshot workout partagé restent **Shared 5.5+**.
+> Les sous-sections 18.3+ décrivent la cible produit ; 18.0–18.2sexies fixent le livré.
 
 ### 18.0 Shared 5.1 — Fondations
 
@@ -868,11 +869,11 @@ Règles :
 - Après leave, l’utilisateur n’est plus membre actif (404 neutre sur la salle).
 - Rejoin uniquement via **nouvelle** invitation acceptée (réutilise la ligne member, `leftAt = null`).
 
-### 18.2quater Autorité (Shared 5.1–5.3)
+### 18.2quater Autorité (Shared 5.1–5.4)
 
 Le serveur possède l’état autoritaire de la salle **via REST / PostgreSQL**.
 
-Les événements Socket.IO (Shared 5.3) sont des **hints d’invalidation** et de
+Les événements Socket.IO (Shared 5.3+) sont des **hints d’invalidation** et de
 présence : le client refetch REST ; il ne doit pas reconstruire l’état métier
 uniquement depuis le socket.
 
@@ -892,6 +893,45 @@ Le frontend affiche une représentation de l’état REST.
 - Émission socket **uniquement après** commit PostgreSQL de la mutation REST.
 - Hors ligne navigateur / socket indisponible : pas de file d’événements ; l’UI
   affiche « Présence inconnue » et reste utilisable via REST.
+
+### 18.2sexies Séance individuelle rattachée (Shared 5.4)
+
+Chaque membre actif peut rattacher **au plus une** `WorkoutSession` à sa
+membership (`SharedWorkoutRoomMemberSession`).
+
+**Indépendance des lifecycles :**
+
+- lifecycle salle (`LOBBY` / `ACTIVE` / `COMPLETED` / `CANCELLED`) ≠ lifecycle
+  séance (`ACTIVE` / `PAUSED` / `COMPLETED` / `CANCELLED`) ;
+- start / complete / cancel de la salle **ne crée, ne termine et ne modifie**
+  aucune `WorkoutSession` ;
+- pause / reprise / fin / annulation d’une séance individuelle **ne change pas**
+  le statut de la salle.
+
+**Ownership et isolation :**
+
+- invariant : `roomMember.userId === workoutSession.ownerUserId` ;
+- chaque utilisateur ne gère que **sa** séance (attach / create / mutations
+  workout via endpoints Phase 3) ;
+- aucun membre ne peut écrire la séance d’un autre ;
+- le détail salle expose un résumé `memberWorkout` (statut + nom + timestamps)
+  **sans** ID ni perfs des autres ; seul `myWorkoutSessionId` du viewer est
+  renvoyé.
+
+**Règles d’attach / create :**
+
+- salle doit être `ACTIVE` ;
+- membership actif requis ;
+- attach : séance `ACTIVE` ou `PAUSED` du viewer, non déjà liée à une room ;
+- create : création depuis template + association dans **une** transaction ;
+- idempotence attach : même `workoutSessionId` déjà lié → succès sans double
+  écriture ; autre séance déjà liée → conflit ;
+- association **online-only** ; une fois créée, la séance conserve le offline
+  Phase 3.
+
+**Realtime :** après attach/create (et après mutation lifecycle d’une séance
+liée), émettre `room:changed` avec `MEMBER_WORKOUT_CHANGED` — invalidation
+de statut uniquement, **pas** une sync de séries.
 
 ### 18.3 Capacité
 
@@ -981,8 +1021,10 @@ Cette action crée une nouvelle version de l’état.
 
 ## 20. Commandes WebSocket
 
-> Shared 5.3 livre présence + invalidation uniquement (`room:subscribe` /
-> `presence:*` / `room:changed`). Les commandes workout ci-dessous = **Shared 5.4+**.
+> Shared 5.3 livre présence + invalidation (`room:subscribe` / `presence:*` /
+> `room:changed`). Shared 5.4 ajoute la raison `MEMBER_WORKOUT_CHANGED`
+> (invalidation statut séance membre uniquement). Les commandes workout
+> (séries / stations / versions) ci-dessous = **Shared 5.5+**.
 
 ### 20.1 Structure
 

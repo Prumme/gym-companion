@@ -3,10 +3,21 @@ import type {
   SharedWorkoutRoomListItem,
   SharedWorkoutRoomMemberDto,
   SharedWorkoutRoomMemberRole,
+  SharedWorkoutRoomMemberWorkoutSummary,
   SharedWorkoutRoomStatus,
+  WorkoutStatus,
 } from '@gym-companion/shared';
 
+type LinkedWorkoutRow = {
+  id: string;
+  name: string;
+  status: string;
+  startedAt: Date;
+  completedAt: Date | null;
+};
+
 type MemberRow = {
+  id: string;
   userId: string;
   role: string;
   joinedAt: Date;
@@ -14,6 +25,10 @@ type MemberRow = {
   user: {
     profile: { displayName: string } | null;
   };
+  memberSession: {
+    workoutSessionId: string;
+    workoutSession: LinkedWorkoutRow;
+  } | null;
 };
 
 type RoomRow = {
@@ -33,6 +48,40 @@ function activeMembers(members: MemberRow[]): MemberRow[] {
   return members.filter((member) => member.leftAt == null);
 }
 
+function toMemberWorkoutSummary(
+  member: MemberRow,
+): SharedWorkoutRoomMemberWorkoutSummary {
+  const session = member.memberSession?.workoutSession;
+  if (!session) {
+    return {
+      status: 'NOT_STARTED',
+      workoutName: null,
+      startedAt: null,
+      completedAt: null,
+    };
+  }
+  const status = session.status as WorkoutStatus;
+  if (
+    status !== 'ACTIVE' &&
+    status !== 'PAUSED' &&
+    status !== 'COMPLETED' &&
+    status !== 'CANCELLED'
+  ) {
+    return {
+      status: 'NOT_STARTED',
+      workoutName: session.name,
+      startedAt: session.startedAt.toISOString(),
+      completedAt: null,
+    };
+  }
+  return {
+    status,
+    workoutName: session.name,
+    startedAt: session.startedAt.toISOString(),
+    completedAt: session.completedAt?.toISOString() ?? null,
+  };
+}
+
 export function toSharedWorkoutRoomMemberDto(
   member: MemberRow,
 ): SharedWorkoutRoomMemberDto {
@@ -41,6 +90,7 @@ export function toSharedWorkoutRoomMemberDto(
     role: member.role as SharedWorkoutRoomMemberRole,
     displayName: member.user.profile?.displayName ?? null,
     joinedAt: member.joinedAt.toISOString(),
+    memberWorkout: toMemberWorkoutSummary(member),
   };
 }
 
@@ -50,6 +100,7 @@ export function toSharedWorkoutRoomDetail(
 ): SharedWorkoutRoomDetail {
   const members = activeMembers(room.members);
   const ownerMember = members.find((member) => member.role === 'OWNER');
+  const viewerMember = members.find((member) => member.userId === viewerUserId);
   return {
     id: room.id,
     name: room.name,
@@ -76,6 +127,8 @@ export function toSharedWorkoutRoomDetail(
     createdAt: room.createdAt.toISOString(),
     updatedAt: room.updatedAt.toISOString(),
     isOwner: room.ownerUserId === viewerUserId,
+    myWorkoutSessionId:
+      viewerMember?.memberSession?.workoutSessionId ?? null,
   };
 }
 
