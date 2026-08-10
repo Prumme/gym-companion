@@ -50,12 +50,35 @@ export class FakeAiCoachProvider implements AiCoachProvider {
     },
   };
   lastChatRequest: AiCoachConversationProviderRequest | null = null;
+  /** Délai artificiel (ms) avant chaque tour chat — tests concurrence. */
+  chatDelayMs = 0;
+  /** Nombre d’entrées dans generateConversationTurn (avant résolution). */
+  chatEnterCount = 0;
+  /** Bloque le tour jusqu’à `releaseChatGate()` (tests busy). */
+  private chatGate: Promise<void> | null = null;
+  private releaseChatGateFn: (() => void) | null = null;
   private chatPhase = 0;
 
   resetChat(): void {
     this.chatCallCount = 0;
+    this.chatEnterCount = 0;
     this.chatPhase = 0;
     this.lastChatRequest = null;
+    this.chatDelayMs = 0;
+    this.chatGate = null;
+    this.releaseChatGateFn = null;
+  }
+
+  armChatGate(): void {
+    this.chatGate = new Promise((resolve) => {
+      this.releaseChatGateFn = resolve;
+    });
+  }
+
+  releaseChatGate(): void {
+    this.releaseChatGateFn?.();
+    this.chatGate = null;
+    this.releaseChatGateFn = null;
   }
 
   async explainExerciseCoachSummary(
@@ -109,6 +132,13 @@ export class FakeAiCoachProvider implements AiCoachProvider {
   async generateConversationTurn(
     request: AiCoachConversationProviderRequest,
   ): Promise<AiCoachConversationTurnResult> {
+    this.chatEnterCount += 1;
+    if (this.chatGate) {
+      await this.chatGate;
+    }
+    if (this.chatDelayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, this.chatDelayMs));
+    }
     this.chatCallCount += 1;
     this.lastChatRequest = request;
 

@@ -815,11 +815,57 @@ Tester avec fake timers :
 - reprise ;
 - changement d’heure de l’appareil si possible.
 
-## 21. Tests IA
+## 21. Tests IA / Couche Coaching
 
-Les tests automatiques utilisent un fournisseur simulé.
+Les tests automatiques utilisent un **fournisseur simulé** (`fake`) — jamais une clé de production.
 
-### Réponse valide
+### 21.1 Déterminisme (5.1–5.4)
+
+- actions load reco / plateau / CoachSummary stables pour les mêmes fixtures ;
+- aucune mutation via overview ou summary ;
+- overview compose la load reco (REVIEW peut remonter).
+
+### 21.2 Provider fake (5.5 / 5.6)
+
+- réponse valide / invalide / timeout / rate limit / disabled ;
+- payload minimisé (pas d’email, JWT, ownerUserId inutile).
+
+### 21.3 Tool registry read-only (5.6)
+
+- allowlist `get_*` uniquement ;
+- assertion anti-mutation sur les noms ;
+- exécuteur réel : services lecture seule + `ownerUserId` JWT.
+
+### 21.4 IDOR tool
+
+- `get_workout_detail(UUID-A)` avec user B → aucune donnée A ;
+- même principe pour progress / strength / coach summary.
+
+### 21.5 Prompt injection
+
+- messages « ignore instructions / SQL / update_program / données autre user » ;
+- nom d’exercice hostiles reste une donnée ;
+- permissions = registry (inchangé).
+
+### 21.6 Idempotence et concurrence chat
+
+- même `clientCommandId` + même contenu → replay ;
+- même `clientCommandId` + contenu différent → `AI_COACH_MESSAGE_COMMAND_CONFLICT` ;
+- génération concurrente → `AI_COACH_CONVERSATION_BUSY` (lock process-local).
+
+### 21.7 Limites
+
+- max tool calls / tour ;
+- fenêtre d’historique ;
+- follow-ups mutationnels filtrés.
+
+### 21.8 Offline
+
+- chat non envoyable ;
+- pas de queue IndexedDB IA ;
+- endpoints coaching NetworkOnly.
+
+### Réponse valide (futur propositions programme)
 
 - schéma correct ;
 - exercices existants ;
@@ -844,7 +890,7 @@ Les tests automatiques utilisent un fournisseur simulé.
 - instruction dangereuse ;
 - prompt injection dans une note.
 
-### Cycle
+### Cycle (futur propositions)
 
 - génération ;
 - expiration ;
@@ -910,7 +956,17 @@ Les tests automatiques utilisent un fournisseur simulé.
 5. copier le repas ;
 6. consulter le résumé.
 
-## 22.6 Coach IA
+## 22.6 Couche Coaching (5.1–5.6)
+
+1. recommandation INCREASE / HOLD / DECREASE / REVIEW ;
+2. décision ACCEPTED + snapshot ACTIVE inchangé ;
+3. plateau WATCH → PLATEAU → NONE après progression ;
+4. overview Coach (REVIEW load reco visible) ;
+5. explication IA fake + stale fingerprint ;
+6. chat : tool call + IDOR + busy + conflict command ;
+7. offline chat : envoi bloqué.
+
+## 22.6bis Coach IA — génération de programme (futur)
 
 1. créer une demande ;
 2. recevoir une proposition simulée ;

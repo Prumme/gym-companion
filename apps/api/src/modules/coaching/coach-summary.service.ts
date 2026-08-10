@@ -23,6 +23,7 @@ import {
   COACH_OVERVIEW_CANDIDATE_LIMIT,
   COACH_OVERVIEW_LIMIT,
   COACH_OVERVIEW_RECENCY_DAYS,
+  LOAD_RECOMMENDATION_HISTORY_LIMIT,
   addLocalDateDays,
   buildExerciseCoachActions,
   buildExerciseCoachNotices,
@@ -34,8 +35,12 @@ import {
   localDateStringToUtcDate,
   resolveExerciseCoachHeadline,
   resolveExerciseCoachStatus,
+  resolveLoadRecommendation,
   utcDateToLocalDateString,
+  type EffortTrackingModeForLoad,
+  type HistoricalWorkoutInput,
   type PlateauSessionInput,
+  type TemplateSetTargetInput,
 } from '@gym-companion/validation';
 import { PrismaService } from '../../database/prisma/prisma.service';
 import { ProgressService } from '../progress/progress.service';
@@ -390,6 +395,12 @@ export class CoachSummaryService {
       )
       .slice(0, COACH_OVERVIEW_CANDIDATE_LIMIT);
 
+    // Load reco 5.1 sur le sous-ensemble borné uniquement (pas tous les exercices).
+    // Stratégie : 1 requête liens WTE + 1 requête templates/sets + 1 profil effort,
+    // puis moteur déterministe en mémoire (mêmes règles que le summary).
+    const loadActionByExerciseId =
+      await this.resolveLoadActionsForOverviewCandidates(userId, candidates);
+
     const items: CoachingOverviewItem[] = [];
 
     for (const candidate of candidates) {
@@ -397,7 +408,8 @@ export class CoachSummaryService {
         hasCompletedHistory: candidate.sessions.length > 0,
         measurementType: candidate.measurementType,
         plateauStatus: null,
-        loadRecommendationAction: null,
+        loadRecommendationAction:
+          loadActionByExerciseId.get(candidate.exerciseId) ?? null,
         hasSignificantRecentProgress: false,
         hasSufficientHistory: candidate.sessions.length >= 3,
       });
@@ -419,7 +431,8 @@ export class CoachSummaryService {
           hasCompletedHistory: true,
           measurementType: candidate.measurementType,
           plateauStatus: plateau.status,
-          loadRecommendationAction: null,
+          loadRecommendationAction:
+            loadActionByExerciseId.get(candidate.exerciseId) ?? null,
           hasSignificantRecentProgress: progress,
           hasSufficientHistory: candidate.sessions.length >= 3,
         });
@@ -453,6 +466,159 @@ export class CoachSummaryService {
     });
 
     return { items: items.slice(0, COACH_OVERVIEW_LIMIT) };
+  }
+
+  /**
+   * Résout l’action 5.1 pour ≤ COACH_OVERVIEW_CANDIDATE_LIMIT exercices WEIGHT_REPS.
+   * Pas de N+1 : batch des WTE + sets, historique déjà en mémoire (candidates).
+   */
+  private async resolveLoadActionsForOverviewCandidates(
+    userId: string,
+    candidates: Array<{
+      exerciseId: string;
+      measurementType: string;
+      sessions: PlateauSessionInput[];
+    }>,
+  ): Promise<Map<string, LoadRecommendationAction | null>> {
+    const result = new Map<string, LoadRecommendationAction | null>();
+    const weightReps = candidates.filter(
+      (candidate) => candidate.measurementType === 'WEIGHT_REPS',
+    );
+    if (weightReps.length === 0) {
+      return result;
+    }
+
+    const exerciseIds = weightReps.map((candidate) => candidate.exerciseId);
+
+    const recentLinks = await this.prisma.workoutSessionExercise.findMany({
+      where: {
+        sourceExerciseId: { in: exerciseIds },
+        sourceTemplateExerciseId: { not: null },
+        workoutSession: {
+          ownerUserId: userId,
+          status: 'COMPLETED',
+        },
+      },
+      orderBy: [
+        { workoutSession: { localDate: 'desc' } },
+        { workoutSession: { startedAt: 'desc' } },
+      ],
+      select: {
+        sourceExerciseId: true,
+        sourceTemplateExerciseId: true,
+      },
+    });
+
+    const wteIdByExercise = new Map<string, string>();
+    for (const link of recentLinks) {
+      if (
+        link.sourceExerciseId &&
+        link.sourceTemplateExerciseId &&
+        !wteIdByExercise.has(link.sourceExerciseId)
+      ) {
+        wteIdByExercise.set(
+          link.sourceExerciseId,
+          link.sourceTemplateExerciseId,
+        );
+      }
+    }
+
+    const wteIds = [...new Set(wteIdByExercise.values())];
+    if (wteIds.length === 0) {
+      return result;
+    }
+
+    const [templateExercises, profile] = await Promise.all([
+      this.prisma.workoutTemplateExercise.findMany({
+        where: {
+          id: { in: wteIds },
+          workoutTemplate: {
+            program: { ownerUserId: userId },
+          },
+        },
+        select: {
+          id: true,
+          exerciseId: true,
+          equipmentTypeId: true,
+          sets: {
+            orderBy: { position: 'asc' },
+            select: {
+              setType: true,
+              targetRepMin: true,
+              targetRepMax: true,
+              targetWeightKg: true,
+              targetRir: true,
+              targetRpe: true,
+            },
+          },
+        },
+      }),
+      this.prisma.userProfile.findUnique({
+        where: { userId },
+        select: { effortTrackingMode: true },
+      }),
+    ]);
+
+    const effortTrackingMode = (profile?.effortTrackingMode ??
+      'NONE') as EffortTrackingModeForLoad;
+    const wteById = new Map(
+      templateExercises.map((row) => [row.id, row] as const),
+    );
+
+    for (const candidate of weightReps) {
+      const wteId = wteIdByExercise.get(candidate.exerciseId);
+      if (!wteId) {
+        result.set(candidate.exerciseId, null);
+        continue;
+      }
+      const wte = wteById.get(wteId);
+      if (!wte) {
+        result.set(candidate.exerciseId, null);
+        continue;
+      }
+
+      const templateSets: TemplateSetTargetInput[] = wte.sets.map((set) => ({
+        setType: set.setType,
+        targetRepMin: set.targetRepMin,
+        targetRepMax: set.targetRepMax,
+        targetWeightKg:
+          set.targetWeightKg == null ? null : Number(set.targetWeightKg),
+        targetRir: set.targetRir,
+        targetRpe: set.targetRpe == null ? null : Number(set.targetRpe),
+      }));
+
+      const recentWorkouts: HistoricalWorkoutInput[] = candidate.sessions
+        .slice(0, LOAD_RECOMMENDATION_HISTORY_LIMIT)
+        .map((session) => ({
+          workoutSessionId: session.workoutSessionId,
+          localDate: session.localDate,
+          startedAt: session.startedAt,
+          equipmentTypeId: session.equipmentTypeId,
+          sets: session.sets.map((set) => ({
+            setType: set.setType,
+            status: set.status,
+            actualReps: set.actualReps,
+            actualWeightKg: set.actualWeightKg,
+            actualRir: set.actualRir,
+            actualRpe: set.actualRpe,
+            targetWeightKg: set.targetWeightKg,
+          })),
+        }));
+
+      const resolved = resolveLoadRecommendation({
+        workoutTemplateExerciseId: wte.id,
+        measurementType: 'WEIGHT_REPS',
+        templateEquipmentTypeId: wte.equipmentTypeId,
+        templateSets,
+        recentWorkouts,
+        effortTrackingMode,
+        userExerciseIncrementKg: null,
+      });
+
+      result.set(candidate.exerciseId, resolved.action);
+    }
+
+    return result;
   }
 
   private async resolveLoadContext(

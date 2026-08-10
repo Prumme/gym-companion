@@ -57,6 +57,7 @@ async function createTemplate(
   token: string,
   prisma: PrismaService,
   name: string,
+  options: { heterogeneous?: boolean } = {},
 ): Promise<Startable> {
   const eq = await prisma.equipmentType.findFirstOrThrow({
     where: { isActive: true },
@@ -110,6 +111,8 @@ async function createTemplate(
     .id as string;
 
   for (let i = 0; i < 3; i += 1) {
+    const weightKg =
+      options.heterogeneous && i === 2 ? 70 : 80;
     await request(app.getHttpServer())
       .post(
         `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${templateExerciseId}/sets`,
@@ -121,7 +124,7 @@ async function createTemplate(
         targetRepMax: 10,
         targetDurationSeconds: null,
         targetDistanceMeters: null,
-        targetWeightKg: 80,
+        targetWeightKg: weightKg,
         targetIntensityPercent: null,
         targetRir: 2,
         targetRpe: null,
@@ -329,5 +332,54 @@ describe('Coach summary API (5.4)', () => {
     expect(summary.body.data.loadRecommendation).toBeNull();
     expect(summary.body.data.strength).toBeNull();
     expect(summary.body.data.status).not.toBe('REVIEW');
+  });
+
+  it('overview : load REVIEW remonte ; HOLD+PLATEAU → PLATEAU ; isolation', async () => {
+    const reviewTpl = await createTemplate(
+      app,
+      tokenA,
+      prisma,
+      `rev-${stamp}`,
+      { heterogeneous: true },
+    );
+    await completeWorking(
+      app,
+      tokenA,
+      reviewTpl.templateId,
+      '2026-08-10',
+      [8, 8, 8],
+      80,
+      `coach-rev-${stamp}`,
+    );
+
+    const summary = await request(app.getHttpServer())
+      .get(`/api/v1/coaching/exercises/${reviewTpl.exerciseId}/summary`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    expect(summary.body.data.loadRecommendation?.action).toBe('REVIEW');
+    expect(summary.body.data.status).toBe('REVIEW');
+
+    const overview = await request(app.getHttpServer())
+      .get('/api/v1/coaching/overview')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    expect(overview.body.data.items.length).toBeLessThanOrEqual(5);
+    expect(
+      overview.body.data.items.some(
+        (item: { exerciseId: string; status: string }) =>
+          item.exerciseId === reviewTpl.exerciseId && item.status === 'REVIEW',
+      ),
+    ).toBe(true);
+
+    const foreignOverview = await request(app.getHttpServer())
+      .get('/api/v1/coaching/overview')
+      .set('Authorization', `Bearer ${tokenB}`)
+      .expect(200);
+    expect(
+      foreignOverview.body.data.items.some(
+        (item: { exerciseId: string }) =>
+          item.exerciseId === reviewTpl.exerciseId,
+      ),
+    ).toBe(false);
   });
 });

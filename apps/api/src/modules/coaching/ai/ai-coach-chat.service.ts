@@ -30,6 +30,7 @@ import {
   decodeAiCoachMessageCursor,
   encodeAiCoachConversationCursor,
   encodeAiCoachMessageCursor,
+  filterAiCoachFollowUps,
   fingerprintAiCoachMessageContent,
   sendAiCoachMessageBodySchema,
   type AiCoachChatAnswer,
@@ -612,8 +613,9 @@ export class AiCoachChatService {
               result.answer.references,
               allowedReferences,
             ),
-            suggestedFollowUps: result.answer.suggestedFollowUps
-              .filter((item) => !isMutationSuggestion(item))
+            suggestedFollowUps: filterAiCoachFollowUps(
+              result.answer.suggestedFollowUps,
+            )
               .slice(0, 3),
           },
           toolInvocations,
@@ -800,10 +802,6 @@ function filterReferences(
     }
   }
   return result;
-}
-
-function isMutationSuggestion(text: string): boolean {
-  return /appliqu|modifi|supprim|passe.*(kg|à)|mets.*(kg)/i.test(text);
 }
 
 function sanitizeSnapshot(args: unknown): Record<string, unknown> {

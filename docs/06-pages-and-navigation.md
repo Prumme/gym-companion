@@ -85,19 +85,19 @@ Structure cible (routes livrées en gras conceptuel via commentaires) :
 │       ├── active
 │       └── summary
 │
-├── progress                        # phase 4 — futur
-│   ├── overview
+├── progress                        # livré (4.3–4.5 + coaching sections)
+│   ├── (overview = /progress)
 │   └── exercises/:exerciseId
 │
-├── nutrition                       # phase 6 — futur
+├── nutrition                       # phase 6 produit — futur
 │   ├── today
 │   ├── history
 │   ├── foods
 │   ├── recipes
 │   └── body
 │
-├── coach                           # futur
-│   └── proposals/:proposalId
+├── coach                           # livré (Couche Coaching 5.4)
+│   └── chat                        # livré (5.6)
 │
 ├── notifications                   # futur
 ├── settings                        # partiel / futur
@@ -110,7 +110,9 @@ Structure cible (routes livrées en gras conceptuel via commentaires) :
     └── exercises
 ```
 
-Cette structure est une cible. Les routes des phases futures ne doivent pas nécessairement être créées dès le lancement. Aucune route concurrente du type `/app/...` ou `/history/workouts` n’est utilisée.
+> Routes coaching livrées : `/coach`, `/coach/chat`, `/progress/exercises/:exerciseId`.
+> `/coach/proposals/:proposalId` reste **futur** (génération de programme) — hors Couche Coaching 5.1–5.6.
+> « Phase 5 » dans l’arbre (`shared-workouts`) = roadmap **Séances partagées**, distincte des jalons coaching 5.x.
 
 ## 4. Navigation mobile principale
 
@@ -123,7 +125,8 @@ Accueil | Planning | Historique | Records | Progression | Programmes | Exercices
 ```
 
 Routes : `/`, `/planning`, `/workouts`, `/records`, `/progress`, `/coach`, `/programs`, `/exercises`, `/profile`.
-Progression par exercice : `/progress/exercises/:exerciseId` (jalon 4.3).
+Progression par exercice : `/progress/exercises/:exerciseId` (jalon 4.3 + sections coaching).
+Chat Coach : `/coach/chat` (jalon 5.6).
 
 ### 4.1 Accueil / Planning
 
@@ -1200,33 +1203,39 @@ Les performances privées d’un autre participant ne sont affichées que s’il
 
 Une variation journalière ne doit pas être présentée comme une tendance significative.
 
-## 37. Coach IA
+## 37. Coach (Couche Coaching livrée)
 
-> La route `/coach` est d’abord livrée en jalon **5.4** comme Coach **déterministe**
-> (synthèse des moteurs existants, sans LLM). La couche conversationnelle / propositions
-> IA ci-dessous reste hors 5.4.
+> `/coach` et `/coach/chat` sont **livrés** (jalons techniques 5.4 / 5.6).
+> La génération de programme / `/coach/proposals/:proposalId` reste **hors scope** actuel.
 
-### Route
+### Routes livrées
 
 ```text
 /coach
+/coach/chat
+/progress/exercises/:exerciseId   # sections Coach + plateau + explication IA
 ```
 
-### Entrées possibles
+### Contenu `/coach`
 
-- créer un programme ;
-- créer une séance ;
-- analyser une progression ;
-- proposer une adaptation ;
-- proposer une alternative.
+- overview déterministe (REVIEW / PLATEAU / WATCH / PROGRESSING) ;
+- lien « Discuter avec le Coach » → `/coach/chat` ;
+- **aucune** génération IA en masse au chargement.
 
-### Page de proposition
+### Contenu `/coach/chat`
+
+- conversations persistées ;
+- messages USER / ASSISTANT ;
+- outils lecture seule côté serveur ;
+- offline : envoi impossible.
+
+### Page de proposition (futur — hors 5.1–5.6)
 
 ```text
 /coach/proposals/:proposalId
 ```
 
-Contenu :
+Contenu futur :
 
 - résultat structuré ;
 - explication ;

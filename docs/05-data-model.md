@@ -2001,14 +2001,56 @@ Les explications LLM (`ExerciseCoachExplanationResponse`) sont **éphémères** 
 
 ### Jalon 5.6 — Chat Coach (tables dédiées)
 
-- `AiCoachConversation` (owner, contexte exercice optionnel, archivage) ;
-- `AiCoachMessage` (USER / ASSISTANT, idempotence `clientCommandId`) ;
-- `AiCoachToolInvocation` (audit minimal des outils) ;
-- pas de raw provider payload / pas de chaîne de pensée.
+Persistance minimale pour le multi-tour. Les analyses sportives restent dérivées ailleurs.
 
-### Phase 5
+```ts
+type AiCoachConversation = {
+  id: string;
+  ownerUserId: string; // Cascade avec User
+  title: string | null; // heuristique locale (pas d’appel IA)
+  contextExerciseId: string | null; // onDelete: SetNull
+  archivedAt: DateTime | null;
+  generationStartedAt: DateTime | null; // informatif ; busy lock process-local
+  createdAt: DateTime;
+  updatedAt: DateTime;
+};
 
-- SharedWorkoutRoom ;
+type AiCoachMessage = {
+  id: string;
+  conversationId: string; // Cascade avec conversation
+  role: 'USER' | 'ASSISTANT';
+  content: string;
+  clientCommandId: string | null; // unique avec conversationId (idempotence USER)
+  payloadFingerprint: string | null;
+  providerRequestId: string | null;
+  generatedFromSchemaVersion: string | null;
+  promptVersion: string | null;
+  referencesJson: Json | null; // références filtrées serveur
+  suggestedFollowUpsJson: Json | null;
+  createdAt: DateTime;
+};
+
+type AiCoachToolInvocation = {
+  id: string;
+  assistantMessageId: string; // Cascade
+  toolName: string;
+  inputSnapshot: Json; // args sanitizés (pas ownerUserId)
+  outputSummary: Json; // résumé audit, pas payload sportif complet
+  createdAt: DateTime;
+};
+```
+
+Index utiles : `(ownerUserId, updatedAt)` conversations ; `(conversationId, createdAt)` messages ;
+`(assistantMessageId, createdAt)` tool invocations.
+
+**Non persisté :** chaîne de pensée, raw provider payload, secrets, tokens, objets Prisma.
+
+**Dettes d’exploitation (volontaires) :** busy lock et rate limiter IA restent **process-local / mémoire**
+(pas Redis) — acceptable monolithe mono-instance.
+
+### Phase 5 produit (séances partagées — non implémenté)
+
+Ne pas confondre avec la Couche Coaching 5.1–5.6. Modèles futurs :
 - SharedWorkoutParticipant ;
 - SharedWorkoutStation ;
 - SharedParticipantExercisePlan ;

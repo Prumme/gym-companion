@@ -613,7 +613,14 @@ La sortie 5.5 ne contient **aucun** champ décisionnel (`action`, `suggestedWeig
 - boucle d’outils bornée ;
 - IDOR tool : `ownerUserId` jamais pris depuis les arguments LLM ;
 - conversations isolées par propriétaire ;
-- pas de queue offline pour les messages IA.
+- pas de queue offline pour les messages IA ;
+- rate limit et busy lock **process-local** (dette documentée — pas Redis dans la clôture 5.7).
+
+### 20.9 Contention tests d’intégration
+
+Les suites API coaching partagent parfois la même base PostgreSQL de test.
+Un flaky isolé historique sur `coach-summary` (404 set pendant suite parallèle) est
+classé comme contention DB possible entre fichiers — non corrigé sans preuve de bug métier.
 
 ## 21. Emails
 

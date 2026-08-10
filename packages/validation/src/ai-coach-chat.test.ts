@@ -3,6 +3,8 @@ import {
   AI_COACH_MAX_TOOL_CALLS_PER_TURN,
   AI_COACH_READ_ONLY_TOOL_NAMES,
   assertReadOnlyToolRegistry,
+  filterAiCoachFollowUps,
+  isAiCoachMutationFollowUp,
   parseAiCoachChatAnswer,
   sendAiCoachMessageBodySchema,
 } from './ai-coach-chat';
@@ -53,5 +55,28 @@ describe('ai-coach-chat (5.6)', () => {
         suggestedFollowUps: [],
       }),
     ).toThrow();
+  });
+
+  it('filtre les follow-ups mutationnels évidents', () => {
+    const mutationals = [
+      'Applique 85 kg',
+      'Modifie mon programme',
+      'Supprime cet exercice',
+      'Change ma charge à 90 kg',
+    ];
+    for (const text of mutationals) {
+      expect(isAiCoachMutationFollowUp(text)).toBe(true);
+    }
+    const kept = filterAiCoachFollowUps([
+      ...mutationals,
+      'Pourquoi cette charge est-elle recommandée ?',
+      'Montre-moi ma progression.',
+      'Quels sont mes records ?',
+    ]);
+    expect(kept).toEqual([
+      'Pourquoi cette charge est-elle recommandée ?',
+      'Montre-moi ma progression.',
+      'Quels sont mes records ?',
+    ]);
   });
 });

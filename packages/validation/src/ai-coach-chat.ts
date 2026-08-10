@@ -194,6 +194,36 @@ export function parseAiCoachChatAnswer(value: unknown): AiCoachChatAnswer {
   return aiCoachChatAnswerSchema.parse(value);
 }
 
+/**
+ * Filtre heuristique minimal (FR) des follow-ups explicitement mutationnels.
+ * Pas de NLP : formes évidentes uniquement.
+ */
+export function isAiCoachMutationFollowUp(text: string): boolean {
+  const normalized = text.trim().toLowerCase();
+  if (!normalized) return false;
+  return (
+    /appliqu/.test(normalized) ||
+    /modifi/.test(normalized) ||
+    /supprim/.test(normalized) ||
+    /change\s+(ma|mon|la|le|mes|tes)?\s*(charge|programme|exercice|cible)/.test(
+      normalized,
+    ) ||
+    /change\s+.*\b(kg|charge)\b/.test(normalized) ||
+    /passe\s+.*(kg|à\s+\d)/.test(normalized) ||
+    /mets?\s+.*(kg|à\s+\d)/.test(normalized) ||
+    /update_program|execute_sql|delete_/.test(normalized)
+  );
+}
+
+export function filterAiCoachFollowUps(
+  followUps: readonly string[],
+  max = AI_COACH_MAX_FOLLOW_UPS,
+): string[] {
+  return followUps
+    .filter((item) => !isAiCoachMutationFollowUp(item))
+    .slice(0, max);
+}
+
 export const AI_COACH_CHAT_SYSTEM_INSTRUCTIONS = [
   'Tu es le Coach de Gym Companion.',
   'Les outils et résultats déterministes sont la source de vérité.',

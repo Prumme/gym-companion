@@ -712,6 +712,9 @@ export class CoachingService {
       db,
     );
 
+    // Cas B (clôture 5.7) : `UserExercisePreference` n’expose pas encore
+    // d’incrément utilisateur. Toujours SYSTEM_DEFAULT (2,5 kg) jusqu’à
+    // l’ajout éventuel d’un champ dédié — ne pas inventer une seconde source.
     const resolved = resolveLoadRecommendation({
       workoutTemplateExerciseId: templateExercise.id,
       measurementType,

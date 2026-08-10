@@ -72,7 +72,26 @@ Le cache et IndexedDB ne doivent contenir que les données nécessaires à l’u
 | Progression                  |                     Non |                 Partiel |                          Non |
 | Séance partagée              |                     Non |         Snapshot limité | Séries en attente uniquement |
 | Nutrition                    |           Partiel futur |                     Oui |                        Futur |
-| Coach IA                     |                     Non | Propositions existantes |                          Non |
+| Coach déterministe / overview |                     Non |                   Non |                          Non |
+| Explication IA (5.5)          |                     Non |                   Non |                          Non |
+| Chat Coach (5.6)              |                     Non | historique déjà chargé (mémoire Query) | Non |
+
+### Coaching — NetworkOnly et hors file offline
+
+Tous les endpoints :
+
+```text
+/api/v1/coaching/*
+```
+
+restent **NetworkOnly** dans le service worker (comme l’ensemble de `/api/`).
+
+Précisions :
+
+- **pas** de queue IndexedDB pour les messages chat ;
+- **pas** d’explication IA générée offline ;
+- les résultats sportifs officiels (records, progression, recommandations, plateau, CoachSummary) restent **serveur-authoritative** ;
+- l’historique de conversation déjà présent dans TanStack Query peut rester visible offline, sans nouvel envoi.
 | Notifications push           | Dépend de la plateforme |              Sans objet |                   Sans objet |
 | Export                       |                     Non |                     Non |                          Non |
 
@@ -201,7 +220,8 @@ Recommandation :
 
 - TanStack Query pour le cache mémoire ;
 - IndexedDB pour les données explicitement nécessaires ;
-- pas de cache opaque généralisé des endpoints privés dans le service worker.
+- pas de cache opaque généralisé des endpoints privés dans le service worker ;
+- en particulier `/api/v1/coaching/*` → **NetworkOnly** (voir §3).
 
 ### 6.5 Réponses d’authentification
 

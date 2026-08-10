@@ -15,6 +15,17 @@ L’objectif est d’éviter de développer toutes les idées simultanément et 
 
 ## 2. Principes de planification
 
+### 2.0 Nomenclature — Couche Coaching vs Phase produit
+
+Deux axes de numérotation coexistent volontairement ; ils ne doivent **pas** être confondus :
+
+| Libellé | Signification |
+|---------|----------------|
+| **Couche Coaching — jalons techniques 5.1 → 5.6** | Moteurs déterministes + Coach + IA explicative + chat READ ONLY, livrés **sous la Phase 4** produit (records / stats / progression / coaching). |
+| **Roadmap produit Phase 5 — Séances partagées** | Collaboration multi-utilisateurs (salles, invitations, Socket.IO). **Non commencée.** |
+
+Un tag ou un libellé du type `phase-5.6-complete` / « jalon 5.6 livré » signifie uniquement que la **couche coaching** est clôturée — **pas** que la roadmap « Séances partagées » est terminée.
+
 ### 2.1 Chaque phase doit être utilisable
 
 Une phase ne doit pas uniquement produire des fondations techniques.
@@ -44,6 +55,8 @@ La première version ne cherche pas à rendre toute l’application utilisable h
 Le mode hors ligne est d’abord limité à la consultation de données récentes et à la poursuite d’une séance individuelle déjà chargée.
 
 ## 3. Phase 0 — Fondations techniques
+
+> Statut : **terminée**.
 
 ### 3.1 Objectif
 
@@ -155,6 +168,8 @@ La phase est terminée lorsque :
 
 ## 4. Phase 1 — Catalogue d’exercices
 
+> Statut : **terminée**.
+
 ### 4.1 Objectif
 
 Créer les fondations métier du suivi d’entraînement.
@@ -205,6 +220,8 @@ La phase est terminée lorsque :
 
 ## 5. Phase 2 — Programmes et modèles de séance
 
+> Statut : **terminée**.
+
 ### 5.1 Objectif
 
 Permettre à l’utilisateur de préparer ses entraînements avant de se rendre à la salle.
@@ -247,6 +264,8 @@ La phase est terminée lorsque :
 - une modification du modèle ne modifie pas les séances historiques.
 
 ## 6. Phase 3 — Séances individuelles
+
+> Statut : **terminée**.
 
 ### 6.1 Objectif
 
@@ -331,9 +350,16 @@ La phase 3 est terminée lorsque :
 - les conflits de version sont détectés et résolus explicitement ;
 - une séance terminée ou annulée apparaît dans l’historique en lecture seule.
 
-## 7. Phase 4 — Records, statistiques et progression
+## 7. Phase 4 — Records, statistiques, progression et coaching
 
-> Statut : **en cours** (jalon **4.1** livré : records simples en lecture).  
+> Statut : **terminée**.
+>
+> Jalons livrés : **4.1 → 4.5** (records, métriques, progression, dashboard, e1RM)
+> et **Couche Coaching 5.1 → 5.6** (recommandations, décisions, plateau, Coach déterministe,
+> explication IA, chat READ ONLY).
+>
+> La prochaine phase **produit** est la **Phase 5 — Séances partagées** (non démarrée).
+> Voir §2.0 pour la nomenclature.  
 > La liste et le détail historique de base sont déjà livrés en phase 3 (jalon 3.6).  
 > La phase 4 transforme ces données en records, statistiques et visualisation.
 
@@ -422,7 +448,7 @@ Transformer les données enregistrées en informations utiles (records, progress
 - warmups exclus ; séries `WORKING` comme base ;
 - actions `INCREASE` / `HOLD` / `DECREASE` / `INSUFFICIENT_DATA` / `REVIEW` ;
 - diminution conservatrice (≥ 2 séances consécutives sous-performantes) ;
-- incrément système par défaut 2,5 kg (`SYSTEM_DEFAULT`) ;
+- incrément système par défaut 2,5 kg (`SYSTEM_DEFAULT`) — pas encore de préférence utilisateur d’incrément en base ;
 - endpoint `GET /api/v1/coaching/workout-template-exercises/:id/load-recommendation` ;
 - carte suggestion sur le détail programme — **aucune application automatique**.
 
@@ -506,10 +532,16 @@ La phase est terminée lorsque :
 - l’utilisateur peut visualiser sa progression sur un exercice ;
 - les estimations (ex. 1RM) sont identifiées comme telles ;
 - les records reposent sur des règles déterministes ;
-- les graphiques et volumes officiels sont cohérents avec les snapshots de séance.
-- les graphiques sont utilisables sur mobile.
+- les graphiques et volumes officiels sont cohérents avec les snapshots de séance ;
+- les graphiques sont utilisables sur mobile ;
+- la Couche Coaching 5.1 → 5.6 est livrée (recommandations, décisions, plateau, Coach, IA explicative, chat READ ONLY).
 
 ## 8. Phase 5 — Séances partagées
+
+> Statut : **non commencée**.
+>
+> Ne pas confondre avec la Couche Coaching (jalons techniques 5.1 → 5.6), déjà livrée sous la Phase 4.
+> Aucune salle partagée, invitation ou Socket.IO de collaboration n’est encore implémenté.
 
 ### 8.1 Objectif
 

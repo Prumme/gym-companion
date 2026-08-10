@@ -487,7 +487,9 @@ Principes :
 - `sourceExerciseId` non null ; warmups exclus ; base = séries `WORKING` ;
 - équipement : même identité stable que records / progression ; sinon `REVIEW` ;
 - RIR / RPE facultatifs (tolérance ±1) ; mode `NONE` autorise une décision sur reps/statuts ;
-- incrément : préférence exercice si disponible, sinon `DEFAULT_LOAD_INCREMENT_KG = 2.5` avec `incrementSource = SYSTEM_DEFAULT`.
+- incrément : **aujourd’hui** uniquement `DEFAULT_LOAD_INCREMENT_KG = 2.5` avec `incrementSource = SYSTEM_DEFAULT`.
+  Aucun champ d’incrément n’existe encore sur `UserExercisePreference` ni sur `Exercise` ;
+  le moteur accepte conceptuellement `USER_EXERCISE_PREFERENCE` mais l’API ne le branche pas tant que la préférence n’existe pas.
 
 Actions :
 

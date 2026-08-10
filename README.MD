@@ -414,7 +414,8 @@ au plus 3 séances `COMPLETED`, warmups exclus. Actions
 `INCREASE` / `HOLD` / `DECREASE` / `INSUFFICIENT_DATA` / `REVIEW`. Endpoint
 `GET /api/v1/coaching/workout-template-exercises/:id/load-recommendation`.
 Carte « Suggestion pour la prochaine séance » sur le détail programme — **aucune
-application automatique**, aucune IA.
+application automatique**, aucune IA. Incrément actuel : **2,5 kg système**
+(`SYSTEM_DEFAULT`) — pas encore de préférence utilisateur d’incrément en base.
 
 Le jalon **5.2** ajoute la **décision explicite** de l’utilisateur
 (`ACCEPTED` / `ADJUSTED` / `IGNORED`) face à une recommandation 5.1. Le serveur
@@ -455,5 +456,9 @@ Le jalon **5.6** ajoute le **chat multi-tour** (`/coach/chat`) avec outils
 persistées (`AiCoachConversation` / `AiCoachMessage` / `AiCoachToolInvocation`).
 Aucun outil de mutation ; le LLM n’accède jamais à Prisma directement.
 Idempotence `clientCommandId`, rate limit, boucle d’outils bornée (max 4).
+
+> **Nomenclature :** les jalons techniques **5.1 → 5.6** forment la **Couche Coaching**
+> (livrée sous la Phase 4 produit). La **roadmap Phase 5 — Séances partagées** est
+> distincte et **non commencée**. « 5.6 complete » ≠ séances partagées terminées.
 
 Les documents du dossier `docs/` restent la source de vérité produit et technique.

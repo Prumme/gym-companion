@@ -130,13 +130,16 @@ Les permissions ne sont **jamais** définies par le prompt : l’absence d’out
 Données envoyées au provider : messages récents bornés (12), contexte exercice minimal, outputs tools minimisés.
 Non envoyés : tokens, email, ownerUserId, historique complet, base brute.
 
-### Limitations 5.5
+### Limitations 5.5 / 5.6
 
-- Explication uniquement — le texte IA n’est pas une garantie métier.
-- Pas de chat multi-tour ni de prompt libre utilisateur.
-- Pas de persistance des explications générées.
+- Explication et chat : le texte IA n’est pas une garantie métier.
+- Chat multi-tour livré en 5.6 ; pas de mémoire longue durée ni de résumé IA automatique.
+- Pas de persistance des explications 5.5 générées.
 - Les décisions métier restent déterministes (5.1–5.4).
 - En cas d’échec fournisseur : message d’erreur contrôlé ; le résumé 5.4 reste visible.
+- **Dettes volontaires (clôture 5.7) :** busy lock conversation et rate limiter IA restent
+  **process-local / mémoire** (pas Redis / multi-instance). Acceptable tant que l’API tourne en mono-process.
+- Incrément de charge : uniquement `SYSTEM_DEFAULT` (2,5 kg) — aucune préférence utilisateur d’incrément en base pour l’instant.
 
 ### 3.3 Les sorties sont structurées
 
