@@ -799,7 +799,7 @@ Descriptif uniquement — pas de recommandation automatique.
 ### Hors périmètre 4.4
 
 - coaching / fatigue / plateaux / objectifs ;
-- 1RM / calories / volume musculaire ;
+- calories / volume musculaire ;
 - comparaison entre utilisateurs ;
 - statistiques persistées.
 
@@ -827,16 +827,29 @@ Accès depuis `/exercises/:exerciseId` → « Voir ma progression ».
 Séances `COMPLETED` + snapshots (`WorkoutSessionExercise` / `WorkoutSet`).
 Regroupement par `sourceExerciseId` (jamais par nom). Warmups exclus de
 `MAX_WEIGHT` / `MAX_REPS` / `WORKING_EXTERNAL_VOLUME`, inclus dans les totaux.
-Pas de 1RM, pas de recommandations, pas de métriques persistées.
+Pas de 1RM dans le contrat 4.3 (voir section Force estimée 4.5), pas de recommandations, pas de métriques persistées.
 
 ### Hors périmètre 4.3
 
-- 1RM / Epley / Brzycki ;
 - pace / vitesse ;
 - heatmap ;
 - comparaison entre utilisateurs.
 
 > Le dashboard global `/progress` est livré en 4.4.
+> La section « Force estimée » (e1RM Epley V1) est livrée en 4.5 sur la même page.
+
+## 25bis. Force estimée (jalon 4.5)
+
+Sur `/progress/exercises/:exerciseId` pour les exercices `WEIGHT_REPS` :
+
+- e1RM actuel / meilleure estimation / variation ;
+- formule Epley V1 (1–12 reps, hors warmup, séries `COMPLETED`) ;
+- graphique dédié « 1RM estimé » + liste accessible ;
+- distinction claire vs charge maximale réelle (`MAX_WEIGHT`) ;
+- même période URL que la progression 4.3 ;
+- endpoint `GET /api/v1/progress/exercises/:exerciseId/strength`.
+
+Hors scope 4.5 : autres formules, 1RM RIR/RPE, recommandations, matérialisation, mélange dans `/records`.
 
 ## 26. Création d’une séance partagée
 

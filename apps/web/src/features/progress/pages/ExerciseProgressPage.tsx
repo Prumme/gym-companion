@@ -7,7 +7,11 @@ import { ButtonLink } from '@/components/ui/button';
 import { LoadingState } from '@/components/common/LoadingState';
 import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
 
-import { exerciseProgressQueryOptions } from '../api/progress-query-options';
+import {
+  exerciseProgressQueryOptions,
+  exerciseStrengthQueryOptions,
+} from '../api/progress-query-options';
+import { EstimatedStrengthSection } from '../components/EstimatedStrengthSection';
 import { ExerciseProgressChart } from '../components/ExerciseProgressChart';
 import {
   ProgressControls,
@@ -42,9 +46,22 @@ export function ExerciseProgressPage() {
     [urlFilters],
   );
 
+  const strengthFilters = useMemo(
+    () => ({
+      from: urlFilters.from,
+      to: urlFilters.to,
+    }),
+    [urlFilters.from, urlFilters.to],
+  );
+
   const progressQuery = useQuery({
     ...exerciseProgressQueryOptions(exerciseId, apiFilters),
     enabled: Boolean(exerciseId),
+  });
+
+  const strengthQuery = useQuery({
+    ...exerciseStrengthQueryOptions(exerciseId, strengthFilters),
+    enabled: Boolean(exerciseId) && progressQuery.isSuccess,
   });
 
   const updateFilters = (next: ProgressUrlFilters) => {
@@ -137,6 +154,21 @@ export function ExerciseProgressPage() {
     data.points.length < 2 &&
     urlFilters.period !== 'all';
 
+  const maxWeightLatestKg =
+    selectedMetric === 'MAX_WEIGHT' && data.summary?.latestValue != null
+      ? data.summary.latestValue
+      : data.points.length > 0 &&
+          data.points[data.points.length - 1]?.context.maxWeightKg != null
+        ? data.points[data.points.length - 1]!.context.maxWeightKg
+        : null;
+
+  const strengthData = strengthQuery.data;
+  const likelySupportsStrength = data.availableMetrics.includes('MAX_WEIGHT');
+  const showStrengthSection =
+    strengthData?.supported === true ||
+    (likelySupportsStrength &&
+      (strengthQuery.isLoading || strengthQuery.isError));
+
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-0">
       <div>
@@ -221,6 +253,23 @@ export function ExerciseProgressPage() {
 
           <ProgressPointsList points={data.points} metric={selectedMetric} />
         </>
+      ) : null}
+
+      {showStrengthSection ? (
+        <EstimatedStrengthSection
+          supported={strengthData?.supported ?? true}
+          formula={strengthData?.formula ?? 'EPLEY_V1'}
+          eligibility={
+            strengthData?.eligibility ?? { minReps: 1, maxReps: 12 }
+          }
+          summary={strengthData?.summary ?? null}
+          points={strengthData?.points ?? []}
+          longRange={longRange}
+          maxWeightLatestKg={maxWeightLatestKg}
+          isLoading={strengthQuery.isLoading}
+          isError={strengthQuery.isError}
+          onRetry={() => void strengthQuery.refetch()}
+        />
       ) : null}
     </main>
   );

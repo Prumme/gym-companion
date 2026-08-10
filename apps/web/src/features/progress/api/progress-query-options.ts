@@ -2,8 +2,10 @@ import { queryOptions } from '@tanstack/react-query';
 
 import {
   getExerciseProgress,
+  getExerciseStrength,
   getProgressOverview,
   type ExerciseProgressFilters,
+  type ExerciseStrengthFilters,
   type ProgressOverviewFilters,
 } from './progress-api';
 import { progressQueryKeys } from './progress-query-keys';
@@ -15,6 +17,17 @@ export function exerciseProgressQueryOptions(
   return queryOptions({
     queryKey: progressQueryKeys.exercise(exerciseId, filters),
     queryFn: () => getExerciseProgress(exerciseId, filters),
+    enabled: Boolean(exerciseId),
+  });
+}
+
+export function exerciseStrengthQueryOptions(
+  exerciseId: string,
+  filters: ExerciseStrengthFilters,
+) {
+  return queryOptions({
+    queryKey: progressQueryKeys.exerciseStrength(exerciseId, filters),
+    queryFn: () => getExerciseStrength(exerciseId, filters),
     enabled: Boolean(exerciseId),
   });
 }

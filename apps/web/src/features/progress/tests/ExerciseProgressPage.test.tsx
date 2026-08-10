@@ -8,9 +8,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ExerciseProgressPage } from '../pages/ExerciseProgressPage';
 
 const getExerciseProgress = vi.fn();
+const getExerciseStrength = vi.fn();
 
 vi.mock('../api/progress-api', () => ({
   getExerciseProgress: (...args: unknown[]) => getExerciseProgress(...args),
+  getExerciseStrength: (...args: unknown[]) => getExerciseStrength(...args),
 }));
 
 function emptyResponse(
@@ -84,6 +86,20 @@ function renderPage(initialEntry = '/progress/exercises/exercise-1') {
 describe('ExerciseProgressPage', () => {
   beforeEach(() => {
     getExerciseProgress.mockReset();
+    getExerciseStrength.mockReset();
+    getExerciseStrength.mockResolvedValue({
+      exercise: {
+        id: 'exercise-1',
+        name: 'Développé couché',
+        archived: false,
+      },
+      supported: true,
+      formula: 'EPLEY_V1',
+      eligibility: { minReps: 1, maxReps: 12 },
+      range: { from: null, to: null },
+      summary: null,
+      points: [],
+    });
   });
 
   it('affiche l’état de chargement puis vide', async () => {

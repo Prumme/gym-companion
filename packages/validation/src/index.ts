@@ -2014,3 +2014,33 @@ export type {
   ProgressOverviewTotalsComputed,
   ProgressTopExerciseComputed,
 } from './progress-overview';
+
+export {
+  MAX_E1RM_REPS,
+  MIN_E1RM_REPS,
+  ONE_REP_MAX_FORMULA,
+  collectEstimatedOneRepMaxCandidates,
+  compareEstimatedOneRepMaxCandidates,
+  compareStrengthPointsAsc,
+  computeBestEstimatedOneRepMaxForWorkout,
+  computeExerciseStrengthSummary,
+  estimateOneRepMaxEpley,
+  exerciseStrengthQuerySchema,
+  isEligibleForEstimatedOneRepMax,
+  isStrengthSupportedForMeasurement,
+  parseExerciseStrengthQuery,
+} from './one-rep-max';
+export type {
+  EstimatedOneRepMaxCandidate,
+  EstimatedOneRepMaxEligibilityInput,
+  EstimatedStrengthPointComputed,
+  EstimatedStrengthSource,
+  ExerciseStrengthQuery,
+  ExerciseStrengthQueryParseErrorCode,
+  ExerciseStrengthQueryParseResult,
+  ExerciseStrengthSummaryComputed,
+  OneRepMaxFormula,
+  StrengthOccurrenceInput,
+  StrengthSessionInput,
+  StrengthSetInput,
+} from './one-rep-max';

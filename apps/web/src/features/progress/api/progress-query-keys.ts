@@ -1,4 +1,8 @@
-import type { ExerciseProgressFilters, ProgressOverviewFilters } from './progress-api';
+import type {
+  ExerciseProgressFilters,
+  ExerciseStrengthFilters,
+  ProgressOverviewFilters,
+} from './progress-api';
 
 export const progressQueryKeys = {
   all: ['progress'] as const,
@@ -7,4 +11,6 @@ export const progressQueryKeys = {
   exercises: () => [...progressQueryKeys.all, 'exercise'] as const,
   exercise: (exerciseId: string, filters: ExerciseProgressFilters) =>
     [...progressQueryKeys.exercises(), exerciseId, filters] as const,
+  exerciseStrength: (exerciseId: string, filters: ExerciseStrengthFilters) =>
+    [...progressQueryKeys.exercises(), exerciseId, 'strength', filters] as const,
 };

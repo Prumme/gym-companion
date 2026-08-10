@@ -1743,13 +1743,73 @@ Maximum 500 points ; au-delà → `PROGRESS_RANGE_TOO_LARGE`.
   inclus dans `TOTAL_REPS` / `TOTAL_DURATION` / `TOTAL_DISTANCE`.
 - `WORKING_EXTERNAL_VOLUME` = même définition que 4.2 (`workingExternalVolumeKg`).
 - Records 4.1 restent plus stricts (`COMPLETED` + hors warmup uniquement).
-- Pas de 1RM, Epley, Brzycki, pace, ni recommandations.
+- e1RM : endpoint dédié 4.5 (`…/strength`), hors contrat 4.3.
+- Pas de pace, ni recommandations.
 
 #### Codes d’erreur
 
 `EXERCISE_NOT_FOUND`, `PROGRESS_INVALID_METRIC`, `PROGRESS_METRIC_NOT_SUPPORTED`,
 `PROGRESS_INVALID_FROM_DATE`, `PROGRESS_INVALID_TO_DATE`, `PROGRESS_INVALID_DATE_RANGE`,
 `PROGRESS_RANGE_TOO_LARGE`, `PROGRESS_INVALID_QUERY`.
+
+### 23.2bis Force estimée e1RM (jalon 4.5)
+
+Calculée **à la demande** depuis les séances `COMPLETED` et snapshots `WEIGHT_REPS`.
+Aucune table e1RM / force matérialisée.
+
+```text
+GET /api/v1/progress/exercises/:exerciseId/strength
+```
+
+JWT obligatoire. Exercice système ou personnel du propriétaire (y compris archivé).
+404 neutre (`EXERCISE_NOT_FOUND`) si inaccessible.
+Exercice non `WEIGHT_REPS` → `supported: false`, `points: []` (pas d’erreur métier).
+
+#### Query
+
+| Paramètre | Type | Notes |
+|-----------|------|--------|
+| `from` | `YYYY-MM-DD`? | Inclusif, date locale |
+| `to` | `YYYY-MM-DD`? | Inclusif, date locale, `from <= to` |
+| `equipmentId` | uuid? | Filtre sur `equipmentTypeId` snapshot |
+
+Le client ne fournit jamais `formula` / coefficient. Formule imposée serveur : `EPLEY_V1`.
+
+#### Réponse
+
+```ts
+type ExerciseStrengthResponse = {
+  exercise: { id: string; name: string; archived: boolean | null };
+  supported: boolean;
+  formula: "EPLEY_V1";
+  eligibility: { minReps: 1; maxReps: 12 };
+  range: { from: string | null; to: string | null };
+  summary: ExerciseStrengthSummary | null;
+  points: EstimatedStrengthPoint[];
+};
+```
+
+#### Formule Epley V1
+
+```text
+e1RM = weight × (1 + reps / 30)
+reps = 1 → e1RM = weight
+```
+
+#### Règles métier (résumé)
+
+- Uniquement `measurementTypeSnapshot = WEIGHT_REPS`.
+- Séance `COMPLETED` ; série `COMPLETED` ; `setType ≠ WARMUP`.
+- `1 ≤ actualReps ≤ 12` ; `actualWeightKg > 0`.
+- RIR / RPE / `reachedFailure` n’influencent pas le calcul.
+- Un point = meilleure e1RM de la séance (tie-breaks : poids DESC, reps ASC, position, id).
+- Estimation ≠ charge réellement soulevée (records 4.1 distincts).
+- Aucune recommandation de charge.
+
+#### Codes d’erreur
+
+`EXERCISE_NOT_FOUND`, `STRENGTH_INVALID_FROM_DATE`, `STRENGTH_INVALID_TO_DATE`,
+`STRENGTH_INVALID_DATE_RANGE`, `STRENGTH_INVALID_QUERY`, `PROGRESS_RANGE_TOO_LARGE`.
 
 ### 23.3 Records (jalon 4.1)
 

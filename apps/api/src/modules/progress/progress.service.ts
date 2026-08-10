@@ -5,24 +5,35 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type {
+  EstimatedStrengthPoint,
   ExerciseProgressMetric,
   ExerciseProgressPoint,
   ExerciseProgressResponse,
+  ExerciseStrengthResponse,
   ProgressOverviewResponse,
+  WorkoutSetType,
 } from '@gym-companion/shared';
 import {
   EXERCISE_PROGRESS_MAX_POINTS,
+  MAX_E1RM_REPS,
+  MIN_E1RM_REPS,
+  ONE_REP_MAX_FORMULA,
   PROGRESS_OVERVIEW_RECENT_RECORDS_LIMIT,
   buildProgressOverviewTimeline,
   compareExerciseProgressPointsAsc,
+  compareStrengthPointsAsc,
   computeAverageWorkoutsPerWeek,
+  computeBestEstimatedOneRepMaxForWorkout,
   computeExerciseProgressSummary,
+  computeExerciseStrengthSummary,
   computeExerciseWorkoutProgressPoint,
   computeProgressOverviewComparison,
   computeProgressOverviewTotals,
   computeProgressTopExercises,
+  isStrengthSupportedForMeasurement,
   localDateStringToUtcDate,
   parseExerciseProgressQuery,
+  parseExerciseStrengthQuery,
   parseProgressOverviewQuery,
   resolveAvailableOverviewMetrics,
   resolveAvailableProgressMetrics,
@@ -36,6 +47,8 @@ import {
   type ExerciseProgressOccurrenceInput,
   type ExerciseProgressSessionInput,
   type ProgressOverviewSessionInput,
+  type StrengthOccurrenceInput,
+  type StrengthSessionInput,
 } from '@gym-companion/validation';
 import type { Prisma } from '@prisma/client';
 
@@ -91,6 +104,31 @@ type SessionExerciseRow = {
     actualReps: number | null;
     actualDurationSeconds: number | null;
     actualDistanceMeters: unknown;
+  }>;
+};
+
+type StrengthExerciseRow = {
+  id: string;
+  sourceExerciseId: string | null;
+  measurementTypeSnapshot: string;
+  equipmentTypeId: string | null;
+  workoutSession: {
+    id: string;
+    status: string;
+    localDate: Date;
+    startedAt: Date;
+  };
+  sets: Array<{
+    id: string;
+    setType: string;
+    status: string;
+    position: number;
+    actualWeightKg: unknown;
+    actualReps: number | null;
+    actualRir: number | null;
+    actualRpe: unknown;
+    reachedFailure: boolean;
+    completedAt: Date | null;
   }>;
 };
 
@@ -395,6 +433,129 @@ export class ProgressService {
     };
   }
 
+  async getExerciseStrengthProgress(
+    userId: string,
+    exerciseId: string,
+    rawQuery: Record<string, string | undefined>,
+  ): Promise<ExerciseStrengthResponse> {
+    const exercise = await this.findAccessibleExerciseOrThrow(userId, exerciseId);
+
+    const parsed = parseExerciseStrengthQuery({
+      from: rawQuery.from,
+      to: rawQuery.to,
+      equipmentId: rawQuery.equipmentId,
+    });
+    if (!parsed.ok) {
+      throw new BadRequestException({
+        code: parsed.code,
+        message: parsed.message,
+      });
+    }
+    const query = parsed.data;
+    const range = {
+      from: query.from ?? null,
+      to: query.to ?? null,
+    };
+
+    const supported = isStrengthSupportedForMeasurement(exercise.measurementType);
+    if (!supported) {
+      return {
+        exercise: {
+          id: exercise.id,
+          name: exercise.name,
+          archived: exercise.archivedAt != null,
+        },
+        supported: false,
+        formula: ONE_REP_MAX_FORMULA,
+        eligibility: { minReps: MIN_E1RM_REPS, maxReps: MAX_E1RM_REPS },
+        range,
+        summary: null,
+        points: [],
+      };
+    }
+
+    const rows = await this.loadCompletedStrengthRows(userId, exerciseId, {
+      from: query.from,
+      to: query.to,
+      equipmentId: query.equipmentId,
+    });
+
+    const sessions = this.groupStrengthRowsBySession(rows);
+    const points: EstimatedStrengthPoint[] = [];
+
+    for (const session of sessions) {
+      const point = computeBestEstimatedOneRepMaxForWorkout(session);
+      if (!point || !Number.isFinite(point.estimatedOneRepMaxKg)) {
+        continue;
+      }
+      points.push({
+        workoutSessionId: point.workoutSessionId,
+        workoutSessionExerciseIds: point.workoutSessionExerciseIds,
+        localDate: point.localDate,
+        startedAt: point.startedAt,
+        estimatedOneRepMaxKg: point.estimatedOneRepMaxKg,
+        sourceSet: {
+          workoutSessionExerciseId: point.sourceSet.workoutSessionExerciseId,
+          workoutSetId: point.sourceSet.workoutSetId,
+          weightKg: point.sourceSet.weightKg,
+          reps: point.sourceSet.reps,
+          rir: point.sourceSet.rir,
+          rpe: point.sourceSet.rpe,
+          reachedFailure: point.sourceSet.reachedFailure,
+          setType: point.sourceSet.setType as WorkoutSetType,
+        },
+      });
+    }
+
+    points.sort(compareStrengthPointsAsc);
+
+    if (points.length > EXERCISE_PROGRESS_MAX_POINTS) {
+      throw new BadRequestException({
+        code: 'PROGRESS_RANGE_TOO_LARGE',
+        message: `Trop de points de force estimée (maximum ${EXERCISE_PROGRESS_MAX_POINTS}). Raccourcis la plage de dates.`,
+      });
+    }
+
+    const summaryComputed = computeExerciseStrengthSummary(points);
+    const summary =
+      summaryComputed.pointCount === 0
+        ? null
+        : {
+            ...summaryComputed,
+            latestSource: summaryComputed.latestSource
+              ? {
+                  ...summaryComputed.latestSource,
+                  setType: summaryComputed.latestSource
+                    .setType as WorkoutSetType,
+                }
+              : null,
+            bestSource: summaryComputed.bestSource
+              ? {
+                  ...summaryComputed.bestSource,
+                  setType: summaryComputed.bestSource.setType as WorkoutSetType,
+                }
+              : null,
+          };
+
+    this.logger.debug(
+      `strength exercise=${exerciseId} points=${points.length}`,
+    );
+
+    return {
+      exercise: {
+        id: exercise.id,
+        name: exercise.name,
+        archived: exercise.archivedAt != null,
+      },
+      supported: true,
+      formula: ONE_REP_MAX_FORMULA,
+      eligibility: { minReps: MIN_E1RM_REPS, maxReps: MAX_E1RM_REPS },
+      range,
+      summary,
+      points,
+    };
+  }
+
   private async findAccessibleExerciseOrThrow(userId: string, exerciseId: string) {
     const row = await this.prisma.exercise.findFirst({
       where: {
@@ -484,6 +645,123 @@ export class ProgressService {
     });
 
     return rows as SessionExerciseRow[];
+  }
+
+  private async loadCompletedStrengthRows(
+    userId: string,
+    exerciseId: string,
+    filters: {
+      from?: string;
+      to?: string;
+      equipmentId?: string;
+    },
+  ): Promise<StrengthExerciseRow[]> {
+    const sessionWhere: Prisma.WorkoutSessionWhereInput = {
+      ownerUserId: userId,
+      status: 'COMPLETED',
+    };
+    if (filters.from || filters.to) {
+      sessionWhere.localDate = {};
+      if (filters.from) {
+        sessionWhere.localDate.gte = localDateStringToUtcDate(filters.from);
+      }
+      if (filters.to) {
+        sessionWhere.localDate.lte = localDateStringToUtcDate(filters.to);
+      }
+    }
+
+    const where: Prisma.WorkoutSessionExerciseWhereInput = {
+      sourceExerciseId: exerciseId,
+      measurementTypeSnapshot: 'WEIGHT_REPS',
+      workoutSession: sessionWhere,
+    };
+    if (filters.equipmentId) {
+      where.equipmentTypeId = filters.equipmentId;
+    }
+
+    const rows = await this.prisma.workoutSessionExercise.findMany({
+      where,
+      select: {
+        id: true,
+        sourceExerciseId: true,
+        measurementTypeSnapshot: true,
+        equipmentTypeId: true,
+        workoutSession: {
+          select: {
+            id: true,
+            status: true,
+            localDate: true,
+            startedAt: true,
+          },
+        },
+        sets: {
+          select: {
+            id: true,
+            setType: true,
+            status: true,
+            position: true,
+            actualWeightKg: true,
+            actualReps: true,
+            actualRir: true,
+            actualRpe: true,
+            reachedFailure: true,
+            completedAt: true,
+          },
+          orderBy: { position: 'asc' },
+        },
+      },
+      orderBy: [
+        { workoutSession: { localDate: 'asc' } },
+        { workoutSession: { startedAt: 'asc' } },
+        { workoutSession: { id: 'asc' } },
+        { position: 'asc' },
+      ],
+    });
+
+    return rows as StrengthExerciseRow[];
+  }
+
+  private groupStrengthRowsBySession(
+    rows: StrengthExerciseRow[],
+  ): StrengthSessionInput[] {
+    const bySession = new Map<string, StrengthSessionInput>();
+
+    for (const row of rows) {
+      const sessionId = row.workoutSession.id;
+      let session = bySession.get(sessionId);
+      if (!session) {
+        session = {
+          workoutSessionId: sessionId,
+          sessionStatus: row.workoutSession.status,
+          localDate: utcDateToLocalDateString(row.workoutSession.localDate),
+          startedAt: row.workoutSession.startedAt.toISOString(),
+          exercises: [],
+        };
+        bySession.set(sessionId, session);
+      }
+
+      const occurrence: StrengthOccurrenceInput = {
+        id: row.id,
+        sourceExerciseId: row.sourceExerciseId,
+        measurementType: row.measurementTypeSnapshot,
+        equipmentTypeId: row.equipmentTypeId,
+        sets: row.sets.map((set) => ({
+          id: set.id,
+          setType: set.setType,
+          status: set.status,
+          position: set.position,
+          actualWeightKg: decimalToNumber(set.actualWeightKg),
+          actualReps: set.actualReps,
+          actualRir: set.actualRir,
+          actualRpe: decimalToNumber(set.actualRpe),
+          reachedFailure: set.reachedFailure,
+          completedAt: set.completedAt?.toISOString() ?? null,
+        })),
+      };
+      session.exercises.push(occurrence);
+    }
+
+    return [...bySession.values()];
   }
 
   private groupRowsBySession(

@@ -660,6 +660,76 @@ export type ProgressOverviewResponse = {
   topExercises: ProgressTopExercise[];
 };
 
+/** Formule e1RM (jalon 4.5 — dérivé, non matérialisé). */
+export type OneRepMaxFormula = 'EPLEY_V1';
+
+export type EstimatedStrengthSource = {
+  workoutSessionId: string;
+  workoutSessionExerciseId: string;
+  workoutSetId: string;
+  weightKg: number;
+  reps: number;
+  rir: number | null;
+  rpe: number | null;
+  reachedFailure: boolean;
+  setType: WorkoutSetType;
+  localDate: string;
+};
+
+export type EstimatedStrengthPoint = {
+  workoutSessionId: string;
+  workoutSessionExerciseIds: string[];
+  localDate: string;
+  startedAt: string;
+  estimatedOneRepMaxKg: number;
+  sourceSet: {
+    workoutSessionExerciseId: string;
+    workoutSetId: string;
+    weightKg: number;
+    reps: number;
+    rir: number | null;
+    rpe: number | null;
+    reachedFailure: boolean;
+    setType: WorkoutSetType;
+  };
+};
+
+export type ExerciseStrengthSummary = {
+  formula: OneRepMaxFormula;
+  pointCount: number;
+  firstEstimatedOneRepMaxKg: number | null;
+  latestEstimatedOneRepMaxKg: number | null;
+  bestEstimatedOneRepMaxKg: number | null;
+  absoluteChangeKg: number | null;
+  percentageChange: number | null;
+  firstDate: string | null;
+  latestDate: string | null;
+  bestDate: string | null;
+  latestSource: EstimatedStrengthSource | null;
+  bestSource: EstimatedStrengthSource | null;
+};
+
+/** Force estimée e1RM par exercice (jalon 4.5). */
+export type ExerciseStrengthResponse = {
+  exercise: {
+    id: string;
+    name: string;
+    archived: boolean | null;
+  };
+  supported: boolean;
+  formula: OneRepMaxFormula;
+  eligibility: {
+    minReps: number;
+    maxReps: number;
+  };
+  range: {
+    from: string | null;
+    to: string | null;
+  };
+  summary: ExerciseStrengthSummary | null;
+  points: EstimatedStrengthPoint[];
+};
+
 export function createSuccessResponse<T>(data: T): ApiSuccessResponse<T> {
   return { data };
 }

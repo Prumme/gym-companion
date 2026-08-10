@@ -1067,6 +1067,15 @@ En 4.1, le contrat API exposé est un DTO dérivé (sans `ownerUserId`, sans lig
 > les séances `COMPLETED` (totaux 4.2, records 4.1, top exercices par `sourceExerciseId`).
 > Granularité DAY / WEEK / MONTH ; buckets vides inclus ; pas de coaching.
 
+## 28quater. Force estimée e1RM (jalon 4.5)
+
+> **Jalon 4.5** : aucune table `EstimatedOneRepMax` / `StrengthMetric` / `StrengthRecord`.
+> L’e1RM est **dérivé à la demande** depuis les séries `COMPLETED` des séances `COMPLETED`
+> (`measurementTypeSnapshot = WEIGHT_REPS`, hors warmup, 1–12 reps, charge > 0).
+> Formule **Epley V1** : `e1RM = weight × (1 + reps / 30)` (`reps = 1` → `e1RM = weight`).
+> RIR / RPE n’influencent pas le calcul. L’estimation ≠ charge réellement soulevée
+> (records 4.1 restent distincts). Aucune recommandation de charge.
+
 ## 29. SharedWorkoutRoom
 
 ```ts
@@ -1896,7 +1905,7 @@ Le modèle `Equipment` reste prévu pour une phase ultérieure consacrée aux é
 
 La création d’une séance depuis un modèle copie un snapshot immuable des informations nécessaires : noms, ordre, type de mesure, équipement prévu, repos, notes et séries cibles.
 
-À la clôture de la phase 3, l’historique paginé et le détail en lecture seule reposent sur ces snapshots. En phase 4 (jalons 4.1 / 4.2 / 4.3 / 4.4), records, métriques de séance, progression temporelle et dashboard global sont calculés à la demande sans matérialisation Prisma.
+À la clôture de la phase 3, l’historique paginé et le détail en lecture seule reposent sur ces snapshots. En phase 4 (jalons 4.1 / 4.2 / 4.3 / 4.4 / 4.5), records, métriques de séance, progression temporelle, dashboard global et e1RM sont calculés à la demande sans matérialisation Prisma.
 
 ### Phase 4
 
@@ -1904,7 +1913,8 @@ La création d’une séance depuis un modèle copie un snapshot immuable des in
 - PersonalRecord (matérialisation future — 4.1 calcule à la demande) ;
 - métriques de séance dérivées (4.2 — pas de table) ;
 - progression temporelle dérivée (4.3 — pas de table) ;
-- dashboard global dérivé (4.4 — pas de table).
+- dashboard global dérivé (4.4 — pas de table) ;
+- e1RM / force estimée dérivé (4.5 — pas de table).
 
 ### Phase 5
 

@@ -401,4 +401,11 @@ timeline avec granularité DAY/WEEK/MONTH et buckets vides, comparaison de péri
 précédente, records récents (4.1) et top exercices. Descriptif uniquement — pas de
 coaching, pas de statistiques persistées.
 
+Le jalon **4.5** ajoute le 1RM estimé (e1RM) : formule Epley V1
+(`weight × (1 + reps / 30)`), uniquement `WEIGHT_REPS`, séries `COMPLETED` hors warmup
+entre 1 et 12 reps, RIR/RPE non intégrés. Endpoint
+`GET /api/v1/progress/exercises/:exerciseId/strength`, section « Force estimée » sur
+la page de progression d’exercice. Dérivé à la demande (pas de table), clairement
+distinct des records réels. Aucune recommandation de charge.
+
 Les documents du dossier `docs/` restent la source de vérité produit et technique.

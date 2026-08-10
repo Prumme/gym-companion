@@ -1,6 +1,7 @@
 import type {
   ExerciseProgressMetric,
   ExerciseProgressResponse,
+  ExerciseStrengthResponse,
   ProgressOverviewMetric,
   ProgressOverviewResponse,
 } from '@gym-companion/shared';
@@ -9,6 +10,12 @@ import { apiFetch } from '@/lib/api/client';
 
 export type ExerciseProgressFilters = {
   metric?: ExerciseProgressMetric;
+  from?: string;
+  to?: string;
+  equipmentId?: string;
+};
+
+export type ExerciseStrengthFilters = {
   from?: string;
   to?: string;
   equipmentId?: string;
@@ -39,6 +46,17 @@ export async function getExerciseProgress(
   const suffix = toSearchParams(filters);
   const response = await apiFetch<{ data: ExerciseProgressResponse }>(
     `/api/v1/progress/exercises/${exerciseId}${suffix ? `?${suffix}` : ''}`,
+  );
+  return response.data;
+}
+
+export async function getExerciseStrength(
+  exerciseId: string,
+  filters: ExerciseStrengthFilters = {},
+): Promise<ExerciseStrengthResponse> {
+  const suffix = toSearchParams(filters);
+  const response = await apiFetch<{ data: ExerciseStrengthResponse }>(
+    `/api/v1/progress/exercises/${exerciseId}/strength${suffix ? `?${suffix}` : ''}`,
   );
   return response.data;
 }

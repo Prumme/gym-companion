@@ -32,6 +32,27 @@ export class ProgressController {
     return createSuccessResponse(data);
   }
 
+  @Get('api/v1/progress/exercises/:exerciseId/strength')
+  @ApiOperation({
+    summary:
+      '1RM estimé (e1RM Epley V1) pour un exercice WEIGHT_REPS — dérivé, non matérialisé',
+  })
+  @ApiQuery({ name: 'from', required: false, type: String })
+  @ApiQuery({ name: 'to', required: false, type: String })
+  @ApiQuery({ name: 'equipmentId', required: false, type: String })
+  async getExerciseStrength(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
+    @Query() query: Record<string, string | undefined>,
+  ) {
+    const data = await this.progressService.getExerciseStrengthProgress(
+      user.id,
+      exerciseId,
+      query,
+    );
+    return createSuccessResponse(data);
+  }
+
   @Get('api/v1/progress/exercises/:exerciseId')
   @ApiOperation({
     summary:

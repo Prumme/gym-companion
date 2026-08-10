@@ -395,14 +395,25 @@ Transformer les données enregistrées en informations utiles (records, progress
 - top exercices (`sourceExerciseId`) ;
 - endpoint `GET /api/v1/progress/overview`.
 
-**Restent hors 4.1–4.4 :**
+**Livré en 4.5 (1RM estimé / force, calcul à la demande) :**
+
+- e1RM Epley V1 pour `WEIGHT_REPS` uniquement ;
+- séries `COMPLETED`, hors warmup, 1–12 reps, charge > 0 ;
+- RIR/RPE non intégrés à la formule ;
+- meilleure estimation par séance + série temporelle ;
+- endpoint `GET /api/v1/progress/exercises/:exerciseId/strength` ;
+- section « Force estimée » sur `/progress/exercises/:exerciseId` ;
+- estimation clairement distincte des records réels (`MAX_WEIGHT`).
+
+**Restent hors 4.1–4.5 :**
 
 - volume maximal sur une série ;
 - volume maximal sur une séance (record) ;
-- meilleur 1RM estimé ;
+- autres formules e1RM / 1RM ajusté RIR-RPE ;
 - moyennes mobiles / plateaux / fatigue / coaching ;
 - comparaison avancée multi-périodes ;
-- score propriétaire / gamification.
+- score propriétaire / gamification ;
+- recommandations de charge.
 
 ### 7.4 Hors périmètre
 

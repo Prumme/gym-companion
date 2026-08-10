@@ -10,5 +10,8 @@ export default defineConfig({
     ...vitestBaseConfig.test,
     environment: 'node',
     include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
+    // Les tests d’intégration Nest + Prisma partagent la même base :
+    // l’exécution parallèle de fichiers provoque des 400/404 intermittents.
+    fileParallelism: false,
   },
 });
