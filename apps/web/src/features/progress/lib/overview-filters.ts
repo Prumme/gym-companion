@@ -45,6 +45,17 @@ export function parseOverviewSearchParams(
   searchParams: URLSearchParams,
 ): OverviewUrlFilters {
   const metric = parseOverviewMetricParam(searchParams.get('metric'));
+  const periodParam = searchParams.get('period');
+
+  if (periodParam === 'all') {
+    return {
+      metric,
+      from: undefined,
+      to: undefined,
+      period: 'all',
+    };
+  }
+
   const from = parseOptionalLocalDateParam(searchParams.get('from'));
   const toRaw = parseOptionalLocalDateParam(searchParams.get('to'));
   const to = from && toRaw && from > toRaw ? undefined : toRaw;

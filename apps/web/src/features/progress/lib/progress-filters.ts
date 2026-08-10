@@ -103,10 +103,28 @@ export function detectPeriodPreset(
   return 'custom';
 }
 
+/**
+ * Parsing URL progression / dashboard / force.
+ *
+ * - aucun paramètre → défaut 3 mois ;
+ * - `period=all` → tout l’historique (from/to absents), distinct du défaut ;
+ * - `from`/`to` → preset détecté ou `custom`.
+ */
 export function parseProgressSearchParams(
   searchParams: URLSearchParams,
 ): ProgressUrlFilters {
   const metric = parseProgressMetricParam(searchParams.get('metric'));
+  const periodParam = searchParams.get('period');
+
+  if (periodParam === 'all') {
+    return {
+      metric,
+      from: undefined,
+      to: undefined,
+      period: 'all',
+    };
+  }
+
   const from = parseOptionalLocalDateParam(searchParams.get('from'));
   const toRaw = parseOptionalLocalDateParam(searchParams.get('to'));
   const to = from && toRaw && from > toRaw ? undefined : toRaw;
@@ -140,6 +158,8 @@ export function buildProgressSearchParams(
     params.set('metric', filters.metric);
   }
   if (filters.period === 'all') {
+    // Sentinel explicite : distinct d’une URL vide (défaut 3 mois).
+    params.set('period', 'all');
     return params;
   }
   if (filters.from) {

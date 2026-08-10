@@ -174,6 +174,46 @@ describe('ProgressOverviewPage', () => {
     );
   });
 
+  it('sélectionne Tout → period=all et conserve le preset au refresh', async () => {
+    const user = userEvent.setup();
+    getProgressOverview.mockResolvedValue({
+      range: { from: null, to: null },
+      availableMetrics: ['WORKOUT_COUNT'],
+      selectedMetric: 'WORKOUT_COUNT',
+      totals: {
+        workoutCount: 0,
+        exerciseCount: 0,
+        uniqueExerciseCount: 0,
+        performedSetCount: 0,
+        totalReps: 0,
+        workingExternalVolumeKg: 0,
+        totalDurationSeconds: 0,
+        totalDistanceMeters: 0,
+        failureSetCount: 0,
+      },
+      frequency: { activeDayCount: 0, averageWorkoutsPerWeek: null },
+      comparison: null,
+      timeline: { bucket: 'MONTH', points: [] },
+      recentRecords: [],
+      topExercises: [],
+    });
+    renderPage('/progress?from=2026-05-10&to=2026-08-10');
+    await screen.findByRole('heading', { name: 'Progression' });
+
+    await user.selectOptions(screen.getByLabelText('Période'), 'all');
+    expect(getProgressOverview).toHaveBeenCalledWith(
+      expect.objectContaining({ from: undefined, to: undefined }),
+    );
+    expect(screen.getByLabelText('Période')).toHaveValue('all');
+
+    renderPage('/progress?period=all');
+    await screen.findByRole('heading', { name: 'Progression' });
+    expect(screen.getByLabelText('Période')).toHaveValue('all');
+    expect(getProgressOverview).toHaveBeenCalledWith(
+      expect.objectContaining({ from: undefined, to: undefined }),
+    );
+  });
+
   it('affiche une erreur API', async () => {
     getProgressOverview.mockRejectedValue(
       Object.assign(new Error('Impossible de charger le dashboard de progression.'), {

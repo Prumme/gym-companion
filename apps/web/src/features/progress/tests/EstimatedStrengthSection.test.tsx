@@ -293,6 +293,18 @@ describe('ExerciseProgressPage — force estimée (4.5)', () => {
     );
   });
 
+  it('Tout synchronise e1RM sans from/to', async () => {
+    getExerciseProgress.mockResolvedValue(emptyProgress());
+    getExerciseStrength.mockResolvedValue(emptyStrength());
+    renderPage('/progress/exercises/exercise-1?period=all');
+    await screen.findByText('Pas encore assez de données pour estimer ton 1RM.');
+    expect(getExerciseStrength).toHaveBeenCalledWith('exercise-1', {
+      from: undefined,
+      to: undefined,
+    });
+    expect(screen.getByLabelText('Période')).toHaveValue('all');
+  });
+
   it('reste lisible à 320 px', async () => {
     Object.defineProperty(window, 'innerWidth', {
       configurable: true,

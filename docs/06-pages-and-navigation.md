@@ -133,18 +133,45 @@ Accès au planning hebdomadaire, au programme courant et au démarrage d’une s
 
 Accès à `/workouts` (séances `COMPLETED` / `CANCELLED`).
 
-### 4.3 Records
+### 4.3 Records et progression
 
-Accès à `/records` (jalon 4.1) : records personnels courants calculés à la demande.
-Dashboard global : `/progress` (jalon 4.4). Progression par exercice : `/progress/exercises/:exerciseId`.
+Accès à `/records` (jalon 4.1) : records personnels **réels** courants calculés à la demande
+(`MAX_WEIGHT`, `MAX_REPS`, `MAX_DURATION`, `MAX_DISTANCE`).
+
+Dashboard global : `/progress` (jalon 4.4). Progression par exercice :
+`/progress/exercises/:exerciseId` (jalon 4.3), avec section force estimée e1RM pour
+`WEIGHT_REPS` (jalon 4.5).
 
 ### 4.4 Programmes et exercices
 
-Accès aux programmes, modèles et catalogue d’exercices (`/programs`, `/exercises`). Le détail exercice affiche une section « Records personnels ».
+Accès aux programmes, modèles et catalogue d’exercices (`/programs`, `/exercises`). Le détail exercice affiche une section « Records personnels » et un lien vers la progression.
 
-### 4.5 Progression enrichie
+### 4.5 Progression (livrée)
 
-Phase 4 ultérieure — statistiques, graphiques, 1RM, volume (hors 4.1).
+Routes et navigation livrées en phase 4 :
+
+#### `/records`
+
+- records personnels réels (`MAX_WEIGHT`, `MAX_REPS`, `MAX_DURATION`, `MAX_DISTANCE`) ;
+- contexte (charge/reps, équipement snapshot) ;
+- liens vers séance et exercice.
+
+#### `/progress`
+
+- dashboard global ;
+- filtres de période (30 j / 3 mois / 6 mois / 1 an / **Tout** via `?period=all` / personnalisé) ;
+- défaut sans paramètres : **3 mois** ;
+- totaux, fréquence, timeline (DAY/WEEK/MONTH) ;
+- records récents de la période ;
+- exercices les plus pratiqués → `/progress/exercises/:id`.
+
+#### `/progress/exercises/:exerciseId`
+
+- progression temporelle par exercice ;
+- métriques compatibles avec le type de mesure ;
+- graphique + liste accessible des points ;
+- mêmes presets de période que le dashboard (`?period=all` = tout l’historique) ;
+- section **Force estimée** (e1RM Epley V1) pour `WEIGHT_REPS`.
 
 ### 4.6 Profil
 
@@ -160,13 +187,13 @@ Sections livrées :
 - Planning ;
 - Historique (`/workouts`) ;
 - Records (`/records`) ;
+- Progression (`/progress`, `/progress/exercises/:exerciseId`) ;
 - Programmes ;
 - Exercices ;
 - Profil.
 
 Sections futures :
 
-- Progression ;
 - Nutrition ;
 - Séances partagées ;
 - Coach IA ;
@@ -788,6 +815,8 @@ Entrée de navigation principale « Progression ».
 ### Contenu
 
 1. titre + sélecteur de période (30 j / 3 mois / 6 mois / 1 an / tout / personnalisé) ;
+   - défaut sans query : 3 mois ;
+   - **Tout** : `?period=all` (pas de `from`/`to` ; distinct d’une URL vide) ;
 2. indicateurs clés (séances, séries, volume, et conditionnellement reps / durée / distance) ;
 3. fréquence (`X séances sur Y jours actifs`, moyenne / semaine si calculable) ;
 4. graphique principal (une métrique à la fois, Recharts) ;
@@ -817,10 +846,14 @@ Accès depuis `/exercises/:exerciseId` → « Voir ma progression ».
 
 - exercice (nom catalogue actuel, y compris archivé) ;
 - sélecteur de métrique (`availableMetrics` serveur) ;
-- période (30 j / 3 mois / 6 mois / 1 an / tout / personnalisé) via `from`/`to` dans l’URL ;
+- période (30 j / 3 mois / 6 mois / 1 an / tout / personnalisé) ;
+  - défaut sans query : 3 mois ;
+  - **Tout** : `?period=all` (historique complet ; `from`/`to` absents côté API) ;
+  - presets datés : `from`/`to` locaux dans l’URL ;
 - résumé (dernière, meilleure, variation début→fin, nombre de séances) ;
 - graphique ligne (Recharts) — jamais seule représentation ;
-- liste accessible des points avec lien « Voir la séance ».
+- liste accessible des points avec lien « Voir la séance » ;
+- section force estimée (4.5) pour `WEIGHT_REPS`, même période URL.
 
 ### Source de vérité
 
@@ -846,7 +879,7 @@ Sur `/progress/exercises/:exerciseId` pour les exercices `WEIGHT_REPS` :
 - formule Epley V1 (1–12 reps, hors warmup, séries `COMPLETED`) ;
 - graphique dédié « 1RM estimé » + liste accessible ;
 - distinction claire vs charge maximale réelle (`MAX_WEIGHT`) ;
-- même période URL que la progression 4.3 ;
+- même période URL que la progression 4.3 (`?period=all` inclus) ;
 - endpoint `GET /api/v1/progress/exercises/:exerciseId/strength`.
 
 Hors scope 4.5 : autres formules, 1RM RIR/RPE, recommandations, matérialisation, mélange dans `/records`.

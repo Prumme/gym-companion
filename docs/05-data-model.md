@@ -520,6 +520,10 @@ Cette préférence globale est distincte de la configuration d’un exercice dan
 
 Référence de force pour une combinaison utilisateur, exercice et équipement.
 
+> **Hors phase 4** : cette table n’est **pas** implémentée. En 4.5, l’e1RM est uniquement
+> dérivé à la lecture (`EPLEY_V1`), sans `PersonalRecordType` e1RM et sans ligne Prisma.
+> Le type conceptuel ci-dessous documente une matérialisation / référence coach **future**.
+
 ```ts
 type ExerciseStrengthReference = {
   id: string;
@@ -1051,7 +1055,13 @@ type PersonalRecord = {
 };
 ```
 
-En 4.1, le contrat API exposé est un DTO dérivé (sans `ownerUserId`, sans ligne Prisma) : types `MAX_WEIGHT` | `MAX_REPS` | `MAX_DURATION` | `MAX_DISTANCE` uniquement. Pas de 1RM estimé, pas de volume, pas de graphiques.
+En 4.1, le contrat API exposé est un DTO dérivé (sans `ownerUserId`, sans ligne Prisma) : types `MAX_WEIGHT` | `MAX_REPS` | `MAX_DURATION` | `MAX_DISTANCE` uniquement.
+
+> **Phase 4 — e1RM** : aucun `PersonalRecordType` `ESTIMATED_ONE_REP_MAX` n’existe.
+> Aucun modèle Prisma e1RM n’est créé. L’e1RM est une **métrique dérivée** (jalon 4.5,
+> formule `EPLEY_V1` / Epley) exposée via `GET …/progress/exercises/:id/strength`,
+> distincte des records réels. Une matérialisation éventuelle (ci-dessus ou
+> `ExerciseStrengthReference`) reste **future**.
 
 ## 28bis. Progression temporelle (jalon 4.3)
 

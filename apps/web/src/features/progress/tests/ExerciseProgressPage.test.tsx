@@ -237,6 +237,47 @@ describe('ExerciseProgressPage', () => {
     );
   });
 
+  it('sélectionne Tout → period=all et recharge conserve Tout', async () => {
+    const user = userEvent.setup();
+    getExerciseProgress.mockResolvedValue(emptyResponse());
+    getExerciseStrength.mockResolvedValue({
+      exercise: {
+        id: 'exercise-1',
+        name: 'Développé couché',
+        archived: false,
+      },
+      supported: true,
+      formula: 'EPLEY_V1',
+      eligibility: { minReps: 1, maxReps: 12 },
+      range: { from: null, to: null },
+      summary: null,
+      points: [],
+    });
+    renderPage('/progress/exercises/exercise-1?from=2026-05-10&to=2026-08-10');
+    await screen.findByText(
+      'Pas encore de données de progression pour cet exercice.',
+    );
+
+    await user.selectOptions(screen.getByLabelText('Période'), 'all');
+    expect(getExerciseProgress).toHaveBeenCalledWith('exercise-1', {
+      metric: undefined,
+      from: undefined,
+      to: undefined,
+    });
+    expect(screen.getByLabelText('Période')).toHaveValue('all');
+
+    // Refresh simulé : même URL period=all
+    renderPage('/progress/exercises/exercise-1?period=all');
+    await screen.findByText(
+      'Pas encore de données de progression pour cet exercice.',
+    );
+    expect(screen.getByLabelText('Période')).toHaveValue('all');
+    expect(getExerciseProgress).toHaveBeenCalledWith(
+      'exercise-1',
+      expect.objectContaining({ from: undefined, to: undefined }),
+    );
+  });
+
   it('affiche exercice archivé et erreur API', async () => {
     getExerciseProgress.mockResolvedValue(
       emptyResponse({
