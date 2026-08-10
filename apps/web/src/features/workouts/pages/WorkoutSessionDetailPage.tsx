@@ -8,6 +8,7 @@ import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
 
 import { workoutDetailQueryOptions } from '../api/workout-query-options';
 import { workoutQueryKeys } from '../api/workout-query-keys';
+import { WorkoutMetricsSummary } from '../components/WorkoutMetricsSummary';
 import { WorkoutProgressBanner } from '../components/WorkoutProgressBanner';
 import { WorkoutSessionExerciseList } from '../components/WorkoutSessionExerciseList';
 import {
@@ -217,6 +218,10 @@ export function WorkoutSessionDetailPage() {
 
         <WorkoutProgressBanner progress={progress} />
       </header>
+
+      {session.status === 'COMPLETED' && session.metrics ? (
+        <WorkoutMetricsSummary metrics={session.metrics} />
+      ) : null}
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <ButtonLink to={backPath} variant="secondary">

@@ -398,10 +398,50 @@ export type WorkoutSessionDetail = {
   };
   exercises: WorkoutSessionExerciseDetail[];
   permissions: WorkoutSessionPermissions;
+  /**
+   * Métriques officielles (jalon 4.2) — uniquement pour `COMPLETED`.
+   * `null` pour ACTIVE / PAUSED / CANCELLED / PLANNED.
+   */
+  metrics: WorkoutMetrics | null;
 };
 
 /** Statuts exposés dans l’historique (hors ACTIVE / PAUSED). */
 export type WorkoutHistoryStatus = 'COMPLETED' | 'CANCELLED';
+
+/**
+ * Métriques agrégées d’une séance (jalon 4.2).
+ * Calculées à la demande depuis les snapshots — non matérialisées.
+ *
+ * Volume externe = somme(actualWeightKg × actualReps) pour types compatibles
+ * (`WEIGHT_REPS` uniquement dans ce jalon). Bodyweight / assistance exclus.
+ */
+export type WorkoutMetrics = {
+  exerciseCount: number;
+  performedExerciseCount: number;
+  sets: {
+    total: number;
+    processed: number;
+    performed: number;
+    completed: number;
+    partial: number;
+    failed: number;
+    skipped: number;
+    pending: number;
+    cancelled: number;
+    warmup: number;
+    working: number;
+    reachedFailure: number;
+  };
+  performance: {
+    totalReps: number;
+    totalExternalVolumeKg: number;
+    workingExternalVolumeKg: number;
+    totalDurationSeconds: number;
+    totalDistanceMeters: number;
+  };
+  /** completedAt − startedAt en secondes ; null si incohérent / manquant. */
+  elapsedDurationSeconds: number | null;
+};
 
 export type WorkoutHistorySetSummary = {
   exerciseCount: number;
@@ -412,6 +452,10 @@ export type WorkoutHistorySetSummary = {
   failedSetCount: number;
   skippedSetCount: number;
   pendingSetCount: number;
+  /** Présent uniquement pour séances COMPLETED (jalon 4.2). */
+  totalReps?: number;
+  /** Volume de travail (hors warmup), séances COMPLETED uniquement. */
+  workingExternalVolumeKg?: number;
 };
 
 export type WorkoutHistoryListItem = {

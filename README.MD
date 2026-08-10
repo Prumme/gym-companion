@@ -381,4 +381,10 @@ page `/records` et section sur le détail d’exercice. Pas de table `PersonalRe
 pas de volume, pas de graphiques. Invalidation TanStack Query uniquement après `COMPLETE_WORKOUT`
 confirmé serveur.
 
+Le jalon **4.2** ajoute les métriques agrégées de séance (calcul à la demande) : compteurs de
+séries, répétitions, volume externe (`WEIGHT_REPS` uniquement, warmups exclus du volume de
+travail), durée/distance enregistrées, durée écoulée. Exposées sur le détail `COMPLETED`
+(`metrics`) et en résumé léger sur l’historique. Bodyweight / assistance exclus du volume.
+Pas de page `/progress`, pas de graphiques, pas de table matérialisée.
+
 Les documents du dossier `docs/` restent la source de vérité produit et technique.

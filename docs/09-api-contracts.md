@@ -1286,13 +1286,22 @@ GET /api/v1/workouts/:workoutSessionId
 
 Propriétaire uniquement. Ressource étrangère → `WORKOUT_NOT_FOUND`.
 
+Réponse : `WorkoutSessionDetail` (snapshot).
+
+**Jalon 4.2** — champ `metrics: WorkoutMetrics | null` :
+
+- `COMPLETED` → métriques officielles calculées à la demande ;
+- `ACTIVE` / `PAUSED` / `CANCELLED` / `PLANNED` → `null`.
+
+Pas d’endpoint dédié `/metrics` (une seule source de vérité).
+
 ### 19.5 Lister l’historique
 
 ```text
 GET /api/v1/workouts
 ```
 
-Jalons : **3.6**.
+Jalons : **3.6**, enrichi **4.2**.
 
 Historique paginé des séances `COMPLETED` et `CANCELLED` de l’utilisateur connecté.
 
@@ -1340,16 +1349,19 @@ Réponse :
         "partialSetCount": 1,
         "failedSetCount": 1,
         "skippedSetCount": 0,
-        "pendingSetCount": 2
+        "pendingSetCount": 2,
+        "totalReps": 112,
+        "workingExternalVolumeKg": 5480
       }
     }
   ],
-  "pagination": {
-    "nextCursor": null,
-    "hasMore": false
-  }
+  "pagination": { "nextCursor": null, "hasMore": false }
 }
 ```
+
+`totalReps` et `workingExternalVolumeKg` sont présents uniquement pour les séances `COMPLETED` (jalon 4.2). Les séances `CANCELLED` conservent les compteurs de séries sans métriques de performance officielles.
+
+Volume externe = somme(`actualWeightKg × actualReps`) pour `WEIGHT_REPS` ; warmups exclus de `workingExternalVolumeKg`.
 
 `processedSetCount` compte les séries `COMPLETED` / `PARTIAL` / `FAILED` / `SKIPPED` / `CANCELLED`.
 Les séries `PENDING` restent non traitées (jamais transformées en ignorées).
@@ -1366,7 +1378,8 @@ Codes d’erreur :
 Limites actuelles :
 
 - lecture seule (aucune correction / suppression / duplication) ;
-- pas de records, progression, graphiques ni volume officiel ;
+- pas de progression temporelle, graphiques ni page `/progress` ;
+- volume officiel de séance disponible (4.2) ; records séparés (4.1) ;
 - pas d’historique IndexedDB complet (seul le snapshot de séance active / commandes en attente) ;
 - réponses privées exclus du cache Workbox (`NetworkOnly` sur `/api/*`).
 

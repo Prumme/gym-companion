@@ -139,6 +139,48 @@ describe('WorkoutsHistoryPage', () => {
     getMe.mockResolvedValue(meResponse());
   });
 
+  it('affiche reps et volume sur une carte COMPLETED', async () => {
+    listWorkoutHistory.mockResolvedValue({
+      data: [
+        historyItem({
+          summary: {
+            exerciseCount: 4,
+            totalSetCount: 14,
+            processedSetCount: 14,
+            completedSetCount: 14,
+            partialSetCount: 0,
+            failedSetCount: 0,
+            skippedSetCount: 0,
+            pendingSetCount: 0,
+            totalReps: 112,
+            workingExternalVolumeKg: 5480,
+          },
+        }),
+        historyItem({
+          id: 'cancelled-1',
+          name: 'Séance annulée',
+          status: 'CANCELLED',
+          summary: {
+            exerciseCount: 1,
+            totalSetCount: 3,
+            processedSetCount: 1,
+            completedSetCount: 1,
+            partialSetCount: 0,
+            failedSetCount: 0,
+            skippedSetCount: 0,
+            pendingSetCount: 2,
+          },
+        }),
+      ],
+      pagination: { nextCursor: null, hasMore: false },
+    });
+    renderHistory();
+    expect(await screen.findByText(/112 répétitions/)).toBeInTheDocument();
+    expect(screen.getByText(/kg·rep/)).toBeInTheDocument();
+    expect(screen.getByText('Séance annulée')).toBeInTheDocument();
+    expect(screen.queryAllByText(/kg·rep/)).toHaveLength(1);
+  });
+
   it('affiche l’état vide', async () => {
     listWorkoutHistory.mockResolvedValue({
       data: [],
@@ -247,6 +289,32 @@ describe('WorkoutsHistoryPage', () => {
           canCancel: false,
           canRecordSets: false,
         },
+        metrics: {
+          exerciseCount: 1,
+          performedExerciseCount: 1,
+          sets: {
+            total: 1,
+            processed: 1,
+            performed: 1,
+            completed: 1,
+            partial: 0,
+            failed: 0,
+            skipped: 0,
+            pending: 0,
+            cancelled: 0,
+            warmup: 0,
+            working: 1,
+            reachedFailure: 0,
+          },
+          performance: {
+            totalReps: 10,
+            totalExternalVolumeKg: 600,
+            workingExternalVolumeKg: 600,
+            totalDurationSeconds: 0,
+            totalDistanceMeters: 0,
+          },
+          elapsedDurationSeconds: 3600,
+        },
       }),
     );
     renderHistory('/workouts?status=COMPLETED');
@@ -255,6 +323,10 @@ describe('WorkoutsHistoryPage', () => {
       screen.getByRole('link', { name: /Ouvrir la séance Séance Push/i }),
     );
     expect(await screen.findByText('Progression finale')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Résumé de la séance' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('10 répétitions')).toBeInTheDocument();
     await user.click(
       screen.getByRole('link', { name: /Retour à l’historique/i }),
     );

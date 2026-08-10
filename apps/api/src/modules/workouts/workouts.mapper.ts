@@ -11,7 +11,11 @@ import type {
   WorkoutSetType,
   WorkoutStatus,
 } from '@gym-companion/shared';
-import { utcDateToLocalDateString } from '@gym-companion/validation';
+import {
+  resolveOfficialWorkoutMetrics,
+  utcDateToLocalDateString,
+  type WorkoutMetricsSessionInput,
+} from '@gym-companion/validation';
 
 export type WorkoutSetSnapshotRow = {
   id: string;
@@ -89,7 +93,18 @@ export type WorkoutHistoryListRow = {
   programNameSnapshot: string | null;
   workoutTemplateNameSnapshot: string | null;
   _count: { exercises: number };
-  exercises: Array<{ sets: Array<{ status: WorkoutSetStatus }> }>;
+  exercises: Array<{
+    measurementTypeSnapshot: ExerciseMeasurementType;
+    sets: Array<{
+      status: WorkoutSetStatus;
+      setType: WorkoutSetType;
+      actualWeightKg: unknown;
+      actualReps: number | null;
+      actualDurationSeconds: number | null;
+      actualDistanceMeters: unknown;
+      reachedFailure: boolean;
+    }>;
+  }>;
 };
 
 function decimalToNumber(value: unknown): number | null {
@@ -190,12 +205,58 @@ function toExerciseDetail(
  * Mappe uniquement les champs snapshot de la séance.
  * Ne reconstruit jamais l’affichage depuis le programme / modèle / catalogue.
  */
+export function toMetricsSessionInput(
+  exercises: Array<{
+    measurementType: ExerciseMeasurementType;
+    sets: Array<{
+      setType: WorkoutSetType;
+      status: WorkoutSetStatus;
+      actualWeightKg: number | null;
+      actualReps: number | null;
+      actualDurationSeconds: number | null;
+      actualDistanceMeters: number | null;
+      reachedFailure: boolean;
+    }>;
+  }>,
+  startedAt: string | Date | null,
+  completedAt: string | Date | null,
+): WorkoutMetricsSessionInput {
+  return {
+    startedAt,
+    completedAt,
+    exercises: exercises.map((exercise) => ({
+      measurementType: exercise.measurementType,
+      sets: exercise.sets.map((set) => ({
+        setType: set.setType,
+        status: set.status,
+        actualWeightKg: set.actualWeightKg,
+        actualReps: set.actualReps,
+        actualDurationSeconds: set.actualDurationSeconds,
+        actualDistanceMeters: set.actualDistanceMeters,
+        reachedFailure: set.reachedFailure,
+      })),
+    })),
+  };
+}
+
 export function toWorkoutSessionDetail(
   row: WorkoutSessionSnapshotRow,
 ): WorkoutSessionDetail {
   const exercises = [...row.exercises]
     .sort((a, b) => a.position - b.position)
     .map(toExerciseDetail);
+
+  const metrics = resolveOfficialWorkoutMetrics(
+    row.status,
+    toMetricsSessionInput(
+      exercises.map((exercise) => ({
+        measurementType: exercise.measurementType,
+        sets: exercise.sets,
+      })),
+      row.startedAt,
+      row.completedAt,
+    ),
+  );
 
   return {
     id: row.id,
@@ -218,6 +279,7 @@ export function toWorkoutSessionDetail(
     },
     exercises,
     permissions: computeActiveWorkoutPermissions(row.status),
+    metrics,
   };
 }
 
@@ -281,6 +343,41 @@ export function toWorkoutHistoryListItem(
     exercise.sets.map((set) => set.status),
   );
 
+  const baseSummary = computeWorkoutHistorySetSummary(
+    row._count.exercises,
+    setStatuses,
+  );
+
+  let summary: WorkoutHistorySetSummary = baseSummary;
+  if (row.status === 'COMPLETED') {
+    const metrics = resolveOfficialWorkoutMetrics(
+      row.status,
+      toMetricsSessionInput(
+        row.exercises.map((exercise) => ({
+          measurementType: exercise.measurementTypeSnapshot,
+          sets: exercise.sets.map((set) => ({
+            setType: set.setType,
+            status: set.status,
+            actualWeightKg: decimalToNumber(set.actualWeightKg),
+            actualReps: set.actualReps,
+            actualDurationSeconds: set.actualDurationSeconds,
+            actualDistanceMeters: decimalToNumber(set.actualDistanceMeters),
+            reachedFailure: set.reachedFailure,
+          })),
+        })),
+        row.startedAt,
+        row.completedAt,
+      ),
+    );
+    if (metrics) {
+      summary = {
+        ...baseSummary,
+        totalReps: metrics.performance.totalReps,
+        workingExternalVolumeKg: metrics.performance.workingExternalVolumeKg,
+      };
+    }
+  }
+
   return {
     id: row.id,
     name: row.name,
@@ -296,10 +393,7 @@ export function toWorkoutHistoryListItem(
       workoutTemplateId: row.sourceWorkoutTemplateId,
       workoutTemplateName: row.workoutTemplateNameSnapshot,
     },
-    summary: computeWorkoutHistorySetSummary(
-      row._count.exercises,
-      setStatuses,
-    ),
+    summary,
   };
 }
 

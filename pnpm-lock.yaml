@@ -265,6 +265,9 @@ importers:
 
   packages/validation:
     dependencies:
+      '@gym-companion/shared':
+        specifier: workspace:*
+        version: link:../shared
       zod:
         specifier: ^3.25.51
         version: 3.25.76

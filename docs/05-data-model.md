@@ -1811,6 +1811,14 @@ L’activation courante utilise `ProgramActivation` et impose une contrainte d�
 - WorkoutSet ;
 - WorkoutSessionEvent.
 
+> **Jalon 4.2** : les métriques de séance (`WorkoutMetrics`) sont **dérivées à la demande** depuis les snapshots. Aucune table `WorkoutMetrics` / `WorkoutStatistics` / `WorkoutSummary` n’est créée.
+>
+> Volume externe = `somme(actualWeightKg × actualReps)` pour `WEIGHT_REPS` uniquement.
+> Bodyweight et assistance exclus. Warmup inclus dans `totalExternalVolumeKg`, exclu de `workingExternalVolumeKg`.
+> `PARTIAL` / `FAILED` peuvent contribuer avec leurs valeurs réelles. Records 4.1 restent plus stricts.
+> `elapsedDurationSeconds` = `completedAt − startedAt` (pas une durée active nette).
+> Métriques officielles uniquement pour séances `COMPLETED`.
+
 ### Agrégat salle partagée
 
 - SharedWorkoutRoom ;
@@ -1874,12 +1882,13 @@ Le modèle `Equipment` reste prévu pour une phase ultérieure consacrée aux é
 
 La création d’une séance depuis un modèle copie un snapshot immuable des informations nécessaires : noms, ordre, type de mesure, équipement prévu, repos, notes et séries cibles.
 
-À la clôture de la phase 3, l’historique paginé et le détail en lecture seule reposent sur ces snapshots. `PersonalRecord` et les agrégats de progression restent phase 4.
+À la clôture de la phase 3, l’historique paginé et le détail en lecture seule reposent sur ces snapshots. En phase 4 (jalons 4.1 / 4.2), records et métriques sont calculés à la demande sans matérialisation Prisma.
 
 ### Phase 4
 
-- ExerciseStrengthReference ;
-- PersonalRecord.
+- ExerciseStrengthReference (future) ;
+- PersonalRecord (matérialisation future — 4.1 calcule à la demande) ;
+- métriques de séance dérivées (4.2 — pas de table).
 
 ### Phase 5
 

@@ -61,8 +61,17 @@ const historyListInclude = {
   _count: { select: { exercises: true } },
   exercises: {
     select: {
+      measurementTypeSnapshot: true,
       sets: {
-        select: { status: true },
+        select: {
+          status: true,
+          setType: true,
+          actualWeightKg: true,
+          actualReps: true,
+          actualDurationSeconds: true,
+          actualDistanceMeters: true,
+          reachedFailure: true,
+        },
       },
     },
   },

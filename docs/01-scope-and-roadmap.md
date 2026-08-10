@@ -365,12 +365,23 @@ Transformer les données enregistrées en informations utiles (records, progress
 - meilleure durée (`MAX_DURATION`) ;
 - meilleure distance (`MAX_DISTANCE`).
 
-**Restent hors 4.1 :**
+**Livré en 4.2 (métriques de séance, calcul à la demande) :**
+
+- compteurs de séries / exercices ;
+- répétitions totales ;
+- volume externe `kg × reps` (`WEIGHT_REPS`) ;
+- distinction volume total vs volume de travail (hors warmup) ;
+- durée / distance enregistrées ;
+- durée écoulée brute ;
+- exposition sur détail `COMPLETED` et résumé historique.
+
+**Restent hors 4.1 / 4.2 :**
 
 - volume maximal sur une série ;
-- volume maximal sur une séance ;
+- volume maximal sur une séance (record) ;
 - meilleur 1RM estimé ;
-- graphiques / tendances / comparaison de périodes.
+- graphiques / tendances / comparaison de périodes ;
+- page `/progress`.
 
 ### 7.4 Hors périmètre
 

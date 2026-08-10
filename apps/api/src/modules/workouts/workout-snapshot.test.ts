@@ -252,6 +252,7 @@ describe('workouts.mapper', () => {
     expect(detail.exercises[0]?.exerciseName).toBe('Développé couché');
     expect(detail.exercises[0]?.equipment.name).toBe('Barre');
     expect(detail.exercises[0]?.sets[0]?.targetWeightKg).toBe(60);
+    expect(detail.metrics).toBeNull();
     expect(detail).not.toHaveProperty('ownerUserId');
     expect(detail.exercises[0]).not.toHaveProperty('exerciseNameSnapshot');
   });

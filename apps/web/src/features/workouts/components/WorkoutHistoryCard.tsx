@@ -1,6 +1,7 @@
 import type { WorkoutHistoryListItem } from '@gym-companion/shared';
 import { Link } from 'react-router-dom';
 
+import { formatWorkoutReps, formatWorkoutVolume } from '../lib/workout-metrics-format';
 import { getWorkoutStatusLabel } from '../lib/workout-labels';
 import type { WorkoutHistoryNavigationState } from '../lib/workout-history-filters';
 
@@ -95,6 +96,29 @@ export function WorkoutHistoryCard({
                 {summary.totalSetCount}
               </dd>
             </div>
+            {item.status === 'COMPLETED' &&
+            ((summary.totalReps != null && summary.totalReps > 0) ||
+              (summary.workingExternalVolumeKg != null &&
+                summary.workingExternalVolumeKg > 0)) ? (
+              <div>
+                <dt className="sr-only">Performances</dt>
+                <dd>
+                  {summary.totalReps != null && summary.totalReps > 0
+                    ? formatWorkoutReps(summary.totalReps)
+                    : null}
+                  {summary.totalReps != null &&
+                  summary.totalReps > 0 &&
+                  summary.workingExternalVolumeKg != null &&
+                  summary.workingExternalVolumeKg > 0
+                    ? ' · '
+                    : null}
+                  {summary.workingExternalVolumeKg != null &&
+                  summary.workingExternalVolumeKg > 0
+                    ? formatWorkoutVolume(summary.workingExternalVolumeKg)
+                    : null}
+                </dd>
+              </div>
+            ) : null}
           </dl>
         </div>
       </Link>

@@ -1925,3 +1925,20 @@ export type {
   PersonalRecordsSortKey,
   WorkoutSetTypeForRecords,
 } from './personal-records';
+
+export {
+  addExternalVolumeKg,
+  computeElapsedDurationSeconds,
+  computeWorkoutMetrics,
+  contributesToExternalVolume,
+  contributesToTotalReps,
+  isPerformedSetStatus,
+  isProcessedSetStatus,
+  resolveOfficialWorkoutMetrics,
+  setExternalVolumeContributionKg,
+} from './workout-metrics';
+export type {
+  WorkoutMetricsExerciseInput,
+  WorkoutMetricsSessionInput,
+  WorkoutMetricsSetInput,
+} from './workout-metrics';

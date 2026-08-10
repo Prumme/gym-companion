@@ -84,6 +84,7 @@ export function createWorkoutSessionDetail(
       canCancel: true,
       canRecordSets: true,
     },
+    metrics: null,
     ...overrides,
   };
 }
