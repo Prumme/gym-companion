@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 /**
  * Recommandations déterministes de charge (jalon 5.1).
  *
@@ -12,6 +14,10 @@ export const LOAD_RECOMMENDATION_HISTORY_LIMIT = 3;
 export const DEFAULT_LOAD_INCREMENT_KG = 2.5;
 export const LOAD_RECOMMENDATION_RIR_TOLERANCE = 1;
 export const LOAD_RECOMMENDATION_RPE_TOLERANCE = 1;
+/** Version du moteur déterministe (jalon 5.1 / 5.2). */
+export const LOAD_RECOMMENDATION_ENGINE_VERSION = 'LOAD_RECOMMENDATION_V1' as const;
+export type LoadRecommendationEngineVersion =
+  typeof LOAD_RECOMMENDATION_ENGINE_VERSION;
 
 export type LoadRecommendationAction =
   | 'INCREASE'
@@ -163,10 +169,189 @@ export type LoadRecommendationResult = {
     effortDataUsed: boolean;
     recentWorkouts: LoadRecommendationEvidenceWorkout[];
   };
+  engineVersion: LoadRecommendationEngineVersion;
+  recommendationFingerprint: string;
 };
+
+export type LoadRecommendationDecisionType =
+  | 'ACCEPTED'
+  | 'ADJUSTED'
+  | 'IGNORED';
 
 function isWorkingSetType(setType: string): boolean {
   return setType === 'WORKING';
+}
+
+/**
+ * Fingerprint déterministe d’une recommandation (pas une autorisation).
+ * Le serveur recalcule et compare ; le client ne peut pas fabriquer une cible.
+ */
+export function buildLoadRecommendationFingerprint(input: {
+  workoutTemplateExerciseId: string;
+  engineVersion: string;
+  templateEquipmentTypeId: string | null;
+  workingSets: Array<{
+    targetWeightKg: number | null;
+    targetRepMin: number | null;
+    targetRepMax: number | null;
+    targetRir: number | null;
+    targetRpe: number | null;
+  }>;
+  action: LoadRecommendationAction;
+  currentTargetWeightKg: number | null;
+  suggestedWeightKg: number | null;
+  incrementKg: number | null;
+  incrementSource: LoadIncrementSource | null;
+  recentWorkoutSessionIds: string[];
+}): string {
+  const payload = {
+    engineVersion: input.engineVersion,
+    workoutTemplateExerciseId: input.workoutTemplateExerciseId,
+    templateEquipmentTypeId: input.templateEquipmentTypeId,
+    workingSets: input.workingSets.map((set) => ({
+      targetWeightKg: set.targetWeightKg,
+      targetRepMin: set.targetRepMin,
+      targetRepMax: set.targetRepMax,
+      targetRir: set.targetRir,
+      targetRpe: set.targetRpe,
+    })),
+    action: input.action,
+    currentTargetWeightKg: input.currentTargetWeightKg,
+    suggestedWeightKg: input.suggestedWeightKg,
+    incrementKg: input.incrementKg,
+    incrementSource: input.incrementSource,
+    recentWorkoutSessionIds: [...input.recentWorkoutSessionIds],
+  };
+  return JSON.stringify(payload);
+}
+
+export function buildLoadRecommendationDecisionPayloadFingerprint(input: {
+  recommendationFingerprint: string;
+  decision: LoadRecommendationDecisionType;
+  adjustedWeightKg?: number | null;
+  userNote?: string | null;
+}): string {
+  return JSON.stringify({
+    recommendationFingerprint: input.recommendationFingerprint,
+    decision: input.decision,
+    adjustedWeightKg:
+      input.adjustedWeightKg === undefined ? null : input.adjustedWeightKg,
+    userNote: input.userNote ?? null,
+  });
+}
+
+export function isDecisionAllowedForAction(
+  action: LoadRecommendationAction,
+  decision: LoadRecommendationDecisionType,
+): boolean {
+  if (action === 'REVIEW' || action === 'INSUFFICIENT_DATA') {
+    return decision === 'IGNORED';
+  }
+  if (
+    action === 'INCREASE' ||
+    action === 'HOLD' ||
+    action === 'DECREASE'
+  ) {
+    return (
+      decision === 'ACCEPTED' ||
+      decision === 'ADJUSTED' ||
+      decision === 'IGNORED'
+    );
+  }
+  return false;
+}
+
+/**
+ * Charge à appliquer selon la décision et la recommandation recalculée.
+ * null = aucune mutation (IGNORED) ou non applicable.
+ */
+export function resolveAppliedWeightKg(input: {
+  action: LoadRecommendationAction;
+  decision: LoadRecommendationDecisionType;
+  currentTargetWeightKg: number | null;
+  suggestedWeightKg: number | null;
+  adjustedWeightKg?: number | null;
+}):
+  | { ok: true; appliedWeightKg: number | null; mutatesTemplate: boolean }
+  | { ok: false; code: string; message: string } {
+  const { action, decision } = input;
+
+  if (!isDecisionAllowedForAction(action, decision)) {
+    return {
+      ok: false,
+      code: 'LOAD_RECOMMENDATION_NOT_ACTIONABLE',
+      message:
+        'Cette recommandation ne peut pas être appliquée via cette décision.',
+    };
+  }
+
+  if (decision === 'IGNORED') {
+    if (input.adjustedWeightKg != null) {
+      return {
+        ok: false,
+        code: 'LOAD_RECOMMENDATION_INVALID_DECISION',
+        message: 'Une décision ignorée ne doit pas fournir de charge ajustée.',
+      };
+    }
+    return { ok: true, appliedWeightKg: null, mutatesTemplate: false };
+  }
+
+  if (decision === 'ACCEPTED') {
+    if (input.adjustedWeightKg != null) {
+      return {
+        ok: false,
+        code: 'LOAD_RECOMMENDATION_INVALID_DECISION',
+        message: 'Une acceptation ne doit pas fournir de charge ajustée.',
+      };
+    }
+    if (action === 'HOLD') {
+      if (input.currentTargetWeightKg == null) {
+        return {
+          ok: false,
+          code: 'LOAD_RECOMMENDATION_INVALID_WEIGHT',
+          message: 'Aucune charge cible actuelle à conserver.',
+        };
+      }
+      return {
+        ok: true,
+        appliedWeightKg: input.currentTargetWeightKg,
+        mutatesTemplate: false,
+      };
+    }
+    if (input.suggestedWeightKg == null || !(input.suggestedWeightKg > 0)) {
+      return {
+        ok: false,
+        code: 'LOAD_RECOMMENDATION_INVALID_WEIGHT',
+        message: 'La charge recommandée est indisponible.',
+      };
+    }
+    return {
+      ok: true,
+      appliedWeightKg: input.suggestedWeightKg,
+      mutatesTemplate: true,
+    };
+  }
+
+  // ADJUSTED
+  if (input.adjustedWeightKg == null) {
+    return {
+      ok: false,
+      code: 'LOAD_RECOMMENDATION_ADJUSTED_WEIGHT_REQUIRED',
+      message: 'Une charge ajustée est requise.',
+    };
+  }
+  if (!(input.adjustedWeightKg > 0) || !Number.isFinite(input.adjustedWeightKg)) {
+    return {
+      ok: false,
+      code: 'LOAD_RECOMMENDATION_INVALID_WEIGHT',
+      message: 'La charge ajustée doit être un poids positif en kilogrammes.',
+    };
+  }
+  return {
+    ok: true,
+    appliedWeightKg: input.adjustedWeightKg,
+    mutatesTemplate: true,
+  };
 }
 
 /**
@@ -624,39 +809,8 @@ function buildEvidenceWorkout(
   };
 }
 
-function emptyResult(partial: {
-  action: LoadRecommendationAction;
-  reasons: LoadRecommendationReason[];
-  currentTarget?: LoadRecommendationResult['currentTarget'];
-  effortDataUsed?: boolean;
-  recentWorkouts?: LoadRecommendationEvidenceWorkout[];
-}): LoadRecommendationResult {
-  return {
-    action: partial.action,
-    reasons: partial.reasons,
-    currentTarget: partial.currentTarget ?? {
-      weightKg: null,
-      minReps: null,
-      maxReps: null,
-      targetRir: null,
-      targetRpe: null,
-    },
-    recommendation: {
-      suggestedWeightKg: null,
-      adjustmentKg: null,
-      incrementKg: null,
-      incrementSource: null,
-    },
-    evidence: {
-      workoutCount: partial.recentWorkouts?.length ?? 0,
-      latestWorkoutDate: partial.recentWorkouts?.[0]?.localDate ?? null,
-      effortDataUsed: partial.effortDataUsed ?? false,
-      recentWorkouts: partial.recentWorkouts ?? [],
-    },
-  };
-}
-
 export type ResolveLoadRecommendationInput = {
+  workoutTemplateExerciseId: string;
   measurementType: string;
   templateEquipmentTypeId: string | null;
   templateSets: TemplateSetTargetInput[];
@@ -665,6 +819,81 @@ export type ResolveLoadRecommendationInput = {
   effortTrackingMode: EffortTrackingModeForLoad;
   userExerciseIncrementKg?: number | null;
 };
+
+function attachIdentity(
+  partial: Omit<
+    LoadRecommendationResult,
+    'engineVersion' | 'recommendationFingerprint'
+  >,
+  input: ResolveLoadRecommendationInput,
+): LoadRecommendationResult {
+  const workingSets = input.templateSets
+    .filter((s) => isWorkingSetType(s.setType))
+    .map((s) => ({
+      targetWeightKg: s.targetWeightKg,
+      targetRepMin: s.targetRepMin,
+      targetRepMax: s.targetRepMax,
+      targetRir: s.targetRir,
+      targetRpe: s.targetRpe,
+    }));
+  const recommendationFingerprint = buildLoadRecommendationFingerprint({
+    workoutTemplateExerciseId: input.workoutTemplateExerciseId,
+    engineVersion: LOAD_RECOMMENDATION_ENGINE_VERSION,
+    templateEquipmentTypeId: input.templateEquipmentTypeId,
+    workingSets,
+    action: partial.action,
+    currentTargetWeightKg: partial.currentTarget.weightKg,
+    suggestedWeightKg: partial.recommendation.suggestedWeightKg,
+    incrementKg: partial.recommendation.incrementKg,
+    incrementSource: partial.recommendation.incrementSource,
+    recentWorkoutSessionIds: input.recentWorkouts
+      .slice(0, LOAD_RECOMMENDATION_HISTORY_LIMIT)
+      .map((w) => w.workoutSessionId),
+  });
+  return {
+    ...partial,
+    engineVersion: LOAD_RECOMMENDATION_ENGINE_VERSION,
+    recommendationFingerprint,
+  };
+}
+
+function emptyResult(
+  partial: {
+    action: LoadRecommendationAction;
+    reasons: LoadRecommendationReason[];
+    currentTarget?: LoadRecommendationResult['currentTarget'];
+    effortDataUsed?: boolean;
+    recentWorkouts?: LoadRecommendationEvidenceWorkout[];
+  },
+  input: ResolveLoadRecommendationInput,
+): LoadRecommendationResult {
+  return attachIdentity(
+    {
+      action: partial.action,
+      reasons: partial.reasons,
+      currentTarget: partial.currentTarget ?? {
+        weightKg: null,
+        minReps: null,
+        maxReps: null,
+        targetRir: null,
+        targetRpe: null,
+      },
+      recommendation: {
+        suggestedWeightKg: null,
+        adjustmentKg: null,
+        incrementKg: null,
+        incrementSource: null,
+      },
+      evidence: {
+        workoutCount: partial.recentWorkouts?.length ?? 0,
+        latestWorkoutDate: partial.recentWorkouts?.[0]?.localDate ?? null,
+        effortDataUsed: partial.effortDataUsed ?? false,
+        recentWorkouts: partial.recentWorkouts ?? [],
+      },
+    },
+    input,
+  );
+}
 
 /**
  * Décision déterministe de charge à partir du contexte déjà chargé.
@@ -678,10 +907,13 @@ export function resolveLoadRecommendation(
   );
 
   if (!targetResult.ok) {
-    return emptyResult({
-      action: targetResult.action,
-      reasons: targetResult.reasons,
-    });
+    return emptyResult(
+      {
+        action: targetResult.action,
+        reasons: targetResult.reasons,
+      },
+      input,
+    );
   }
 
   const target = targetResult.target;
@@ -703,14 +935,16 @@ export function resolveLoadRecommendation(
   );
 
   if (workouts.length === 0) {
-    return emptyResult({
-      action: 'INSUFFICIENT_DATA',
-      reasons: ['NO_ELIGIBLE_HISTORY'],
-      currentTarget,
-    });
+    return emptyResult(
+      {
+        action: 'INSUFFICIENT_DATA',
+        reasons: ['NO_ELIGIBLE_HISTORY'],
+        currentTarget,
+      },
+      input,
+    );
   }
 
-  // Équipement : toute identité différente du modèle → REVIEW.
   for (const workout of workouts) {
     if (workout.equipmentTypeId !== input.templateEquipmentTypeId) {
       const assessments = workouts.map((w) =>
@@ -719,13 +953,16 @@ export function resolveLoadRecommendation(
       const evidence = workouts.map((w, i) =>
         buildEvidenceWorkout(w, assessments[i]!),
       );
-      return emptyResult({
-        action: 'REVIEW',
-        reasons: ['INCONSISTENT_EQUIPMENT'],
-        currentTarget,
-        recentWorkouts: evidence,
-        effortDataUsed: assessments.some((a) => a.effortDataUsed),
-      });
+      return emptyResult(
+        {
+          action: 'REVIEW',
+          reasons: ['INCONSISTENT_EQUIPMENT'],
+          currentTarget,
+          recentWorkouts: evidence,
+          effortDataUsed: assessments.some((a) => a.effortDataUsed),
+        },
+        input,
+      );
     }
   }
 
@@ -742,16 +979,18 @@ export function resolveLoadRecommendation(
     latest.assessments.every((a) => a === 'NOT_ASSESSABLE') ||
     latest.assessments.filter((a) => a !== 'NOT_ASSESSABLE').length === 0
   ) {
-    return emptyResult({
-      action: 'INSUFFICIENT_DATA',
-      reasons: ['NO_WORKING_SETS'],
-      currentTarget,
-      recentWorkouts: evidence,
-      effortDataUsed: latest.effortDataUsed,
-    });
+    return emptyResult(
+      {
+        action: 'INSUFFICIENT_DATA',
+        reasons: ['NO_WORKING_SETS'],
+        currentTarget,
+        recentWorkouts: evidence,
+        effortDataUsed: latest.effortDataUsed,
+      },
+      input,
+    );
   }
 
-  // Charge historique très différente de la cible actuelle → REVIEW.
   if (
     latest.comparableTargetWeightKg != null &&
     !weightsComparable(
@@ -760,19 +999,21 @@ export function resolveLoadRecommendation(
       incrementKg,
     )
   ) {
-    return emptyResult({
-      action: 'REVIEW',
-      reasons: ['COMPARABLE_LOAD_MISMATCH'],
-      currentTarget,
-      recentWorkouts: evidence,
-      effortDataUsed: latest.effortDataUsed,
-    });
+    return emptyResult(
+      {
+        action: 'REVIEW',
+        reasons: ['COMPARABLE_LOAD_MISMATCH'],
+        currentTarget,
+        recentWorkouts: evidence,
+        effortDataUsed: latest.effortDataUsed,
+      },
+      input,
+    );
   }
 
   const effortDataUsed = assessments.some((a) => a.effortDataUsed);
   const reasons: LoadRecommendationReason[] = [];
 
-  // —— INCREASE ——
   const canIncrease =
     latest.allAssessableCompleted &&
     latest.allAtTopOrAbove &&
@@ -799,25 +1040,27 @@ export function resolveLoadRecommendation(
       target.weightKg,
       incrementKg,
     );
-    return {
-      action: 'INCREASE',
-      reasons,
-      currentTarget,
-      recommendation: {
-        ...suggestion,
-        incrementKg,
-        incrementSource,
+    return attachIdentity(
+      {
+        action: 'INCREASE',
+        reasons,
+        currentTarget,
+        recommendation: {
+          ...suggestion,
+          incrementKg,
+          incrementSource,
+        },
+        evidence: {
+          workoutCount: evidence.length,
+          latestWorkoutDate: evidence[0]?.localDate ?? null,
+          effortDataUsed,
+          recentWorkouts: evidence,
+        },
       },
-      evidence: {
-        workoutCount: evidence.length,
-        latestWorkoutDate: evidence[0]?.localDate ?? null,
-        effortDataUsed,
-        recentWorkouts: evidence,
-      },
-    };
+      input,
+    );
   }
 
-  // —— DECREASE (conservateur : 2 séances consécutives) ——
   const previous = assessments[1];
   if (
     latest.underperformance === 'SIGNIFICANT' &&
@@ -830,10 +1073,7 @@ export function resolveLoadRecommendation(
     )
   ) {
     reasons.push('TARGET_RANGE_NOT_REACHED');
-    if (
-      latest.hasPartialOrFailed ||
-      previous.hasPartialOrFailed
-    ) {
+    if (latest.hasPartialOrFailed || previous.hasPartialOrFailed) {
       reasons.push('RECENT_FAILURES');
     }
     if (latest.effortExcessivelyHard || previous.effortExcessivelyHard) {
@@ -845,25 +1085,27 @@ export function resolveLoadRecommendation(
       target.weightKg,
       incrementKg,
     );
-    return {
-      action: 'DECREASE',
-      reasons,
-      currentTarget,
-      recommendation: {
-        ...suggestion,
-        incrementKg,
-        incrementSource,
+    return attachIdentity(
+      {
+        action: 'DECREASE',
+        reasons,
+        currentTarget,
+        recommendation: {
+          ...suggestion,
+          incrementKg,
+          incrementSource,
+        },
+        evidence: {
+          workoutCount: evidence.length,
+          latestWorkoutDate: evidence[0]?.localDate ?? null,
+          effortDataUsed,
+          recentWorkouts: evidence,
+        },
       },
-      evidence: {
-        workoutCount: evidence.length,
-        latestWorkoutDate: evidence[0]?.localDate ?? null,
-        effortDataUsed,
-        recentWorkouts: evidence,
-      },
-    };
+      input,
+    );
   }
 
-  // —— HOLD (y compris une seule mauvaise séance) ——
   if (latest.underperformance === 'SIGNIFICANT') {
     reasons.push('SINGLE_UNDERPERFORMANCE');
     if (latest.majorityBelowRange || latest.hasPartialOrFailed) {
@@ -904,20 +1146,131 @@ export function resolveLoadRecommendation(
     target.weightKg,
     incrementKg,
   );
-  return {
-    action: 'HOLD',
-    reasons,
-    currentTarget,
-    recommendation: {
-      ...suggestion,
-      incrementKg,
-      incrementSource,
+  return attachIdentity(
+    {
+      action: 'HOLD',
+      reasons,
+      currentTarget,
+      recommendation: {
+        ...suggestion,
+        incrementKg,
+        incrementSource,
+      },
+      evidence: {
+        workoutCount: evidence.length,
+        latestWorkoutDate: evidence[0]?.localDate ?? null,
+        effortDataUsed,
+        recentWorkouts: evidence,
+      },
     },
-    evidence: {
-      workoutCount: evidence.length,
-      latestWorkoutDate: evidence[0]?.localDate ?? null,
-      effortDataUsed,
-      recentWorkouts: evidence,
-    },
-  };
+    input,
+  );
+}
+
+
+const loadRecommendationClientCommandIdSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(128)
+  .regex(/^[A-Za-z0-9._:-]+$/, 'Identifiant de commande invalide.');
+
+export const loadRecommendationDecisionTypeSchema = z.enum([
+  'ACCEPTED',
+  'ADJUSTED',
+  'IGNORED',
+]);
+
+export const decideLoadRecommendationSchema = z
+  .object({
+    recommendationFingerprint: z.string().trim().min(1).max(4000),
+    decision: loadRecommendationDecisionTypeSchema,
+    adjustedWeightKg: z.number().finite().positive().max(10_000).optional(),
+    userNote: z
+      .string()
+      .max(500)
+      .nullable()
+      .optional()
+      .transform((value) => {
+        if (value === undefined) return undefined;
+        if (value == null) return null;
+        const trimmed = value.trim();
+        return trimmed.length === 0 ? null : trimmed;
+      }),
+    clientCommandId: loadRecommendationClientCommandIdSchema,
+  })
+  .strict()
+  .superRefine((data, ctx) => {
+    if (data.decision === 'ADJUSTED' && data.adjustedWeightKg == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'LOAD_RECOMMENDATION_ADJUSTED_WEIGHT_REQUIRED',
+        path: ['adjustedWeightKg'],
+      });
+    }
+    if (
+      (data.decision === 'ACCEPTED' || data.decision === 'IGNORED') &&
+      data.adjustedWeightKg != null
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'LOAD_RECOMMENDATION_INVALID_DECISION',
+        path: ['adjustedWeightKg'],
+      });
+    }
+  });
+
+export type DecideLoadRecommendationInput = z.infer<
+  typeof decideLoadRecommendationSchema
+>;
+
+const emptyQueryToUndefined = (value: unknown) => {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === 'string' && value.trim() === '') return undefined;
+  return value;
+};
+
+export const loadRecommendationDecisionsQuerySchema = z
+  .object({
+    cursor: z.preprocess(emptyQueryToUndefined, z.string().min(1).optional()),
+    limit: z.preprocess(
+      emptyQueryToUndefined,
+      z.coerce.number().int().min(1).max(50).optional(),
+    ),
+  })
+  .strict();
+
+export type LoadRecommendationDecisionsQuery = z.infer<
+  typeof loadRecommendationDecisionsQuerySchema
+>;
+
+export type LoadRecommendationDecisionCursorPayload = {
+  version: 1;
+  createdAt: string;
+  id: string;
+};
+
+export function encodeLoadRecommendationDecisionCursor(
+  payload: LoadRecommendationDecisionCursorPayload,
+): string {
+  return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+}
+
+export function decodeLoadRecommendationDecisionCursor(
+  cursor: string,
+): LoadRecommendationDecisionCursorPayload | null {
+  try {
+    const raw = Buffer.from(cursor, 'base64url').toString('utf8');
+    const parsed = JSON.parse(raw) as LoadRecommendationDecisionCursorPayload;
+    if (
+      parsed?.version !== 1 ||
+      typeof parsed.createdAt !== 'string' ||
+      typeof parsed.id !== 'string'
+    ) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
 }

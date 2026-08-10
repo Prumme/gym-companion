@@ -1813,7 +1813,7 @@ reps = 1 → e1RM = weight
 
 ### 23.2ter Recommandation de charge (jalon 5.1)
 
-Calcul **déterministe à la demande** (aucune table, aucune IA).
+Calcul **déterministe à la demande** (recommandation non persistée, aucune IA).
 
 ```text
 GET /api/v1/coaching/workout-template-exercises/:workoutTemplateExerciseId/load-recommendation
@@ -1859,6 +1859,8 @@ type LoadRecommendation = {
     }>;
   };
   reasons: LoadRecommendationReason[];
+  engineVersion: 'LOAD_RECOMMENDATION_V1';
+  recommendationFingerprint: string;
 };
 ```
 
@@ -1870,8 +1872,59 @@ type LoadRecommendation = {
 - RIR/RPE optionnels ; mode profil `NONE` / `RIR` / `RPE` (sans mélange).
 - `DECREASE` : ≥ 2 séances consécutives sous-performantes.
 - Incrément défaut 2,5 kg (`SYSTEM_DEFAULT`) tant qu’aucune préférence Prisma n’existe.
-- Lecture seule : **aucune** mutation du programme / modèle.
+- Lecture seule en 5.1 ; application via 23.2quater.
 - Cache client : NetworkOnly ; invalidation après `COMPLETE` serveur et modification du modèle.
+
+### 23.2quater Décision de charge (jalon 5.2)
+
+```text
+POST /api/v1/coaching/workout-template-exercises/:workoutTemplateExerciseId/load-recommendation/decision
+GET  /api/v1/coaching/workout-template-exercises/:workoutTemplateExerciseId/load-recommendation-decisions
+```
+
+JWT obligatoire. Ownership stricte ; IDOR → `404` neutre.
+
+#### Body décision
+
+```ts
+type DecideLoadRecommendationInput = {
+  recommendationFingerprint: string;
+  decision: 'ACCEPTED' | 'ADJUSTED' | 'IGNORED';
+  adjustedWeightKg?: number; // requis si ADJUSTED ; interdit sinon
+  userNote?: string | null;
+  clientCommandId: string;
+};
+```
+
+#### Réponse décision
+
+```ts
+type DecideLoadRecommendationResult = {
+  decision: LoadRecommendationDecisionDto;
+  templateExercise: WorkoutTemplateExerciseDetail;
+  program: ProgramDetail;
+  recommendation: LoadRecommendation | null;
+};
+```
+
+#### Historique (liste)
+
+Query : `cursor?`, `limit?` (1–50, défaut 20). Tri `createdAt DESC, id DESC`.
+Items compacts (sans `evidenceSnapshot` complet).
+
+#### Codes d’erreur
+
+| Code | HTTP | Sens |
+|------|------|------|
+| `LOAD_RECOMMENDATION_STALE` | 409 | Fingerprint obsolète |
+| `LOAD_RECOMMENDATION_COMMAND_CONFLICT` | 409 | Même `clientCommandId`, autre payload |
+| `LOAD_RECOMMENDATION_NOT_ACTIONABLE` | 400 | Décision incompatible avec l’action |
+| `LOAD_RECOMMENDATION_INVALID_DECISION` | 400 | Ex. poids fourni avec `ACCEPTED`/`IGNORED` |
+| `LOAD_RECOMMENDATION_ADJUSTED_WEIGHT_REQUIRED` | 400 | `ADJUSTED` sans poids |
+| `LOAD_RECOMMENDATION_INVALID_WEIGHT` | 400 | Poids invalide |
+| `LOAD_RECOMMENDATION_INVALID_CURSOR` | 400 | Cursor historique invalide |
+| `WORKOUT_TEMPLATE_EXERCISE_NOT_FOUND` | 404 | Absent / non propriétaire |
+| `PROGRAM_NOT_EDITABLE` | 403 | Programme archivé |
 
 ### 23.3 Records (jalon 4.1)
 

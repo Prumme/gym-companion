@@ -799,6 +799,54 @@ export type LoadRecommendation = {
     recentWorkouts: LoadRecommendationEvidenceWorkout[];
   };
   reasons: LoadRecommendationReason[];
+  engineVersion: 'LOAD_RECOMMENDATION_V1';
+  recommendationFingerprint: string;
+};
+
+export type LoadRecommendationDecisionType =
+  | 'ACCEPTED'
+  | 'ADJUSTED'
+  | 'IGNORED';
+
+export type LoadRecommendationDecisionDto = {
+  id: string;
+  engineVersion: string;
+  recommendationFingerprint: string;
+  recommendationAction: LoadRecommendationAction;
+  decisionType: LoadRecommendationDecisionType;
+  currentTargetWeightKg: number | null;
+  recommendedWeightKg: number | null;
+  appliedWeightKg: number | null;
+  incrementKg: number | null;
+  incrementSource: LoadIncrementSource | null;
+  reasons: LoadRecommendationReason[];
+  latestEvidenceWorkoutDate: string | null;
+  userNote: string | null;
+  createdAt: string;
+};
+
+export type LoadRecommendationDecisionListItem = {
+  id: string;
+  engineVersion: string;
+  recommendationAction: LoadRecommendationAction;
+  decisionType: LoadRecommendationDecisionType;
+  currentTargetWeightKg: number | null;
+  recommendedWeightKg: number | null;
+  appliedWeightKg: number | null;
+  reasons: LoadRecommendationReason[];
+  latestEvidenceWorkoutDate: string | null;
+  userNote: string | null;
+  createdAt: string;
+};
+
+export type LoadRecommendationDecisionListResponse =
+  ApiCursorListResponse<LoadRecommendationDecisionListItem>;
+
+export type DecideLoadRecommendationResult = {
+  decision: LoadRecommendationDecisionDto;
+  templateExercise: WorkoutTemplateExerciseDetail;
+  program: ProgramDetail;
+  recommendation: LoadRecommendation | null;
 };
 
 export function createSuccessResponse<T>(data: T): ApiSuccessResponse<T> {

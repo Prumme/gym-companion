@@ -414,6 +414,16 @@ au plus 3 séances `COMPLETED`, warmups exclus. Actions
 `INCREASE` / `HOLD` / `DECREASE` / `INSUFFICIENT_DATA` / `REVIEW`. Endpoint
 `GET /api/v1/coaching/workout-template-exercises/:id/load-recommendation`.
 Carte « Suggestion pour la prochaine séance » sur le détail programme — **aucune
-application automatique**, aucune IA, aucune table de recommandation.
+application automatique**, aucune IA.
+
+Le jalon **5.2** ajoute la **décision explicite** de l’utilisateur
+(`ACCEPTED` / `ADJUSTED` / `IGNORED`) face à une recommandation 5.1. Le serveur
+recalcule la recommandation, vérifie un `recommendationFingerprint`, et n’applique
+une charge qu’après confirmation. Application limitée à `targetWeightKg` des séries
+`WORKING` du modèle. Table d’audit `LoadRecommendationDecision` (idempotence
+`clientCommandId`). Endpoints
+`POST .../load-recommendation/decision` et
+`GET .../load-recommendation-decisions`. Snapshots de séances actives / terminées
+immuables. Pas d’auto-apply, pas d’IA, pas de commande offline.
 
 Les documents du dossier `docs/` restent la source de vérité produit et technique.

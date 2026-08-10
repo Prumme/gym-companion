@@ -2,6 +2,7 @@ import type {
   LoadIncrementSource,
   LoadRecommendation,
   LoadRecommendationAction,
+  LoadRecommendationDecisionType,
   LoadRecommendationReason,
 } from '@gym-companion/shared';
 
@@ -11,6 +12,12 @@ const ACTION_LABELS: Record<LoadRecommendationAction, string> = {
   DECREASE: 'Réduire la charge',
   INSUFFICIENT_DATA: 'Pas encore assez de données',
   REVIEW: 'Progression à vérifier',
+};
+
+const DECISION_LABELS: Record<LoadRecommendationDecisionType, string> = {
+  ACCEPTED: 'Acceptée',
+  ADJUSTED: 'Ajustée',
+  IGNORED: 'Ignorée',
 };
 
 const REASON_MESSAGES: Record<LoadRecommendationReason, string> = {
@@ -54,6 +61,12 @@ export function getLoadRecommendationActionLabel(
   action: LoadRecommendationAction,
 ): string {
   return ACTION_LABELS[action];
+}
+
+export function getLoadRecommendationDecisionLabel(
+  decision: LoadRecommendationDecisionType,
+): string {
+  return DECISION_LABELS[decision];
 }
 
 export function getLoadRecommendationReasonMessage(
@@ -111,4 +124,31 @@ export function formatEvidenceSummary(
     return null;
   }
   return `Basé sur ${count} séance${count > 1 ? 's' : ''} récente${count > 1 ? 's' : ''}.`;
+}
+
+export function isLoadRecommendationActionable(
+  action: LoadRecommendationAction,
+): boolean {
+  return action === 'INCREASE' || action === 'HOLD' || action === 'DECREASE';
+}
+
+export function formatDecisionHistoryLine(input: {
+  recommendationAction: LoadRecommendationAction;
+  decisionType: LoadRecommendationDecisionType;
+  currentTargetWeightKg: number | null;
+  recommendedWeightKg: number | null;
+  appliedWeightKg: number | null;
+}): string {
+  const actionLabel = getLoadRecommendationActionLabel(
+    input.recommendationAction,
+  );
+  const decisionLabel = getLoadRecommendationDecisionLabel(input.decisionType);
+  const transition = formatLoadWeightTransition(
+    input.currentTargetWeightKg,
+    input.recommendedWeightKg,
+  );
+  if (input.decisionType === 'ADJUSTED' && input.appliedWeightKg != null) {
+    return `${actionLabel}${transition ? ` : ${transition}` : ''} — Décision : ${decisionLabel} à ${formatLoadWeightKg(input.appliedWeightKg)}`;
+  }
+  return `${actionLabel}${transition ? ` : ${transition}` : ''} — Décision : ${decisionLabel}`;
 }

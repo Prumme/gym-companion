@@ -767,3 +767,585 @@ describe('Load recommendation API (5.1)', () => {
     expect(strength.body.data.supported).toBe(true);
   });
 });
+
+function decideRecommendation(
+  app: INestApplication,
+  token: string | null,
+  templateExerciseId: string,
+  body: Record<string, unknown>,
+) {
+  const req = request(app.getHttpServer()).post(
+    `/api/v1/coaching/workout-template-exercises/${templateExerciseId}/load-recommendation/decision`,
+  );
+  if (token) {
+    req.set('Authorization', `Bearer ${token}`);
+  }
+  return req.send(body);
+}
+
+function listDecisions(
+  app: INestApplication,
+  token: string | null,
+  templateExerciseId: string,
+  query: Record<string, string> = {},
+) {
+  const req = request(app.getHttpServer()).get(
+    `/api/v1/coaching/workout-template-exercises/${templateExerciseId}/load-recommendation-decisions`,
+  );
+  if (token) {
+    req.set('Authorization', `Bearer ${token}`);
+  }
+  return req.query(query);
+}
+
+async function addBackoffSet(
+  app: INestApplication,
+  token: string,
+  tpl: Startable,
+) {
+  await request(app.getHttpServer())
+    .post(
+      `/api/v1/programs/${tpl.programId}/workout-templates/${tpl.templateId}/exercises/${tpl.templateExerciseId}/sets`,
+    )
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      setType: 'BACKOFF',
+      targetRepMin: 8,
+      targetRepMax: 10,
+      targetDurationSeconds: null,
+      targetDistanceMeters: null,
+      targetWeightKg: 70,
+      targetIntensityPercent: null,
+      targetRir: 2,
+      targetRpe: null,
+      restSeconds: 90,
+    })
+    .expect(201);
+}
+
+async function readTemplateSets(
+  prisma: PrismaService,
+  templateExerciseId: string,
+) {
+  return prisma.workoutTemplateSet.findMany({
+    where: { workoutTemplateExerciseId: templateExerciseId },
+    orderBy: { position: 'asc' },
+  });
+}
+
+describe('Load recommendation decisions API (5.2)', () => {
+  let app: INestApplication;
+  let prisma: PrismaService;
+  let tokenA: string;
+  let tokenB: string;
+  const stamp = Date.now() + 1;
+
+  beforeAll(async () => {
+    applyTestEnv();
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+    app = moduleRef.createNestApplication();
+    const config = app.get(AppConfigService);
+    app.use(cookieParser(config.cookieSecret));
+    app.useGlobalFilters(new GlobalExceptionFilter(config));
+    await app.init();
+    prisma = app.get(PrismaService);
+    await seedReferenceData(prisma);
+    await seedSystemExercises(prisma);
+
+    tokenA = await registerUser(app, `load-d-a-${stamp}@example.com`, 'Load DA');
+    tokenB = await registerUser(app, `load-d-b-${stamp}@example.com`, 'Load DB');
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('ACCEPTED INCREASE applique 82.5 aux WORKING uniquement', async () => {
+    const tpl = await createLoadTemplate(app, tokenA, prisma, `d-inc-${stamp}`, {
+      withWarmup: true,
+    });
+    await addBackoffSet(app, tokenA, tpl);
+    await completeWorkingReps(
+      app,
+      tokenA,
+      tpl.templateId,
+      '2026-08-01',
+      [10, 10, 10],
+      { prefix: `d-inc-${stamp}`, rir: 2 },
+    );
+
+    const reco = await getRecommendation(app, tokenA, tpl.templateExerciseId);
+    expect(reco.body.data.action).toBe('INCREASE');
+    expect(reco.body.data.recommendation.suggestedWeightKg).toBe(82.5);
+    expect(reco.body.data.recommendationFingerprint).toBeTruthy();
+    expect(reco.body.data.engineVersion).toBe('LOAD_RECOMMENDATION_V1');
+
+    const decided = await decideRecommendation(
+      app,
+      tokenA,
+      tpl.templateExerciseId,
+      {
+        recommendationFingerprint: reco.body.data.recommendationFingerprint,
+        decision: 'ACCEPTED',
+        clientCommandId: `cmd-inc-${stamp}`,
+      },
+    );
+    expect(decided.status).toBe(201);
+    expect(decided.body.data.decision.decisionType).toBe('ACCEPTED');
+    expect(decided.body.data.decision.appliedWeightKg).toBe(82.5);
+
+    const sets = await readTemplateSets(prisma, tpl.templateExerciseId);
+    const byType = Object.fromEntries(
+      sets.map((s) => [s.setType, Number(s.targetWeightKg)]),
+    );
+    expect(byType.WARMUP).toBe(40);
+    expect(byType.BACKOFF).toBe(70);
+    expect(sets.filter((s) => s.setType === 'WORKING').every((s) => Number(s.targetWeightKg) === 82.5)).toBe(
+      true,
+    );
+  });
+
+  it('ACCEPTED HOLD enregistre sans mutation numérique', async () => {
+    const tpl = await createLoadTemplate(app, tokenA, prisma, `d-hold-${stamp}`);
+    await completeWorkingReps(
+      app,
+      tokenA,
+      tpl.templateId,
+      '2026-08-02',
+      [10, 9, 8],
+      { prefix: `d-hold-${stamp}` },
+    );
+    const reco = await getRecommendation(app, tokenA, tpl.templateExerciseId);
+    expect(reco.body.data.action).toBe('HOLD');
+
+    const decided = await decideRecommendation(
+      app,
+      tokenA,
+      tpl.templateExerciseId,
+      {
+        recommendationFingerprint: reco.body.data.recommendationFingerprint,
+        decision: 'ACCEPTED',
+        clientCommandId: `cmd-hold-${stamp}`,
+      },
+    );
+    expect(decided.status).toBe(201);
+    expect(decided.body.data.decision.appliedWeightKg).toBe(80);
+    const sets = await readTemplateSets(prisma, tpl.templateExerciseId);
+    expect(
+      sets
+        .filter((s) => s.setType === 'WORKING')
+        .every((s) => Number(s.targetWeightKg) === 80),
+    ).toBe(true);
+  });
+
+  it('ADJUSTED applique une charge personnalisée ; IGNORED ne mute pas', async () => {
+    const tpl = await createLoadTemplate(app, tokenA, prisma, `d-adj-${stamp}`);
+    await completeWorkingReps(
+      app,
+      tokenA,
+      tpl.templateId,
+      '2026-08-03',
+      [10, 10, 10],
+      { prefix: `d-adj-${stamp}`, rir: 2 },
+    );
+    const reco = await getRecommendation(app, tokenA, tpl.templateExerciseId);
+    expect(reco.body.data.action).toBe('INCREASE');
+
+    const adjusted = await decideRecommendation(
+      app,
+      tokenA,
+      tpl.templateExerciseId,
+      {
+        recommendationFingerprint: reco.body.data.recommendationFingerprint,
+        decision: 'ADJUSTED',
+        adjustedWeightKg: 81.5,
+        userNote: 'Pas de disques 1,25',
+        clientCommandId: `cmd-adj-${stamp}`,
+      },
+    );
+    expect(adjusted.status).toBe(201);
+    expect(adjusted.body.data.decision.decisionType).toBe('ADJUSTED');
+    expect(adjusted.body.data.decision.appliedWeightKg).toBe(81.5);
+    expect(adjusted.body.data.decision.userNote).toBe('Pas de disques 1,25');
+
+    const tplIgn = await createLoadTemplate(
+      app,
+      tokenA,
+      prisma,
+      `d-ign-${stamp}`,
+    );
+    await completeWorkingReps(
+      app,
+      tokenA,
+      tplIgn.templateId,
+      '2026-08-03',
+      [10, 10, 10],
+      { prefix: `d-ign-${stamp}`, rir: 2 },
+    );
+    const recoIgn = await getRecommendation(
+      app,
+      tokenA,
+      tplIgn.templateExerciseId,
+    );
+    const ignored = await decideRecommendation(
+      app,
+      tokenA,
+      tplIgn.templateExerciseId,
+      {
+        recommendationFingerprint: recoIgn.body.data.recommendationFingerprint,
+        decision: 'IGNORED',
+        clientCommandId: `cmd-ign-${stamp}`,
+      },
+    );
+    expect(ignored.status).toBe(201);
+    expect(ignored.body.data.decision.decisionType).toBe('IGNORED');
+    expect(ignored.body.data.decision.appliedWeightKg).toBeNull();
+    const sets = await readTemplateSets(prisma, tplIgn.templateExerciseId);
+    expect(
+      sets
+        .filter((s) => s.setType === 'WORKING')
+        .every((s) => Number(s.targetWeightKg) === 80),
+    ).toBe(true);
+  });
+
+  it('refuse ACCEPTED/ADJUSTED sur REVIEW et validations invalides', async () => {
+    const tpl = await createLoadTemplate(app, tokenA, prisma, `d-rev-${stamp}`, {
+      heterogeneous: true,
+    });
+    await completeWorkingReps(
+      app,
+      tokenA,
+      tpl.templateId,
+      '2026-08-04',
+      [10, 10, 10],
+      { prefix: `d-rev-${stamp}` },
+    );
+    const reco = await getRecommendation(app, tokenA, tpl.templateExerciseId);
+    expect(reco.body.data.action).toBe('REVIEW');
+
+    const accepted = await decideRecommendation(
+      app,
+      tokenA,
+      tpl.templateExerciseId,
+      {
+        recommendationFingerprint: reco.body.data.recommendationFingerprint,
+        decision: 'ACCEPTED',
+        clientCommandId: `cmd-rev-acc-${stamp}`,
+      },
+    );
+    expect(accepted.status).toBe(400);
+    expect(accepted.body.error.code).toMatch(
+      /LOAD_RECOMMENDATION_(NOT_ACTIONABLE|INVALID_DECISION)/,
+    );
+
+    const adjusted = await decideRecommendation(
+      app,
+      tokenA,
+      tpl.templateExerciseId,
+      {
+        recommendationFingerprint: reco.body.data.recommendationFingerprint,
+        decision: 'ADJUSTED',
+        adjustedWeightKg: 85,
+        clientCommandId: `cmd-rev-adj-${stamp}`,
+      },
+    );
+    expect(adjusted.status).toBe(400);
+
+    const tplInc = await createLoadTemplate(
+      app,
+      tokenA,
+      prisma,
+      `d-val-${stamp}`,
+    );
+    await completeWorkingReps(
+      app,
+      tokenA,
+      tplInc.templateId,
+      '2026-08-04',
+      [10, 10, 10],
+      { prefix: `d-val-${stamp}`, rir: 2 },
+    );
+    const recoInc = await getRecommendation(
+      app,
+      tokenA,
+      tplInc.templateExerciseId,
+    );
+    const fp = recoInc.body.data.recommendationFingerprint as string;
+
+    for (const [label, body] of [
+      [
+        'adjusted-missing',
+        {
+          recommendationFingerprint: fp,
+          decision: 'ADJUSTED',
+          clientCommandId: `cmd-val-miss-${stamp}`,
+        },
+      ],
+      [
+        'adjusted-zero',
+        {
+          recommendationFingerprint: fp,
+          decision: 'ADJUSTED',
+          adjustedWeightKg: 0,
+          clientCommandId: `cmd-val-0-${stamp}`,
+        },
+      ],
+      [
+        'accepted-with-weight',
+        {
+          recommendationFingerprint: fp,
+          decision: 'ACCEPTED',
+          adjustedWeightKg: 81,
+          clientCommandId: `cmd-val-accw-${stamp}`,
+        },
+      ],
+      [
+        'ignored-with-weight',
+        {
+          recommendationFingerprint: fp,
+          decision: 'IGNORED',
+          adjustedWeightKg: 81,
+          clientCommandId: `cmd-val-ignw-${stamp}`,
+        },
+      ],
+    ] as const) {
+      const res = await decideRecommendation(
+        app,
+        tokenA,
+        tplInc.templateExerciseId,
+        body,
+      );
+      expect(res.status, label).toBe(400);
+    }
+  });
+
+  it('stale si la cible change avant application', async () => {
+    const tpl = await createLoadTemplate(app, tokenA, prisma, `d-stale-${stamp}`);
+    await completeWorkingReps(
+      app,
+      tokenA,
+      tpl.templateId,
+      '2026-08-05',
+      [10, 10, 10],
+      { prefix: `d-stale-${stamp}`, rir: 2 },
+    );
+    const reco = await getRecommendation(app, tokenA, tpl.templateExerciseId);
+    const oldFp = reco.body.data.recommendationFingerprint as string;
+
+    await prisma.workoutTemplateSet.updateMany({
+      where: {
+        workoutTemplateExerciseId: tpl.templateExerciseId,
+        setType: 'WORKING',
+      },
+      data: { targetWeightKg: 85 },
+    });
+
+    const stale = await decideRecommendation(
+      app,
+      tokenA,
+      tpl.templateExerciseId,
+      {
+        recommendationFingerprint: oldFp,
+        decision: 'ACCEPTED',
+        clientCommandId: `cmd-stale-${stamp}`,
+      },
+    );
+    expect(stale.status).toBe(409);
+    expect(stale.body.error.code).toBe('LOAD_RECOMMENDATION_STALE');
+
+    const sets = await readTemplateSets(prisma, tpl.templateExerciseId);
+    expect(
+      sets
+        .filter((s) => s.setType === 'WORKING')
+        .every((s) => Number(s.targetWeightKg) === 85),
+    ).toBe(true);
+  });
+
+  it('idempotence clientCommandId + conflit payload', async () => {
+    const tpl = await createLoadTemplate(app, tokenA, prisma, `d-idemp-${stamp}`);
+    await completeWorkingReps(
+      app,
+      tokenA,
+      tpl.templateId,
+      '2026-08-06',
+      [10, 10, 10],
+      { prefix: `d-idemp-${stamp}`, rir: 2 },
+    );
+    const reco = await getRecommendation(app, tokenA, tpl.templateExerciseId);
+    const payload = {
+      recommendationFingerprint: reco.body.data.recommendationFingerprint,
+      decision: 'ACCEPTED',
+      clientCommandId: `cmd-idemp-${stamp}`,
+    };
+
+    const first = await decideRecommendation(
+      app,
+      tokenA,
+      tpl.templateExerciseId,
+      payload,
+    );
+    expect(first.status).toBe(201);
+    const second = await decideRecommendation(
+      app,
+      tokenA,
+      tpl.templateExerciseId,
+      payload,
+    );
+    expect(second.status).toBe(201);
+    expect(second.body.data.decision.id).toBe(first.body.data.decision.id);
+
+    const count = await prisma.loadRecommendationDecision.count({
+      where: {
+        ownerUserId: (await prisma.user.findFirstOrThrow({
+          where: { email: `load-d-a-${stamp}@example.com` },
+        })).id,
+        clientCommandId: `cmd-idemp-${stamp}`,
+      },
+    });
+    expect(count).toBe(1);
+
+    // Nouvelle reco après application → conflit si même commandId avec autre payload
+    const conflict = await decideRecommendation(
+      app,
+      tokenA,
+      tpl.templateExerciseId,
+      {
+        recommendationFingerprint: reco.body.data.recommendationFingerprint,
+        decision: 'IGNORED',
+        clientCommandId: `cmd-idemp-${stamp}`,
+      },
+    );
+    expect(conflict.status).toBe(409);
+    expect(conflict.body.error.code).toBe(
+      'LOAD_RECOMMENDATION_COMMAND_CONFLICT',
+    );
+  });
+
+  it('séance ACTIVE inchangée ; future séance snapshotte la nouvelle cible', async () => {
+    const tpl = await createLoadTemplate(app, tokenA, prisma, `d-snap-${stamp}`, {
+      withWarmup: true,
+    });
+    await completeWorkingReps(
+      app,
+      tokenA,
+      tpl.templateId,
+      '2026-08-07',
+      [10, 10, 10],
+      { prefix: `d-snap-${stamp}`, rir: 2 },
+    );
+
+    const active = await startWorkout(
+      app,
+      tokenA,
+      tpl.templateId,
+      '2026-08-08',
+    );
+    const activeWorking = active.exercises[0]!.sets.filter(
+      (s) => s.setType === 'WORKING',
+    );
+    const activeDetail = await request(app.getHttpServer())
+      .get(`/api/v1/workouts/${active.id}`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    const activeWeights = activeDetail.body.data.exercises[0].sets
+      .filter((s: { setType: string }) => s.setType === 'WORKING')
+      .map((s: { targetWeightKg: number | null }) => s.targetWeightKg);
+    expect(activeWeights.every((w: number) => w === 80)).toBe(true);
+
+    const reco = await getRecommendation(app, tokenA, tpl.templateExerciseId);
+    await decideRecommendation(app, tokenA, tpl.templateExerciseId, {
+      recommendationFingerprint: reco.body.data.recommendationFingerprint,
+      decision: 'ACCEPTED',
+      clientCommandId: `cmd-snap-${stamp}`,
+    }).expect(201);
+
+    const activeAfter = await request(app.getHttpServer())
+      .get(`/api/v1/workouts/${active.id}`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    const weightsAfter = activeAfter.body.data.exercises[0].sets
+      .filter((s: { setType: string }) => s.setType === 'WORKING')
+      .map((s: { targetWeightKg: number | null }) => s.targetWeightKg);
+    expect(weightsAfter.every((w: number) => w === 80)).toBe(true);
+
+    await cancelWorkout(app, tokenA, active, `cmd-snap-cancel-${stamp}`);
+
+    const future = await startWorkout(
+      app,
+      tokenA,
+      tpl.templateId,
+      '2026-08-09',
+    );
+    const futureDetail = await request(app.getHttpServer())
+      .get(`/api/v1/workouts/${future.id}`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    const futureWeights = futureDetail.body.data.exercises[0].sets
+      .filter((s: { setType: string }) => s.setType === 'WORKING')
+      .map((s: { targetWeightKg: number | null }) => s.targetWeightKg);
+    expect(futureWeights.every((w: number) => w === 82.5)).toBe(true);
+    const futureWarmup = futureDetail.body.data.exercises[0].sets.find(
+      (s: { setType: string }) => s.setType === 'WARMUP',
+    );
+    expect(futureWarmup.targetWeightKg).toBe(40);
+    expect(activeWorking.length).toBeGreaterThan(0);
+
+    await cancelWorkout(app, tokenA, future, `cmd-snap-future-cancel-${stamp}`);
+  });
+
+  it('historique décisions + isolation multi-user', async () => {
+    const tpl = await createLoadTemplate(app, tokenA, prisma, `d-hist-${stamp}`);
+    await completeWorkingReps(
+      app,
+      tokenA,
+      tpl.templateId,
+      '2026-08-10',
+      [10, 10, 10],
+      { prefix: `d-hist-${stamp}`, rir: 2 },
+    );
+    const reco = await getRecommendation(app, tokenA, tpl.templateExerciseId);
+    await decideRecommendation(app, tokenA, tpl.templateExerciseId, {
+      recommendationFingerprint: reco.body.data.recommendationFingerprint,
+      decision: 'IGNORED',
+      clientCommandId: `cmd-hist-${stamp}`,
+    }).expect(201);
+
+    const list = await listDecisions(app, tokenA, tpl.templateExerciseId, {
+      limit: '5',
+    });
+    expect(list.status).toBe(200);
+    expect(list.body.data.length).toBeGreaterThanOrEqual(1);
+    expect(list.body.data[0].decisionType).toBe('IGNORED');
+    expect(list.body.data[0]).not.toHaveProperty('evidenceSnapshot');
+    expect(list.body.data[0]).not.toHaveProperty('payloadFingerprint');
+
+    const foreign = await listDecisions(app, tokenB, tpl.templateExerciseId);
+    expect(foreign.status).toBe(404);
+
+    const decideForeign = await decideRecommendation(
+      app,
+      tokenB,
+      tpl.templateExerciseId,
+      {
+        recommendationFingerprint: reco.body.data.recommendationFingerprint,
+        decision: 'IGNORED',
+        clientCommandId: `cmd-hist-b-${stamp}`,
+      },
+    );
+    expect(decideForeign.status).toBe(404);
+
+    const unauth = await decideRecommendation(
+      app,
+      null,
+      tpl.templateExerciseId,
+      {
+        recommendationFingerprint: 'x',
+        decision: 'IGNORED',
+        clientCommandId: `cmd-hist-u-${stamp}`,
+      },
+    );
+    expect(unauth.status).toBe(401);
+  });
+});

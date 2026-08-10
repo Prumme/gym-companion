@@ -7,6 +7,9 @@ import {
   assessWorkoutPerformance,
   computeSuggestedWeightKg,
   resolveLoadIncrement,
+  LOAD_RECOMMENDATION_ENGINE_VERSION,
+  buildLoadRecommendationFingerprint,
+  resolveAppliedWeightKg,
   resolveLoadRecommendation,
   resolveLoadTargetFromTemplateSets,
   roundToLoadIncrement,
@@ -207,6 +210,7 @@ describe('roundToLoadIncrement / computeSuggestedWeightKg (5.1)', () => {
 describe('resolveLoadRecommendation — INCREASE (5.1)', () => {
   it('10/10/10 COMPLETED + RIR sur cible → INCREASE', () => {
     const result = resolveLoadRecommendation({
+      workoutTemplateExerciseId: 'wte-1',
       measurementType: 'WEIGHT_REPS',
       templateEquipmentTypeId: 'eq-bar',
       templateSets: templateWorking(),
@@ -227,6 +231,7 @@ describe('resolveLoadRecommendation — INCREASE (5.1)', () => {
 
   it('RIR plus facile, RPE sur cible, effort NONE', () => {
     const easier = resolveLoadRecommendation({
+      workoutTemplateExerciseId: 'wte-1',
       measurementType: 'WEIGHT_REPS',
       templateEquipmentTypeId: 'eq-bar',
       templateSets: templateWorking(),
@@ -243,6 +248,7 @@ describe('resolveLoadRecommendation — INCREASE (5.1)', () => {
 
     const rpeSets = templateWorking(3, { targetRir: null, targetRpe: 8 });
     const rpe = resolveLoadRecommendation({
+      workoutTemplateExerciseId: 'wte-1',
       measurementType: 'WEIGHT_REPS',
       templateEquipmentTypeId: 'eq-bar',
       templateSets: rpeSets,
@@ -259,6 +265,7 @@ describe('resolveLoadRecommendation — INCREASE (5.1)', () => {
     expect(rpe.evidence.effortDataUsed).toBe(true);
 
     const none = resolveLoadRecommendation({
+      workoutTemplateExerciseId: 'wte-1',
       measurementType: 'WEIGHT_REPS',
       templateEquipmentTypeId: 'eq-bar',
       templateSets: templateWorking(3, { targetRir: null }),
@@ -277,6 +284,7 @@ describe('resolveLoadRecommendation — INCREASE (5.1)', () => {
 
   it('une série sous max → pas INCREASE ; warmup ignoré', () => {
     const result = resolveLoadRecommendation({
+      workoutTemplateExerciseId: 'wte-1',
       measurementType: 'WEIGHT_REPS',
       templateEquipmentTypeId: 'eq-bar',
       templateSets: templateWorking(),
@@ -297,6 +305,7 @@ describe('resolveLoadRecommendation — INCREASE (5.1)', () => {
 describe('resolveLoadRecommendation — HOLD (5.1)', () => {
   it('performance dans la plage', () => {
     const result = resolveLoadRecommendation({
+      workoutTemplateExerciseId: 'wte-1',
       measurementType: 'WEIGHT_REPS',
       templateEquipmentTypeId: 'eq-bar',
       templateSets: templateWorking(),
@@ -316,6 +325,7 @@ describe('resolveLoadRecommendation — HOLD (5.1)', () => {
 
   it('max reps mais RIR beaucoup trop faible → HOLD', () => {
     const result = resolveLoadRecommendation({
+      workoutTemplateExerciseId: 'wte-1',
       measurementType: 'WEIGHT_REPS',
       templateEquipmentTypeId: 'eq-bar',
       templateSets: templateWorking(),
@@ -334,6 +344,7 @@ describe('resolveLoadRecommendation — HOLD (5.1)', () => {
 
   it('une mauvaise série isolée / une seule mauvaise séance → HOLD', () => {
     const mixed = resolveLoadRecommendation({
+      workoutTemplateExerciseId: 'wte-1',
       measurementType: 'WEIGHT_REPS',
       templateEquipmentTypeId: 'eq-bar',
       templateSets: templateWorking(),
@@ -349,6 +360,7 @@ describe('resolveLoadRecommendation — HOLD (5.1)', () => {
     expect(mixed.action).toBe('HOLD');
 
     const oneBad = resolveLoadRecommendation({
+      workoutTemplateExerciseId: 'wte-1',
       measurementType: 'WEIGHT_REPS',
       templateEquipmentTypeId: 'eq-bar',
       templateSets: templateWorking(),
@@ -374,6 +386,7 @@ describe('resolveLoadRecommendation — HOLD (5.1)', () => {
 describe('resolveLoadRecommendation — DECREASE (5.1)', () => {
   it('deux mauvaises séances consécutives → DECREASE', () => {
     const result = resolveLoadRecommendation({
+      workoutTemplateExerciseId: 'wte-1',
       measurementType: 'WEIGHT_REPS',
       templateEquipmentTypeId: 'eq-bar',
       templateSets: templateWorking(),
@@ -405,6 +418,7 @@ describe('resolveLoadRecommendation — DECREASE (5.1)', () => {
 
   it('partial / failed répétées', () => {
     const result = resolveLoadRecommendation({
+      workoutTemplateExerciseId: 'wte-1',
       measurementType: 'WEIGHT_REPS',
       templateEquipmentTypeId: 'eq-bar',
       templateSets: templateWorking(),
@@ -428,6 +442,7 @@ describe('resolveLoadRecommendation — DECREASE (5.1)', () => {
 
   it('effort très élevé répété', () => {
     const result = resolveLoadRecommendation({
+      workoutTemplateExerciseId: 'wte-1',
       measurementType: 'WEIGHT_REPS',
       templateEquipmentTypeId: 'eq-bar',
       templateSets: templateWorking(),
@@ -453,6 +468,7 @@ describe('resolveLoadRecommendation — DECREASE (5.1)', () => {
 describe('resolveLoadRecommendation — REVIEW / INSUFFICIENT (5.1)', () => {
   it('équipements incompatibles → REVIEW', () => {
     const result = resolveLoadRecommendation({
+      workoutTemplateExerciseId: 'wte-1',
       measurementType: 'WEIGHT_REPS',
       templateEquipmentTypeId: 'eq-bar',
       templateSets: templateWorking(),
@@ -474,6 +490,7 @@ describe('resolveLoadRecommendation — REVIEW / INSUFFICIENT (5.1)', () => {
   it('aucun historique / charge historique incompatible', () => {
     expect(
       resolveLoadRecommendation({
+      workoutTemplateExerciseId: 'wte-1',
         measurementType: 'WEIGHT_REPS',
         templateEquipmentTypeId: 'eq-bar',
         templateSets: templateWorking(),
@@ -483,6 +500,7 @@ describe('resolveLoadRecommendation — REVIEW / INSUFFICIENT (5.1)', () => {
     ).toBe('INSUFFICIENT_DATA');
 
     const mismatch = resolveLoadRecommendation({
+      workoutTemplateExerciseId: 'wte-1',
       measurementType: 'WEIGHT_REPS',
       templateEquipmentTypeId: 'eq-bar',
       templateSets: templateWorking(),
@@ -514,5 +532,127 @@ describe('assessWorkoutPerformance — warmup exclu', () => {
     );
     expect(assessment.allAtTopOrAbove).toBe(true);
     expect(assessment.completedSetCount).toBe(3);
+  });
+});
+
+describe('resolveAppliedWeightKg / decisions (5.2)', () => {
+  it('ACCEPTED INCREASE/HOLD/DECREASE et IGNORED', () => {
+    expect(
+      resolveAppliedWeightKg({
+        action: 'INCREASE',
+        decision: 'ACCEPTED',
+        currentTargetWeightKg: 80,
+        suggestedWeightKg: 82.5,
+      }),
+    ).toEqual({ ok: true, appliedWeightKg: 82.5, mutatesTemplate: true });
+
+    expect(
+      resolveAppliedWeightKg({
+        action: 'HOLD',
+        decision: 'ACCEPTED',
+        currentTargetWeightKg: 80,
+        suggestedWeightKg: 80,
+      }),
+    ).toEqual({ ok: true, appliedWeightKg: 80, mutatesTemplate: false });
+
+    expect(
+      resolveAppliedWeightKg({
+        action: 'DECREASE',
+        decision: 'ACCEPTED',
+        currentTargetWeightKg: 80,
+        suggestedWeightKg: 75,
+      }),
+    ).toEqual({ ok: true, appliedWeightKg: 75, mutatesTemplate: true });
+
+    expect(
+      resolveAppliedWeightKg({
+        action: 'INCREASE',
+        decision: 'IGNORED',
+        currentTargetWeightKg: 80,
+        suggestedWeightKg: 82.5,
+      }),
+    ).toEqual({ ok: true, appliedWeightKg: null, mutatesTemplate: false });
+  });
+
+  it('ADJUSTED et décisions invalides', () => {
+    expect(
+      resolveAppliedWeightKg({
+        action: 'INCREASE',
+        decision: 'ADJUSTED',
+        currentTargetWeightKg: 80,
+        suggestedWeightKg: 82.5,
+        adjustedWeightKg: 81.5,
+      }),
+    ).toEqual({ ok: true, appliedWeightKg: 81.5, mutatesTemplate: true });
+
+    expect(
+      resolveAppliedWeightKg({
+        action: 'REVIEW',
+        decision: 'ACCEPTED',
+        currentTargetWeightKg: 80,
+        suggestedWeightKg: null,
+      }).ok,
+    ).toBe(false);
+
+    expect(
+      resolveAppliedWeightKg({
+        action: 'INSUFFICIENT_DATA',
+        decision: 'ADJUSTED',
+        currentTargetWeightKg: null,
+        suggestedWeightKg: null,
+        adjustedWeightKg: 80,
+      }).ok,
+    ).toBe(false);
+
+    expect(
+      resolveAppliedWeightKg({
+        action: 'INCREASE',
+        decision: 'ADJUSTED',
+        currentTargetWeightKg: 80,
+        suggestedWeightKg: 82.5,
+      }).ok,
+    ).toBe(false);
+
+    expect(
+      resolveAppliedWeightKg({
+        action: 'INCREASE',
+        decision: 'ACCEPTED',
+        currentTargetWeightKg: 80,
+        suggestedWeightKg: 82.5,
+        adjustedWeightKg: 81,
+      }).ok,
+    ).toBe(false);
+  });
+
+  it('fingerprint stable et sensible aux changements', () => {
+    const base = {
+      workoutTemplateExerciseId: 'wte-1',
+      engineVersion: LOAD_RECOMMENDATION_ENGINE_VERSION,
+      templateEquipmentTypeId: 'eq-1',
+      workingSets: [
+        {
+          targetWeightKg: 80,
+          targetRepMin: 8,
+          targetRepMax: 10,
+          targetRir: 2,
+          targetRpe: null,
+        },
+      ],
+      action: 'INCREASE' as const,
+      currentTargetWeightKg: 80,
+      suggestedWeightKg: 82.5,
+      incrementKg: 2.5,
+      incrementSource: 'SYSTEM_DEFAULT' as const,
+      recentWorkoutSessionIds: ['w1'],
+    };
+    const a = buildLoadRecommendationFingerprint(base);
+    const b = buildLoadRecommendationFingerprint(base);
+    expect(a).toBe(b);
+    expect(
+      buildLoadRecommendationFingerprint({
+        ...base,
+        suggestedWeightKg: 85,
+      }),
+    ).not.toBe(a);
   });
 });

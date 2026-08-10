@@ -506,7 +506,46 @@ Suggestions numériques :
 - `HOLD` : charge actuelle ;
 - `REVIEW` / `INSUFFICIENT_DATA` : `suggestedWeightKg = null`.
 
-L’application d’une recommandation au modèle est **hors 5.1**.
+L’application d’une recommandation au modèle est **hors 5.1** (voir 13.3bis).
+
+### 13.3bis Décision utilisateur (jalon 5.2)
+
+Le moteur **propose** ; l’utilisateur **décide** ; le serveur **valide**.
+
+Aucun changement de charge sans action explicite. Pas de mode auto-apply / progression automatique.
+
+#### Décisions
+
+| Décision | Sens |
+|----------|------|
+| `ACCEPTED` | Appliquer exactement la proposition recalculée (ou conserver la charge si `HOLD`) |
+| `ADJUSTED` | Accepter le principe, choisir une autre charge (`adjustedWeightKg` obligatoire) |
+| `IGNORED` | Ne rien appliquer (`appliedWeightKg = null`) |
+
+Autorisées selon l’action 5.1 :
+
+- `INCREASE` / `HOLD` / `DECREASE` → `ACCEPTED` | `ADJUSTED` | `IGNORED` ;
+- `REVIEW` / `INSUFFICIENT_DATA` → `IGNORED` uniquement (ou aucune action UI).
+
+#### Fingerprint et staleness
+
+Chaque recommandation porte `engineVersion = LOAD_RECOMMENDATION_V1` et un
+`recommendationFingerprint` déterministe (cible, équipement, action, suggestion,
+historique utilisé…). À la décision, le serveur recalcule et compare. Écart →
+`409 LOAD_RECOMMENDATION_STALE` — aucune mutation.
+
+#### Application
+
+- Uniquement `targetWeightKg` des séries `WORKING` du groupe analysé.
+- Ne modifie pas warmups, backoff, reps, RIR/RPE, repos, nombre de séries.
+- Transaction : ownership + recalcul + fingerprint + idempotence + validation +
+  updates + création `LoadRecommendationDecision`.
+- Snapshots de séances déjà créées (actives ou historiques) **immuables**.
+
+#### Idempotence
+
+`clientCommandId` unique par propriétaire + `payloadFingerprint`. Même commande /
+même payload → replay. Payload différent → `LOAD_RECOMMENDATION_COMMAND_CONFLICT`.
 
 ### 13.4 Cas de progression
 

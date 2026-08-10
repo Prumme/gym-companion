@@ -316,9 +316,13 @@ export function TemplateExerciseCard({
             {exercise.sets.length} série{exercise.sets.length === 1 ? '' : 's'}
           </p>
           <LoadRecommendationCard
+            programId={programId}
             workoutTemplateExerciseId={exercise.id}
             exerciseId={exercise.exercise.id}
             measurementType={exercise.exercise.measurementType}
+            workingSetCount={
+              exercise.sets.filter((set) => set.setType === 'WORKING').length
+            }
           />
         </div>
 

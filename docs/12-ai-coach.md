@@ -71,6 +71,7 @@ L’IA ne doit pas être responsable des calculs suivants :
 - estimation du 1RM ;
 - records personnels ;
 - **recommandations de charge (moteur 5.1)** ;
+- **application de charge au programme (jalon 5.2 — décision utilisateur obligatoire)** ;
 - arrondi des charges ;
 - validation des incréments disponibles ;
 - contraintes de rotation ;
@@ -82,14 +83,20 @@ L’IA ne doit pas être responsable des calculs suivants :
 Architecture cible du coaching :
 
 ```text
-moteur déterministe
-→ produit décision + preuves (action, reasons, evidence)
-→ future couche IA
-→ explique / personnalise sans contourner les garde-fous
+historique brut
+→ métriques déterministes
+→ moteur de recommandation déterministe (5.1)
+→ décision utilisateur explicite (5.2)
+→ future couche IA explicative
 ```
 
 L’IA future ne doit **pas** devenir la seule source des règles de progression.
-Le jalon 5.1 livre uniquement le moteur déterministe (lecture seule, sans application automatique).
+Elle ne doit **pas** pouvoir contourner l’étape « décision utilisateur » pour
+modifier directement le programme.
+
+Le jalon 5.1 livre le moteur déterministe (lecture seule).
+Le jalon 5.2 livre l’application confirmée (ACCEPTED / ADJUSTED / IGNORED), sans
+auto-apply et sans appel OpenAI.
 
 ### 3.3 Les sorties sont structurées
 

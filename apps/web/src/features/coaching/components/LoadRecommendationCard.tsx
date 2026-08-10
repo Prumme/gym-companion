@@ -1,38 +1,153 @@
 import type { ExerciseMeasurementType } from '@gym-companion/shared';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
-import { getApiErrorMessage } from '@/lib/api/client';
+import { programQueryKeys } from '@/features/programs/api/program-query-keys';
+import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
+import { createClientCommandId } from '@/features/workouts/offline/command-id';
 
-import { loadRecommendationQueryOptions } from '../api/coaching-query-options';
+import { decideLoadRecommendation } from '../api/coaching-api';
+import { coachingQueryKeys } from '../api/coaching-query-keys';
 import {
+  loadRecommendationDecisionsQueryOptions,
+  loadRecommendationQueryOptions,
+} from '../api/coaching-query-options';
+import {
+  formatDecisionHistoryLine,
   formatEvidenceSummary,
+  formatLoadWeightKg,
   formatLoadWeightTransition,
   getLoadRecommendationActionLabel,
   getPrimaryLoadRecommendationMessage,
+  isLoadRecommendationActionable,
 } from '../lib/load-recommendation-labels';
+import { LoadRecommendationDecisionDialogs } from './LoadRecommendationDecisionDialogs';
 import { LoadRecommendationDetailDialog } from './LoadRecommendationDetailDialog';
 
 type LoadRecommendationCardProps = {
+  programId: string;
   workoutTemplateExerciseId: string;
   exerciseId: string;
   measurementType: ExerciseMeasurementType;
+  workingSetCount: number;
 };
 
+function getErrorCode(error: unknown): string | null {
+  const apiError = error as ApiRequestError | undefined;
+  if (apiError && typeof apiError === 'object' && 'code' in apiError) {
+    return String((apiError as { code?: string }).code ?? '') || null;
+  }
+  return null;
+}
+
 export function LoadRecommendationCard({
+  programId,
   workoutTemplateExerciseId,
   exerciseId,
   measurementType,
+  workingSetCount,
 }: LoadRecommendationCardProps) {
+  const queryClient = useQueryClient();
   const [detailOpen, setDetailOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<
+    'apply' | 'adjust' | 'ignore' | null
+  >(null);
+  const [dialogError, setDialogError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [staleNotice, setStaleNotice] = useState<string | null>(null);
   const enabled = measurementType === 'WEIGHT_REPS';
 
   const query = useQuery({
     ...loadRecommendationQueryOptions(workoutTemplateExerciseId),
     enabled,
   });
+  const decisionsQuery = useQuery({
+    ...loadRecommendationDecisionsQueryOptions(workoutTemplateExerciseId),
+    enabled,
+  });
+
+  const decideMutation = useMutation({
+    mutationFn: ({
+      input,
+    }: {
+      input: Parameters<typeof decideLoadRecommendation>[1];
+    }) => decideLoadRecommendation(workoutTemplateExerciseId, input),
+    onSuccess: (result) => {
+      queryClient.setQueryData(programQueryKeys.detail(programId), result.program);
+      if (result.recommendation) {
+        queryClient.setQueryData(
+          coachingQueryKeys.loadRecommendation(workoutTemplateExerciseId),
+          result.recommendation,
+        );
+      } else {
+        void queryClient.invalidateQueries({
+          queryKey: coachingQueryKeys.loadRecommendation(
+            workoutTemplateExerciseId,
+          ),
+        });
+      }
+      void queryClient.invalidateQueries({
+        queryKey: coachingQueryKeys.loadRecommendationDecisions(
+          workoutTemplateExerciseId,
+        ),
+      });
+      setDialogMode(null);
+      setDialogError(null);
+      setStaleNotice(null);
+      if (result.decision.decisionType === 'IGNORED') {
+        setStatusMessage('Recommandation ignorée.');
+      } else if (result.decision.appliedWeightKg != null) {
+        setStatusMessage(
+          `La charge cible a été mise à jour à ${formatLoadWeightKg(result.decision.appliedWeightKg)}.`,
+        );
+      } else {
+        setStatusMessage('Décision enregistrée.');
+      }
+    },
+  });
+
+  async function submitDecision(
+    decision: 'ACCEPTED' | 'ADJUSTED' | 'IGNORED',
+    extras: { adjustedWeightKg?: number; userNote: string | null },
+  ) {
+    if (!query.data) return;
+    if (!navigator.onLine) {
+      setDialogError(
+        'Une connexion est nécessaire pour modifier ton programme.',
+      );
+      return;
+    }
+    setDialogError(null);
+    setStaleNotice(null);
+    try {
+      await decideMutation.mutateAsync({
+        input: {
+          recommendationFingerprint: query.data.recommendationFingerprint,
+          decision,
+          ...(extras.adjustedWeightKg != null
+            ? { adjustedWeightKg: extras.adjustedWeightKg }
+            : {}),
+          userNote: extras.userNote,
+          clientCommandId: createClientCommandId(),
+        },
+      });
+    } catch (error) {
+      const code = getErrorCode(error);
+      if (code === 'LOAD_RECOMMENDATION_STALE') {
+        setDialogMode(null);
+        setStaleNotice(
+          'La recommandation a changé car de nouvelles données sont disponibles. La nouvelle proposition a été chargée.',
+        );
+        await query.refetch();
+        return;
+      }
+      setDialogError(
+        getApiErrorMessage(error, 'Impossible d’enregistrer cette décision.'),
+      );
+    }
+  }
 
   if (!enabled) {
     return (
@@ -90,6 +205,8 @@ export function LoadRecommendationCard({
     data.recommendation.suggestedWeightKg,
   );
   const evidence = formatEvidenceSummary(data);
+  const actionable = isLoadRecommendationActionable(data.action);
+  const decisions = decisionsQuery.data?.data ?? [];
 
   return (
     <>
@@ -118,7 +235,57 @@ export function LoadRecommendationCard({
           </p>
         ) : null}
 
+        {staleNotice ? (
+          <p className="mt-2 text-sm text-amber-800" role="status">
+            {staleNotice}
+          </p>
+        ) : null}
+        {statusMessage ? (
+          <p className="mt-2 text-sm text-[var(--foreground)]" role="status">
+            {statusMessage}
+          </p>
+        ) : null}
+
         <div className="mt-3 flex flex-wrap gap-2">
+          {actionable ? (
+            <>
+              <Button
+                type="button"
+                className="min-h-10"
+                disabled={decideMutation.isPending}
+                onClick={() => {
+                  setDialogError(null);
+                  setDialogMode('apply');
+                }}
+              >
+                {data.action === 'HOLD' ? 'Conserver cette charge' : 'Appliquer'}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="min-h-10"
+                disabled={decideMutation.isPending}
+                onClick={() => {
+                  setDialogError(null);
+                  setDialogMode('adjust');
+                }}
+              >
+                Choisir une autre charge
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-10"
+                disabled={decideMutation.isPending}
+                onClick={() => {
+                  setDialogError(null);
+                  setDialogMode('ignore');
+                }}
+              >
+                Ignorer
+              </Button>
+            </>
+          ) : null}
           <Button
             type="button"
             variant="secondary"
@@ -134,12 +301,60 @@ export function LoadRecommendationCard({
             Voir la progression
           </Link>
         </div>
+
+        {decisions.length > 0 ? (
+          <details className="mt-3">
+            <summary className="cursor-pointer text-sm font-medium">
+              Décisions récentes
+            </summary>
+            <ul className="mt-2 space-y-2">
+              {decisions.map((item) => (
+                <li
+                  key={item.id}
+                  className="rounded-[var(--radius)] border border-[var(--border)] bg-white p-2 text-sm"
+                >
+                  <p className="text-xs text-[var(--muted)]">
+                    {new Intl.DateTimeFormat('fr-FR', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    }).format(new Date(item.createdAt))}
+                  </p>
+                  <p className="mt-1">
+                    {formatDecisionHistoryLine(item)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
       </section>
 
       <LoadRecommendationDetailDialog
         open={detailOpen}
         recommendation={data}
         onClose={() => setDetailOpen(false)}
+      />
+
+      <LoadRecommendationDecisionDialogs
+        recommendation={data}
+        workingSetCount={workingSetCount}
+        pending={decideMutation.isPending}
+        error={dialogError}
+        mode={dialogMode}
+        onClose={() => {
+          if (!decideMutation.isPending) {
+            setDialogMode(null);
+            setDialogError(null);
+          }
+        }}
+        onAccept={(userNote) =>
+          void submitDecision('ACCEPTED', { userNote })
+        }
+        onAdjust={(adjustedWeightKg, userNote) =>
+          void submitDecision('ADJUSTED', { adjustedWeightKg, userNote })
+        }
+        onIgnore={(userNote) => void submitDecision('IGNORED', { userNote })}
       />
     </>
   );

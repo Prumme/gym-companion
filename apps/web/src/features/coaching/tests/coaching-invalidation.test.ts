@@ -60,5 +60,10 @@ describe('coaching invalidation (5.1)', () => {
       'wte-1',
     ]);
     expect(progressQueryKeys.all[0]).not.toBe('coaching');
+    expect(coachingQueryKeys.loadRecommendationDecisions('wte-1')).toEqual([
+      'coaching',
+      'load-recommendation-decisions',
+      'wte-1',
+    ]);
   });
 });

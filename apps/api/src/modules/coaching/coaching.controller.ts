@@ -1,5 +1,14 @@
-import { Controller, Get, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { createSuccessResponse } from '@gym-companion/shared';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -33,5 +42,47 @@ export class CoachingController {
       workoutTemplateExerciseId,
     );
     return createSuccessResponse(data);
+  }
+
+  @Post(
+    'api/v1/coaching/workout-template-exercises/:workoutTemplateExerciseId/load-recommendation/decision',
+  )
+  @ApiOperation({
+    summary:
+      'Décision utilisateur (ACCEPTED / ADJUSTED / IGNORED) sur une recommandation de charge',
+  })
+  async decideLoadRecommendation(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('workoutTemplateExerciseId', ParseUUIDPipe)
+    workoutTemplateExerciseId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.coachingService.decideLoadRecommendation(
+      user.id,
+      workoutTemplateExerciseId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Get(
+    'api/v1/coaching/workout-template-exercises/:workoutTemplateExerciseId/load-recommendation-decisions',
+  )
+  @ApiOperation({
+    summary: 'Historique des décisions de charge pour un exercice du modèle',
+  })
+  @ApiQuery({ name: 'cursor', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async listLoadRecommendationDecisions(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('workoutTemplateExerciseId', ParseUUIDPipe)
+    workoutTemplateExerciseId: string,
+    @Query() query: Record<string, string | undefined>,
+  ) {
+    return this.coachingService.listLoadRecommendationDecisions(
+      user.id,
+      workoutTemplateExerciseId,
+      query,
+    );
   }
 }

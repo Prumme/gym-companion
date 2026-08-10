@@ -1930,9 +1930,49 @@ La création d’une séance depuis un modèle copie un snapshot immuable des in
 
 Les recommandations de charge sont **dérivées à la lecture** :
 
-- pas de modèle Prisma `LoadRecommendation` / `CoachingRecommendation` / `RecommendationHistory` ;
-- calcul depuis `WorkoutTemplateExercise` + séries cibles + snapshots de séances `COMPLETED` ;
-- aucune persistance de la décision ni de l’acceptation utilisateur (étudié plus tard).
+- pas de modèle Prisma `LoadRecommendation` / `CoachingRecommendation` (recommandation elle-même non persistée) ;
+- calcul depuis `WorkoutTemplateExercise` + séries cibles + snapshots de séances `COMPLETED`.
+
+### Jalon 5.2 — Décisions de charge (audit)
+
+```prisma
+enum LoadRecommendationDecisionType {
+  ACCEPTED
+  ADJUSTED
+  IGNORED
+}
+
+model LoadRecommendationDecision {
+  id                        String
+  ownerUserId               String
+  workoutTemplateExerciseId String? // onDelete: SetNull
+  workoutTemplateId         String? // onDelete: SetNull
+  programId                 String? // onDelete: SetNull
+  exerciseId                String? // onDelete: SetNull
+  engineVersion             String
+  recommendationFingerprint String
+  recommendationAction      String
+  decisionType              LoadRecommendationDecisionType
+  currentTargetWeightKg     Decimal?
+  recommendedWeightKg       Decimal?
+  appliedWeightKg           Decimal?
+  incrementKg               Decimal?
+  incrementSource           String?
+  reasons                   Json
+  evidenceSnapshot          Json // audit compact (pas le profil complet)
+  userNote                  String?
+  clientCommandId           String
+  payloadFingerprint        String
+  createdAt                 DateTime
+
+  @@unique([ownerUserId, clientCommandId])
+  @@index([ownerUserId, createdAt])
+  @@index([workoutTemplateExerciseId, createdAt])
+}
+```
+
+La suppression d’un programme / template / exercice source **ne cascade pas** sur
+l’historique (SetNull) : le snapshot conserve le contexte d’audit.
 
 ### Phase 5
 

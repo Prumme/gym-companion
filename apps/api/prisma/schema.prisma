@@ -71,6 +71,7 @@ model User {
   programActivations      ProgramActivation[]
   workoutSessions         WorkoutSession[]
   workoutSets             WorkoutSet[]
+  loadRecommendationDecisions LoadRecommendationDecision[]
 
   @@index([status])
   @@map("users")
@@ -223,6 +224,7 @@ model Exercise {
   userPreferences          UserExercisePreference[]
   workoutTemplateExercises WorkoutTemplateExercise[]
   workoutSessionExercises  WorkoutSessionExercise[]
+  loadRecommendationDecisions LoadRecommendationDecision[]
 
   @@index([ownerUserId])
   @@index([source])
@@ -301,6 +303,7 @@ model Program {
   activations      ProgramActivation[]
   scheduleEntries  ProgramScheduleEntry[]
   sourceSessions   WorkoutSession[]
+  loadRecommendationDecisions LoadRecommendationDecision[]
 
   @@index([ownerUserId, archivedAt])
   @@index([ownerUserId, updatedAt, id])
@@ -369,6 +372,7 @@ model WorkoutTemplate {
   exercises WorkoutTemplateExercise[]
   scheduleEntries ProgramScheduleEntry[]
   sourceSessions  WorkoutSession[]
+  loadRecommendationDecisions LoadRecommendationDecision[]
 
   @@unique([programId, positionInProgram])
   @@index([ownerUserId])
@@ -401,6 +405,7 @@ model WorkoutTemplateExercise {
   equipmentType   EquipmentType?       @relation(fields: [equipmentTypeId], references: [id], onDelete: SetNull)
   sets            WorkoutTemplateSet[]
   sourceSessionExercises WorkoutSessionExercise[]
+  loadRecommendationDecisions LoadRecommendationDecision[]
 
   @@unique([workoutTemplateId, exerciseId])
   @@unique([workoutTemplateId, position])
@@ -598,4 +603,47 @@ model WorkoutSet {
   @@index([ownerUserId, completedAt])
   @@index([sourceTemplateSetId])
   @@map("workout_sets")
+}
+
+enum LoadRecommendationDecisionType {
+  ACCEPTED
+  ADJUSTED
+  IGNORED
+}
+
+/// Décision utilisateur face à une recommandation de charge (jalon 5.2).
+/// Historique d’audit — relations sources en SetNull pour préserver la trace.
+model LoadRecommendationDecision {
+  id                          String                          @id @default(uuid()) @db.Uuid
+  ownerUserId                 String                          @db.Uuid
+  workoutTemplateExerciseId   String?                         @db.Uuid
+  workoutTemplateId           String?                         @db.Uuid
+  programId                   String?                         @db.Uuid
+  exerciseId                  String?                         @db.Uuid
+  engineVersion               String
+  recommendationFingerprint   String
+  recommendationAction        String
+  decisionType                LoadRecommendationDecisionType
+  currentTargetWeightKg       Decimal?                        @db.Decimal(8, 3)
+  recommendedWeightKg         Decimal?                        @db.Decimal(8, 3)
+  appliedWeightKg             Decimal?                        @db.Decimal(8, 3)
+  incrementKg                 Decimal?                        @db.Decimal(8, 3)
+  incrementSource             String?
+  reasons                     Json
+  evidenceSnapshot            Json
+  userNote                    String?
+  clientCommandId             String
+  payloadFingerprint          String
+  createdAt                   DateTime                        @default(now())
+
+  owner                   User                     @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  workoutTemplateExercise WorkoutTemplateExercise? @relation(fields: [workoutTemplateExerciseId], references: [id], onDelete: SetNull)
+  workoutTemplate         WorkoutTemplate?         @relation(fields: [workoutTemplateId], references: [id], onDelete: SetNull)
+  program                 Program?                 @relation(fields: [programId], references: [id], onDelete: SetNull)
+  exercise                Exercise?                @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+
+  @@unique([ownerUserId, clientCommandId])
+  @@index([ownerUserId, createdAt])
+  @@index([workoutTemplateExerciseId, createdAt])
+  @@map("load_recommendation_decisions")
 }

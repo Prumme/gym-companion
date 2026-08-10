@@ -428,6 +428,21 @@ Transformer les données enregistrées en informations utiles (records, progress
 
 **Restent hors 5.1 :** application au programme (5.2+), plateaux, fatigue, périodisation, appels IA.
 
+**Livré en jalon 5.2 (décision et application des recommandations de charge) :**
+
+- décision utilisateur explicite `ACCEPTED` / `ADJUSTED` / `IGNORED` ;
+- fingerprint déterministe + staleness `409 LOAD_RECOMMENDATION_STALE` ;
+- application atomique limitée à `targetWeightKg` des séries `WORKING` concernées ;
+- `HOLD` accepté = conserver la charge + décision tracée (sans mutation numérique) ;
+- `REVIEW` / `INSUFFICIENT_DATA` : non applicables via coaching (ignorer ou masquer) ;
+- historique `LoadRecommendationDecision` + endpoint liste cursor ;
+- idempotence `ownerUserId + clientCommandId` ;
+- séances `ACTIVE` / `COMPLETED` / `CANCELLED` : snapshots inchangés ; futures séances = nouvelle cible ;
+- UI : Appliquer / Choisir une autre charge / Ignorer + « Décisions récentes » ;
+- **aucune** application automatique, aucune IA, aucune commande IndexedDB.
+
+**Restent hors 5.2 :** plateaux, deload, fatigue, readiness, rep range, séries, prompts / OpenAI, auto-apply.
+
 ### 7.4 Hors périmètre
 
 - Analyse prédictive complexe.

@@ -7,4 +7,10 @@ export const coachingQueryKeys = {
       ...coachingQueryKeys.loadRecommendations(),
       workoutTemplateExerciseId,
     ] as const,
+  loadRecommendationDecisions: (workoutTemplateExerciseId: string) =>
+    [
+      ...coachingQueryKeys.all,
+      'load-recommendation-decisions',
+      workoutTemplateExerciseId,
+    ] as const,
 };

@@ -8,12 +8,26 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LoadRecommendationCard } from '../components/LoadRecommendationCard';
 
-const { getLoadRecommendation } = vi.hoisted(() => ({
+const {
+  getLoadRecommendation,
+  listLoadRecommendationDecisions,
+  decideLoadRecommendation,
+} = vi.hoisted(() => ({
   getLoadRecommendation: vi.fn(),
+  listLoadRecommendationDecisions: vi.fn(),
+  decideLoadRecommendation: vi.fn(),
 }));
 
 vi.mock('../api/coaching-api', () => ({
   getLoadRecommendation: (...args: unknown[]) => getLoadRecommendation(...args),
+  listLoadRecommendationDecisions: (...args: unknown[]) =>
+    listLoadRecommendationDecisions(...args),
+  decideLoadRecommendation: (...args: unknown[]) =>
+    decideLoadRecommendation(...args),
+}));
+
+vi.mock('@/features/workouts/offline/command-id', () => ({
+  createClientCommandId: () => 'cmd-test-1',
 }));
 
 function baseRecommendation(
@@ -56,6 +70,8 @@ function baseRecommendation(
       ],
     },
     reasons: ['TARGET_RANGE_PARTIALLY_REACHED'],
+    engineVersion: 'LOAD_RECOMMENDATION_V1',
+    recommendationFingerprint: 'fp-test',
     ...overrides,
   };
 }
@@ -73,20 +89,28 @@ function renderCard(
   );
   return render(
     <LoadRecommendationCard
+      programId="prog-1"
       workoutTemplateExerciseId="wte-1"
       exerciseId="ex-1"
       measurementType={measurementType}
+      workingSetCount={3}
     />,
     { wrapper },
   );
 }
 
-describe('LoadRecommendationCard (5.1)', () => {
+describe('LoadRecommendationCard (5.1 + 5.2)', () => {
   beforeEach(() => {
     getLoadRecommendation.mockReset();
+    listLoadRecommendationDecisions.mockReset();
+    decideLoadRecommendation.mockReset();
+    listLoadRecommendationDecisions.mockResolvedValue({
+      data: [],
+      pagination: { nextCursor: null, hasMore: false },
+    });
   });
 
-  it('affiche le loading puis INCREASE avec transition de charge', async () => {
+  it('affiche le loading puis INCREASE avec actions de décision', async () => {
     let resolveFn: ((value: LoadRecommendation) => void) | undefined;
     getLoadRecommendation.mockReturnValue(
       new Promise<LoadRecommendation>((resolve) => {
@@ -133,8 +157,12 @@ describe('LoadRecommendationCard (5.1)', () => {
     expect(screen.getByText(/80\s*kg\s*→\s*82,5\s*kg/)).toBeInTheDocument();
     expect(screen.getByText(/Basé sur 3 séances/)).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /appliquer/i }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('button', { name: 'Appliquer' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Choisir une autre charge' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ignorer' })).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Voir la progression' }),
     ).toHaveAttribute('href', '/progress/exercises/ex-1');
@@ -269,5 +297,127 @@ describe('LoadRecommendationCard (5.1)', () => {
     renderCard();
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent(/Network Error|Impossible de charger/i);
+  });
+
+  it('applique une recommandation via confirmation', async () => {
+    const user = userEvent.setup();
+    getLoadRecommendation.mockResolvedValue(
+      baseRecommendation({
+        action: 'INCREASE',
+        recommendation: {
+          suggestedWeightKg: 82.5,
+          adjustmentKg: 2.5,
+          incrementKg: 2.5,
+          incrementSource: 'SYSTEM_DEFAULT',
+        },
+        reasons: ['TARGET_RANGE_REACHED'],
+      }),
+    );
+    decideLoadRecommendation.mockResolvedValue({
+      decision: {
+        id: 'dec-1',
+        engineVersion: 'LOAD_RECOMMENDATION_V1',
+        recommendationFingerprint: 'fp-test',
+        recommendationAction: 'INCREASE',
+        decisionType: 'ACCEPTED',
+        currentTargetWeightKg: 80,
+        recommendedWeightKg: 82.5,
+        appliedWeightKg: 82.5,
+        incrementKg: 2.5,
+        incrementSource: 'SYSTEM_DEFAULT',
+        reasons: ['TARGET_RANGE_REACHED'],
+        userNote: null,
+        createdAt: '2026-08-10T10:00:00.000Z',
+      },
+      templateExercise: {},
+      program: { id: 'prog-1' },
+      recommendation: baseRecommendation({
+        action: 'HOLD',
+        currentTarget: {
+          weightKg: 82.5,
+          minReps: 8,
+          maxReps: 10,
+          targetRir: 2,
+          targetRpe: null,
+        },
+        recommendation: {
+          suggestedWeightKg: 82.5,
+          adjustmentKg: 0,
+          incrementKg: 2.5,
+          incrementSource: 'SYSTEM_DEFAULT',
+        },
+        reasons: ['TARGET_RANGE_PARTIALLY_REACHED'],
+        recommendationFingerprint: 'fp-after',
+      }),
+    });
+
+    renderCard();
+    await screen.findByText('Augmenter la charge');
+    await user.click(screen.getByRole('button', { name: 'Appliquer' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).getByText(/passeront de 80 kg à 82,5 kg/i),
+    ).toBeInTheDocument();
+    await user.click(
+      within(dialog).getByRole('button', { name: /Appliquer 82,5 kg/i }),
+    );
+    await waitFor(() => {
+      expect(decideLoadRecommendation).toHaveBeenCalledWith(
+        'wte-1',
+        expect.objectContaining({
+          decision: 'ACCEPTED',
+          recommendationFingerprint: 'fp-test',
+          clientCommandId: 'cmd-test-1',
+        }),
+      );
+    });
+    expect(
+      await screen.findByText(/mise à jour à 82,5 kg/i),
+    ).toBeInTheDocument();
+  });
+
+  it('n’affiche pas Appliquer pour REVIEW', async () => {
+    getLoadRecommendation.mockResolvedValue(
+      baseRecommendation({
+        action: 'REVIEW',
+        recommendation: {
+          suggestedWeightKg: null,
+          adjustmentKg: null,
+          incrementKg: null,
+          incrementSource: null,
+        },
+        reasons: ['UNSUPPORTED_TARGET_CONFIGURATION'],
+      }),
+    );
+    renderCard();
+    await screen.findByText('Progression à vérifier');
+    expect(
+      screen.queryByRole('button', { name: 'Appliquer' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('affiche l’historique des décisions', async () => {
+    getLoadRecommendation.mockResolvedValue(baseRecommendation());
+    listLoadRecommendationDecisions.mockResolvedValue({
+      data: [
+        {
+          id: 'd1',
+          engineVersion: 'LOAD_RECOMMENDATION_V1',
+          recommendationAction: 'INCREASE',
+          decisionType: 'ADJUSTED',
+          currentTargetWeightKg: 80,
+          recommendedWeightKg: 82.5,
+          appliedWeightKg: 81.5,
+          reasons: ['TARGET_RANGE_REACHED'],
+          latestEvidenceWorkoutDate: '2026-08-10',
+          userNote: null,
+          createdAt: '2026-08-10T12:00:00.000Z',
+        },
+      ],
+      pagination: { nextCursor: null, hasMore: false },
+    });
+    renderCard();
+    await screen.findByText('Décisions récentes');
+    expect(screen.getByText(/Ajustée à 81,5 kg/)).toBeInTheDocument();
   });
 });
