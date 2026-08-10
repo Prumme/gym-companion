@@ -13,4 +13,15 @@ export const coachingQueryKeys = {
       'load-recommendation-decisions',
       workoutTemplateExerciseId,
     ] as const,
+  plateauAnalyses: () =>
+    [...coachingQueryKeys.all, 'plateau-analysis'] as const,
+  plateauAnalysis: (
+    exerciseId: string,
+    filters: { equipmentId?: string } = {},
+  ) =>
+    [
+      ...coachingQueryKeys.plateauAnalyses(),
+      exerciseId,
+      filters.equipmentId ?? null,
+    ] as const,
 };

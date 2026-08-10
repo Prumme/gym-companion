@@ -6,6 +6,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { ButtonLink } from '@/components/ui/button';
 import { LoadingState } from '@/components/common/LoadingState';
 import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
+import { PlateauAnalysisSection } from '@/features/coaching/components/PlateauAnalysisSection';
 
 import {
   exerciseProgressQueryOptions,
@@ -269,6 +270,13 @@ export function ExerciseProgressPage() {
           isLoading={strengthQuery.isLoading}
           isError={strengthQuery.isError}
           onRetry={() => void strengthQuery.refetch()}
+        />
+      ) : null}
+
+      {exerciseId ? (
+        <PlateauAnalysisSection
+          exerciseId={exerciseId}
+          enabled={progressQuery.isSuccess}
         />
       ) : null}
     </main>

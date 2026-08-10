@@ -426,4 +426,13 @@ une charge qu’après confirmation. Application limitée à `targetWeightKg` de
 `GET .../load-recommendation-decisions`. Snapshots de séances actives / terminées
 immuables. Pas d’auto-apply, pas d’IA, pas de commande offline.
 
+Le jalon **5.3** ajoute la **détection déterministe de stagnation / plateau**
+(lecture seule, `WEIGHT_REPS`). Analyse au plus 6 séances `COMPLETED` (min. 3)
+par `sourceExerciseId` + équipement stable. Statuts
+`NONE` / `WATCH` / `PLATEAU` / `INSUFFICIENT_DATA` / `REVIEW`. Endpoint
+`GET /api/v1/coaching/exercises/:exerciseId/plateau-analysis`. Section
+« Analyse de progression » sur `/progress/exercises/:exerciseId`.
+**Aucune** prescription (deload, changement d’exercice…), aucune table Prisma,
+aucune IA. Indépendant de 5.1/5.2.
+
 Les documents du dossier `docs/` restent la source de vérité produit et technique.

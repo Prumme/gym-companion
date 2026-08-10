@@ -65,5 +65,11 @@ describe('coaching invalidation (5.1)', () => {
       'load-recommendation-decisions',
       'wte-1',
     ]);
+    expect(coachingQueryKeys.plateauAnalysis('ex-1')).toEqual([
+      'coaching',
+      'plateau-analysis',
+      'ex-1',
+      null,
+    ]);
   });
 });

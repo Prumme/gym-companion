@@ -26,6 +26,27 @@ export class CoachingController {
   constructor(private readonly coachingService: CoachingService) {}
 
   @Get(
+    'api/v1/coaching/exercises/:exerciseId/plateau-analysis',
+  )
+  @ApiOperation({
+    summary:
+      'Analyse déterministe de stagnation / plateau (lecture seule, WEIGHT_REPS)',
+  })
+  @ApiQuery({ name: 'equipmentId', required: false, type: String })
+  async getPlateauAnalysis(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
+    @Query() query: Record<string, string | undefined>,
+  ) {
+    const data = await this.coachingService.getPlateauAnalysis(
+      user.id,
+      exerciseId,
+      query,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Get(
     'api/v1/coaching/workout-template-exercises/:workoutTemplateExerciseId/load-recommendation',
   )
   @ApiOperation({

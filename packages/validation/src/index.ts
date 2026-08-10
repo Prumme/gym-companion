@@ -2095,3 +2095,32 @@ export type {
   WorkoutSetTypeForLoad,
   WorkoutUnderperformanceKind,
 } from './load-recommendation';
+
+export {
+  PLATEAU_HISTORY_LIMIT,
+  PLATEAU_MIN_WORKOUTS_FOR_SIGNAL,
+  PLATEAU_MIN_WORKOUTS_FOR_PLATEAU,
+  E1RM_PROGRESS_TOLERANCE_PERCENT,
+  LOAD_PROGRESS_TOLERANCE_KG,
+  PLATEAU_REP_RANGE_TOLERANCE,
+  PLATEAU_WORKING_SET_COUNT_TOLERANCE,
+  buildPlateauWorkoutPoint,
+  detectExercisePlateau,
+  hasMeaningfulLoadProgress,
+  hasMeaningfulE1rmProgress,
+  hasRepetitionProgress,
+  hasRepeatedTargetMisses,
+  hasRepeatedFailures,
+  hasHighEffortTrend,
+  plateauAnalysisQuerySchema,
+} from './plateau-analysis';
+export type {
+  DetectExercisePlateauInput,
+  PlateauAnalysisQuery,
+  PlateauAnalysisResult,
+  PlateauReason,
+  PlateauSessionInput,
+  PlateauSetInput,
+  PlateauStatus,
+  PlateauWorkoutPoint,
+} from './plateau-analysis';

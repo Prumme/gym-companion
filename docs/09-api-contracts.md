@@ -1926,6 +1926,54 @@ Items compacts (sans `evidenceSnapshot` complet).
 | `WORKOUT_TEMPLATE_EXERCISE_NOT_FOUND` | 404 | Absent / non propriétaire |
 | `PROGRAM_NOT_EDITABLE` | 403 | Programme archivé |
 
+### 23.2quinquies Analyse de plateau (jalon 5.3)
+
+Calcul **déterministe à la demande** (aucune table, aucune prescription).
+
+```text
+GET /api/v1/coaching/exercises/:exerciseId/plateau-analysis
+```
+
+JWT obligatoire. Exercice accessible (SYSTEM ou USER propriétaire). Étranger → `404 EXERCISE_NOT_FOUND`.
+
+Query optionnelle : `equipmentId` (UUID, filtre `equipmentTypeId` snapshot).
+
+#### Réponse (conceptuelle)
+
+```ts
+type PlateauAnalysis = {
+  exerciseId: string;
+  supported: boolean;
+  status: 'NONE' | 'WATCH' | 'PLATEAU' | 'INSUFFICIENT_DATA' | 'REVIEW';
+  range: {
+    analyzedWorkoutCount: number;
+    firstWorkoutDate: string | null;
+    latestWorkoutDate: string | null;
+  };
+  current: {
+    maxWeightKg: number | null;
+    maxReps: number | null;
+    estimatedOneRepMaxKg: number | null;
+  };
+  trend: {
+    loadChangeKg: number | null;
+    e1rmChangeKg: number | null;
+    e1rmChangePercent: number | null;
+    maxRepsChange: number | null;
+  };
+  evidence: PlateauWorkoutPoint[];
+  reasons: PlateauReason[];
+  effortCoverage: { trackedSetCount: number; eligibleSetCount: number };
+};
+```
+
+#### Règles (résumé)
+
+- `WEIGHT_REPS` uniquement ; autres → `supported: false`.
+- Max 6 séances `COMPLETED` ; min 3 pour WATCH/PLATEAU.
+- Warmups exclus ; WORKING ; e1RM Epley V1 ; tolérances 1 % / 1 kg.
+- Lecture seule ; NetworkOnly ; invalidation après `COMPLETE` serveur (`coachingQueryKeys.all`).
+
 ### 23.3 Records (jalon 4.1)
 
 Calculés **à la demande** depuis l’historique (pas de table `PersonalRecord`).

@@ -849,6 +849,81 @@ export type DecideLoadRecommendationResult = {
   recommendation: LoadRecommendation | null;
 };
 
+/** Statuts de détection de plateau (jalon 5.3 — dérivé, non persisté). */
+export type PlateauStatus =
+  | 'NONE'
+  | 'WATCH'
+  | 'PLATEAU'
+  | 'INSUFFICIENT_DATA'
+  | 'REVIEW';
+
+export type PlateauReason =
+  | 'NO_ELIGIBLE_HISTORY'
+  | 'INSUFFICIENT_WORKOUTS'
+  | 'INCONSISTENT_EQUIPMENT'
+  | 'INCONSISTENT_TARGETS'
+  | 'LOAD_NOT_INCREASING'
+  | 'MAX_REPS_NOT_INCREASING'
+  | 'E1RM_NOT_INCREASING'
+  | 'REPEATED_TARGET_MISSES'
+  | 'REPEATED_FAILURES'
+  | 'EFFORT_TREND_HIGH'
+  | 'RECENT_PROGRESS_DETECTED'
+  | 'UNSUPPORTED_MEASUREMENT_TYPE'
+  | 'SOURCE_EXERCISE_MISSING';
+
+export type PlateauWorkoutPoint = {
+  workoutSessionId: string;
+  localDate: string;
+  maxWeightKg: number | null;
+  maxReps: number | null;
+  bestEstimatedOneRepMaxKg: number | null;
+  workingExternalVolumeKg: number;
+  workingSetCount: number;
+  completedSetCount: number;
+  partialSetCount: number;
+  failedSetCount: number;
+  targetMinReps: number | null;
+  targetMaxReps: number | null;
+  targetWeightKg: number | null;
+  averageRir: number | null;
+  averageRpe: number | null;
+  effortCoverage: {
+    trackedSetCount: number;
+    eligibleSetCount: number;
+  };
+  reachedFailureCount: number;
+};
+
+/** Analyse de plateau dérivée (aucune table Prisma). */
+export type PlateauAnalysis = {
+  exerciseId: string;
+  supported: boolean;
+  status: PlateauStatus;
+  range: {
+    analyzedWorkoutCount: number;
+    firstWorkoutDate: string | null;
+    latestWorkoutDate: string | null;
+  };
+  current: {
+    maxWeightKg: number | null;
+    maxReps: number | null;
+    estimatedOneRepMaxKg: number | null;
+  };
+  trend: {
+    loadChangeKg: number | null;
+    e1rmChangeKg: number | null;
+    e1rmChangePercent: number | null;
+    maxRepsChange: number | null;
+  };
+  evidence: PlateauWorkoutPoint[];
+  reasons: PlateauReason[];
+  effortCoverage: {
+    trackedSetCount: number;
+    eligibleSetCount: number;
+  };
+};
+
 export function createSuccessResponse<T>(data: T): ApiSuccessResponse<T> {
   return { data };
 }

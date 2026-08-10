@@ -2,6 +2,7 @@ import type {
   DecideLoadRecommendationResult,
   LoadRecommendation,
   LoadRecommendationDecisionListResponse,
+  PlateauAnalysis,
 } from '@gym-companion/shared';
 import type { DecideLoadRecommendationInput } from '@gym-companion/validation';
 
@@ -41,4 +42,17 @@ export async function listLoadRecommendationDecisions(
   return apiFetch<LoadRecommendationDecisionListResponse>(
     `/api/v1/coaching/workout-template-exercises/${encodeURIComponent(workoutTemplateExerciseId)}/load-recommendation-decisions${suffix ? `?${suffix}` : ''}`,
   );
+}
+
+export async function getPlateauAnalysis(
+  exerciseId: string,
+  params: { equipmentId?: string } = {},
+): Promise<PlateauAnalysis> {
+  const search = new URLSearchParams();
+  if (params.equipmentId) search.set('equipmentId', params.equipmentId);
+  const suffix = search.toString();
+  const response = await apiFetch<{ data: PlateauAnalysis }>(
+    `/api/v1/coaching/exercises/${encodeURIComponent(exerciseId)}/plateau-analysis${suffix ? `?${suffix}` : ''}`,
+  );
+  return response.data;
 }

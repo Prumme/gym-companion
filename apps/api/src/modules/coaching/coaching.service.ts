@@ -14,24 +14,29 @@ import type {
   LoadRecommendationDecisionListItem,
   LoadRecommendationDecisionListResponse,
   LoadRecommendationReason,
+  PlateauAnalysis,
   ProgramDetail,
   WorkoutTemplateExerciseDetail,
 } from '@gym-companion/shared';
 import {
   LOAD_RECOMMENDATION_ENGINE_VERSION,
   LOAD_RECOMMENDATION_HISTORY_LIMIT,
+  PLATEAU_HISTORY_LIMIT,
   buildLoadRecommendationDecisionPayloadFingerprint,
   buildLoadRecommendationFingerprint,
   decideLoadRecommendationSchema,
   decodeLoadRecommendationDecisionCursor,
+  detectExercisePlateau,
   encodeLoadRecommendationDecisionCursor,
   loadRecommendationDecisionsQuerySchema,
+  plateauAnalysisQuerySchema,
   resolveAppliedWeightKg,
   resolveLoadRecommendation,
   utcDateToLocalDateString,
   type EffortTrackingModeForLoad,
   type HistoricalWorkoutInput,
   type PerformedSetInput,
+  type PlateauSessionInput,
   type TemplateSetTargetInput,
 } from '@gym-companion/validation';
 import { Prisma } from '@prisma/client';
@@ -98,6 +103,177 @@ export class CoachingService {
       workoutTemplateExerciseId,
     );
     return this.computeRecommendation(userId, templateExercise);
+  }
+
+  async getPlateauAnalysis(
+    userId: string,
+    exerciseId: string,
+    query: Record<string, string | undefined>,
+  ): Promise<PlateauAnalysis> {
+    const exercise = await this.findAccessibleExerciseOrThrow(userId, exerciseId);
+
+    const parsed = plateauAnalysisQuerySchema.safeParse(query);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: 'Paramètres de requête invalides.',
+      });
+    }
+
+    if (exercise.measurementType !== 'WEIGHT_REPS') {
+      return {
+        exerciseId: exercise.id,
+        supported: false,
+        status: 'INSUFFICIENT_DATA',
+        range: {
+          analyzedWorkoutCount: 0,
+          firstWorkoutDate: null,
+          latestWorkoutDate: null,
+        },
+        current: {
+          maxWeightKg: null,
+          maxReps: null,
+          estimatedOneRepMaxKg: null,
+        },
+        trend: {
+          loadChangeKg: null,
+          e1rmChangeKg: null,
+          e1rmChangePercent: null,
+          maxRepsChange: null,
+        },
+        evidence: [],
+        reasons: ['UNSUPPORTED_MEASUREMENT_TYPE'],
+        effortCoverage: { trackedSetCount: 0, eligibleSetCount: 0 },
+      };
+    }
+
+    const sessions = await this.loadPlateauSessions(
+      userId,
+      exercise.id,
+      parsed.data.equipmentId,
+    );
+
+    return detectExercisePlateau({
+      exerciseId: exercise.id,
+      measurementType: exercise.measurementType,
+      sessions,
+      equipmentTypeId: parsed.data.equipmentId ?? null,
+    });
+  }
+
+  private async loadPlateauSessions(
+    userId: string,
+    exerciseId: string,
+    equipmentId?: string,
+  ): Promise<PlateauSessionInput[]> {
+    const sessions = await this.prisma.workoutSession.findMany({
+      where: {
+        ownerUserId: userId,
+        status: 'COMPLETED',
+        exercises: {
+          some: {
+            sourceExerciseId: exerciseId,
+            measurementTypeSnapshot: 'WEIGHT_REPS',
+            ...(equipmentId ? { equipmentTypeId: equipmentId } : {}),
+          },
+        },
+      },
+      orderBy: [{ localDate: 'desc' }, { startedAt: 'desc' }],
+      take: PLATEAU_HISTORY_LIMIT * 2,
+      select: {
+        id: true,
+        localDate: true,
+        startedAt: true,
+        exercises: {
+          where: {
+            sourceExerciseId: exerciseId,
+            measurementTypeSnapshot: 'WEIGHT_REPS',
+            ...(equipmentId ? { equipmentTypeId: equipmentId } : {}),
+          },
+          select: {
+            equipmentTypeId: true,
+            sets: {
+              orderBy: { position: 'asc' },
+              select: {
+                setType: true,
+                status: true,
+                actualWeightKg: true,
+                actualReps: true,
+                actualRir: true,
+                actualRpe: true,
+                reachedFailure: true,
+                targetWeightKg: true,
+                targetRepMin: true,
+                targetRepMax: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const result: PlateauSessionInput[] = [];
+    for (const session of sessions) {
+      if (session.exercises.length === 0) {
+        continue;
+      }
+      const equipmentIds = new Set(
+        session.exercises.map((ex) => ex.equipmentTypeId),
+      );
+      const equipmentTypeId =
+        equipmentIds.size === 1
+          ? (session.exercises[0]?.equipmentTypeId ?? null)
+          : `__mixed__:${[...equipmentIds].join(',')}`;
+
+      const sets = session.exercises.flatMap((ex) =>
+        ex.sets.map((set) => ({
+          setType: set.setType,
+          status: set.status,
+          actualWeightKg: decimalToNumber(set.actualWeightKg),
+          actualReps: set.actualReps,
+          actualRir: set.actualRir,
+          actualRpe: decimalToNumber(set.actualRpe),
+          reachedFailure: set.reachedFailure,
+          targetWeightKg: decimalToNumber(set.targetWeightKg),
+          targetRepMin: set.targetRepMin,
+          targetRepMax: set.targetRepMax,
+        })),
+      );
+
+      result.push({
+        workoutSessionId: session.id,
+        localDate: utcDateToLocalDateString(session.localDate),
+        startedAt: session.startedAt.toISOString(),
+        equipmentTypeId,
+        sets,
+      });
+    }
+    return result;
+  }
+
+  private async findAccessibleExerciseOrThrow(
+    userId: string,
+    exerciseId: string,
+  ) {
+    const row = await this.prisma.exercise.findFirst({
+      where: {
+        id: exerciseId,
+        OR: [{ source: 'SYSTEM' }, { source: 'USER', ownerUserId: userId }],
+      },
+      select: {
+        id: true,
+        name: true,
+        measurementType: true,
+        archivedAt: true,
+      },
+    });
+    if (!row) {
+      throw new NotFoundException({
+        code: 'EXERCISE_NOT_FOUND',
+        message: 'Exercice introuvable.',
+      });
+    }
+    return row;
   }
 
   async decideLoadRecommendation(

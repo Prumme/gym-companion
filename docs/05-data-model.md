@@ -1974,6 +1974,14 @@ model LoadRecommendationDecision {
 La suppression d’un programme / template / exercice source **ne cascade pas** sur
 l’historique (SetNull) : le snapshot conserve le contexte d’audit.
 
+### Jalon 5.3 — Plateau / stagnation (hors tables)
+
+L’analyse de plateau est **dérivée à la lecture** :
+
+- pas de modèle Prisma `PlateauDetection` / `PlateauAnalysis` / `StagnationAlert` ;
+- calcul depuis séances `COMPLETED` + snapshots (`sourceExerciseId`, équipement, cibles, perfs) ;
+- le statut n’est **pas** matérialisé : il évolue avec de nouvelles séances.
+
 ### Phase 5
 
 - SharedWorkoutRoom ;

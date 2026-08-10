@@ -441,7 +441,20 @@ Transformer les données enregistrées en informations utiles (records, progress
 - UI : Appliquer / Choisir une autre charge / Ignorer + « Décisions récentes » ;
 - **aucune** application automatique, aucune IA, aucune commande IndexedDB.
 
-**Restent hors 5.2 :** plateaux, deload, fatigue, readiness, rep range, séries, prompts / OpenAI, auto-apply.
+**Restent hors 5.2 :** plateaux (5.3), deload, fatigue, readiness, rep range, séries, prompts / OpenAI, auto-apply.
+
+**Livré en jalon 5.3 (détection déterministe de stagnation / plateau) :**
+
+- signal descriptif `NONE` / `WATCH` / `PLATEAU` / `INSUFFICIENT_DATA` / `REVIEW` ;
+- `WEIGHT_REPS` uniquement ; historique max **6** séances `COMPLETED`, min **3** pour un signal ;
+- contexte `Exercise` + `sourceExerciseId` + équipement stable (comme 4.x / 5.1) ;
+- métriques : charge max, reps, e1RM Epley V1, volume secondaire, misses, effort optionnel ;
+- tolérances : `E1RM_PROGRESS_TOLERANCE_PERCENT = 1`, `LOAD_PROGRESS_TOLERANCE_KG = 1` ;
+- endpoint `GET /api/v1/coaching/exercises/:exerciseId/plateau-analysis` ;
+- UI section « Analyse de progression » — **aucune** recommandation corrective ;
+- résultat **dérivé** (aucune table plateau / stagnation).
+
+**Restent hors 5.3 :** deload, changement d’exercice / rep range / volume, fatigue, readiness, IA, notifications.
 
 ### 7.4 Hors périmètre
 
@@ -449,7 +462,7 @@ Transformer les données enregistrées en informations utiles (records, progress
 - Comparaison publique entre utilisateurs.
 - Classements.
 - Score global universel.
-- Diagnostic de stagnation automatique.
+- Prescription automatique face à une stagnation (hors signal descriptif 5.3).
 
 ### 7.5 Critères de validation
 

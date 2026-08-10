@@ -547,6 +547,36 @@ historique utilisé…). À la décision, le serveur recalcule et compare. Écar
 `clientCommandId` unique par propriétaire + `payloadFingerprint`. Même commande /
 même payload → replay. Payload différent → `LOAD_RECOMMENDATION_COMMAND_CONFLICT`.
 
+### 13.3ter Plateau / stagnation (jalon 5.3)
+
+Le moteur **détecte** ; il ne **prescrit** pas.
+
+Principes :
+
+- lecture seule, **aucune** table `PlateauDetection` / `StagnationAlert` ;
+- uniquement `WEIGHT_REPS` ; autres types → `supported: false` ;
+- regroupement par `WorkoutSessionExercise.sourceExerciseId` (jamais par nom) ;
+- `sourceExerciseId = null` exclu ; séances `COMPLETED` uniquement ;
+- séries `WORKING` + statuts `COMPLETED` / `PARTIAL` / `FAILED` ; warmups exclus ;
+- fenêtre max `PLATEAU_HISTORY_LIMIT = 6` ; minimum 3 séances pour un signal ;
+- équipement : même identité snapshotée que records / progression / 5.1 ;
+- cibles : snapshots historiques (pas le template courant) ;
+- e1RM : Epley V1 (règles 4.5) ; tolérance progression `E1RM_PROGRESS_TOLERANCE_PERCENT = 1` ;
+- charge : progression si hausse ≥ `LOAD_PROGRESS_TOLERANCE_KG = 1` (ou incrément réel) ;
+- pas de score opaque.
+
+Statuts :
+
+| Statut | Sens |
+|--------|------|
+| `NONE` | Pas de signal notable (ou progression récente) |
+| `WATCH` | ≥ 3 séances comparables sans hausse charge/e1RM + signal secondaire |
+| `PLATEAU` | ≥ 4 séances sans hausse charge/e1RM + (reps stagnantes / cible haute jamais atteinte / misses / échecs / effort élevé) |
+| `INSUFFICIENT_DATA` | Historique insuffisant |
+| `REVIEW` | Équipement ou cibles incompatibles |
+
+Indépendant de 5.1/5.2 : un `PLATEAU` n’altère pas `INCREASE`/`HOLD`/`DECREASE`.
+
 ### 13.4 Cas de progression
 
 Une augmentation peut être proposée lorsqu’un utilisateur réussit de manière répétée les séries prévues avec une marge suffisante.
