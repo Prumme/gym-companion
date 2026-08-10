@@ -412,8 +412,21 @@ Transformer les données enregistrées en informations utiles (records, progress
 - autres formules e1RM / 1RM ajusté RIR-RPE ;
 - moyennes mobiles / plateaux / fatigue / coaching ;
 - comparaison avancée multi-périodes ;
-- score propriétaire / gamification ;
-- recommandations de charge.
+- score propriétaire / gamification.
+
+**Livré en jalon 5.1 (recommandations déterministes de charge, lecture seule) :**
+
+- moteur déterministe (aucune IA) pour `WEIGHT_REPS` uniquement ;
+- contexte `WorkoutTemplateExercise` (pas seulement `Exercise`) ;
+- fenêtre de 3 séances `COMPLETED` éligibles max ;
+- warmups exclus ; séries `WORKING` comme base ;
+- actions `INCREASE` / `HOLD` / `DECREASE` / `INSUFFICIENT_DATA` / `REVIEW` ;
+- diminution conservatrice (≥ 2 séances consécutives sous-performantes) ;
+- incrément système par défaut 2,5 kg (`SYSTEM_DEFAULT`) ;
+- endpoint `GET /api/v1/coaching/workout-template-exercises/:id/load-recommendation` ;
+- carte suggestion sur le détail programme — **aucune application automatique**.
+
+**Restent hors 5.1 :** application au programme (5.2+), plateaux, fatigue, périodisation, appels IA.
 
 ### 7.4 Hors périmètre
 

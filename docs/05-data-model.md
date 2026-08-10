@@ -1926,6 +1926,14 @@ La création d’une séance depuis un modèle copie un snapshot immuable des in
 - dashboard global dérivé (4.4 — pas de table) ;
 - e1RM / force estimée dérivé (4.5 — pas de table).
 
+### Jalon 5.1 — Coaching déterministe (hors tables)
+
+Les recommandations de charge sont **dérivées à la lecture** :
+
+- pas de modèle Prisma `LoadRecommendation` / `CoachingRecommendation` / `RecommendationHistory` ;
+- calcul depuis `WorkoutTemplateExercise` + séries cibles + snapshots de séances `COMPLETED` ;
+- aucune persistance de la décision ni de l’acceptation utilisateur (étudié plus tard).
+
 ### Phase 5
 
 - SharedWorkoutRoom ;

@@ -35,6 +35,7 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { ReorderControls } from './ReorderControls';
 import { TemplateExerciseForm } from './TemplateExerciseForm';
 import { TemplateSetEditor } from './TemplateSetEditor';
+import { LoadRecommendationCard } from '@/features/coaching/components/LoadRecommendationCard';
 
 type TemplateExerciseCardProps = {
   programId: string;
@@ -314,6 +315,11 @@ export function TemplateExerciseCard({
           <p className="mt-1 text-xs text-[var(--muted)]">
             {exercise.sets.length} série{exercise.sets.length === 1 ? '' : 's'}
           </p>
+          <LoadRecommendationCard
+            workoutTemplateExerciseId={exercise.id}
+            exerciseId={exercise.exercise.id}
+            measurementType={exercise.exercise.measurementType}
+          />
         </div>
 
         {!readOnly ? (

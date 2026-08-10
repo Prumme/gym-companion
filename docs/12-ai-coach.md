@@ -70,6 +70,7 @@ L’IA ne doit pas être responsable des calculs suivants :
 - calories et macronutriments ;
 - estimation du 1RM ;
 - records personnels ;
+- **recommandations de charge (moteur 5.1)** ;
 - arrondi des charges ;
 - validation des incréments disponibles ;
 - contraintes de rotation ;
@@ -77,6 +78,18 @@ L’IA ne doit pas être responsable des calculs suivants :
 - autorisations ;
 - calcul des dates ;
 - synchronisation.
+
+Architecture cible du coaching :
+
+```text
+moteur déterministe
+→ produit décision + preuves (action, reasons, evidence)
+→ future couche IA
+→ explique / personnalise sans contourner les garde-fous
+```
+
+L’IA future ne doit **pas** devenir la seule source des règles de progression.
+Le jalon 5.1 livre uniquement le moteur déterministe (lecture seule, sans application automatique).
 
 ### 3.3 Les sorties sont structurées
 

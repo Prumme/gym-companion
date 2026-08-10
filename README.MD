@@ -406,6 +406,14 @@ Le jalon **4.5** ajoute le 1RM estimé (e1RM) : formule Epley V1
 entre 1 et 12 reps, RIR/RPE non intégrés. Endpoint
 `GET /api/v1/progress/exercises/:exerciseId/strength`, section « Force estimée » sur
 la page de progression d’exercice. Dérivé à la demande (pas de table), clairement
-distinct des records réels. Aucune recommandation de charge.
+distinct des records réels.
+
+Le jalon **5.1** ajoute le premier moteur de coaching : recommandations déterministes
+de charge (lecture seule) pour `WEIGHT_REPS`, basées sur le `WorkoutTemplateExercise`,
+au plus 3 séances `COMPLETED`, warmups exclus. Actions
+`INCREASE` / `HOLD` / `DECREASE` / `INSUFFICIENT_DATA` / `REVIEW`. Endpoint
+`GET /api/v1/coaching/workout-template-exercises/:id/load-recommendation`.
+Carte « Suggestion pour la prochaine séance » sur le détail programme — **aucune
+application automatique**, aucune IA, aucune table de recommandation.
 
 Les documents du dossier `docs/` restent la source de vérité produit et technique.

@@ -730,6 +730,77 @@ export type ExerciseStrengthResponse = {
   points: EstimatedStrengthPoint[];
 };
 
+/** Actions de recommandation de charge (jalon 5.1 — déterministe, lecture seule). */
+export type LoadRecommendationAction =
+  | 'INCREASE'
+  | 'HOLD'
+  | 'DECREASE'
+  | 'INSUFFICIENT_DATA'
+  | 'REVIEW';
+
+export type LoadRecommendationReason =
+  | 'TARGET_RANGE_REACHED'
+  | 'TARGET_RANGE_PARTIALLY_REACHED'
+  | 'TARGET_RANGE_NOT_REACHED'
+  | 'EFFORT_ON_TARGET'
+  | 'EFFORT_TOO_HIGH'
+  | 'EFFORT_LOWER_THAN_TARGET'
+  | 'RECENT_FAILURES'
+  | 'NO_ELIGIBLE_HISTORY'
+  | 'NO_WORKING_SETS'
+  | 'UNSUPPORTED_TARGET_CONFIGURATION'
+  | 'INCONSISTENT_EQUIPMENT'
+  | 'INSUFFICIENT_EFFORT_DATA'
+  | 'UNSUPPORTED_MEASUREMENT_TYPE'
+  | 'NO_TARGET_WEIGHT'
+  | 'NO_TARGET_REP_RANGE'
+  | 'SINGLE_UNDERPERFORMANCE'
+  | 'COMPARABLE_LOAD_MISMATCH';
+
+export type LoadIncrementSource =
+  | 'USER_EXERCISE_PREFERENCE'
+  | 'SYSTEM_DEFAULT';
+
+export type LoadRecommendationEvidenceWorkout = {
+  workoutSessionId: string;
+  localDate: string;
+  targetWeightKg: number | null;
+  completedSetCount: number;
+  partialSetCount: number;
+  failedSetCount: number;
+  performedReps: number[];
+  actualRir: number[] | null;
+  actualRpe: number[] | null;
+};
+
+/** Recommandation de charge dérivée (non persistée). */
+export type LoadRecommendation = {
+  workoutTemplateExerciseId: string;
+  exerciseId: string;
+  supported: boolean;
+  action: LoadRecommendationAction;
+  currentTarget: {
+    weightKg: number | null;
+    minReps: number | null;
+    maxReps: number | null;
+    targetRir: number | null;
+    targetRpe: number | null;
+  };
+  recommendation: {
+    suggestedWeightKg: number | null;
+    adjustmentKg: number | null;
+    incrementKg: number | null;
+    incrementSource: LoadIncrementSource | null;
+  };
+  evidence: {
+    workoutCount: number;
+    latestWorkoutDate: string | null;
+    effortDataUsed: boolean;
+    recentWorkouts: LoadRecommendationEvidenceWorkout[];
+  };
+  reasons: LoadRecommendationReason[];
+};
+
 export function createSuccessResponse<T>(data: T): ApiSuccessResponse<T> {
   return { data };
 }

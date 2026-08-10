@@ -1804,12 +1804,74 @@ reps = 1 → e1RM = weight
 - RIR / RPE / `reachedFailure` n’influencent pas le calcul.
 - Un point = meilleure e1RM de la séance (tie-breaks : poids DESC, reps ASC, position, id).
 - Estimation ≠ charge réellement soulevée (records 4.1 distincts).
-- Aucune recommandation de charge.
+- Aucune recommandation de charge dans cet endpoint (voir 23.2ter).
 
 #### Codes d’erreur
 
 `EXERCISE_NOT_FOUND`, `STRENGTH_INVALID_FROM_DATE`, `STRENGTH_INVALID_TO_DATE`,
 `STRENGTH_INVALID_DATE_RANGE`, `STRENGTH_INVALID_QUERY`, `PROGRESS_RANGE_TOO_LARGE`.
+
+### 23.2ter Recommandation de charge (jalon 5.1)
+
+Calcul **déterministe à la demande** (aucune table, aucune IA).
+
+```text
+GET /api/v1/coaching/workout-template-exercises/:workoutTemplateExerciseId/load-recommendation
+```
+
+JWT obligatoire. Chaîne de propriété `user → program → template → template exercise`. Ressource étrangère → `404 WORKOUT_TEMPLATE_EXERCISE_NOT_FOUND`.
+
+#### Réponse (conceptuelle)
+
+```ts
+type LoadRecommendation = {
+  workoutTemplateExerciseId: string;
+  exerciseId: string;
+  supported: boolean; // false si measurementType ≠ WEIGHT_REPS
+  action: 'INCREASE' | 'HOLD' | 'DECREASE' | 'INSUFFICIENT_DATA' | 'REVIEW';
+  currentTarget: {
+    weightKg: number | null;
+    minReps: number | null;
+    maxReps: number | null;
+    targetRir: number | null;
+    targetRpe: number | null;
+  };
+  recommendation: {
+    suggestedWeightKg: number | null;
+    adjustmentKg: number | null;
+    incrementKg: number | null;
+    incrementSource: 'USER_EXERCISE_PREFERENCE' | 'SYSTEM_DEFAULT' | null;
+  };
+  evidence: {
+    workoutCount: number;
+    latestWorkoutDate: string | null;
+    effortDataUsed: boolean;
+    recentWorkouts: Array<{
+      workoutSessionId: string;
+      localDate: string;
+      targetWeightKg: number | null;
+      completedSetCount: number;
+      partialSetCount: number;
+      failedSetCount: number;
+      performedReps: number[];
+      actualRir: number[] | null;
+      actualRpe: number[] | null;
+    }>;
+  };
+  reasons: LoadRecommendationReason[];
+};
+```
+
+#### Règles (résumé)
+
+- Uniquement `WEIGHT_REPS` ; autres types → `supported: false`.
+- Max 3 séances `COMPLETED` ; warmups exclus ; `WORKING` comme base.
+- `sourceExerciseId` non null ; équipement aligné sur le modèle.
+- RIR/RPE optionnels ; mode profil `NONE` / `RIR` / `RPE` (sans mélange).
+- `DECREASE` : ≥ 2 séances consécutives sous-performantes.
+- Incrément défaut 2,5 kg (`SYSTEM_DEFAULT`) tant qu’aucune préférence Prisma n’existe.
+- Lecture seule : **aucune** mutation du programme / modèle.
+- Cache client : NetworkOnly ; invalidation après `COMPLETE` serveur et modification du modèle.
 
 ### 23.3 Records (jalon 4.1)
 

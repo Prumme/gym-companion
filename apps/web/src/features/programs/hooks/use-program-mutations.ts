@@ -38,6 +38,7 @@ import {
   updateWorkoutTemplateSet,
 } from '../api/program-api';
 import { programQueryKeys } from '../api/program-query-keys';
+import { coachingQueryKeys } from '@/features/coaching/api/coaching-query-keys';
 import {
   syncAfterActivation,
   syncAfterDeactivation,
@@ -52,6 +53,7 @@ function useSyncProgramDetail() {
     if (invalidateLists) {
       void queryClient.invalidateQueries({ queryKey: programQueryKeys.lists() });
     }
+    void queryClient.invalidateQueries({ queryKey: coachingQueryKeys.all });
   };
 }
 

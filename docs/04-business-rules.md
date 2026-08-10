@@ -473,11 +473,46 @@ Une suggestion ne modifie pas automatiquement :
 
 L’utilisateur doit confirmer.
 
-### 13.3 Cas de progression
+### 13.3 Moteur déterministe (jalon 5.1)
+
+Le premier moteur de coaching est **déterministe**, **explicable** et **conservateur**.
+
+Principes :
+
+- calcul serveur à la lecture — **aucune table** `LoadRecommendation` / historique d’acceptation ;
+- aucune IA, aucun prompt, aucun score opaque ;
+- uniquement `measurementType = WEIGHT_REPS` (snapshot historique `WEIGHT_REPS`) ;
+- contexte principal : `WorkoutTemplateExercise` (séries cibles du modèle) ;
+- séances éligibles : `status = COMPLETED` uniquement (max **3** plus récentes) ;
+- `sourceExerciseId` non null ; warmups exclus ; base = séries `WORKING` ;
+- équipement : même identité stable que records / progression ; sinon `REVIEW` ;
+- RIR / RPE facultatifs (tolérance ±1) ; mode `NONE` autorise une décision sur reps/statuts ;
+- incrément : préférence exercice si disponible, sinon `DEFAULT_LOAD_INCREMENT_KG = 2.5` avec `incrementSource = SYSTEM_DEFAULT`.
+
+Actions :
+
+| Action | Sens |
+|--------|------|
+| `INCREASE` | Toutes les séries de travail évaluables de la dernière séance au sommet (ou au-dessus) de la plage, sans `PARTIAL`/`FAILED`, effort non excessif |
+| `HOLD` | Performance compatible sans justifier une hausse ; une seule mauvaise séance ne baisse pas |
+| `DECREASE` | Au moins **2** séances consécutives comparables sous-performantes |
+| `INSUFFICIENT_DATA` | Pas d’historique, pas de working sets, pas de charge/plage cible |
+| `REVIEW` | Données présentes mais configuration ambiguë (cibles hétérogènes, équipement, charge historique incompatible) |
+
+Suggestions numériques :
+
+- `INCREASE` : `current + increment` ;
+- `DECREASE` : `max(current − 2 × increment, increment)` (> 0) ;
+- `HOLD` : charge actuelle ;
+- `REVIEW` / `INSUFFICIENT_DATA` : `suggestedWeightKg = null`.
+
+L’application d’une recommandation au modèle est **hors 5.1**.
+
+### 13.4 Cas de progression
 
 Une augmentation peut être proposée lorsqu’un utilisateur réussit de manière répétée les séries prévues avec une marge suffisante.
 
-### 13.4 Cas de maintien
+### 13.5 Cas de maintien
 
 Le maintien peut être proposé lorsque :
 
@@ -485,7 +520,7 @@ Le maintien peut être proposé lorsque :
 - les données sont insuffisantes ;
 - la performance est irrégulière.
 
-### 13.5 Cas de diminution
+### 13.6 Cas de diminution
 
 Une diminution peut être proposée lorsque :
 
@@ -496,6 +531,7 @@ Une diminution peut être proposée lorsque :
 - l’utilisateur demande une séance plus légère.
 
 La diminution ne doit pas être présentée comme une sanction.
+En 5.1, une baisse exige au minimum deux séances consécutives comparables sous-performantes.
 
 ## 14. Records personnels
 
