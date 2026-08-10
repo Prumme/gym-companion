@@ -2250,13 +2250,15 @@ Réponse `MySharedWorkoutSessionDto` :
     "workoutName": "Push A",
     "startedAt": "2026-08-10T12:00:00.000Z"
   },
-  "activeWorkoutElsewhere": null
+  "activeWorkoutElsewhere": null,
+  "currentWorkoutSessionExerciseId": null
 }
 ```
 
 Si non lié : `linked: false`, `workoutSession: null`, et éventuellement
 `activeWorkoutElsewhere` (séance `ACTIVE`/`PAUSED` du viewer, avec
-`linkedToOtherRoom`).
+`linkedToOtherRoom`). `currentWorkoutSessionExerciseId` est toujours exposé
+pour le viewer (null si non applicable).
 
 #### POST attach
 
@@ -2298,6 +2300,60 @@ via `WorkoutsService.createFromTemplateInTransaction` **et** association dans
 ```
 
 Émet `MEMBER_WORKOUT_CHANGED` après commit.
+
+### 24.6quinquies Exercice courant et progression (Shared 5.5 — livré)
+
+#### PUT — exercice courant de coordination
+
+```text
+PUT /api/v1/shared-workouts/:roomId/my-workout-session/current-exercise
+```
+
+```json
+{ "workoutSessionExerciseId": "uuid-or-null" }
+```
+
+Zod strict. Le client **ne** fournit **pas** `userId` / `roomMemberId` /
+`workoutSessionId` (résolus JWT + membership + association). Idempotent si
+même valeur. Émet `MEMBER_CURRENT_EXERCISE_CHANGED` seulement si modifié.
+
+Préconditions : room `ACTIVE`, membership actif, member session existante,
+workout `ACTIVE`|`PAUSED`, exercice appartenant à la séance liée (sinon 404).
+
+#### GET — contexte shared depuis une WorkoutSession
+
+```text
+GET /api/v1/shared-workouts/by-workout-session/:workoutSessionId/context
+```
+
+Owner de la séance uniquement (404 neutre sinon).
+
+```json
+{
+  "linked": true,
+  "room": { "id": "…", "name": "…", "status": "ACTIVE" },
+  "currentWorkoutSessionExerciseId": "…"
+}
+```
+
+Choix : endpoint dédié plutôt qu’enrichir `WorkoutSessionDetail` (évite de
+polluer l’API Phase 3 pour tous les clients).
+
+#### DTO `memberWorkout` (Shared 5.5)
+
+```ts
+{
+  status, workoutName, startedAt, completedAt,
+  currentExercise: { name, processedSetCount, totalSetCount } | null,
+  progress: {
+    processedSetCount, totalSetCount,
+    processedExerciseCount, totalExerciseCount
+  } | null
+}
+```
+
+Pour les **autres** membres : pas d’IDs d’exercice. Projection backend minimale
+(statuts de sets uniquement en DB ; jamais exposés dans le JSON).
 
 #### Erreurs (Shared 5.4)
 

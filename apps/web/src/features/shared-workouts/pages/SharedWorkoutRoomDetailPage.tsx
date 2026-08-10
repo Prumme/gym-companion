@@ -1,3 +1,4 @@
+import { safeProgressRatio } from '@gym-companion/validation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Pencil, Users } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
@@ -22,6 +23,8 @@ import {
 } from '../hooks/use-shared-workout-mutations';
 import { useSharedWorkoutRoomRealtime } from '../hooks/use-shared-workout-room-realtime';
 import {
+  formatSharedExerciseProgress,
+  formatSharedSetProgress,
   getSharedWorkoutInvitationStatusLabel,
   getSharedWorkoutRoomStatusLabel,
   memberWorkoutLabel,
@@ -335,33 +338,105 @@ export function SharedWorkoutRoomDetailPage() {
               : isOnline
                 ? 'En ligne'
                 : 'Hors ligne';
+            const workout = member.memberWorkout;
             const workoutLabel = memberWorkoutLabel(
-              member.memberWorkout.status,
-              member.memberWorkout.workoutName,
+              workout.status,
+              workout.workoutName,
             );
+            const progress = workout.progress;
+            const current = workout.currentExercise;
+            const ratio =
+              progress && progress.totalSetCount > 0
+                ? safeProgressRatio(
+                    progress.processedSetCount,
+                    progress.totalSetCount,
+                  )
+                : 0;
             return (
               <li
                 key={member.userId}
-                className="flex flex-col gap-1 text-sm sm:flex-row sm:items-start sm:justify-between sm:gap-3"
+                className="flex flex-col gap-2 rounded-[var(--radius)] border border-[var(--border)]/60 p-3 text-sm"
               >
-                <div className="min-w-0">
-                  <p className="font-medium">
-                    {member.displayName ?? 'Participant'}
-                    {member.role === 'OWNER' ? ' (propriétaire)' : ''}
-                  </p>
-                  <p className="text-[var(--muted)]">Séance : {workoutLabel}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium">
+                      {member.displayName ?? 'Participant'}
+                      {member.role === 'OWNER' ? ' · Propriétaire' : ' · Membre'}
+                    </p>
+                    <p className="text-[var(--muted)]">{workoutLabel}</p>
+                  </div>
+                  <span className="flex shrink-0 items-center gap-2 text-[var(--muted)]">
+                    <span
+                      aria-hidden="true"
+                      className={`inline-block size-2 rounded-full ${
+                        realtimeAvailable && isOnline
+                          ? 'bg-emerald-500'
+                          : 'bg-[var(--muted)]'
+                      }`}
+                    />
+                    <span>{presenceLabel}</span>
+                  </span>
                 </div>
-                <span className="flex shrink-0 items-center gap-2 text-[var(--muted)]">
-                  <span
-                    aria-hidden="true"
-                    className={`inline-block size-2 rounded-full ${
-                      realtimeAvailable && isOnline
-                        ? 'bg-emerald-500'
-                        : 'bg-[var(--muted)]'
-                    }`}
-                  />
-                  <span>{presenceLabel}</span>
-                </span>
+                {room.status === 'ACTIVE' ||
+                room.status === 'COMPLETED' ||
+                room.status === 'CANCELLED' ? (
+                  <div className="flex flex-col gap-1 text-[var(--muted)]">
+                    {workout.status === 'PAUSED' ? (
+                      <p className="text-[var(--foreground)]">Séance en pause</p>
+                    ) : null}
+                    {current ? (
+                      <p>
+                        <span className="text-[var(--foreground)]">
+                          {current.name}
+                        </span>
+                        {' · '}
+                        {formatSharedSetProgress(
+                          current.processedSetCount,
+                          current.totalSetCount,
+                        )}{' '}
+                        renseignées
+                      </p>
+                    ) : workout.status === 'ACTIVE' ||
+                      workout.status === 'PAUSED' ? (
+                      <p>Aucun exercice sélectionné</p>
+                    ) : null}
+                    {progress ? (
+                      <>
+                        <p>
+                          Progression{' '}
+                          {formatSharedSetProgress(
+                            progress.processedSetCount,
+                            progress.totalSetCount,
+                          )}
+                        </p>
+                        {progress.totalSetCount > 0 ? (
+                          <div
+                            className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--border)]"
+                            role="progressbar"
+                            aria-valuemin={0}
+                            aria-valuemax={progress.totalSetCount}
+                            aria-valuenow={progress.processedSetCount}
+                            aria-label={`Progression ${formatSharedSetProgress(progress.processedSetCount, progress.totalSetCount)}`}
+                          >
+                            <div
+                              className="h-full bg-[var(--primary)]"
+                              style={{ width: `${ratio * 100}%` }}
+                            />
+                          </div>
+                        ) : null}
+                        {progress.totalExerciseCount > 0 ? (
+                          <p className="text-xs">
+                            {formatSharedExerciseProgress(
+                              progress.processedExerciseCount,
+                              progress.totalExerciseCount,
+                            )}{' '}
+                            terminés
+                          </p>
+                        ) : null}
+                      </>
+                    ) : null}
+                  </div>
+                ) : null}
               </li>
             );
           })}

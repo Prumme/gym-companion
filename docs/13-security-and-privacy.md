@@ -317,17 +317,24 @@ resource.ownerUserId === authenticatedUser.id
 
 ou une règle d’accès équivalente.
 
-### 11.1 Shared 5.4 — ownership séance / room
+### 11.1 Shared 5.4 / 5.5 — ownership séance / room / progression
 
-- attach / create : identity JWT uniquement ; jamais de `userId` client ;
+- attach / create / current-exercise : identity JWT uniquement ; jamais de
+  `userId` / `roomMemberId` client ;
 - invariant : `roomMember.userId === workoutSession.ownerUserId` ;
+- exercice courant doit appartenir à la séance liée (cross-session /
+  cross-user → 404) ;
 - séance absente **ou** d’un autre utilisateur → **404** `WORKOUT_NOT_FOUND`
   (neutre, anti-énumération) ;
 - détail salle : `myWorkoutSessionId` = séance du **viewer** seulement ;
   jamais les IDs des autres membres ;
-- `memberWorkout` = résumé statut/nom/timestamps **sans** perfs ni ID croisé ;
-- aucun endpoint Shared 5.4 ne permet d’écrire / lire le détail de la séance
-  d’un autre membre (pas de cross-write, pas d’IDOR via room).
+- `memberWorkout` = résumé statut/nom/timestamps + Shared 5.5 compteurs /
+  nom d’exercice courant **sans** perfs ni ID croisé ;
+- frontière : progression générale visible ; performances détaillées
+  (poids, reps, RIR, notes, volume…) **privées** ;
+- aucun endpoint Shared 5.4/5.5 ne permet d’écrire / lire le détail de la
+  séance d’un autre membre (pas de cross-write, pas d’IDOR via room).
+- events `MEMBER_*_CHANGED` : **serveur → client uniquement**.
 
 ## 12. Validation des entrées
 
@@ -910,9 +917,11 @@ Par défaut, les autres participants peuvent voir :
 - présence en ligne *(Shared 5.3 : userId dans `presence:*` / snapshot ; pas d’email)* ;
 - résumé de statut de séance rattachée *(Shared 5.4 : `memberWorkout.status` /
   nom / timestamps — **pas** l’ID ni les perfs)* ;
-- station *(Shared 5.5+)* ;
-- statut de progression détaillé *(Shared 5.5+)* ;
-- disponibilité *(Shared 5.5+)*.
+- progression générale (exercice courant nom snapshot + compteurs séries /
+  exercices) *(Shared 5.5 — **pas** poids/reps/RIR/notes)* ;
+- station *(Shared 5.6+)* ;
+- sync détaillée des séries *(Shared 5.6+)* ;
+- disponibilité / ready *(Shared 5.6+)*.
 
 Ils ne doivent pas voir automatiquement :
 
@@ -924,7 +933,7 @@ Ils ne doivent pas voir automatiquement :
 - statistiques complètes ;
 - données IA ;
 - l’identifiant ni le détail des `WorkoutSession` / séries des autres
-  *(Shared 5.4)* ;
+  *(Shared 5.4 / 5.5)* ;
 - JWT / tokens / emails dans les événements socket.
 
 ## 33. Visibilité des profils

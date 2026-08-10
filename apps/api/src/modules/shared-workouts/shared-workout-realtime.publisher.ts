@@ -30,13 +30,22 @@ export class SharedWorkoutRealtimePublisher {
   emitRoomChanged(
     roomId: string,
     reason: SharedWorkoutRoomChangeReason,
+    memberUserId?: string,
   ): void {
     if (!this.nsp) {
       this.logger.debug(`Skip room:changed (${reason}) — namespace unbound`);
       return;
     }
     const channel = sharedWorkoutSocketRoomChannel(roomId);
-    this.nsp.to(channel).emit('room:changed', { roomId, reason });
+    const payload: {
+      roomId: string;
+      reason: SharedWorkoutRoomChangeReason;
+      memberUserId?: string;
+    } = { roomId, reason };
+    if (memberUserId) {
+      payload.memberUserId = memberUserId;
+    }
+    this.nsp.to(channel).emit('room:changed', payload);
 
     if (reason === 'COMPLETED' || reason === 'CANCELLED') {
       this.closeRoomPresence(roomId);
@@ -77,8 +86,10 @@ export class SharedWorkoutRealtimePublisher {
 
   private findSocket(socketId: string) {
     if (!this.nsp) return undefined;
-    // Namespace.sockets is a Map in Socket.IO v4+
-    const sockets = this.nsp.sockets as Map<string, { leave: (r: string) => void }>;
+    const sockets = this.nsp.sockets as Map<
+      string,
+      { leave: (r: string) => void }
+    >;
     return sockets.get(socketId);
   }
 }

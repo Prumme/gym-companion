@@ -6,6 +6,7 @@ import type {
   SharedWorkoutRoomInvitationStatus,
   SharedWorkoutRoomListItem,
   SharedWorkoutRoomStatus,
+  SharedWorkoutSessionContextDto,
   WorkoutSessionDetail,
 } from '@gym-companion/shared';
 
@@ -208,6 +209,29 @@ export async function createMySharedWorkoutSession(
       method: 'POST',
       body: JSON.stringify(input),
     },
+  );
+  return response.data;
+}
+
+export async function setMySharedCurrentExercise(
+  roomId: string,
+  input: { workoutSessionExerciseId: string | null },
+): Promise<MySharedWorkoutSessionDto> {
+  const response = await apiFetch<{ data: MySharedWorkoutSessionDto }>(
+    `/api/v1/shared-workouts/${encodeURIComponent(roomId)}/my-workout-session/current-exercise`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    },
+  );
+  return response.data;
+}
+
+export async function getSharedWorkoutSessionContext(
+  workoutSessionId: string,
+): Promise<SharedWorkoutSessionContextDto> {
+  const response = await apiFetch<{ data: SharedWorkoutSessionContextDto }>(
+    `/api/v1/shared-workouts/by-workout-session/${encodeURIComponent(workoutSessionId)}/context`,
   );
   return response.data;
 }

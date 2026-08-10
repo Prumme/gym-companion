@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 
 import { ButtonLink } from '@/components/ui/button';
 import { getMe } from '@/features/profile/api/profile-api';
+import { useSyncSharedCurrentExercise } from '@/features/shared-workouts/hooks/use-sync-shared-current-exercise';
 import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
 
 import { activeWorkoutQueryOptions } from '../api/workout-query-options';
@@ -119,6 +120,7 @@ function ActiveWorkoutSessionView({
 
   const offlineSync = useWorkoutOfflineSync(session.id);
   const navigation = useWorkoutExerciseNavigation(session);
+  useSyncSharedCurrentExercise(session.id, navigation.selectedExerciseId);
   const restTimer = useRestTimer({
     workoutSessionId: session.id,
     enabled: true,

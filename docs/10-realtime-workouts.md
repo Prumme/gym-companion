@@ -29,15 +29,28 @@ Effet client : invalidation TanStack Query (détail salle + « ma séance ») �
 **statut / résumé uniquement**. **Pas** de sync de séries, stations ni snapshot
 workout.
 
-**Hors Shared 5.3–5.4 (cible Shared 5.5+)** — ce document décrit aussi la cible
+### Shared 5.5 — Exercice courant + progression (livré)
+
+Ajoute :
+
+- `MEMBER_CURRENT_EXERCISE_CHANGED` — sélection d’exercice courant ;
+- `MEMBER_WORKOUT_PROGRESS_CHANGED` — changement du caractère `processed`
+  d’une série (après commit `PATCH` set, y compris via sync offline).
+
+Packets **compacts** uniquement : `{ roomId, reason, memberUserId? }`.
+**Aucune** performance (poids, reps, RIR, statut set détaillé, notes).
+
+Client : invalidate/refetch détail salle (coalescing ~200 ms pour progress).
+
+**Hors Shared 5.3–5.5 (cible Shared 5.6+)** — ce document décrit aussi la cible
 workout sync ; ne pas la lire comme livrée :
 
 - sync séries / stations / rotation ;
-- commandes idempotentes `commandId` / `expectedVersion` ;
+- commandes idempotentes `commandId` / `expectedVersion` partagées ;
 - snapshot workout live ;
 - chronomètre partagé.
 
-### Protocole Shared 5.3 / 5.4 (livré)
+### Protocole Shared 5.3 / 5.4 / 5.5 (livré)
 
 | Élément | Valeur |
 |---------|--------|
@@ -62,18 +75,23 @@ Ack subscribe succès : `{ ok: true, roomId, presence: { connectedUserIds } }`.
 - `presence:snapshot` `{ roomId, connectedUserIds }`
 - `presence:joined` `{ roomId, userId }` — premier socket de l’utilisateur
 - `presence:left` `{ roomId, userId }` — dernier socket retiré
-- `room:changed` `{ roomId, reason }`
+- `room:changed` `{ roomId, reason, memberUserId? }`
 
 Raisons `room:changed` :
 
 ```text
 RENAMED | STARTED | COMPLETED | CANCELLED | MEMBER_JOINED | MEMBER_LEFT
 | MEMBER_WORKOUT_CHANGED
+| MEMBER_CURRENT_EXERCISE_CHANGED | MEMBER_WORKOUT_PROGRESS_CHANGED
 ```
 
 `MEMBER_WORKOUT_CHANGED` (Shared 5.4) = hint d’invalidation du **résumé**
 séance membre (`memberWorkout` / `myWorkoutSessionId`). Ce n’est **pas** une
 commande de sync de séries ni un snapshot workout.
+
+`MEMBER_CURRENT_EXERCISE_CHANGED` / `MEMBER_WORKOUT_PROGRESS_CHANGED`
+(Shared 5.5) = hints d’invalidation pour exercice courant / compteurs —
+**sans aucune donnée sportive** dans le packet.
 
 #### Règles d’émission
 
@@ -83,6 +101,10 @@ commande de sync de séries ni un snapshot workout.
 - Accept invitation → `MEMBER_JOINED` ; présence « en ligne » seulement après `subscribe`.
 - Membership ≠ présence.
 - Shared 5.4 : attach/create + lifecycle workout lié → `MEMBER_WORKOUT_CHANGED`.
+- Shared 5.5 : PUT current-exercise → `MEMBER_CURRENT_EXERCISE_CHANGED` ;
+  PATCH set (processed changed) sur séance liée + room ACTIVE + membership
+  actif → `MEMBER_WORKOUT_PROGRESS_CHANGED`. Pas d’émission si room terminale
+  ou membre left. Client **ne peut pas** forger ces events.
 
 #### Client web
 

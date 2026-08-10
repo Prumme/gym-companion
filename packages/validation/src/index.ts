@@ -2310,3 +2310,19 @@ export type {
   AttachMySharedWorkoutSessionInput,
   CreateMySharedWorkoutSessionInput,
 } from './shared-workout-member-sessions';
+export {
+  setMySharedCurrentExerciseBodySchema,
+} from './shared-workout-current-exercise';
+export type { SetMySharedCurrentExerciseInput } from './shared-workout-current-exercise';
+export {
+  buildExerciseProgressSummary,
+  buildWorkoutProgressSummary,
+  isExerciseFullyProcessed,
+  safeProgressRatio,
+} from './shared-workout-progress';
+export type {
+  SharedExerciseProgressSummary,
+  SharedProgressExerciseInput,
+  SharedProgressSetInput,
+  SharedWorkoutProgressSummary,
+} from './shared-workout-progress';

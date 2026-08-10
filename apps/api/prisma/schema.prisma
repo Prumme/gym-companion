@@ -562,6 +562,8 @@ model WorkoutSessionExercise {
   sourceTemplateExercise WorkoutTemplateExercise? @relation(fields: [sourceTemplateExerciseId], references: [id], onDelete: SetNull)
   equipmentType          EquipmentType?         @relation(fields: [equipmentTypeId], references: [id], onDelete: SetNull)
   sets                   WorkoutSet[]
+  /// Shared 5.5 — références d’exercice courant (coordination room).
+  sharedCurrentForMemberSessions SharedWorkoutRoomMemberSession[]
 
   @@unique([workoutSessionId, position])
   @@index([workoutSessionId])
@@ -784,14 +786,19 @@ model SharedWorkoutRoomMember {
 
 /// Shared 5.4 — rattachement d’une WorkoutSession individuelle à une membership.
 /// Ownership invariant : roomMember.userId === workoutSession.ownerUserId (garanti métier).
+/// Shared 5.5 — currentWorkoutSessionExerciseId = état de coordination (pas une vérité WorkoutSession).
 model SharedWorkoutRoomMemberSession {
-  id               String   @id @default(uuid()) @db.Uuid
-  roomMemberId     String   @unique @db.Uuid
-  workoutSessionId String   @unique @db.Uuid
-  attachedAt       DateTime @default(now())
+  id                               String    @id @default(uuid()) @db.Uuid
+  roomMemberId                     String    @unique @db.Uuid
+  workoutSessionId                 String    @unique @db.Uuid
+  attachedAt                       DateTime  @default(now())
+  /// Exercice courant partagé (coordination). Nullable = aucun sélectionné.
+  currentWorkoutSessionExerciseId  String?   @db.Uuid
+  currentExerciseChangedAt         DateTime?
 
-  roomMember     SharedWorkoutRoomMember @relation(fields: [roomMemberId], references: [id], onDelete: Cascade)
-  workoutSession WorkoutSession          @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
+  roomMember              SharedWorkoutRoomMember  @relation(fields: [roomMemberId], references: [id], onDelete: Cascade)
+  workoutSession          WorkoutSession           @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
+  currentWorkoutExercise  WorkoutSessionExercise?  @relation(fields: [currentWorkoutSessionExerciseId], references: [id], onDelete: SetNull)
 
   @@map("shared_workout_room_member_sessions")
 }

@@ -459,13 +459,13 @@ Idempotence `clientCommandId`, rate limit, boucle d’outils bornée (max 4).
 
 > **Nomenclature :** les jalons techniques **5.1 → 5.6** forment la **Couche Coaching**
 > (livrée sous la Phase 4 produit). La **roadmap Phase 5 — Séances partagées** est
-> distincte : **Shared 5.1 → 5.4** sont **livrés** ; codes d’invitation publics,
-> rotation et sync séries (Shared 5.5+) restent à venir.
+> distincte : **Shared 5.1 → 5.5** sont **livrés** ; codes d’invitation publics,
+> rotation et sync séries détaillées (Shared 5.6+) restent à venir.
 > « 5.6 complete » ≠ séances partagées terminées.
 
-### Phase 5 produit — Shared 5.1 → 5.4 (livrés)
+### Phase 5 produit — Shared 5.1 → 5.5 (livrés)
 
-Fondations des salles, adhésion, présence et rattachement de séances individuelles :
+Fondations des salles, adhésion, présence, rattachement et progression live :
 
 - `SharedWorkoutRoom` + `SharedWorkoutRoomMember` (`OWNER` / `MEMBER`, `leftAt`) ;
 - lifecycle `LOBBY` / `ACTIVE` / `COMPLETED` / `CANCELLED` (REST autoritaire) ;
@@ -476,7 +476,11 @@ Fondations des salles, adhésion, présence et rattachement de séances individu
 - **Shared 5.4** : `SharedWorkoutRoomMemberSession` — rattachement / création
   d’une `WorkoutSession` individuelle par membre (`/my-workout-session`) ;
   résumé `memberWorkout` + `myWorkoutSessionId` ; `MEMBER_WORKOUT_CHANGED` ;
-  **pas** de sync séries / rotation / snapshot workout partagé ;
+- **Shared 5.5** : exercice courant de coordination + progression live
+  (séries / exercices traités, sans performances) ;
+  `PUT .../current-exercise` ; `GET .../by-workout-session/:id/context` ;
+  reasons `MEMBER_CURRENT_EXERCISE_CHANGED` / `MEMBER_WORKOUT_PROGRESS_CHANGED` ;
+  **pas** de sync poids/reps, rotation, stations ni snapshot workout partagé ;
 - **pas** de code d’invitation public, **pas** de création auto de séance au
   start de salle, **pas** de modèle Presence en base.
 

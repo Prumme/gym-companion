@@ -1228,28 +1228,39 @@ type SharedWorkoutRoomMemberSession = {
   roomMemberId: string; // UNIQUE
   workoutSessionId: string; // UNIQUE
   attachedAt: Date;
+  /** Shared 5.5 — coordination (nullable). FK → WorkoutSessionExercise ON DELETE SET NULL. */
+  currentWorkoutSessionExerciseId: string | null;
+  currentExerciseChangedAt: Date | null;
 
   roomMember: SharedWorkoutRoomMember;
   workoutSession: WorkoutSession;
+  currentWorkoutExercise?: WorkoutSessionExercise | null;
 };
 ```
+
+Migration Shared 5.5 : `20260810180000_shared_member_current_exercise`
+(ne modifie pas `20260810170000_*`).
 
 ### Contraintes
 
 - `UNIQUE(roomMemberId)` — au plus une séance par membership ;
 - `UNIQUE(workoutSessionId)` — une séance ne peut être liée qu’à une membership ;
 - `ON DELETE CASCADE` depuis membership et depuis séance ;
+- `currentWorkoutSessionExerciseId` : `ON DELETE SET NULL` (ne casse pas le lien
+  membership↔séance si l’exercice disparaît) ;
+- invariant serveur : l’exercice courant appartient à `workoutSessionId` ;
 - **pas** de colonne / table de présence (toujours Shared 5.3 in-memory) ;
 - ownership métier (non en contrainte SQL) :
   `roomMember.userId === workoutSession.ownerUserId`.
 
 Relation inverse sur `WorkoutSession` : `sharedRoomMemberSession?` (optionnelle).
 
-## 30quater. SharedWorkoutParticipant (cible Shared 5.5+)
+## 30quater. SharedWorkoutParticipant (cible Shared 5.6+)
 
 Ancien nom conceptuel du participant enrichi (stations, ready, etc.). **Non créé**.
 Membership = `SharedWorkoutRoomMember` ; présence Shared 5.3 = mémoire process
-(pas de table) ; lien séance = `SharedWorkoutRoomMemberSession` (Shared 5.4).
+(pas de table) ; lien séance = `SharedWorkoutRoomMemberSession` (Shared 5.4) ;
+exercice courant / progression = Shared 5.5.
 Ne pas confondre membership, présence en ligne et rattachement de séance.
 
 ```ts

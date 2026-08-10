@@ -410,7 +410,7 @@ export class WorkoutsService {
     const data = updateWorkoutSetSchema.parse(input);
 
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
         const session = await tx.workoutSession.findFirst({
           where: { id: workoutSessionId, ownerUserId: userId },
           select: {
@@ -508,10 +508,15 @@ export class WorkoutsService {
             }
 
             return {
-              workoutSet: toWorkoutSetDetail(
-                existingSet as WorkoutSetSnapshotRow,
-              ),
-              workoutSessionVersion: existingReceipt.appliedVersion,
+              result: {
+                workoutSet: toWorkoutSetDetail(
+                  existingSet as WorkoutSetSnapshotRow,
+                ),
+                workoutSessionVersion: existingReceipt.appliedVersion,
+              },
+              previousStatus: existingSet.status,
+              nextStatus: existingSet.status,
+              replay: true as const,
             };
           }
         }
@@ -567,6 +572,8 @@ export class WorkoutsService {
             message: 'Série introuvable.',
           });
         }
+
+        const previousStatus = set.status;
 
         const actualValidation = validateWorkoutSetActuals(
           exercise.measurementTypeSnapshot,
@@ -647,10 +654,25 @@ export class WorkoutsService {
         }
 
         return {
-          workoutSet: toWorkoutSetDetail(updatedSet as WorkoutSetSnapshotRow),
-          workoutSessionVersion: updatedSession.version,
+          result: {
+            workoutSet: toWorkoutSetDetail(updatedSet as WorkoutSetSnapshotRow),
+            workoutSessionVersion: updatedSession.version,
+          },
+          previousStatus,
+          nextStatus: normalized.status,
+          replay: false as const,
         };
       });
+
+      if (!result.replay) {
+        await this.sharedSessionLinkNotifier.notifyProgressIfProcessedChanged(
+          workoutSessionId,
+          result.previousStatus,
+          result.nextStatus,
+        );
+      }
+
+      return result.result;
     } catch (error) {
       if (
         error instanceof ConflictException ||
@@ -845,6 +867,11 @@ export class WorkoutsService {
       });
 
       if (result.statusChanged) {
+        if (action === 'COMPLETE' || action === 'CANCEL') {
+          await this.sharedSessionLinkNotifier.clearCurrentExerciseAfterTerminal(
+            workoutSessionId,
+          );
+        }
         await this.sharedSessionLinkNotifier.notifyIfLinked(workoutSessionId);
       }
 

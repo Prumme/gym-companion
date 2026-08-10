@@ -1151,6 +1151,19 @@ export type SharedWorkoutRoomMemberWorkoutSummary = {
   workoutName: string | null;
   startedAt: string | null;
   completedAt: string | null;
+  /** Shared 5.5 — exercice courant (nom snapshot) + progression séries. */
+  currentExercise: {
+    name: string;
+    processedSetCount: number;
+    totalSetCount: number;
+  } | null;
+  /** Shared 5.5 — avancement global (tous exercices / séries). */
+  progress: {
+    processedSetCount: number;
+    totalSetCount: number;
+    processedExerciseCount: number;
+    totalExerciseCount: number;
+  } | null;
 };
 
 export type SharedWorkoutRoomMemberDto = {
@@ -1219,6 +1232,22 @@ export type MySharedWorkoutSessionDto = {
     workoutName: string;
     linkedToOtherRoom: boolean;
   } | null;
+  /** Shared 5.5 — ID exercice courant côté serveur (viewer uniquement). */
+  currentWorkoutSessionExerciseId: string | null;
+};
+
+/**
+ * Shared 5.5 — contexte room pour une WorkoutSession (owner uniquement).
+ * Sert l’écran workout actif sans polluer WorkoutSessionDetail.
+ */
+export type SharedWorkoutSessionContextDto = {
+  linked: boolean;
+  room: {
+    id: string;
+    name: string;
+    status: SharedWorkoutRoomStatus;
+  } | null;
+  currentWorkoutSessionExerciseId: string | null;
 };
 
 export type SharedWorkoutRoomListResponse =
@@ -1265,7 +1294,9 @@ export type SharedWorkoutRoomChangeReason =
   | 'CANCELLED'
   | 'MEMBER_JOINED'
   | 'MEMBER_LEFT'
-  | 'MEMBER_WORKOUT_CHANGED';
+  | 'MEMBER_WORKOUT_CHANGED'
+  | 'MEMBER_CURRENT_EXERCISE_CHANGED'
+  | 'MEMBER_WORKOUT_PROGRESS_CHANGED';
 
 export type SharedWorkoutRoomSubscribeInput = {
   roomId: string;
@@ -1307,6 +1338,8 @@ export type SharedWorkoutPresenceLeftEvent = {
 export type SharedWorkoutRoomChangedEvent = {
   roomId: string;
   reason: SharedWorkoutRoomChangeReason;
+  /** Présent pour les reasons Shared 5.5 ciblant un membre. */
+  memberUserId?: string;
 };
 
 export type SharedWorkoutRealtimeSocketErrorCode =

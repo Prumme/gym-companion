@@ -7,6 +7,18 @@ import type {
   SharedWorkoutRoomStatus,
   WorkoutStatus,
 } from '@gym-companion/shared';
+import {
+  buildExerciseProgressSummary,
+  buildWorkoutProgressSummary,
+} from '@gym-companion/validation';
+
+type SetStatusRow = { status: string };
+
+type ExerciseProgressRow = {
+  id: string;
+  exerciseNameSnapshot: string;
+  sets: SetStatusRow[];
+};
 
 type LinkedWorkoutRow = {
   id: string;
@@ -14,6 +26,7 @@ type LinkedWorkoutRow = {
   status: string;
   startedAt: Date;
   completedAt: Date | null;
+  exercises: ExerciseProgressRow[];
 };
 
 type MemberRow = {
@@ -27,7 +40,13 @@ type MemberRow = {
   };
   memberSession: {
     workoutSessionId: string;
+    currentWorkoutSessionExerciseId: string | null;
     workoutSession: LinkedWorkoutRow;
+    currentWorkoutExercise: {
+      id: string;
+      exerciseNameSnapshot: string;
+      sets: SetStatusRow[];
+    } | null;
   } | null;
 };
 
@@ -50,6 +69,7 @@ function activeMembers(members: MemberRow[]): MemberRow[] {
 
 function toMemberWorkoutSummary(
   member: MemberRow,
+  roomStatus: string,
 ): SharedWorkoutRoomMemberWorkoutSummary {
   const session = member.memberSession?.workoutSession;
   if (!session) {
@@ -58,9 +78,37 @@ function toMemberWorkoutSummary(
       workoutName: null,
       startedAt: null,
       completedAt: null,
+      currentExercise: null,
+      progress: null,
     };
   }
+
   const status = session.status as WorkoutStatus;
+  const progress = buildWorkoutProgressSummary(
+    session.exercises.map((ex) => ({
+      exerciseNameSnapshot: ex.exerciseNameSnapshot,
+      sets: ex.sets,
+    })),
+  );
+
+  const terminalSession =
+    status === 'COMPLETED' || status === 'CANCELLED';
+  const roomTerminal = roomStatus === 'COMPLETED' || roomStatus === 'CANCELLED';
+
+  let currentExercise: SharedWorkoutRoomMemberWorkoutSummary['currentExercise'] =
+    null;
+  if (
+    !terminalSession &&
+    !roomTerminal &&
+    member.memberSession?.currentWorkoutExercise
+  ) {
+    currentExercise = buildExerciseProgressSummary({
+      exerciseNameSnapshot:
+        member.memberSession.currentWorkoutExercise.exerciseNameSnapshot,
+      sets: member.memberSession.currentWorkoutExercise.sets,
+    });
+  }
+
   if (
     status !== 'ACTIVE' &&
     status !== 'PAUSED' &&
@@ -72,25 +120,31 @@ function toMemberWorkoutSummary(
       workoutName: session.name,
       startedAt: session.startedAt.toISOString(),
       completedAt: null,
+      currentExercise: null,
+      progress,
     };
   }
+
   return {
     status,
     workoutName: session.name,
     startedAt: session.startedAt.toISOString(),
     completedAt: session.completedAt?.toISOString() ?? null,
+    currentExercise,
+    progress,
   };
 }
 
 export function toSharedWorkoutRoomMemberDto(
   member: MemberRow,
+  roomStatus: string,
 ): SharedWorkoutRoomMemberDto {
   return {
     userId: member.userId,
     role: member.role as SharedWorkoutRoomMemberRole,
     displayName: member.user.profile?.displayName ?? null,
     joinedAt: member.joinedAt.toISOString(),
-    memberWorkout: toMemberWorkoutSummary(member),
+    memberWorkout: toMemberWorkoutSummary(member, roomStatus),
   };
 }
 
@@ -120,7 +174,7 @@ export function toSharedWorkoutRoomDetail(
         if (b.role === 'OWNER' && a.role !== 'OWNER') return 1;
         return a.joinedAt.getTime() - b.joinedAt.getTime();
       })
-      .map(toSharedWorkoutRoomMemberDto),
+      .map((member) => toSharedWorkoutRoomMemberDto(member, room.status)),
     startedAt: room.startedAt?.toISOString() ?? null,
     completedAt: room.completedAt?.toISOString() ?? null,
     cancelledAt: room.cancelledAt?.toISOString() ?? null,

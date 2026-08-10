@@ -65,6 +65,8 @@ function roomFixture(
           workoutName: null,
           startedAt: null,
           completedAt: null,
+          currentExercise: null,
+          progress: null,
         },
       },
     ],
@@ -169,6 +171,8 @@ describe('SharedWorkoutRoomDetailPage', () => {
               workoutName: null,
               startedAt: null,
               completedAt: null,
+              currentExercise: null,
+              progress: null,
             },
           },
           {
@@ -181,6 +185,8 @@ describe('SharedWorkoutRoomDetailPage', () => {
               workoutName: null,
               startedAt: null,
               completedAt: null,
+              currentExercise: null,
+              progress: null,
             },
           },
         ],
@@ -231,6 +237,13 @@ describe('SharedWorkoutRoomDetailPage', () => {
               workoutName: 'Push',
               startedAt: '2026-08-10T11:05:00.000Z',
               completedAt: null,
+              currentExercise: null,
+              progress: {
+                processedSetCount: 0,
+                totalSetCount: 12,
+                processedExerciseCount: 0,
+                totalExerciseCount: 4,
+              },
             },
           },
           {
@@ -243,6 +256,8 @@ describe('SharedWorkoutRoomDetailPage', () => {
               workoutName: null,
               startedAt: null,
               completedAt: null,
+              currentExercise: null,
+              progress: null,
             },
           },
         ],
@@ -250,7 +265,90 @@ describe('SharedWorkoutRoomDetailPage', () => {
     );
     renderDetail();
 
-    expect(await screen.findByText(/séance : push — en cours/i)).toBeInTheDocument();
-    expect(screen.getByText(/séance : pas démarrée/i)).toBeInTheDocument();
+    expect(await screen.findByText(/push — en cours/i)).toBeInTheDocument();
+    expect(screen.getByText(/pas démarrée/i)).toBeInTheDocument();
+    expect(screen.getByText(/aucun exercice sélectionné/i)).toBeInTheDocument();
+  });
+
+  it('cartes membres : exercice courant + progression textuelle', async () => {
+    getSharedWorkoutRoom.mockResolvedValue(
+      roomFixture({
+        status: 'ACTIVE',
+        startedAt: '2026-08-10T11:00:00.000Z',
+        members: [
+          {
+            userId: 'user-a',
+            role: 'OWNER',
+            displayName: 'Alice',
+            joinedAt: '2026-08-10T10:00:00.000Z',
+            memberWorkout: {
+              status: 'ACTIVE',
+              workoutName: 'Upper Body',
+              startedAt: '2026-08-10T11:05:00.000Z',
+              completedAt: null,
+              currentExercise: {
+                name: 'Développé incliné',
+                processedSetCount: 2,
+                totalSetCount: 4,
+              },
+              progress: {
+                processedSetCount: 8,
+                totalSetCount: 15,
+                processedExerciseCount: 2,
+                totalExerciseCount: 5,
+              },
+            },
+          },
+        ],
+      }),
+    );
+    renderDetail();
+
+    expect(await screen.findByText(/développé incliné/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 \/ 4 séries/i)).toBeInTheDocument();
+    expect(screen.getByText(/8 \/ 15 séries/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('progressbar', { name: /progression 8 \/ 15 séries/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('LOBBY : pas de progression workout', async () => {
+    getSharedWorkoutRoom.mockResolvedValue(
+      roomFixture({
+        status: 'LOBBY',
+        members: [
+          {
+            userId: 'user-a',
+            role: 'OWNER',
+            displayName: 'Alice',
+            joinedAt: '2026-08-10T10:00:00.000Z',
+            memberWorkout: {
+              status: 'NOT_STARTED',
+              workoutName: null,
+              startedAt: null,
+              completedAt: null,
+              currentExercise: {
+                name: 'Ne doit pas s’afficher',
+                processedSetCount: 1,
+                totalSetCount: 3,
+              },
+              progress: {
+                processedSetCount: 1,
+                totalSetCount: 3,
+                processedExerciseCount: 0,
+                totalExerciseCount: 1,
+              },
+            },
+          },
+        ],
+      }),
+    );
+    renderDetail();
+
+    expect(
+      await screen.findByRole('heading', { name: /séance duo/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/ne doit pas s’afficher/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
   });
 });

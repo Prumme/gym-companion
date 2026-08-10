@@ -42,3 +42,17 @@ export function memberWorkoutLabel(
   const name = workoutName ?? 'Séance';
   return `${name} — ${getWorkoutStatusLabel(status)}`;
 }
+
+export function formatSharedSetProgress(
+  processed: number,
+  total: number,
+): string {
+  return `${processed} / ${total} séries`;
+}
+
+export function formatSharedExerciseProgress(
+  processed: number,
+  total: number,
+): string {
+  return `${processed} / ${total} exercices`;
+}

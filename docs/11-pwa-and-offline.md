@@ -93,7 +93,7 @@ Précisions coaching :
 - les résultats sportifs officiels (records, progression, recommandations, plateau, CoachSummary) restent **serveur-authoritative** ;
 - l’historique de conversation déjà présent dans TanStack Query peut rester visible offline, sans nouvel envoi.
 
-### Shared workouts — NetworkOnly (Shared 5.1 → 5.4)
+### Shared workouts — NetworkOnly (Shared 5.1 → 5.5)
 
 ```text
 /api/v1/shared-workouts/*
@@ -101,23 +101,30 @@ Précisions coaching :
 ```
 
 également **NetworkOnly**. Serveur authoritative ; **aucune** queue offline IndexedDB
-pour les rooms, invitations, ni l’**association** séance↔salle (Shared 5.4).
+pour les rooms, invitations, ni l’**association** séance↔salle (Shared 5.4),
+ni l’exercice courant shared (Shared 5.5).
 Création / invite / accept / decline / leave / mutations lifecycle / attach /
-create `my-workout-session` nécessitent une connexion ; message UI :
+create `my-workout-session` / `current-exercise` nécessitent une connexion ;
+message UI :
 
 ```text
 Une connexion est nécessaire pour gérer une séance partagée.
 ```
 
-**Socket.IO Shared 5.3 / 5.4 :** indisponible hors ligne. Pas de file d’événements
-présence / `room:changed` / `MEMBER_WORKOUT_CHANGED`. L’UI affiche « Présence
-inconnue » ; le détail salle reste consultable / actionnable via REST dès que
-le réseau revient (pas de prétention que les autres sont synchronisés).
+**Socket.IO Shared 5.3–5.5 :** indisponible hors ligne. Pas de file d’événements
+présence / `room:changed` / `MEMBER_WORKOUT_CHANGED` / progress / current exercise.
+L’UI affiche « Présence inconnue » ; le détail salle reste consultable /
+actionnable via REST dès que le réseau revient (pas de prétention que les
+autres sont synchronisés).
 
 **Shared 5.4 — association online-only :** rattacher ou créer une séance depuis
 la room exige le réseau. Une fois la `WorkoutSession` créée, elle conserve le
 mode dégradé Phase 3 (IndexedDB / file de commandes) pour **ses** séries —
 indépendamment de la room.
+
+**Shared 5.5 — progression :** la performance personnelle peut progresser
+offline ; la progression partagée n’est officielle qu’après sync serveur des
+commandes set. L’exercice courant shared n’est **pas** mis en file IndexedDB.
 
 ## 4. Installation PWA
 
@@ -787,7 +794,7 @@ Au changement de compte :
 
 Une séance partagée ne peut pas continuer normalement sans réseau.
 
-### 30.0 Shared 5.3 / 5.4 (présence + association)
+### 30.0 Shared 5.3–5.5 (présence + association + progression)
 
 Hors ligne / socket coupé :
 
@@ -797,8 +804,10 @@ Hors ligne / socket coupé :
 - conserver l’UI REST (détail, membres) sans inventer l’état des autres ;
 - **ne pas** tenter attach / create `my-workout-session` hors ligne
   (message connexion) ;
+- **ne pas** queue `current-exercise` (Shared 5.5) ;
 - si une `WorkoutSession` individuelle est déjà liée, ses séries suivent
-  le offline Phase 3 (indépendant de la room).
+  le offline Phase 3 (indépendant de la room) ; les autres ne voient la
+  progression qu’après sync serveur.
 
 ### 30.1 Comportement autorisé
 
@@ -806,9 +815,10 @@ Le participant peut éventuellement :
 
 - consulter le dernier snapshot REST chargé ;
 - saisir une série localement sur **sa** séance individuelle déjà créée
-  *(Phase 3 offline ; sync séries entre membres = Shared 5.5+)* ;
+  *(Phase 3 offline ; progression shared officielle après sync = Shared 5.5 ;
+  sync séries détaillées entre membres = Shared 5.6+)* ;
 - conserver une note ;
-- voir que la rotation est figée *(cible Shared 5.5+)*.
+- voir que la rotation est figée *(cible Shared 5.6+)*.
 
 ### 30.2 Comportement interdit
 

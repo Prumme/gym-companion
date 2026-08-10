@@ -975,16 +975,28 @@ hook `useSharedWorkoutRoomRealtime` ; libellés texte par membre
 présence masquée, actions REST selon NetworkOnly.
 
 **Ma séance (Shared 5.4)** — section sur la même route (`SharedWorkoutMySessionSection`) :
+attach / create + lien vers `/workouts/:id` ou `/workouts/active`.
+
+**Progression live (Shared 5.5)** — sur les cartes membres lorsque la salle est
+`ACTIVE` (et historique utile en `COMPLETED`/`CANCELLED`) :
+
+- exercice courant (nom snapshot) + `X / Y séries` renseignées ;
+- progression globale textuelle + barre accessible ;
+- statut séance (dont pause) ; **aucune** perf détaillée ni bouton « voir détail ».
+
+La sélection d’exercice dans `/workouts/active` synchronise l’exercice courant
+serveur (online, room ACTIVE) via `PUT .../current-exercise` — **sans** transformer
+l’écran workout en lobby partagé. Aucune nouvelle page obligatoire.
 
 - LOBBY : message indiquant que le rattachement sera possible après le lancement ;
 - ACTIVE : GET `my-workout-session` ; rattacher une séance `ACTIVE`/`PAUSED`
   existante, ou créer depuis un template du programme actif ; lien « Ouvrir ma
   séance » vers `/workouts/:id` ou `/workouts/active` ;
 - COMPLETED / CANCELLED : lecture du lien éventuel + ouverture en détail ;
-- résumé `memberWorkout` visible par membre (statut / nom) ; **pas** d’ID ni
-  de détail des séances des autres ;
+- résumé `memberWorkout` visible par membre (statut / nom / Shared 5.5 :
+  exercice courant + compteurs) ; **pas** d’ID ni de perfs des autres ;
 - attach / create **online-only** (message connexion si offline) ;
-- `MEMBER_WORKOUT_CHANGED` → refetch détail + « ma séance ».
+- `MEMBER_WORKOUT_CHANGED` / Shared 5.5 progress events → refetch détail + « ma séance ».
 
 ### Invitations reçues (Shared 5.2)
 

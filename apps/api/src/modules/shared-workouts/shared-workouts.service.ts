@@ -14,6 +14,8 @@ import type {
   SharedWorkoutRoomDetail,
   SharedWorkoutRoomInvitationDto,
   SharedWorkoutRoomListItem,
+  SharedWorkoutRoomStatus,
+  SharedWorkoutSessionContextDto,
   WorkoutSessionDetail,
   WorkoutStatus,
 } from '@gym-companion/shared';
@@ -35,6 +37,7 @@ import {
   encodeSharedWorkoutRoomInvitationCursor,
   resolveSharedWorkoutRoomLifecycleTransition,
   resolveSharedWorkoutRoomName,
+  setMySharedCurrentExerciseBodySchema,
   sharedWorkoutRoomInvitationListQuerySchema,
   sharedWorkoutRoomLifecycleCommandBodySchema,
   sharedWorkoutRoomListQuerySchema,
@@ -79,6 +82,25 @@ const roomInclude = {
               status: true,
               startedAt: true,
               completedAt: true,
+              exercises: {
+                orderBy: { position: 'asc' as const },
+                select: {
+                  id: true,
+                  exerciseNameSnapshot: true,
+                  sets: {
+                    select: { status: true },
+                  },
+                },
+              },
+            },
+          },
+          currentWorkoutExercise: {
+            select: {
+              id: true,
+              exerciseNameSnapshot: true,
+              sets: {
+                select: { status: true },
+              },
             },
           },
         },
@@ -226,6 +248,8 @@ export class SharedWorkoutsService {
 
     const linked = member.memberSession?.workoutSession ?? null;
     if (linked) {
+      const terminal =
+        linked.status === 'COMPLETED' || linked.status === 'CANCELLED';
       return {
         linked: true,
         workoutSession: {
@@ -235,6 +259,9 @@ export class SharedWorkoutsService {
           startedAt: linked.startedAt.toISOString(),
         },
         activeWorkoutElsewhere: null,
+        currentWorkoutSessionExerciseId: terminal
+          ? null
+          : (member.memberSession?.currentWorkoutSessionExerciseId ?? null),
       };
     }
 
@@ -256,6 +283,7 @@ export class SharedWorkoutsService {
         linked: false,
         workoutSession: null,
         activeWorkoutElsewhere: null,
+        currentWorkoutSessionExerciseId: null,
       };
     }
 
@@ -268,6 +296,7 @@ export class SharedWorkoutsService {
         workoutName: active.name,
         linkedToOtherRoom: active.sharedRoomMemberSession != null,
       },
+      currentWorkoutSessionExerciseId: null,
     };
   }
 
@@ -326,17 +355,7 @@ export class SharedWorkoutsService {
     // Idempotence : déjà lié à la même séance.
     if (member.memberSession) {
       if (member.memberSession.workoutSessionId === targetSessionId) {
-        const ws = member.memberSession.workoutSession;
-        return {
-          linked: true,
-          workoutSession: {
-            id: ws.id,
-            status: ws.status as WorkoutStatus,
-            workoutName: ws.name,
-            startedAt: ws.startedAt.toISOString(),
-          },
-          activeWorkoutElsewhere: null,
-        };
+        return this.getMyWorkoutSession(userId, roomId);
       }
       throw new ConflictException({
         code: 'SHARED_WORKOUT_MEMBER_SESSION_ALREADY_EXISTS',
@@ -517,6 +536,153 @@ export class SharedWorkoutsService {
       }
       throw error;
     }
+  }
+
+  /**
+   * Shared 5.5 — contexte room pour une WorkoutSession (owner uniquement).
+   */
+  async getWorkoutSessionContext(
+    userId: string,
+    workoutSessionId: string,
+  ): Promise<SharedWorkoutSessionContextDto> {
+    const session = await this.prisma.workoutSession.findFirst({
+      where: { id: workoutSessionId, ownerUserId: userId },
+      select: { id: true },
+    });
+    if (!session) {
+      throw new NotFoundException({
+        code: 'WORKOUT_NOT_FOUND',
+        message: 'Séance introuvable.',
+      });
+    }
+
+    const link = await this.prisma.sharedWorkoutRoomMemberSession.findUnique({
+      where: { workoutSessionId },
+      select: {
+        currentWorkoutSessionExerciseId: true,
+        roomMember: {
+          select: {
+            leftAt: true,
+            room: { select: { id: true, name: true, status: true } },
+          },
+        },
+      },
+    });
+
+    if (!link || link.roomMember.leftAt != null) {
+      return {
+        linked: false,
+        room: null,
+        currentWorkoutSessionExerciseId: null,
+      };
+    }
+
+    const room = link.roomMember.room;
+    const terminalWorkoutCleared =
+      room.status === 'COMPLETED' || room.status === 'CANCELLED';
+
+    return {
+      linked: true,
+      room: {
+        id: room.id,
+        name: room.name,
+        status: room.status as SharedWorkoutRoomStatus,
+      },
+      currentWorkoutSessionExerciseId: terminalWorkoutCleared
+        ? null
+        : link.currentWorkoutSessionExerciseId,
+    };
+  }
+
+  /**
+   * Shared 5.5 — définit l’exercice courant de coordination.
+   */
+  async setMyCurrentExercise(
+    userId: string,
+    roomId: string,
+    body: unknown,
+  ): Promise<MySharedWorkoutSessionDto> {
+    const parsed = setMySharedCurrentExerciseBodySchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: 'Données d’exercice courant invalides.',
+        fieldErrors: parsed.error.flatten().fieldErrors,
+      });
+    }
+
+    const room = await this.findActiveMemberRoomOrThrow(userId, roomId);
+    if (room.status !== 'ACTIVE') {
+      throw new BadRequestException({
+        code: 'SHARED_WORKOUT_ROOM_NOT_ACTIVE',
+        message:
+          'L’exercice courant ne peut être modifié que lorsque la salle est active.',
+      });
+    }
+
+    const member = await this.prisma.sharedWorkoutRoomMember.findFirst({
+      where: { roomId, userId, leftAt: null },
+      include: {
+        memberSession: {
+          include: {
+            workoutSession: { select: { id: true, status: true } },
+          },
+        },
+      },
+    });
+    if (!member?.memberSession) {
+      throw new BadRequestException({
+        code: 'SHARED_WORKOUT_MEMBER_SESSION_REQUIRED',
+        message: 'Aucune séance rattachée à cette salle.',
+      });
+    }
+
+    const workoutStatus = member.memberSession.workoutSession.status;
+    if (workoutStatus !== 'ACTIVE' && workoutStatus !== 'PAUSED') {
+      throw new BadRequestException({
+        code: 'SHARED_WORKOUT_SESSION_NOT_ATTACHABLE',
+        message:
+          'L’exercice courant ne peut être modifié que pour une séance en cours ou en pause.',
+      });
+    }
+
+    const nextExerciseId = parsed.data.workoutSessionExerciseId;
+    const previousId = member.memberSession.currentWorkoutSessionExerciseId;
+
+    if (nextExerciseId === previousId) {
+      return this.getMyWorkoutSession(userId, roomId);
+    }
+
+    if (nextExerciseId != null) {
+      const exercise = await this.prisma.workoutSessionExercise.findFirst({
+        where: {
+          id: nextExerciseId,
+          workoutSessionId: member.memberSession.workoutSessionId,
+        },
+        select: { id: true },
+      });
+      if (!exercise) {
+        throw new NotFoundException({
+          code: 'WORKOUT_EXERCISE_NOT_FOUND',
+          message: 'Exercice de séance introuvable.',
+        });
+      }
+    }
+
+    await this.prisma.sharedWorkoutRoomMemberSession.update({
+      where: { id: member.memberSession.id },
+      data: {
+        currentWorkoutSessionExerciseId: nextExerciseId,
+        currentExerciseChangedAt: new Date(),
+      },
+    });
+
+    this.realtime.emitRoomChanged(
+      roomId,
+      'MEMBER_CURRENT_EXERCISE_CHANGED',
+      userId,
+    );
+    return this.getMyWorkoutSession(userId, roomId);
   }
 
   async updateRoom(

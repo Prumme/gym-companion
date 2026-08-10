@@ -802,7 +802,26 @@ Tester :
 - UI section Ma séance ; attach/create online-only ;
 - **pas** de sync séries / rotation.
 
-#### Cible produit (Shared 5.5+)
+#### Shared 5.5 (exercice courant + progression live — livré)
+
+Tester :
+
+- helpers `isProcessedSetStatus` / compteurs (tous statuts sets ; SKIPPED ;
+  warmup inclus ; exercice sans set ; safe ratio) ;
+- PUT current-exercise : ownership, cross-session, cross-user, idempotence,
+  null, room LOBBY/COMPLETED/CANCELLED refus, workout COMPLETED/CANCELLED refus,
+  member left refus ;
+- détail salle : nom snapshot + compteurs ; **aucune** clé perf dans le JSON ;
+- GET context by-workout-session : owner OK ; autre user 404 ; non lié
+  `linked=false` ;
+- realtime : `MEMBER_CURRENT_EXERCISE_CHANGED` ; `MEMBER_WORKOUT_PROGRESS_CHANGED`
+  sur PENDING→processed ; **pas** d’event si reps changent sans processed ;
+- room terminale / leave : plus de broadcast progress ;
+- offline : sync set → event progress après commit serveur ;
+- UI cartes membres (ACTIVE/PAUSED/COMPLETED) ; sync sélection depuis
+  `/workouts/active` (online only) ; coalescing refetch progress.
+
+#### Cible produit (Shared 5.6+)
 
 Tester :
 

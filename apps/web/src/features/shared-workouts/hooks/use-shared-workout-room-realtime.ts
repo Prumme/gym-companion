@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { SharedWorkoutRoomStatus } from '@gym-companion/shared';
 
@@ -12,6 +12,7 @@ import {
 /**
  * Souscrit à la présence Socket.IO d’une room LOBBY/ACTIVE.
  * Les events room:changed invalident TanStack Query (REST authoritative).
+ * MEMBER_WORKOUT_PROGRESS_CHANGED est coalescé (~200 ms).
  */
 export function useSharedWorkoutRoomRealtime(
   roomId: string,
@@ -23,6 +24,7 @@ export function useSharedWorkoutRoomRealtime(
   );
   const [connectionStatus, setConnectionStatus] =
     useState<SharedWorkoutRealtimeConnectionStatus>('disconnected');
+  const progressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const online =
     typeof navigator === 'undefined' ? true : navigator.onLine;
   const shouldConnect =
@@ -35,6 +37,28 @@ export function useSharedWorkoutRoomRealtime(
       setConnectedUserIds(new Set());
       setConnectionStatus('disconnected');
       return;
+    }
+
+    function invalidateRoom() {
+      void queryClient.invalidateQueries({
+        queryKey: sharedWorkoutRoomQueryKeys.detail(roomId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: sharedWorkoutRoomQueryKeys.lists(),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: sharedWorkoutRoomQueryKeys.myWorkoutSession(roomId),
+      });
+    }
+
+    function invalidateProgressCoalesced() {
+      if (progressTimer.current) {
+        clearTimeout(progressTimer.current);
+      }
+      progressTimer.current = setTimeout(() => {
+        progressTimer.current = null;
+        invalidateRoom();
+      }, 200);
     }
 
     sharedWorkoutRealtimeClient.setHandlers({
@@ -61,16 +85,12 @@ export function useSharedWorkoutRoomRealtime(
       },
       onRoomChanged: (event) => {
         if (event.roomId !== roomId) return;
-        void queryClient.invalidateQueries({
-          queryKey: sharedWorkoutRoomQueryKeys.detail(roomId),
-        });
-        void queryClient.invalidateQueries({
-          queryKey: sharedWorkoutRoomQueryKeys.lists(),
-        });
-        if (
-          event.reason === 'COMPLETED' ||
-          event.reason === 'CANCELLED'
-        ) {
+        if (event.reason === 'MEMBER_WORKOUT_PROGRESS_CHANGED') {
+          invalidateProgressCoalesced();
+        } else {
+          invalidateRoom();
+        }
+        if (event.reason === 'COMPLETED' || event.reason === 'CANCELLED') {
           sharedWorkoutRealtimeClient.unsubscribe(roomId);
           setConnectedUserIds(new Set());
           setConnectionStatus('disconnected');
@@ -83,6 +103,10 @@ export function useSharedWorkoutRoomRealtime(
     });
 
     return () => {
+      if (progressTimer.current) {
+        clearTimeout(progressTimer.current);
+        progressTimer.current = null;
+      }
       sharedWorkoutRealtimeClient.unsubscribe(roomId);
       sharedWorkoutRealtimeClient.disconnect();
       sharedWorkoutRealtimeClient.setHandlers({});

@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { isProcessedSetStatus } from '@gym-companion/validation';
 
 import { PrismaService } from '../../database/prisma/prisma.service';
 import { SharedWorkoutRealtimePublisher } from './shared-workout-realtime.publisher';
 
 /**
- * Pont Shared 5.4 : après mutation lifecycle d’une WorkoutSession liée,
- * émet `MEMBER_WORKOUT_CHANGED` (après commit).
- * Évite un couplage circulaire WorkoutsService ↔ SharedWorkoutsService.
+ * Pont Shared 5.4/5.5 : après mutation WorkoutSession liée à une room ACTIVE
+ * et membership actif, émet un hint realtime (après commit).
  */
 @Injectable()
 export class SharedWorkoutSessionLinkNotifier {
@@ -16,16 +16,88 @@ export class SharedWorkoutSessionLinkNotifier {
   ) {}
 
   async notifyIfLinked(workoutSessionId: string): Promise<void> {
+    const link = await this.findActiveRoomLink(workoutSessionId);
+    if (!link) return;
+    this.realtime.emitRoomChanged(
+      link.roomId,
+      'MEMBER_WORKOUT_CHANGED',
+      link.userId,
+    );
+  }
+
+  /**
+   * Shared 5.5 — n’émet que si le caractère processed de la série a changé.
+   */
+  async notifyProgressIfProcessedChanged(
+    workoutSessionId: string,
+    previousStatus: string,
+    nextStatus: string,
+  ): Promise<void> {
+    const wasProcessed = isProcessedSetStatus(previousStatus);
+    const nowProcessed = isProcessedSetStatus(nextStatus);
+    if (wasProcessed === nowProcessed) return;
+
+    const link = await this.findActiveRoomLink(workoutSessionId);
+    if (!link) return;
+    this.realtime.emitRoomChanged(
+      link.roomId,
+      'MEMBER_WORKOUT_PROGRESS_CHANGED',
+      link.userId,
+    );
+  }
+
+  /**
+   * Shared 5.5 — nettoie l’exercice courant après lifecycle terminal.
+   */
+  async clearCurrentExerciseAfterTerminal(
+    workoutSessionId: string,
+  ): Promise<void> {
     const link = await this.prisma.sharedWorkoutRoomMemberSession.findUnique({
       where: { workoutSessionId },
       select: {
-        roomMember: { select: { roomId: true } },
+        id: true,
+        currentWorkoutSessionExerciseId: true,
+        roomMember: { select: { roomId: true, userId: true, leftAt: true } },
       },
     });
     if (!link) return;
-    this.realtime.emitRoomChanged(
-      link.roomMember.roomId,
-      'MEMBER_WORKOUT_CHANGED',
-    );
+
+    if (link.currentWorkoutSessionExerciseId != null) {
+      await this.prisma.sharedWorkoutRoomMemberSession.update({
+        where: { id: link.id },
+        data: {
+          currentWorkoutSessionExerciseId: null,
+          currentExerciseChangedAt: new Date(),
+        },
+      });
+    }
+
+    // Lifecycle broadcast géré par notifyIfLinked après transition.
+  }
+
+  private async findActiveRoomLink(workoutSessionId: string): Promise<{
+    roomId: string;
+    userId: string;
+  } | null> {
+    const link = await this.prisma.sharedWorkoutRoomMemberSession.findUnique({
+      where: { workoutSessionId },
+      select: {
+        roomMember: {
+          select: {
+            roomId: true,
+            userId: true,
+            leftAt: true,
+            room: { select: { status: true } },
+          },
+        },
+      },
+    });
+    if (!link) return null;
+    if (link.roomMember.leftAt != null) return null;
+    if (link.roomMember.room.status !== 'ACTIVE') return null;
+    return {
+      roomId: link.roomMember.roomId,
+      userId: link.roomMember.userId,
+    };
   }
 }

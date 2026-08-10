@@ -933,6 +933,31 @@ membership (`SharedWorkoutRoomMemberSession`).
 liée), émettre `room:changed` avec `MEMBER_WORKOUT_CHANGED` — invalidation
 de statut uniquement, **pas** une sync de séries.
 
+### 18.2septies Exercice courant et progression live (Shared 5.5)
+
+**`processed` ≠ réussie :** une série est `processed` dès que son statut n’est
+plus `PENDING` (`COMPLETED` / `PARTIAL` / `FAILED` / `SKIPPED` / `CANCELLED`).
+Les compteurs partagés parlent de séries **renseignées / traitées**, jamais de
+« séries réussies ».
+
+**Exercice courant = état de coordination** (pas une vérité de la séance) :
+
+- stocké sur `SharedWorkoutRoomMemberSession.currentWorkoutSessionExerciseId` ;
+- doit appartenir à la `WorkoutSession` liée ;
+- null = aucun exercice sélectionné ;
+- nettoyé quand la séance devient `COMPLETED` / `CANCELLED` ;
+- modifiable seulement si room `ACTIVE`, membership actif, séance `ACTIVE`/`PAUSED`.
+
+**Vie privée :** les autres membres voient nom d’exercice snapshot + compteurs
++ statut séance. **Jamais** poids, reps, RIR/RPE, notes, volume, e1RM, records,
+cibles détaillées.
+
+**Warmup :** toutes les séries snapshotées comptent (indicateur d’avancement).
+
+**Offline :** la séance personnelle peut progresser offline ; la progression
+shared et l’exercice courant serveur ne sont officiels qu’après sync REST.
+Pas de commande IndexedDB dédiée Shared 5.5.
+
 ### 18.3 Capacité
 
 La première version accepte de deux à cinq participants.

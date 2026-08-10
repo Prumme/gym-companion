@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -43,6 +44,22 @@ export class SharedWorkoutsController {
     @Query() query: Record<string, string | undefined>,
   ) {
     return this.sharedWorkoutsService.listRooms(user.id, query);
+  }
+
+  @Get('by-workout-session/:workoutSessionId/context')
+  @ApiOperation({
+    summary:
+      'Contexte room pour une WorkoutSession (owner uniquement, Shared 5.5)',
+  })
+  async getWorkoutSessionContext(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('workoutSessionId', ParseUUIDPipe) workoutSessionId: string,
+  ) {
+    const data = await this.sharedWorkoutsService.getWorkoutSessionContext(
+      user.id,
+      workoutSessionId,
+    );
+    return createSuccessResponse(data);
   }
 
   @Get(':roomId/invitations')
@@ -146,6 +163,23 @@ export class SharedWorkoutsController {
     @Body() body: unknown,
   ) {
     const data = await this.sharedWorkoutsService.createMyWorkoutSession(
+      user.id,
+      roomId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Put(':roomId/my-workout-session/current-exercise')
+  @ApiOperation({
+    summary: 'Définir mon exercice courant partagé (Shared 5.5)',
+  })
+  async setMyCurrentExercise(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('roomId', ParseUUIDPipe) roomId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.sharedWorkoutsService.setMyCurrentExercise(
       user.id,
       roomId,
       body,

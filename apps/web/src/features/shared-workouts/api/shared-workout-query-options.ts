@@ -3,6 +3,7 @@ import { queryOptions } from '@tanstack/react-query';
 import {
   getMySharedWorkoutSession,
   getSharedWorkoutRoom,
+  getSharedWorkoutSessionContext,
   listReceivedInvitations,
   listRoomInvitations,
   listSharedWorkoutRooms,
@@ -35,6 +36,17 @@ export function mySharedWorkoutSessionQueryOptions(roomId: string) {
     queryKey: sharedWorkoutRoomQueryKeys.myWorkoutSession(roomId),
     queryFn: () => getMySharedWorkoutSession(roomId),
     enabled: Boolean(roomId),
+  });
+}
+
+export function sharedWorkoutSessionContextQueryOptions(
+  workoutSessionId: string,
+) {
+  return queryOptions({
+    queryKey:
+      sharedWorkoutRoomQueryKeys.workoutSessionContext(workoutSessionId),
+    queryFn: () => getSharedWorkoutSessionContext(workoutSessionId),
+    enabled: Boolean(workoutSessionId),
   });
 }
 
