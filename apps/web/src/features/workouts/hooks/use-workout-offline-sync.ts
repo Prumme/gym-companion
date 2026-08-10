@@ -6,6 +6,7 @@ import { getMe } from '@/features/profile/api/profile-api';
 
 import { workoutQueryKeys } from '../api/workout-query-keys';
 import { personalRecordQueryKeys } from '@/features/personal-records/api/personal-record-query-keys';
+import { progressQueryKeys } from '@/features/progress/api/progress-query-keys';
 import { subscribeWorkoutSync } from '../offline/broadcast';
 import {
   discardLocalChanges,
@@ -42,6 +43,9 @@ function applySyncedSessionToCache(
   if (session.status === 'COMPLETED') {
     void queryClient.invalidateQueries({
       queryKey: personalRecordQueryKeys.all,
+    });
+    void queryClient.invalidateQueries({
+      queryKey: progressQueryKeys.all,
     });
   }
 }

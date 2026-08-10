@@ -24,6 +24,7 @@ import { ActiveWorkoutPage } from '@/features/workouts/pages/ActiveWorkoutPage';
 import { WorkoutSessionDetailPage } from '@/features/workouts/pages/WorkoutSessionDetailPage';
 import { WorkoutsHistoryPage } from '@/features/workouts/pages/WorkoutsHistoryPage';
 import { PersonalRecordsPage } from '@/features/personal-records/pages/PersonalRecordsPage';
+import { ExerciseProgressPage } from '@/features/progress/pages/ExerciseProgressPage';
 
 export const router = createBrowserRouter([
   {
@@ -43,6 +44,10 @@ export const router = createBrowserRouter([
           { path: 'planning', element: <PlanningPage /> },
           { path: 'workouts', element: <WorkoutsHistoryPage /> },
           { path: 'records', element: <PersonalRecordsPage /> },
+          {
+            path: 'progress/exercises/:exerciseId',
+            element: <ExerciseProgressPage />,
+          },
           { path: 'workouts/active', element: <ActiveWorkoutPage /> },
           {
             path: 'workouts/:workoutSessionId',

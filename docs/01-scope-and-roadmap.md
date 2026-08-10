@@ -375,13 +375,25 @@ Transformer les données enregistrées en informations utiles (records, progress
 - durée écoulée brute ;
 - exposition sur détail `COMPLETED` et résumé historique.
 
-**Restent hors 4.1 / 4.2 :**
+**Livré en 4.3 (progression temporelle par exercice, calcul à la demande) :**
+
+- série temporelle par exercice (`sourceExerciseId`) ;
+- métriques adaptées au `measurementTypeSnapshot` ;
+- plages `from`/`to` locales + presets UI ;
+- résumé début / fin / meilleure valeur + variation ;
+- graphique simple + liste accessible ;
+- page `/progress/exercises/:exerciseId` ;
+- lecture des snapshots historiques même si l’exercice catalogue a changé.
+
+**Restent hors 4.1 / 4.2 / 4.3 :**
 
 - volume maximal sur une série ;
 - volume maximal sur une séance (record) ;
 - meilleur 1RM estimé ;
-- graphiques / tendances / comparaison de périodes ;
-- page `/progress`.
+- dashboard global `/progress` ;
+- moyennes mobiles / plateaux / fatigue ;
+- comparaison avancée de périodes ;
+- page overview multi-exercices.
 
 ### 7.4 Hors périmètre
 

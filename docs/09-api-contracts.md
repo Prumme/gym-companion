@@ -1647,61 +1647,62 @@ Statuts :
 
 ### 23.1 Vue globale
 
-```text
-GET /api/v1/progress/overview
-```
+> Hors périmètre 4.3. Pas d’endpoint `GET /api/v1/progress/overview` livré.
 
-Paramètres :
+### 23.2 Progression d’un exercice (jalon 4.3)
 
-```text
-from
-to
-```
-
-### 23.2 Progression d’un exercice
+Calculée **à la demande** depuis les séances `COMPLETED` et leurs snapshots.
+Aucune table de série temporelle / métrique matérialisée.
 
 ```text
 GET /api/v1/progress/exercises/:exerciseId
 ```
 
-Paramètres :
+JWT obligatoire. Exercice système ou personnel du propriétaire (y compris archivé).
+404 neutre (`EXERCISE_NOT_FOUND`) si inaccessible. Absence de points → 200 avec `points: []`.
 
-```text
-from
-to
-equipmentId
-includeWarmup
+#### Query
+
+| Paramètre | Type | Notes |
+|-----------|------|--------|
+| `metric` | `MAX_WEIGHT` \| `MAX_REPS` \| `WORKING_EXTERNAL_VOLUME` \| `TOTAL_REPS` \| `MAX_DURATION` \| `TOTAL_DURATION` \| `MAX_DISTANCE` \| `TOTAL_DISTANCE`? | Défaut selon le type de mesure catalogue |
+| `from` | `YYYY-MM-DD`? | Inclusif, date locale |
+| `to` | `YYYY-MM-DD`? | Inclusif, date locale, `from <= to` |
+| `equipmentId` | uuid? | Filtre sur `equipmentTypeId` snapshot |
+
+Pas de `period=3months` : le client convertit les presets en `from`/`to`.
+
+#### Réponse
+
+```ts
+type ExerciseProgressResponse = {
+  exercise: { id: string; name: string; archived: boolean | null };
+  availableMetrics: ExerciseProgressMetric[];
+  selectedMetric: ExerciseProgressMetric | null;
+  range: { from: string | null; to: string | null };
+  summary: ExerciseProgressSummary | null;
+  points: ExerciseProgressPoint[]; // tri localDate ASC, startedAt ASC, id ASC
+};
 ```
 
-Réponse possible :
+Un point = une séance + un exercice (`sourceExerciseId`), agrégation multi-occurrences.
+Maximum 500 points ; au-delà → `PROGRESS_RANGE_TOO_LARGE`.
 
-```json
-{
-  "data": {
-    "exercise": {
-      "id": "exercise-id",
-      "name": "Développé couché"
-    },
-    "summary": {
-      "maxWeightKg": 80,
-      "bestEstimatedOneRepMaxKg": 92.4,
-      "totalVolumeKg": 12400,
-      "sessionCount": 8
-    },
-    "series": [
-      {
-        "date": "2026-08-03",
-        "maxWeightKg": 80,
-        "estimatedOneRepMaxKg": 92.4,
-        "volumeKg": 2400
-      }
-    ],
-    "calculation": {
-      "oneRepMaxFormula": "EPLEY_V1"
-    }
-  }
-}
-```
+#### Règles métier (résumé)
+
+- Regroupement : `sourceExerciseId` uniquement (`null` exclu).
+- Séries : `COMPLETED` \| `PARTIAL` \| `FAILED` avec valeurs réelles.
+- Warmups exclus de `MAX_WEIGHT` / `MAX_REPS` / `WORKING_EXTERNAL_VOLUME` ;
+  inclus dans `TOTAL_REPS` / `TOTAL_DURATION` / `TOTAL_DISTANCE`.
+- `WORKING_EXTERNAL_VOLUME` = même définition que 4.2 (`workingExternalVolumeKg`).
+- Records 4.1 restent plus stricts (`COMPLETED` + hors warmup uniquement).
+- Pas de 1RM, Epley, Brzycki, pace, ni recommandations.
+
+#### Codes d’erreur
+
+`EXERCISE_NOT_FOUND`, `PROGRESS_INVALID_METRIC`, `PROGRESS_METRIC_NOT_SUPPORTED`,
+`PROGRESS_INVALID_FROM_DATE`, `PROGRESS_INVALID_TO_DATE`, `PROGRESS_INVALID_DATE_RANGE`,
+`PROGRESS_RANGE_TOO_LARGE`, `PROGRESS_INVALID_QUERY`.
 
 ### 23.3 Records (jalon 4.1)
 

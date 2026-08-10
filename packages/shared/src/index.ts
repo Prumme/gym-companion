@@ -521,6 +521,71 @@ export type PersonalRecord = {
 
 export type PersonalRecordListResponse = ApiCursorListResponse<PersonalRecord>;
 
+/** Métriques de progression temporelle par exercice (jalon 4.3 — dérivées). */
+export type ExerciseProgressMetric =
+  | 'MAX_WEIGHT'
+  | 'MAX_REPS'
+  | 'WORKING_EXTERNAL_VOLUME'
+  | 'TOTAL_REPS'
+  | 'MAX_DURATION'
+  | 'TOTAL_DURATION'
+  | 'MAX_DISTANCE'
+  | 'TOTAL_DISTANCE';
+
+export type ExerciseProgressPointContext = {
+  measurementType: ExerciseMeasurementType;
+  maxWeightKg: number | null;
+  maxReps: number | null;
+  workingExternalVolumeKg: number | null;
+  totalReps: number | null;
+  maxDurationSeconds: number | null;
+  totalDurationSeconds: number | null;
+  maxDistanceMeters: number | null;
+  totalDistanceMeters: number | null;
+  performedSetCount: number;
+  equipmentTypeId: string | null;
+  equipmentName: string | null;
+};
+
+export type ExerciseProgressPoint = {
+  workoutSessionId: string;
+  workoutSessionExerciseIds: string[];
+  localDate: string;
+  startedAt: string;
+  /** Valeur de la métrique sélectionnée. */
+  value: number;
+  context: ExerciseProgressPointContext;
+};
+
+export type ExerciseProgressSummary = {
+  metric: ExerciseProgressMetric;
+  pointCount: number;
+  firstValue: number | null;
+  latestValue: number | null;
+  bestValue: number | null;
+  absoluteChange: number | null;
+  percentageChange: number | null;
+  firstDate: string | null;
+  latestDate: string | null;
+  bestDate: string | null;
+};
+
+export type ExerciseProgressResponse = {
+  exercise: {
+    id: string;
+    name: string;
+    archived: boolean | null;
+  };
+  availableMetrics: ExerciseProgressMetric[];
+  selectedMetric: ExerciseProgressMetric | null;
+  range: {
+    from: string | null;
+    to: string | null;
+  };
+  summary: ExerciseProgressSummary | null;
+  points: ExerciseProgressPoint[];
+};
+
 export function createSuccessResponse<T>(data: T): ApiSuccessResponse<T> {
   return { data };
 }

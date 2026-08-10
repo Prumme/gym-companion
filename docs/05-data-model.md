@@ -1053,6 +1053,13 @@ type PersonalRecord = {
 
 En 4.1, le contrat API exposé est un DTO dérivé (sans `ownerUserId`, sans ligne Prisma) : types `MAX_WEIGHT` | `MAX_REPS` | `MAX_DURATION` | `MAX_DISTANCE` uniquement. Pas de 1RM estimé, pas de volume, pas de graphiques.
 
+## 28bis. Progression temporelle (jalon 4.3)
+
+> **Jalon 4.3** : aucune table de série temporelle / métrique de progression n’est créée.
+> La progression est **dérivée à la demande** depuis `WorkoutSession` → `WorkoutSessionExercise` → `WorkoutSet`
+> (séances `COMPLETED`, regroupement par `sourceExerciseId`).
+> Les snapshots historiques restent la source de vérité même si l’exercice catalogue est renommé ou archivé.
+
 ## 29. SharedWorkoutRoom
 
 ```ts
@@ -1882,13 +1889,14 @@ Le modèle `Equipment` reste prévu pour une phase ultérieure consacrée aux é
 
 La création d’une séance depuis un modèle copie un snapshot immuable des informations nécessaires : noms, ordre, type de mesure, équipement prévu, repos, notes et séries cibles.
 
-À la clôture de la phase 3, l’historique paginé et le détail en lecture seule reposent sur ces snapshots. En phase 4 (jalons 4.1 / 4.2), records et métriques sont calculés à la demande sans matérialisation Prisma.
+À la clôture de la phase 3, l’historique paginé et le détail en lecture seule reposent sur ces snapshots. En phase 4 (jalons 4.1 / 4.2 / 4.3), records, métriques de séance et progression temporelle sont calculés à la demande sans matérialisation Prisma.
 
 ### Phase 4
 
 - ExerciseStrengthReference (future) ;
 - PersonalRecord (matérialisation future — 4.1 calcule à la demande) ;
-- métriques de séance dérivées (4.2 — pas de table).
+- métriques de séance dérivées (4.2 — pas de table) ;
+- progression temporelle dérivée (4.3 — pas de table).
 
 ### Phase 5
 

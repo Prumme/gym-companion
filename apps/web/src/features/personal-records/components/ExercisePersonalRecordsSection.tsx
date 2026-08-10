@@ -1,6 +1,7 @@
 import type { PersonalRecord } from '@gym-companion/shared';
 import { useQuery } from '@tanstack/react-query';
 
+import { ButtonLink } from '@/components/ui/button';
 import { getApiErrorMessage } from '@/lib/api/client';
 
 import { exercisePersonalRecordsQueryOptions } from '../api/personal-record-query-options';
@@ -66,6 +67,16 @@ export function ExercisePersonalRecordsSection({
           ))}
         </ul>
       ) : null}
+
+      <div className="mt-4">
+        <ButtonLink
+          to={`/progress/exercises/${exerciseId}`}
+          variant="secondary"
+          className="w-full sm:w-auto"
+        >
+          Voir ma progression
+        </ButtonLink>
+      </div>
     </section>
   );
 }

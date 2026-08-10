@@ -387,4 +387,12 @@ travail), durée/distance enregistrées, durée écoulée. Exposées sur le dét
 (`metrics`) et en résumé léger sur l’historique. Bodyweight / assistance exclus du volume.
 Pas de page `/progress`, pas de graphiques, pas de table matérialisée.
 
+Le jalon **4.3** ajoute la progression temporelle par exercice : série dérivée des séances
+`COMPLETED` et snapshots (`sourceExerciseId`), endpoint
+`GET /api/v1/progress/exercises/:exerciseId`, page `/progress/exercises/:exerciseId`
+(graphique Recharts + résumé + liste accessible), métriques selon le type de mesure,
+périodes `from`/`to` locales. Warmups exclus de `MAX_WEIGHT` / `MAX_REPS` / volume de
+travail, inclus dans les totaux. Pas de 1RM, pas de table matérialisée, pas de dashboard
+global `/progress`.
+
 Les documents du dossier `docs/` restent la source de vérité produit et technique.

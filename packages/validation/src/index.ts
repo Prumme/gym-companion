@@ -1942,3 +1942,33 @@ export type {
   WorkoutMetricsSessionInput,
   WorkoutMetricsSetInput,
 } from './workout-metrics';
+
+export {
+  EXERCISE_PROGRESS_MAX_POINTS,
+  addLocalDateDays,
+  addLocalDateMonths,
+  compareExerciseProgressPointsAsc,
+  computeExerciseProgressSummary,
+  computeExerciseWorkoutProgressPoint,
+  excludesWarmupFromProgressMetric,
+  exerciseProgressMetricSchema,
+  exerciseProgressQuerySchema,
+  isProgressMetricCompatibleWithMeasurement,
+  parseExerciseProgressQuery,
+  resolveAvailableProgressMetrics,
+  resolveAvailableProgressMetricsFromTypes,
+  resolveDefaultProgressMetric,
+} from './exercise-progress';
+export type {
+  ExerciseMeasurementTypeForProgress,
+  ExerciseProgressMetric,
+  ExerciseProgressOccurrenceInput,
+  ExerciseProgressPointComputed,
+  ExerciseProgressPointContext,
+  ExerciseProgressQuery,
+  ExerciseProgressQueryParseErrorCode,
+  ExerciseProgressQueryParseResult,
+  ExerciseProgressSessionInput,
+  ExerciseProgressSetInput,
+  ExerciseProgressSummaryComputed,
+} from './exercise-progress';

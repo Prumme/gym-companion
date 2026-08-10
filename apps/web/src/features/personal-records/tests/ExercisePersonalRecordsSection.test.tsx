@@ -130,6 +130,9 @@ describe('Exercise detail personal records section', () => {
     expect(
       await screen.findByText('Aucun record enregistré pour cet exercice.'),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Voir ma progression' }),
+    ).toHaveAttribute('href', '/progress/exercises/exercise-1');
   });
 
   it('reste visible pour un exercice archivé', async () => {

@@ -134,7 +134,9 @@ Accès à `/workouts` (séances `COMPLETED` / `CANCELLED`).
 
 ### 4.3 Records
 
-Accès à `/records` (jalon 4.1) : records personnels courants calculés à la demande. Pas de page `/progress` ni de graphiques.
+Accès à `/records` (jalon 4.1) : records personnels courants calculés à la demande.
+Progression par exercice : `/progress/exercises/:exerciseId` (jalon 4.3, hors nav principale).
+Pas de dashboard global `/progress`.
 
 ### 4.4 Programmes et exercices
 
@@ -764,67 +766,70 @@ Route livrée :
 - liens vers la séance source et l’exercice ;
 - état vide avec actions vers programmes / historique ;
 - bandeau si fin de séance locale non encore synchronisée (sans annoncer de record officiel) ;
-- section miroir sur `/exercises/:exerciseId`.
+- section miroir sur `/exercises/:exerciseId` avec action « Voir ma progression ».
 
 ### Hors périmètre 4.1
 
-- `/progress` ;
-- graphiques ;
+- graphiques de tendance ;
 - 1RM estimé ;
 - volume ;
 - table `PersonalRecord` matérialisée.
 
 ## 24. Vue globale de progression
 
-> Phase 4 — **partiellement démarrée** (4.1 records simples). Graphiques / overview restent futurs.
+> Phase 4 — **non livrée** en 4.3. Seule la progression **par exercice** est disponible.
 
-### Route
+### Route (future)
 
 ```text
 /progress/overview
 ```
 
-### Contenu
+### Contenu (hors 4.3)
 
 - fréquence d’entraînement ;
 - durée totale ;
-- volume ;
+- volume multi-exercices ;
 - records récents ;
-- exercices les plus pratiqués ;
-- évolution par période ;
-- poids, si disponible.
+- exercices les plus pratiqués.
 
 ### Règle
 
 Les graphiques doivent répondre à une question précise. Ils ne doivent pas être ajoutés uniquement pour décorer.
 
-## 25. Progression d’un exercice
+## 25. Progression d’un exercice (jalon 4.3)
 
-### Route
+### Route livrée
 
 ```text
 /progress/exercises/:exerciseId
 ```
 
+Accès depuis `/exercises/:exerciseId` → « Voir ma progression ».
+
 ### Contenu
 
-- exercice ;
-- équipement sélectionné ;
-- période ;
-- charge maximale ;
-- 1RM estimé ;
-- volume ;
-- répétitions ;
-- records ;
-- graphique ;
-- liste des meilleures séries.
+- exercice (nom catalogue actuel, y compris archivé) ;
+- sélecteur de métrique (`availableMetrics` serveur) ;
+- période (30 j / 3 mois / 6 mois / 1 an / tout / personnalisé) via `from`/`to` dans l’URL ;
+- résumé (dernière, meilleure, variation début→fin, nombre de séances) ;
+- graphique ligne (Recharts) — jamais seule représentation ;
+- liste accessible des points avec lien « Voir la séance ».
 
-### Filtres
+### Source de vérité
 
-- équipement ;
-- période ;
-- séries de travail uniquement ;
-- inclure ou exclure l’échauffement.
+Séances `COMPLETED` + snapshots (`WorkoutSessionExercise` / `WorkoutSet`).
+Regroupement par `sourceExerciseId` (jamais par nom). Warmups exclus de
+`MAX_WEIGHT` / `MAX_REPS` / `WORKING_EXTERNAL_VOLUME`, inclus dans les totaux.
+Pas de 1RM, pas de recommandations, pas de métriques persistées.
+
+### Hors périmètre 4.3
+
+- `/progress` globale ;
+- 1RM / Epley / Brzycki ;
+- pace / vitesse ;
+- heatmap ;
+- comparaison entre utilisateurs.
 
 ## 26. Création d’une séance partagée
 

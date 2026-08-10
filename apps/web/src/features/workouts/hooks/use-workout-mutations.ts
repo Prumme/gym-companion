@@ -25,6 +25,7 @@ import {
 } from '../api/workout-api';
 import { workoutQueryKeys } from '../api/workout-query-keys';
 import { personalRecordQueryKeys } from '@/features/personal-records/api/personal-record-query-keys';
+import { progressQueryKeys } from '@/features/progress/api/progress-query-keys';
 import { applyUpdateWorkoutSetResult } from '../lib/workout-cache';
 import { createClientCommandId } from '../offline/command-id';
 import { enqueueWorkoutCommand } from '../offline/enqueue';
@@ -60,6 +61,9 @@ function applyLifecycleToCache(
   if (session.status === 'COMPLETED') {
     void queryClient.invalidateQueries({
       queryKey: personalRecordQueryKeys.all,
+    });
+    void queryClient.invalidateQueries({
+      queryKey: progressQueryKeys.all,
     });
   }
 }
