@@ -773,9 +773,10 @@ Le conflit ne doit pas être résolu silencieusement en supprimant les données 
 
 ## 18. Séances partagées
 
-> **Shared 5.1 + 5.2 (livrés)** : fondations salle REST + invitations email / leave.
-> Présence / Socket.IO (Shared 5.3+) et rotation restent futurs.
-> Les sous-sections 18.3+ décrivent la cible produit ; 18.0–18.2quater fixent le livré.
+> **Shared 5.1 + 5.2 + 5.3 (livrés)** : fondations salle REST + invitations email /
+> leave + présence Socket.IO / invalidation.
+> Rotation, sync séries et snapshot workout restent Shared 5.4+.
+> Les sous-sections 18.3+ décrivent la cible produit ; 18.0–18.2quinquies fixent le livré.
 
 ### 18.0 Shared 5.1 — Fondations
 
@@ -867,11 +868,30 @@ Règles :
 - Après leave, l’utilisateur n’est plus membre actif (404 neutre sur la salle).
 - Rejoin uniquement via **nouvelle** invitation acceptée (réutilise la ligne member, `leftAt = null`).
 
-### 18.2quater Autorité (cible produit)
+### 18.2quater Autorité (Shared 5.1–5.3)
 
-Le serveur possède l’état autoritaire de la salle.
+Le serveur possède l’état autoritaire de la salle **via REST / PostgreSQL**.
 
-Le frontend affiche une représentation de cet état.
+Les événements Socket.IO (Shared 5.3) sont des **hints d’invalidation** et de
+présence : le client refetch REST ; il ne doit pas reconstruire l’état métier
+uniquement depuis le socket.
+
+Le frontend affiche une représentation de l’état REST.
+
+### 18.2quinquies Membership ≠ présence (Shared 5.3)
+
+- **Membership actif** (`leftAt IS NULL`) = droit d’accès REST / droit de
+  `room:subscribe`. Persistant en base.
+- **Présence en ligne** = au moins un socket abonné à la salle. **Éphémère**,
+  mémoire process uniquement (`roomId → userId → Set<socketId>`), multi-onglets.
+- Accepter une invitation (`MEMBER_JOINED`) ne place **pas** le membre en ligne :
+  la présence commence au premier `room:subscribe` réussi.
+- Leave REST → `MEMBER_LEFT` + eviction des sockets + `presence:left` si était
+  en ligne.
+- Salle `COMPLETED` / `CANCELLED` : présence vidée ; nouveaux `subscribe` refusés.
+- Émission socket **uniquement après** commit PostgreSQL de la mutation REST.
+- Hors ligne navigateur / socket indisponible : pas de file d’événements ; l’UI
+  affiche « Présence inconnue » et reste utilisable via REST.
 
 ### 18.3 Capacité
 
@@ -960,6 +980,9 @@ L’hôte peut déplacer un participant vers une autre station.
 Cette action crée une nouvelle version de l’état.
 
 ## 20. Commandes WebSocket
+
+> Shared 5.3 livre présence + invalidation uniquement (`room:subscribe` /
+> `presence:*` / `room:changed`). Les commandes workout ci-dessous = **Shared 5.4+**.
 
 ### 20.1 Structure
 

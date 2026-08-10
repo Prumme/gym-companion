@@ -2080,10 +2080,12 @@ JWT obligatoire. Exercice système ou personnel du propriétaire (y compris arch
 
 ## 24. Salles partagées en HTTP
 
-> **Shared 5.1 + 5.2 (livrés)** — REST uniquement. Socket.IO = Shared 5.3+.
+> **Shared 5.1 + 5.2 + 5.3 (livrés).** Les endpoints REST ci-dessous sont
+> **inchangés** par Shared 5.3 (aucune route HTTP de présence).
+> Socket.IO (présence + `room:changed`) : voir `docs/10-realtime-workouts.md`.
 > Ressources : `/api/v1/shared-workouts` et `/api/v1/shared-workout-invitations`
 > (ne pas confondre avec `/workouts`). Invitation **par email** (compte existant) ;
-> **pas** de codes / liens publics en Shared 5.2.
+> **pas** de codes / liens publics en Shared 5.2 / 5.3.
 
 JWT obligatoire sur tous les endpoints. Accès lecture salle = membership **actif**
 (`leftAt IS NULL`) ; hors membership → **404 neutre**.
@@ -2214,7 +2216,7 @@ MEMBER actif uniquement → `{ "left": true }` (`leftAt`). OWNER → **403**
 `SHARED_WORKOUT_ROOM_OWNER_CANNOT_LEAVE`. Leave répété = idempotent.
 Salle terminale → `SHARED_WORKOUT_ROOM_INVALID_STATUS`.
 
-### 24.6ter Codes / join publics (futur — hors Shared 5.2)
+### 24.6ter Codes / join publics (futur — hors Shared 5.2 / 5.3)
 
 ```text
 GET  /api/v1/shared-workouts/invitations/:invitationCode
@@ -2223,7 +2225,7 @@ POST /api/v1/shared-workouts/:roomId/revoke-invitation
 POST /api/v1/shared-workouts/:roomId/regenerate-invitation
 ```
 
-### 24.7 Snapshot / résumé (Shared 5.3+ — non livré)
+### 24.7 Snapshot / résumé (Shared 5.4+ — non livré)
 
 ```text
 GET /api/v1/shared-workouts/:roomId/snapshot

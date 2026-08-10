@@ -60,6 +60,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
       // Source TS : le dist CJS hors node_modules n’est pas transformé correctement par Rollup.
+      '@gym-companion/shared': path.resolve(rootDir, 'packages/shared/src/index.ts'),
       '@gym-companion/validation': path.resolve(rootDir, 'packages/validation/src/index.ts'),
     },
   },

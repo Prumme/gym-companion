@@ -415,6 +415,20 @@ Limiter les méthodes HTTP autorisées.
 
 ## 15. Sécurité WebSocket
 
+### 15.0 Shared 5.3 (présence + invalidation)
+
+Livré sur le namespace `/shared-workouts` :
+
+- handshake JWT obligatoire (`auth.token` / `accessToken` / `Bearer`) ;
+- utilisateur `DISABLED` / `DELETION_PENDING` → déconnexion ;
+- `room:subscribe` : membership actif + salle `LOBBY`/`ACTIVE` uniquement ;
+  sinon `ROOM_NOT_ACCESSIBLE` (anti-IDOR : pas de fuite d’existence hors membership) ;
+- payloads client validés Zod strict (`roomId` UUID) ;
+- payloads serveur minimaux : `roomId`, `userId`, `connectedUserIds`, `reason` —
+  pas d’email, pas de token, pas d’objet Prisma ;
+- CORS socket = `CORS_ALLOWED_ORIGINS` (comme REST) ;
+- présence en mémoire process (pas de persistance de tracking long terme).
+
 ### 15.1 Authentification
 
 Chaque connexion est authentifiée.
@@ -879,10 +893,10 @@ Les durées exactes doivent être confirmées avant la production.
 Par défaut, les autres participants peuvent voir :
 
 - nom affiché ;
-- présence ;
-- station ;
-- statut de progression ;
-- disponibilité.
+- présence en ligne *(Shared 5.3 : userId dans `presence:*` / snapshot ; pas d’email)* ;
+- station *(Shared 5.4+)* ;
+- statut de progression *(Shared 5.4+)* ;
+- disponibilité *(Shared 5.4+)*.
 
 Ils ne doivent pas voir automatiquement :
 
@@ -892,9 +906,8 @@ Ils ne doivent pas voir automatiquement :
 - restrictions détaillées ;
 - notes personnelles ;
 - statistiques complètes ;
-- données IA.
-
-Le partage des charges peut être configurable.
+- données IA ;
+- JWT / tokens / emails dans les événements socket.
 
 ## 33. Visibilité des profils
 

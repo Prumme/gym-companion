@@ -38,6 +38,7 @@ import {
 
 import { PrismaService } from '../../database/prisma/prisma.service';
 import { toSharedWorkoutRoomInvitationDto } from './shared-workout-invitations.mapper';
+import { SharedWorkoutRealtimePublisher } from './shared-workout-realtime.publisher';
 import {
   toSharedWorkoutRoomDetail,
   toSharedWorkoutRoomListItem,
@@ -72,7 +73,10 @@ const invitationInclude = {
 
 @Injectable()
 export class SharedWorkoutsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly realtime: SharedWorkoutRealtimePublisher,
+  ) {}
 
   async createRoom(
     userId: string,
@@ -206,6 +210,7 @@ export class SharedWorkoutsService {
       include: roomInclude,
     });
 
+    this.realtime.emitRoomChanged(roomId, 'RENAMED');
     return toSharedWorkoutRoomDetail(updated, userId);
   }
 
@@ -353,7 +358,7 @@ export class SharedWorkoutsService {
         }
 
         if (invitation.status === 'ACCEPTED') {
-          return invitation;
+          return { invitation, membershipApplied: false as const };
         }
         if (invitation.status !== 'PENDING') {
           throw new ConflictException({
@@ -400,9 +405,7 @@ export class SharedWorkoutsService {
         });
 
         if (existingMember) {
-          if (existingMember.leftAt == null) {
-            // Déjà membre actif (course rare) — invitation acceptée, OK.
-          } else {
+          if (existingMember.leftAt != null) {
             await tx.sharedWorkoutRoomMember.update({
               where: { id: existingMember.id },
               data: { role: 'MEMBER', leftAt: null },
@@ -418,13 +421,22 @@ export class SharedWorkoutsService {
           });
         }
 
-        return tx.sharedWorkoutRoomInvitation.findUniqueOrThrow({
-          where: { id: invitationId },
-          include: invitationInclude,
-        });
+        const refreshed = await tx.sharedWorkoutRoomInvitation.findUniqueOrThrow(
+          {
+            where: { id: invitationId },
+            include: invitationInclude,
+          },
+        );
+        return { invitation: refreshed, membershipApplied: true as const };
       });
 
-      return toSharedWorkoutRoomInvitationDto(result);
+      if (result.membershipApplied) {
+        this.realtime.emitRoomChanged(
+          result.invitation.roomId,
+          'MEMBER_JOINED',
+        );
+      }
+      return toSharedWorkoutRoomInvitationDto(result.invitation);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -599,6 +611,8 @@ export class SharedWorkoutsService {
       });
     }
 
+    this.realtime.emitRoomChanged(roomId, 'MEMBER_LEFT');
+    this.realtime.evictUserFromRoom(roomId, userId);
     return { left: true };
   }
 
@@ -730,7 +744,7 @@ export class SharedWorkoutsService {
             where: { id: roomId },
             include: roomInclude,
           });
-          return replay;
+          return { room: replay, applied: false as const };
         }
 
         const transition = resolveSharedWorkoutRoomLifecycleTransition(
@@ -745,6 +759,7 @@ export class SharedWorkoutsService {
           });
         }
 
+        let appliedStatus: SharedWorkoutRoomStatusValue | null = null;
         if (transition.kind === 'apply') {
           const now = new Date();
           const updated = await tx.sharedWorkoutRoom.updateMany({
@@ -765,6 +780,7 @@ export class SharedWorkoutsService {
               message: 'La salle a changé d’état. Réessaie.',
             });
           }
+          appliedStatus = transition.nextStatus;
 
           if (
             transition.nextStatus === 'COMPLETED' ||
@@ -787,13 +803,22 @@ export class SharedWorkoutsService {
           },
         });
 
-        return tx.sharedWorkoutRoom.findUniqueOrThrow({
+        const refreshed = await tx.sharedWorkoutRoom.findUniqueOrThrow({
           where: { id: roomId },
           include: roomInclude,
         });
+        return { room: refreshed, applied: appliedStatus };
       });
 
-      return toSharedWorkoutRoomDetail(result, userId);
+      if (result.applied === 'ACTIVE') {
+        this.realtime.emitRoomChanged(roomId, 'STARTED');
+      } else if (result.applied === 'COMPLETED') {
+        this.realtime.emitRoomChanged(roomId, 'COMPLETED');
+      } else if (result.applied === 'CANCELLED') {
+        this.realtime.emitRoomChanged(roomId, 'CANCELLED');
+      }
+
+      return toSharedWorkoutRoomDetail(result.room, userId);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&

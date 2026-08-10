@@ -625,6 +625,23 @@ Les tests doivent vérifier :
 
 ## 16. Tests WebSocket
 
+### 16.0 Shared 5.3 (présence + invalidation — livré)
+
+Tester :
+
+- gateway auth : token valide / absent / invalide / expiré / compte désactivé ;
+- `room:subscribe` membre actif LOBBY/ACTIVE → ack + `presence:snapshot` ;
+- non-membre / salle inexistante / terminale → `ROOM_NOT_ACCESSIBLE` ;
+- multi-onglets : 2e socket même user → pas de 2e `presence:joined` ;
+  dernier socket fermé → `presence:left` ;
+- leave REST → `MEMBER_LEFT` + eviction sockets + `presence:left` ;
+- accept invitation → `MEMBER_JOINED` ; présence online seulement après subscribe ;
+- rename / start / complete / cancel → `room:changed` **après** commit ;
+- complete / cancel → clear présence + refuse nouveau subscribe ;
+- payload invalidation minimal (`roomId`, `reason`) ;
+- frontend : invalidation Query sur `room:changed` ; libellés présence ;
+- hors ligne : pas de file socket.
+
 ### 16.1 Connexion
 
 - token valide ;
@@ -641,7 +658,7 @@ Les tests doivent vérifier :
 - salle terminée ;
 - participant retiré.
 
-### 16.3 Commandes
+### 16.3 Commandes *(cible Shared 5.4+)*
 
 - commande valide ;
 - mauvaise version ;
@@ -662,11 +679,12 @@ Vérifier que :
 ### 16.5 Reconnexion
 
 - déconnexion ;
-- délai de grâce ;
+- délai de grâce *(Shared 5.4+)* ;
 - reconnexion ;
-- snapshot ;
-- commande en attente ;
-- commande déjà appliquée.
+- re-subscribe + snapshot présence *(Shared 5.3)* ;
+- snapshot workout *(Shared 5.4+)* ;
+- commande en attente *(Shared 5.4+)* ;
+- commande déjà appliquée *(Shared 5.4+)*.
 
 ### 16.6 Redémarrage
 
@@ -746,14 +764,28 @@ Tester machine à états invitation :
 - UI `/shared-workouts/invitations`, invite sur détail, leave MEMBER ;
 - NetworkOnly / message connexion ; pas de Socket.IO ; pas de `WorkoutSession` auto.
 
-#### Cible produit (Shared 5.3+)
+#### Shared 5.3 (présence Socket.IO + invalidation — livré)
+
+Tester :
+
+- auth gateway JWT (handshake) ;
+- subscribe / unsubscribe Zod ; multi-onglets présence ;
+- leave REST → eviction + `presence:left` ;
+- accept → `MEMBER_JOINED` sans présence online tant que pas de subscribe ;
+- mutations REST → `room:changed` après commit ;
+- salle terminale : clear présence + refuse subscribe ;
+- UI libellés En ligne / Hors ligne / Présence inconnue ;
+- offline : présence indisponible, pas de file d’événements ;
+- **pas** de sync séries / rotation / snapshot workout.
+
+#### Cible produit (Shared 5.4+)
 
 Tester :
 
 - station ;
 - charge personnelle ;
-- statut des participants (présence Socket.IO) ;
-- déconnexion ;
+- commandes workout Socket.IO / versions / ACK ;
+- déconnexion / grâce / snapshot workout ;
 - changement de rotation ;
 - restrictions de rôle ;
 - codes / liens d’invitation publics (si retenus).

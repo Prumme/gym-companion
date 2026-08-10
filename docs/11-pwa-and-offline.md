@@ -93,7 +93,7 @@ Précisions coaching :
 - les résultats sportifs officiels (records, progression, recommandations, plateau, CoachSummary) restent **serveur-authoritative** ;
 - l’historique de conversation déjà présent dans TanStack Query peut rester visible offline, sans nouvel envoi.
 
-### Shared workouts — NetworkOnly (Shared 5.1 + 5.2)
+### Shared workouts — NetworkOnly (Shared 5.1 + 5.2 + 5.3)
 
 ```text
 /api/v1/shared-workouts/*
@@ -108,6 +108,10 @@ mutations lifecycle nécessitent une connexion ; message UI :
 Une connexion est nécessaire pour gérer une séance partagée.
 ```
 
+**Socket.IO Shared 5.3 :** indisponible hors ligne. Pas de file d’événements
+présence / `room:changed`. L’UI affiche « Présence inconnue » ; le détail salle
+reste consultable / actionnable via REST dès que le réseau revient (pas de
+prétention que les autres sont synchronisés).
 | Notifications push           | Dépend de la plateforme |              Sans objet |                   Sans objet |
 | Export                       |                     Non |                     Non |                          Non |
 
@@ -779,14 +783,23 @@ Au changement de compte :
 
 Une séance partagée ne peut pas continuer normalement sans réseau.
 
+### 30.0 Shared 5.3 (présence)
+
+Hors ligne / socket coupé :
+
+- fermer ou ignorer Socket.IO ;
+- **ne pas** mettre en file `room:subscribe`, `presence:*` ni `room:changed` ;
+- afficher présence indisponible (« Présence inconnue ») ;
+- conserver l’UI REST (détail, membres) sans inventer l’état des autres.
+
 ### 30.1 Comportement autorisé
 
 Le participant peut éventuellement :
 
-- consulter le dernier snapshot ;
-- saisir une série localement ;
+- consulter le dernier snapshot REST chargé ;
+- saisir une série localement *(cible Shared 5.4+)* ;
 - conserver une note ;
-- voir que la rotation est figée.
+- voir que la rotation est figée *(cible Shared 5.4+)*.
 
 ### 30.2 Comportement interdit
 
@@ -794,18 +807,20 @@ Le client ne doit pas :
 
 - changer seul de station ;
 - considérer la série comme confirmée ;
-- afficher les autres comme synchronisés ;
-- terminer la salle ;
-- appliquer une nouvelle rotation.
+- afficher les autres comme synchronisés ou « en ligne » sans socket ;
+- terminer la salle hors ligne ;
+- appliquer une nouvelle rotation ;
+- rejouer une file d’événements Socket.IO à la reconnexion.
 
 ### 30.3 Retour du réseau
 
-À la reconnexion :
+À la reconnexion (Shared 5.3) :
 
-1. récupérer le snapshot serveur ;
-2. vérifier si la série locale reste applicable ;
-3. proposer son envoi ;
-4. traiter un éventuel conflit.
+1. reconnect Socket.IO + `room:subscribe` ;
+2. refetch REST du détail salle ;
+3. rétablir les libellés de présence depuis le snapshot socket.
+
+*(Shared 5.4+ : snapshot workout, conflits de séries, etc.)*
 
 ## 31. Nutrition hors ligne
 

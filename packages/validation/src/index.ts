@@ -2294,3 +2294,11 @@ export type {
   SharedWorkoutRoomInvitationListQuery,
   SharedWorkoutRoomInvitationStatusValue,
 } from './shared-workout-invitations';
+export {
+  sharedWorkoutRoomSubscribeBodySchema,
+  sharedWorkoutRoomUnsubscribeBodySchema,
+} from './shared-workout-realtime';
+export type {
+  SharedWorkoutRoomSubscribeBody,
+  SharedWorkoutRoomUnsubscribeBody,
+} from './shared-workout-realtime';

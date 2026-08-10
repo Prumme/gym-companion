@@ -186,6 +186,21 @@ Le processus doit :
 
 ## 7. WebSocket
 
+### 7.0 Shared 5.3 (présence)
+
+- Namespace `/shared-workouts` sur la **même** origine/port API que REST.
+- Docker Compose local : API exposée sur **3000** (Socket.IO inclus) ;
+  le nginx du service `web` sert la SPA uniquement — **pas** de proxy WS
+  aujourd’hui. Si un reverse proxy unifié est ajouté plus tard, configurer
+  l’upgrade WebSocket (`Upgrade`, `Connection`, timeouts longs) vers l’API.
+- CORS socket = `CORS_ALLOWED_ORIGINS` (identique REST).
+- **Une seule instance API** pour Shared 5.3 : présence in-memory
+  (`roomId → userId → Set<socketId>`). Multi-instance sans adapter Redis =
+  présence incorrecte / événements manqués.
+- Dette volontaire : adapter Socket.IO Redis avant de scaler horizontalement.
+
+### 7.1 Reverse proxy (cible production)
+
 Le reverse proxy doit prendre en charge les upgrades WebSocket.
 
 Il doit conserver :
@@ -1257,7 +1272,8 @@ Le système initial peut évoluer progressivement.
 
 - un VPS ;
 - PostgreSQL local ;
-- une instance API.
+- une instance API ;
+- présence Shared 5.3 in-memory (acceptable mono-instance).
 
 ### Étape 2
 
@@ -1269,8 +1285,8 @@ Le système initial peut évoluer progressivement.
 
 - Redis ;
 - plusieurs instances API ;
-- adapter Socket.IO Redis ;
-- load balancer.
+- adapter Socket.IO Redis (requis pour présence Shared 5.3 multi-instance) ;
+- load balancer avec sticky sessions ou adapter pub/sub.
 
 ### Étape 4
 
@@ -1283,8 +1299,8 @@ Le système initial peut évoluer progressivement.
 
 Avant d’ajouter plusieurs API :
 
-- supprimer l’état critique en mémoire ;
-- ajouter un adapter Socket.IO ;
+- supprimer l’état critique en mémoire (dont présence Shared 5.3) ;
+- ajouter un adapter Socket.IO Redis ;
 - partager les sessions ;
 - coordonner les jobs ;
 - gérer les verrous ;
@@ -1294,12 +1310,12 @@ Avant d’ajouter plusieurs API :
 
 Redis devient pertinent pour :
 
-- adapter Socket.IO ;
+- adapter Socket.IO (requis dès multi-instance Shared 5.3 présence) ;
 - cache ;
 - rate limiting distribué ;
 - BullMQ ;
 - verrous ;
-- présence temporaire.
+- présence temporaire partagée entre instances.
 
 Il n’est pas obligatoire dans la première version.
 

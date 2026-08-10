@@ -2,16 +2,94 @@
 
 ## 0. Statut d’implémentation
 
-> **Shared 5.1 + Shared 5.2 = REST uniquement.**
->
-> Fondations salle, invitations email, accept/decline/cancel et leave sont livrés
-> en HTTP (`/api/v1/shared-workouts`, `/api/v1/shared-workout-invitations`).
-> **Aucun** gateway Socket.IO, room socket, événement de présence ni snapshot live
-> n’est configuré en Shared 5.1 / 5.2.
->
-> Les événements Socket.IO `room:join` / `room:leave` / présence appartiennent à
-> **Shared 5.3+**. Ce document décrit la **cible** temps réel ; ne pas le lire
-> comme déjà livré.
+> **Nomenclature :** ne pas confondre avec la Couche Coaching (jalons techniques 5.1 → 5.6).
+> Ici : **Shared 5.x** (Phase 5 produit — séances partagées).
+
+### Shared 5.1 + 5.2 — REST (livré)
+
+Fondations salle, invitations email, accept/decline/cancel et leave en HTTP
+(`/api/v1/shared-workouts`, `/api/v1/shared-workout-invitations`).
+REST / PostgreSQL restent la **source de vérité métier**.
+
+### Shared 5.3 — Présence + invalidation Socket.IO (livré)
+
+Livré **uniquement** :
+
+- présence en ligne des membres abonnés ;
+- hints d’invalidation (`room:changed`) pour refetch REST.
+
+**Hors Shared 5.3 (cible Shared 5.4+)** — ce document décrit aussi la cible
+workout sync ; ne pas la lire comme livrée :
+
+- sync séries / stations / rotation ;
+- commandes idempotentes `commandId` / `expectedVersion` ;
+- snapshot workout live ;
+- chronomètre partagé.
+
+### Protocole Shared 5.3 (livré)
+
+| Élément | Valeur |
+|---------|--------|
+| Namespace | `/shared-workouts` (`SHARED_WORKOUT_SOCKET_NAMESPACE`) |
+| Protocole | `SHARED_WORKOUT_REALTIME_PROTOCOL_V1` (= `1`) |
+| Auth handshake | `auth: { token }` ; aussi `accessToken` ou header `Authorization: Bearer …` |
+| CORS | mêmes origines que REST (`CORS_ALLOWED_ORIGINS`) |
+| Channel room | `shared-workout-room:{roomId}` |
+| Présence | mémoire process : `roomId → userId → Set<socketId>` (multi-onglets) |
+| Persistance | **aucune** table / colonne Presence ; **pas** de migration Prisma |
+
+#### Client → serveur
+
+- `room:subscribe` `{ roomId }` — Zod strict, UUID ; membership actif + statut `LOBBY`/`ACTIVE`
+- `room:unsubscribe` `{ roomId }` — Zod strict
+
+Ack subscribe succès : `{ ok: true, roomId, presence: { connectedUserIds } }`.
+Échecs : `UNAUTHORIZED` | `ROOM_NOT_ACCESSIBLE` | `VALIDATION_ERROR`.
+
+#### Serveur → client
+
+- `presence:snapshot` `{ roomId, connectedUserIds }`
+- `presence:joined` `{ roomId, userId }` — premier socket de l’utilisateur
+- `presence:left` `{ roomId, userId }` — dernier socket retiré
+- `room:changed` `{ roomId, reason }`
+
+Raisons `room:changed` :
+
+```text
+RENAMED | STARTED | COMPLETED | CANCELLED | MEMBER_JOINED | MEMBER_LEFT
+```
+
+#### Règles d’émission
+
+- Émettre **après** commit PostgreSQL de la mutation REST.
+- `COMPLETED` / `CANCELLED` → clear présence + refuse nouveaux `subscribe`.
+- Leave REST → `MEMBER_LEFT` + eviction sockets (+ `presence:left` si était en ligne).
+- Accept invitation → `MEMBER_JOINED` ; présence « en ligne » seulement après `subscribe`.
+- Membership ≠ présence.
+
+#### Client web
+
+- `apps/web/.../lib/shared-workout-realtime.ts`
+- hook `useSharedWorkoutRoomRealtime` sur `/shared-workouts/:roomId`
+- `room:changed` → invalidation TanStack Query (refetch REST)
+- Libellés : En ligne / Hors ligne / Présence inconnue
+- Navigateur offline : socket non utilisé ; page REST toujours utilisable ; **pas** de file d’événements socket
+
+#### Reconnexion (Shared 5.3)
+
+1. reconnect Socket.IO avec JWT frais si besoin ;
+2. `room:subscribe` → ack + `presence:snapshot` ;
+3. refetch REST du détail salle.
+
+Pas de replay d’événements manqués ni de snapshot workout.
+
+#### Déploiement / dette
+
+- Docker local : API expose le port **3000** directement (Socket.IO inclus) ;
+  nginx du service `web` = SPA uniquement — prévoir upgrade WS si reverse proxy
+  unifié plus tard.
+- **Une** instance API pour Shared 5.3 (présence in-memory).
+- Adapter Socket.IO Redis = dette volontaire pour multi-instance.
 
 ## 1. Objectif de ce document
 
@@ -56,6 +134,9 @@ Le client ne décide pas seul :
 - de la validation définitive d’une série ;
 - de la fin de la séance.
 
+En Shared 5.3, l’autorité métier reste **REST** ; le socket informe seulement
+présence et besoin de refetch.
+
 ### 2.2 HTTP et Socket.IO ont des responsabilités différentes
 
 HTTP est utilisé pour :
@@ -63,20 +144,26 @@ HTTP est utilisé pour :
 - créer une salle ;
 - inviter par email / accepter / refuser / annuler une invitation *(Shared 5.2 livré)* ;
 - quitter une salle (leave soft) *(Shared 5.2 livré)* ;
+- rename / start / complete / cancel *(Shared 5.1 livré)* ;
 - résoudre un code d’invitation public *(futur)* ;
 - rejoindre via code *(futur)* ;
-- récupérer un snapshot ;
+- récupérer un snapshot workout *(Shared 5.4+)* ;
 - consulter le résumé ;
 - modifier des paramètres hors séance.
 
-Socket.IO est utilisé pour *(Shared 5.3+)* :
+Socket.IO Shared 5.3 (livré) :
 
-- synchroniser l’état actif ;
+- `room:subscribe` / `room:unsubscribe` ;
+- présence (`presence:*`) ;
+- invalidation (`room:changed`) ;
+- reconnexion via re-subscribe + refetch REST.
+
+Socket.IO Shared 5.4+ (cible, non livré) :
+
+- synchroniser l’état workout actif ;
 - enregistrer des commandes pendant la séance ;
-- diffuser les changements (dont join/leave temps réel) ;
-- gérer la présence ;
 - gérer les rotations ;
-- gérer les reconnexions rapides.
+- snapshot workout / versions / ACK commandes.
 
 ### 2.3 Les événements ne remplacent pas la persistance
 
@@ -124,18 +211,20 @@ Une commande envoyée plusieurs fois ne doit être appliquée qu’une seule foi
 
 ### 3.3 Namespace
 
-Namespace recommandé :
+Namespace livré (Shared 5.3) :
 
 ```text
 /shared-workouts
 ```
+
+Constante partagée : `SHARED_WORKOUT_SOCKET_NAMESPACE`.
 
 Exemple de connexion :
 
 ```ts
 const socket = io(`${API_URL}/shared-workouts`, {
   auth: {
-    accessToken,
+    token: accessToken, // aussi accessToken accepté côté serveur
   },
   transports: ["websocket", "polling"],
   autoConnect: false,
@@ -143,20 +232,26 @@ const socket = io(`${API_URL}/shared-workouts`, {
 });
 ```
 
+Channel interne room : `shared-workout-room:{roomId}` (pas un mécanisme d’auth).
+
 ## 4. Authentification de la connexion
 
 ### 4.1 Handshake
 
-Le client transmet un access token lors du handshake.
+Le client transmet un access token lors du handshake Shared 5.3 :
+
+- `auth.token` (préféré) ;
+- ou `auth.accessToken` ;
+- ou header `Authorization: Bearer <token>`.
 
 Le serveur vérifie :
 
 - signature ;
 - expiration ;
 - utilisateur ;
-- statut du compte ;
-- session éventuelle ;
-- autorisation générale.
+- statut du compte (`DISABLED` / `DELETION_PENDING` refusés).
+
+Le `userId` attaché au socket vient uniquement du JWT vérifié.
 
 ### 4.2 Données attachées au socket
 
@@ -198,18 +293,18 @@ SOCKET_ACCOUNT_DISABLED
 
 Chaque salle partagée utilise une room technique.
 
-Format interne possible :
+Format livré (Shared 5.3) :
 
 ```text
-shared-workout:<roomId>
+shared-workout-room:<roomId>
 ```
 
 Un client ne rejoint cette room qu’après :
 
-- authentification ;
-- vérification de la salle ;
-- vérification de la participation ;
-- vérification du statut de la salle.
+- authentification JWT ;
+- `room:subscribe` validé ;
+- membership actif (`leftAt IS NULL`) ;
+- statut salle `LOBBY` ou `ACTIVE`.
 
 Le nom technique de la room ne doit pas servir de mécanisme d’autorisation.
 

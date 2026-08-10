@@ -16,6 +16,10 @@ function resolveApiBaseUrl(): string {
 
 const API_BASE_URL = resolveApiBaseUrl();
 
+export function getApiBaseUrl() {
+  return API_BASE_URL;
+}
+
 export type ApiError = {
   code: string;
   message: string;

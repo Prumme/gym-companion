@@ -77,11 +77,11 @@ Structure cible (routes livrées en gras conceptuel via commentaires) :
 │   ├── active                      # séance interactive (jalons 3.4–3.5)
 │   └── :workoutSessionId           # détail ; lecture seule si COMPLETED/CANCELLED
 │
-├── shared-workouts                 # Shared 5.1 + 5.2 livrés
+├── shared-workouts                 # Shared 5.1 + 5.2 + 5.3 livrés
 │   ├── new                         # livré
 │   ├── invitations                 # Shared 5.2 — invitations reçues
 │   ├── join                        # futur (codes / liens publics)
-│   └── :roomId                     # livré (lobby / active / terminal + invite UI)
+│   └── :roomId                     # livré (lobby / active / terminal + invite + présence 5.3)
 │       ├── lobby                   # futur (alias possible)
 │       ├── active                  # futur (alias possible)
 │       └── summary                 # futur
@@ -114,8 +114,8 @@ Structure cible (routes livrées en gras conceptuel via commentaires) :
 > Routes coaching livrées : `/coach`, `/coach/chat`, `/progress/exercises/:exerciseId`.
 > `/coach/proposals/:proposalId` reste **futur** (génération de programme) — hors Couche Coaching 5.1–5.6.
 > « Phase 5 » / Shared (`shared-workouts`) = roadmap **Séances partagées** :
-> **Shared 5.1 + 5.2 livrés** (`/shared-workouts`, `/new`, `/invitations`, `/:roomId`) ;
-> join par code / lobby dédié / Socket.IO = jalons suivants.
+> **Shared 5.1 + 5.2 + 5.3 livrés** (`/shared-workouts`, `/new`, `/invitations`, `/:roomId`
+> avec présence Socket.IO) ; join par code / lobby dédié / sync workout = jalons suivants.
 
 ## 4. Navigation mobile principale
 
@@ -218,7 +218,7 @@ Sections livrées :
 - Records (`/records`) ;
 - Progression (`/progress`, `/progress/exercises/:exerciseId`) ;
 - Coach (`/coach`) ;
-- Séances partagées (`/shared-workouts`, `/shared-workouts/invitations`) — Shared 5.1 + 5.2 ;
+- Séances partagées (`/shared-workouts`, `/shared-workouts/invitations`) — Shared 5.1 + 5.2 + 5.3 ;
 - Programmes ;
 - Exercices ;
 - Profil.
@@ -955,7 +955,7 @@ Hors scope 4.5 : autres formules, 1RM RIR/RPE, recommandations, matérialisation
 Affiche les salles dont l’utilisateur est **membre actif** (filtre `status`, pagination cursor).
 État vide + CTA « Créer une salle ». Lien vers `/shared-workouts/invitations`.
 
-### Lobby / détail unifié Shared 5.1 + 5.2
+### Lobby / détail unifié Shared 5.1 + 5.2 + 5.3
 
 ```text
 /shared-workouts/:roomId
@@ -966,6 +966,12 @@ Actions owner : renommer (LOBBY/ACTIVE), démarrer, terminer, annuler ;
 inviter par email + lister / annuler les `PENDING` (LOBBY/ACTIVE).
 Actions MEMBER actif : quitter la salle (LOBBY/ACTIVE).
 Membres affichés = memberships actifs uniquement (`leftAt IS NULL`).
+
+**Présence (Shared 5.3)** — même route, pas de `/lobby` dédié :
+hook `useSharedWorkoutRoomRealtime` ; libellés texte par membre
+« En ligne » / « Hors ligne » / « Présence inconnue » (socket indisponible).
+`room:changed` → invalidation TanStack Query (refetch REST). Hors ligne navigateur :
+présence masquée, actions REST selon NetworkOnly.
 
 ### Invitations reçues (Shared 5.2)
 
@@ -1009,25 +1015,31 @@ les `PENDING`. Acceptation → membership `MEMBER` puis navigation vers la salle
 
 ## 28. Lobby d’une séance partagée
 
-> En Shared 5.1 / 5.2 le lobby est unifié sur `/shared-workouts/:roomId`
-> (invite email + leave). Route dédiée / présence / codes = jalons suivants.
+> En Shared 5.1–5.3 le lobby est unifié sur `/shared-workouts/:roomId`
+> (invite email + leave + présence Socket.IO). Route dédiée / codes publics /
+> rotation = Shared 5.4+.
 
-### Route
+### Route (cible — alias optionnel)
 
 ```text
 /shared-workouts/:roomId/lobby
 ```
 
-### Contenu (cible)
+### Contenu livré sur `/:roomId` (Shared 5.1–5.3)
 
-- hôte ;
-- participants ;
-- statuts de présence ;
+- hôte / membres actifs ;
+- libellés de présence en ligne (Shared 5.3) ;
+- invite email + leave (Shared 5.2) ;
+- lifecycle owner (Shared 5.1).
+
+### Contenu cible (Shared 5.4+)
+
 - équipements ;
-- séance ;
+- séance / plans ;
 - rotation proposée ;
 - code d’invitation (futur) ;
-- durée cible.
+- durée cible ;
+- statuts participant enrichis (ready, station, etc.).
 
 ### Actions de l’hôte
 

@@ -25,8 +25,10 @@
     "@nestjs/core": "^11.1.2",
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/platform-express": "^11.1.2",
+    "@nestjs/platform-socket.io": "^11.1.2",
     "@nestjs/swagger": "^11.4.6",
     "@nestjs/throttler": "^6.5.0",
+    "@nestjs/websockets": "^11.1.2",
     "@prisma/client": "6.19.0",
     "argon2": "^0.45.1",
     "cookie-parser": "^1.4.7",
@@ -34,6 +36,7 @@
     "nodemailer": "^9.0.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
+    "socket.io": "^4.8.3",
     "zod": "^3.25.51"
   },
   "devDependencies": {
@@ -49,6 +52,7 @@
     "@types/supertest": "^6.0.3",
     "eslint": "^9.28.0",
     "prisma": "6.19.0",
+    "socket.io-client": "^4.8.3",
     "supertest": "^7.1.1",
     "typescript": "^5.8.3",
     "unplugin-swc": "^1.5.4",

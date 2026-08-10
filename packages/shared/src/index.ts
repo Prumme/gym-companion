@@ -1208,6 +1208,66 @@ export type SharedWorkoutRoomInvitationDto = {
 export type SharedWorkoutRoomInvitationListResponse =
   ApiCursorListResponse<SharedWorkoutRoomInvitationDto>;
 
+/** Shared 5.3 — protocole Socket.IO (présence + invalidation). */
+export const SHARED_WORKOUT_REALTIME_PROTOCOL_V1 = 1 as const;
+
+export const SHARED_WORKOUT_SOCKET_NAMESPACE = '/shared-workouts';
+
+export type SharedWorkoutRoomChangeReason =
+  | 'RENAMED'
+  | 'STARTED'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'MEMBER_JOINED'
+  | 'MEMBER_LEFT';
+
+export type SharedWorkoutRoomSubscribeInput = {
+  roomId: string;
+};
+
+export type SharedWorkoutRoomUnsubscribeInput = {
+  roomId: string;
+};
+
+export type SharedWorkoutRoomSubscribeAck =
+  | {
+      ok: true;
+      roomId: string;
+      presence: {
+        connectedUserIds: string[];
+      };
+    }
+  | {
+      ok: false;
+      code: string;
+      message: string;
+    };
+
+export type SharedWorkoutPresenceSnapshotEvent = {
+  roomId: string;
+  connectedUserIds: string[];
+};
+
+export type SharedWorkoutPresenceJoinedEvent = {
+  roomId: string;
+  userId: string;
+};
+
+export type SharedWorkoutPresenceLeftEvent = {
+  roomId: string;
+  userId: string;
+};
+
+export type SharedWorkoutRoomChangedEvent = {
+  roomId: string;
+  reason: SharedWorkoutRoomChangeReason;
+};
+
+export type SharedWorkoutRealtimeSocketErrorCode =
+  | 'UNAUTHORIZED'
+  | 'ROOM_NOT_ACCESSIBLE'
+  | 'VALIDATION_ERROR';
+
 export function createSuccessResponse<T>(data: T): ApiSuccessResponse<T> {
   return { data };
 }

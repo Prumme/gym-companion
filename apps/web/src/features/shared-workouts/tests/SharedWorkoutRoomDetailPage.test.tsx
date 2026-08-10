@@ -9,6 +9,14 @@ import { SharedWorkoutRoomDetailPage } from '../pages/SharedWorkoutRoomDetailPag
 
 const getSharedWorkoutRoom = vi.fn();
 
+vi.mock('../hooks/use-shared-workout-room-realtime', () => ({
+  useSharedWorkoutRoomRealtime: () => ({
+    connectedUserIds: new Set(['user-a']),
+    connectionStatus: 'connected',
+    realtimeAvailable: true,
+  }),
+}));
+
 vi.mock('../api/shared-workouts-api', () => ({
   getSharedWorkoutRoom: (...args: unknown[]) => getSharedWorkoutRoom(...args),
   listRoomInvitations: vi.fn(async () => ({

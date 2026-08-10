@@ -1088,8 +1088,9 @@ En 4.1, le contrat API exposé est un DTO dérivé (sans `ownerUserId`, sans lig
 
 ## 29. SharedWorkoutRoom
 
-> **Shared 5.1 + 5.2 (livrés)** — modèle ci-dessous.
-> Template / codes publics / rotation appartiennent aux jalons ultérieurs.
+> **Shared 5.1 + 5.2 + 5.3 (livrés)** — modèle ci-dessous.
+> Template / codes publics / rotation / sync workout = Shared 5.4+.
+> Shared 5.3 n’ajoute **aucune** colonne ni table de présence.
 
 ```ts
 type SharedWorkoutRoomStatus =
@@ -1122,15 +1123,17 @@ type SharedWorkoutRoom = {
 
 Index : `ownerUserId`, `status`, `(updatedAt, id)`.
 
-### Invariants Shared 5.1 / 5.2
+### Invariants Shared 5.1 / 5.2 / 5.3
 
 - création transactionnelle room + membership `OWNER` ;
 - `ownerUserId` = source autoritative de propriété ;
 - membership actif = `leftAt IS NULL` ;
 - invitations email persistées (pas de code public en 5.2) ;
-- room ≠ `WorkoutSession` (aucun lien automatique).
+- room ≠ `WorkoutSession` (aucun lien automatique) ;
+- **pas** de modèle `Presence` / colonnes `onlineAt` : présence Socket.IO
+  **in-memory only** (Shared 5.3).
 
-### Cible produit (Shared 5.3+)
+### Cible produit (Shared 5.4+)
 
 Champs futurs possibles (non en base) :
 
@@ -1207,10 +1210,11 @@ Index : `(inviteeUserId, status, createdAt)`, `(roomId, status, createdAt)`,
 
 Index unique partiel : une seule ligne `PENDING` par `(roomId, inviteeUserId)`.
 
-## 30ter. SharedWorkoutParticipant (cible Shared 5.3+)
+## 30ter. SharedWorkoutParticipant (cible Shared 5.4+)
 
-Ancien nom conceptuel du participant enrichi (présence, stations). **Non créé** —
-le membership minimal est `SharedWorkoutRoomMember` (+ invitations Shared 5.2).
+Ancien nom conceptuel du participant enrichi (stations, ready, etc.). **Non créé**.
+Membership = `SharedWorkoutRoomMember` ; présence Shared 5.3 = mémoire process
+(pas de table). Ne pas confondre membership et présence en ligne.
 
 ```ts
 type SharedWorkoutParticipant = {
@@ -1329,6 +1333,9 @@ type SharedRotationAssignment = {
 ```
 
 ## 34. RealtimeCommand
+
+> Cible **Shared 5.4+** (idempotence commandes workout). **Non créé** en Shared 5.3
+> (présence in-memory, pas de table de commandes socket).
 
 Permet de suivre l’idempotence des commandes critiques.
 
@@ -1952,10 +1959,12 @@ L’activation courante utilise `ProgramActivation` et impose une contrainte d�
 - SharedWorkoutRoomMember ;
 - SharedWorkoutRoomInvitation ; *(Shared 5.2)*
 - SharedWorkoutRoomLifecycleCommand ;
-- SharedWorkoutParticipant ; *(cible Shared 5.3+)*
+- SharedWorkoutParticipant ; *(cible Shared 5.4+)*
 - SharedWorkoutStation ;
 - SharedRotationAssignment ;
 - RealtimeCommand.
+
+> Présence Shared 5.3 : **pas** de modèle — mémoire process API uniquement.
 
 ### Agrégat nutrition
 
@@ -2145,12 +2154,13 @@ Index utiles : `(ownerUserId, updatedAt)` conversations ; `(conversationId, crea
 **Dettes d’exploitation (volontaires) :** busy lock et rate limiter IA restent **process-local / mémoire**
 (pas Redis) — acceptable monolithe mono-instance.
 
-### Phase 5 produit (séances partagées — Shared 5.1 + 5.2 livrés)
+### Phase 5 produit (séances partagées — Shared 5.1 + 5.2 + 5.3 livrés)
 
 Livré : `SharedWorkoutRoom`, `SharedWorkoutRoomMember` (+ `leftAt`),
 `SharedWorkoutRoomLifecycleCommand`, `SharedWorkoutRoomInvitation`.
+Présence Socket.IO **non persistée** (mémoire process).
 
-Modèles futurs (Shared 5.3+) :
+Modèles futurs (Shared 5.4+) :
 - SharedWorkoutParticipant (enrichi) ;
 - SharedWorkoutStation ;
 - SharedParticipantExercisePlan ;

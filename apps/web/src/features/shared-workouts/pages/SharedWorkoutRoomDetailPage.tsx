@@ -19,6 +19,7 @@ import {
   useStartSharedWorkoutRoomMutation,
   useUpdateSharedWorkoutRoomMutation,
 } from '../hooks/use-shared-workout-mutations';
+import { useSharedWorkoutRoomRealtime } from '../hooks/use-shared-workout-room-realtime';
 import {
   getSharedWorkoutInvitationStatusLabel,
   getSharedWorkoutRoomStatusLabel,
@@ -41,6 +42,8 @@ export function SharedWorkoutRoomDetailPage() {
   const leaveMutation = useLeaveSharedWorkoutRoomMutation(roomId);
 
   const room = query.data;
+  const { connectedUserIds, connectionStatus, realtimeAvailable } =
+    useSharedWorkoutRoomRealtime(roomId, room?.status);
   const canManageInvites = Boolean(
     room?.isOwner &&
       (room.status === 'LOBBY' || room.status === 'ACTIVE'),
@@ -225,8 +228,28 @@ export function SharedWorkoutRoomDetailPage() {
           className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-3 text-sm"
         >
           Une connexion est nécessaire pour gérer les invitations et les
-          membres.
+          membres. Présence indisponible hors connexion.
         </p>
+      ) : null}
+
+      {!offline &&
+      (room.status === 'LOBBY' || room.status === 'ACTIVE') &&
+      connectionStatus === 'error' ? (
+        <p role="status" className="text-sm text-[var(--muted)]">
+          Présence temps réel indisponible — la salle reste utilisable.
+        </p>
+      ) : null}
+
+      {!offline &&
+      (room.status === 'LOBBY' || room.status === 'ACTIVE') &&
+      connectionStatus === 'connected' ? (
+        <p className="text-xs text-[var(--muted)]">Temps réel connecté</p>
+      ) : null}
+
+      {!offline &&
+      (room.status === 'LOBBY' || room.status === 'ACTIVE') &&
+      connectionStatus === 'connecting' ? (
+        <p className="text-xs text-[var(--muted)]">Reconnexion…</p>
       ) : null}
 
       {actionError ? (
@@ -283,20 +306,36 @@ export function SharedWorkoutRoomDetailPage() {
           Membres ({room.members.length})
         </h2>
         <ul className="mt-3 flex flex-col gap-2">
-          {room.members.map((member) => (
-            <li
-              key={member.userId}
-              className="flex items-center justify-between gap-2 text-sm"
-            >
-              <span>
-                {member.displayName ?? 'Participant'}
-                {member.role === 'OWNER' ? ' (propriétaire)' : ''}
-              </span>
-              <time dateTime={member.joinedAt} className="text-[var(--muted)]">
-                {new Date(member.joinedAt).toLocaleDateString('fr-FR')}
-              </time>
-            </li>
-          ))}
+          {room.members.map((member) => {
+            const isOnline = connectedUserIds.has(member.userId);
+            const presenceLabel = !realtimeAvailable
+              ? 'Présence inconnue'
+              : isOnline
+                ? 'En ligne'
+                : 'Hors ligne';
+            return (
+              <li
+                key={member.userId}
+                className="flex items-center justify-between gap-2 text-sm"
+              >
+                <span>
+                  {member.displayName ?? 'Participant'}
+                  {member.role === 'OWNER' ? ' (propriétaire)' : ''}
+                </span>
+                <span className="flex items-center gap-2 text-[var(--muted)]">
+                  <span
+                    aria-hidden="true"
+                    className={`inline-block size-2 rounded-full ${
+                      realtimeAvailable && isOnline
+                        ? 'bg-emerald-500'
+                        : 'bg-[var(--muted)]'
+                    }`}
+                  />
+                  <span>{presenceLabel}</span>
+                </span>
+              </li>
+            );
+          })}
         </ul>
       </section>
 

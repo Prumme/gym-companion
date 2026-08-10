@@ -459,19 +459,23 @@ Idempotence `clientCommandId`, rate limit, boucle d’outils bornée (max 4).
 
 > **Nomenclature :** les jalons techniques **5.1 → 5.6** forment la **Couche Coaching**
 > (livrée sous la Phase 4 produit). La **roadmap Phase 5 — Séances partagées** est
-> distincte : **Shared 5.1** (fondations salle REST) et **Shared 5.2** (invitations
-> email / leave) sont **livrés** ; codes d’invitation publics et Socket.IO restent
-> à venir. « 5.6 complete » ≠ séances partagées terminées.
+> distincte : **Shared 5.1** (fondations salle REST), **Shared 5.2** (invitations
+> email / leave) et **Shared 5.3** (présence Socket.IO + invalidation) sont **livrés** ;
+> codes d’invitation publics et sync workout temps réel restent à venir.
+> « 5.6 complete » ≠ séances partagées terminées.
 
-### Phase 5 produit — Shared 5.1 + Shared 5.2 (livrés)
+### Phase 5 produit — Shared 5.1 + 5.2 + 5.3 (livrés)
 
-Fondations des salles et adhésion :
+Fondations des salles, adhésion et présence :
 
 - `SharedWorkoutRoom` + `SharedWorkoutRoomMember` (`OWNER` / `MEMBER`, `leftAt`) ;
-- lifecycle `LOBBY` / `ACTIVE` / `COMPLETED` / `CANCELLED` (REST uniquement) ;
+- lifecycle `LOBBY` / `ACTIVE` / `COMPLETED` / `CANCELLED` (REST autoritaire) ;
 - invitations par email exact (`SharedWorkoutRoomInvitation`) : invite / accept /
   decline / cancel ; leave MEMBER ; UI `/shared-workouts`, `/invitations` ;
-- **pas** de code d’invitation public, **pas** de Socket.IO, **pas** de
-  `WorkoutSession` créée automatiquement.
+- **Shared 5.3** : namespace Socket.IO `/shared-workouts` — présence en mémoire
+  (multi-onglets) + événements `room:changed` (invalidation TanStack Query) ;
+  **pas** de sync séries / rotation / snapshot workout ;
+- **pas** de code d’invitation public, **pas** de `WorkoutSession` créée
+  automatiquement, **pas** de modèle Presence en base.
 
 Les documents du dossier `docs/` restent la source de vérité produit et technique.
