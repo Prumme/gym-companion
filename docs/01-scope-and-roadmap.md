@@ -22,9 +22,9 @@ Deux axes de numérotation coexistent volontairement ; ils ne doivent **pas** ê
 | Libellé | Signification |
 |---------|----------------|
 | **Couche Coaching — jalons techniques 5.1 → 5.6** | Moteurs déterministes + Coach + IA explicative + chat READ ONLY, livrés **sous la Phase 4** produit (records / stats / progression / coaching). |
-| **Roadmap produit Phase 5 — Séances partagées** | Collaboration multi-utilisateurs (salles, invitations, Socket.IO). **En cours** — Shared 5.1 → 5.6 livrés (salle, invitations, présence, séances, progression, coordination équipements). |
+| **Roadmap produit Phase 5 — Séances partagées** | Collaboration multi-utilisateurs (salles, invitations, Socket.IO). **COMPLÉTÉE** — Shared 5.1 → 5.6 livrés (salle, invitations, présence, séances, progression, coordination équipements). |
 
-Un tag ou un libellé du type `phase-5.6-complete` / « jalon 5.6 livré » signifie uniquement que la **couche coaching** est clôturée — **pas** que la roadmap « Séances partagées » est terminée.
+Un tag ou un libellé du type `phase-5.6-complete` / « jalon 5.6 livré » désigne la **couche Coaching** (sous Phase 4), **pas** la Phase 5 Shared. La Phase 5 produit Shared (5.1 → 5.6) est **clôturée** ; les extensions (inventaire physique, Redis, etc.) sont post-V1.
 
 ### 2.1 Chaque phase doit être utilisable
 
@@ -358,8 +358,9 @@ La phase 3 est terminée lorsque :
 > et **Couche Coaching 5.1 → 5.6** (recommandations, décisions, plateau, Coach déterministe,
 > explication IA, chat READ ONLY).
 >
-> La phase **produit** suivante est la **Phase 5 — Séances partagées** (**en cours**, Shared 5.1 → 5.5 livrés).
-> Voir §2.0 pour la nomenclature.  
+> La phase **produit** suivante est la **Phase 5 — Séances partagées** (**COMPLÉTÉE**, Shared 5.1 → 5.6 livrés).
+> Voir §2.0 pour la nomenclature (ne pas confondre avec la Couche Coaching 5.x).  
+
 > La liste et le détail historique de base sont déjà livrés en phase 3 (jalon 3.6).  
 > La phase 4 transforme ces données en records, statistiques et visualisation.
 
@@ -538,7 +539,7 @@ La phase est terminée lorsque :
 
 ## 8. Phase 5 — Séances partagées
 
-> Statut : **en cours**.
+> Statut : **COMPLÉTÉE** (Shared 5.1 → Shared 5.6).
 >
 > Ne pas confondre avec la Couche Coaching (jalons techniques 5.1 → 5.6), déjà livrée sous la Phase 4.
 >
@@ -552,7 +553,9 @@ La phase est terminée lorsque :
 > | **Shared 5.4** | Rattachement / création `WorkoutSession` individuelle par membre | **Livré** |
 > | **Shared 5.5** | Exercice courant + progression live (compteurs, sans perfs) | **Livré** |
 > | **Shared 5.6** | Coordination équipements logiques + file FIFO | **Livré** |
-> | Shared 5.7+ | Inventaire physique, sync séries détaillées, stations, snapshot workout, etc. | Non commencé |
+> | Shared 5.7 | Audit de clôture Phase 5 Shared | **Fait** |
+> | Shared 5.8 | Correctifs de clôture (docs / tests) | **Fait** |
+> | Post-V1 | Inventaire physique, Redis adapter, lease/force-release, ready/countdown, chat, notifications, sync séries détaillées | Hors Phase 5 |
 
 ### 8.0 Shared 5.1 — Fondations des salles (livré)
 
@@ -642,9 +645,9 @@ Livré :
 - association **online-only** (NetworkOnly) ; la séance individuelle conserve
   le mode offline Phase 3 une fois créée.
 
-Hors Shared 5.4 : sync séries, rotation, stations, snapshot workout partagé,
-codes publics, détail / IDs des séances des autres membres → **Shared 5.5+**
-(progression générale = Shared 5.5 ; sync détaillée / rotation = Shared 5.6+).
+Hors Shared 5.4 : sync séries détaillées, stations physiques, snapshot workout
+partagé, codes publics, détail / IDs des séances des autres membres → **post-V1**
+(progression générale = Shared 5.5 ; coordination équipements logiques = Shared 5.6).
 
 ### 8.0quinquies Shared 5.5 — Exercice courant et progression live (livré)
 
@@ -670,8 +673,8 @@ progression des autres (sans performances) :
 **Realtime :** `MEMBER_CURRENT_EXERCISE_CHANGED` / `MEMBER_WORKOUT_PROGRESS_CHANGED`
 (hints compacts → refetch REST). Pas de poids/reps/RIR dans les packets.
 
-Hors Shared 5.5 : rotation machines, sync séries détaillées, stations,
-édition cross-user, timer partagé, ready state, chat, leaderboard → **Shared 5.6+**.
+Hors Shared 5.5 : inventaire machines physiques, sync séries détaillées,
+édition cross-user, timer partagé, ready state, chat, leaderboard → **post-V1**.
 
 ### 8.0sexies Shared 5.6 — Coordination des équipements (livré)
 
@@ -688,8 +691,9 @@ d’inventaire physique « 3 poulies »).
 - WAITING + changement d’exercice → CANCELLED auto ;
 - realtime `EQUIPMENT_COORDINATION_CHANGED` (hint → refetch REST).
 
-Hors Shared 5.6 : inventaire gym, machines numérotées, ETA, timeout lease,
-force-release owner, sync poids/reps → **Shared 5.7+**.
+Hors Shared 5.6 (post-V1 / nice-to-have) : inventaire gym, machines numérotées,
+ETA, timeout lease, force-release owner, Redis adapter (multi-instance),
+ready state / countdown, chat, notifications, sync poids/reps détaillée.
 
 ### 8.1 Objectif
 
@@ -762,15 +766,20 @@ Permettre à plusieurs utilisateurs de réaliser une même séance en organisant
 
 ### 8.5 Critères de validation
 
-La phase est terminée lorsque :
+La Phase 5 produit Shared (5.1 → 5.6) est **terminée** lorsque :
 
-- plusieurs utilisateurs peuvent rejoindre une salle ;
-- chacun voit sa charge et sa cible ;
-- la rotation est synchronisée ;
-- les séries sont persistées ;
-- une reconnexion renvoie un état cohérent ;
-- un événement envoyé deux fois ne crée pas deux séries ;
-- la fin de séance produit un historique pour chaque participant.
+- plusieurs utilisateurs peuvent créer / rejoindre / quitter une salle privée ;
+- lifecycle salle (`LOBBY` → `ACTIVE` → terminal) et invitations sont cohérents ;
+- chaque membre rattache ou crée sa propre `WorkoutSession` (ownership individuel) ;
+- la présence Socket.IO + `room:changed` invalidation REST fonctionnent ;
+- la progression partagée expose uniquement des compteurs (pas de perfs croisées) ;
+- la coordination d’équipement logique FIFO garantit au plus un `USING` ;
+- leave / room terminal ne terminent pas les `WorkoutSession` individuelles ;
+- offline : APIs shared NetworkOnly ; séances individuelles Phase 3 intactes.
+
+Restent **post-V1** (hors clôture Phase 5) : Redis adapter, inventaire physique,
+timeout / force-release, ready / countdown, chat, notifications, sync séries
+détaillées cross-user.
 
 ## 9. Phase 6 — Nutrition
 

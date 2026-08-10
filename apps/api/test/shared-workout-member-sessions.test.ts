@@ -440,4 +440,90 @@ describe('Shared workout member sessions (Shared 5.4)', () => {
       .send({ workoutTemplateId: templateB })
       .expect(404);
   });
+
+  it('attach PAUSED autorisé — ownership, unicité, lifecycle inchangé', async () => {
+    const roomId = await createActiveRoom(app, tokenA, 'Paused attach');
+
+    const invite = await request(app.getHttpServer())
+      .post(`/api/v1/shared-workouts/${roomId}/invitations`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ inviteeEmail: `sw54-b-${stamp}@test.local` })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/shared-workout-invitations/${invite.body.data.id}/accept`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .expect(200);
+
+    const session = await request(app.getHttpServer())
+      .post('/api/v1/workouts')
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({
+        sourceWorkoutTemplateId: templateB,
+        localDate: '2026-08-10',
+        timezone: 'Europe/Paris',
+      })
+      .expect(201);
+    const sessionId = session.body.data.id as string;
+    const version = session.body.data.version as number;
+
+    const paused = await request(app.getHttpServer())
+      .post(`/api/v1/workouts/${sessionId}/pause`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ expectedVersion: version, clientCommandId: randomUUID() })
+      .expect(200);
+    expect(paused.body.data.workoutSession.status).toBe('PAUSED');
+    const pausedVersion = paused.body.data.workoutSessionVersion as number;
+
+    // Ownership : A ne peut pas rattacher la séance PAUSED de B.
+    await request(app.getHttpServer())
+      .post(`/api/v1/shared-workouts/${roomId}/my-workout-session/attach`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ workoutSessionId: sessionId })
+      .expect(404);
+
+    const attached = await request(app.getHttpServer())
+      .post(`/api/v1/shared-workouts/${roomId}/my-workout-session/attach`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ workoutSessionId: sessionId })
+      .expect(200);
+    expect(attached.body.data.linked).toBe(true);
+    expect(attached.body.data.workoutSession.id).toBe(sessionId);
+    expect(attached.body.data.workoutSession.status).toBe('PAUSED');
+
+    const afterAttach = await request(app.getHttpServer())
+      .get(`/api/v1/workouts/${sessionId}`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .expect(200);
+    expect(afterAttach.body.data.status).toBe('PAUSED');
+    expect(afterAttach.body.data.version).toBe(pausedVersion);
+
+    const detail = await request(app.getHttpServer())
+      .get(`/api/v1/shared-workouts/${roomId}`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    const memberB = detail.body.data.members.find(
+      (m: { userId: string }) => m.userId === userIdB,
+    );
+    expect(memberB.memberWorkout.status).toBe('PAUSED');
+    expect(memberB.memberWorkout.workoutName).toBeTruthy();
+    expect(JSON.stringify(detail.body.data)).not.toMatch(
+      /actualWeightKg|actualReps|"rir"|"rpe"/i,
+    );
+
+    const linkCount = await prisma.sharedWorkoutRoomMemberSession.count({
+      where: {
+        roomMember: { roomId, userId: userIdB },
+      },
+    });
+    expect(linkCount).toBe(1);
+
+    // Unicité : second attach d’une autre séance bloqué.
+    await request(app.getHttpServer())
+      .post(`/api/v1/shared-workouts/${roomId}/my-workout-session/attach`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ workoutSessionId: randomUUID() })
+      .expect(409);
+
+    await cancelActiveWorkout(app, tokenB, sessionId, pausedVersion);
+  });
 });

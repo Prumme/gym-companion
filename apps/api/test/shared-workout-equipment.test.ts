@@ -529,6 +529,84 @@ describe('Shared equipment coordination (Shared 5.6)', () => {
     expect(active).toBe(0);
   }, 90_000);
 
+  it('race leave vs release — membership left, no active entry, max 1 USING', async () => {
+    const roomId = await createActiveRoom(app, tokenA, `LeaveRace ${stamp}`);
+    await inviteAndAccept(app, tokenA, tokenB, roomId, emailB);
+    // Même équipement logique (cable) : A WAITING pendant que B USING.
+    await attachCreatedSession(app, tokenA, roomId, templateA);
+    const sessionB = await attachCreatedSession(app, tokenB, roomId, templateB);
+
+    const bUser = await prisma.user.findFirstOrThrow({
+      where: { email: emailB },
+      select: { id: true },
+    });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/shared-workouts/${roomId}/my-equipment/request`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ clientCommandId: randomUUID() })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.state).toBe('USING');
+      });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/shared-workouts/${roomId}/my-equipment/request`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ clientCommandId: randomUUID() })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.state).toBe('WAITING');
+      });
+
+    const [leaveRes, releaseRes] = await Promise.all([
+      request(app.getHttpServer())
+        .post(`/api/v1/shared-workouts/${roomId}/leave`)
+        .set('Authorization', `Bearer ${tokenB}`)
+        .send({}),
+      request(app.getHttpServer())
+        .post(`/api/v1/shared-workouts/${roomId}/my-equipment/release`)
+        .set('Authorization', `Bearer ${tokenB}`)
+        .send({ clientCommandId: randomUUID() }),
+    ]);
+
+    // Leave doit réussir ; release peut 200 (avant leave) ou 4xx (après leave).
+    expect(leaveRes.status).toBe(200);
+    expect([200, 400, 403, 404]).toContain(releaseRes.status);
+
+    const membership = await prisma.sharedWorkoutRoomMember.findFirst({
+      where: { roomId, userId: bUser.id },
+    });
+    expect(membership?.leftAt).not.toBeNull();
+
+    const bActive = await prisma.sharedWorkoutEquipmentQueueEntry.count({
+      where: {
+        roomId,
+        roomMemberId: membership!.id,
+        status: { in: ['WAITING', 'USING'] },
+      },
+    });
+    expect(bActive).toBe(0);
+
+    const usingCount = await prisma.sharedWorkoutEquipmentQueueEntry.count({
+      where: { roomId, status: 'USING' },
+    });
+    expect(usingCount).toBeLessThanOrEqual(1);
+
+    const aState = await request(app.getHttpServer())
+      .get(`/api/v1/shared-workouts/${roomId}/my-equipment`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    // FIFO : A était WAITING #1 → promu USING après départ/release de B.
+    expect(aState.body.data.state).toBe('USING');
+
+    const workout = await request(app.getHttpServer())
+      .get(`/api/v1/workouts/${sessionB.sessionId}`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .expect(200);
+    expect(workout.body.data.status).toBe('ACTIVE');
+  }, 90_000);
+
   it('realtime EQUIPMENT_COORDINATION_CHANGED on request/release', async () => {
     const roomId = await createActiveRoom(app, tokenA, `RT eq ${stamp}`);
     await inviteAndAccept(app, tokenA, tokenB, roomId, emailB);

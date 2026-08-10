@@ -15,9 +15,6 @@
     "prisma:deploy": "node ./scripts/run-prisma.cjs migrate deploy",
     "prisma:seed": "node ./scripts/run-prisma.cjs db seed"
   },
-  "prisma": {
-    "seed": "node ./prisma/seed.cjs"
-  },
   "dependencies": {
     "@gym-companion/shared": "workspace:*",
     "@gym-companion/validation": "workspace:*",

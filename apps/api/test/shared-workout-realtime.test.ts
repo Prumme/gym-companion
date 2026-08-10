@@ -297,4 +297,151 @@ describe('Shared workout realtime gateway (Shared 5.3)', () => {
     socketA.disconnect();
     socketB.disconnect();
   }, 60_000);
+
+  it('MEMBER_WORKOUT_CHANGED after create ; failed attach emits nothing', async () => {
+    const system = await prisma.exercise.findFirstOrThrow({
+      where: {
+        source: 'SYSTEM',
+        archivedAt: null,
+        measurementType: 'WEIGHT_REPS',
+      },
+    });
+    const program = await request(app.getHttpServer())
+      .post('/api/v1/programs')
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ name: `Prog RT ${stamp}`, goal: 'HYPERTROPHY' })
+      .expect(201);
+    const programId = program.body.data.id as string;
+    const tpl = await request(app.getHttpServer())
+      .post(`/api/v1/programs/${programId}/workout-templates`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ name: `Séance RT ${stamp}` })
+      .expect(201);
+    const templateId = tpl.body.data.workoutTemplates[0].id as string;
+    const ex = await request(app.getHttpServer())
+      .post(
+        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
+      )
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({
+        exerciseId: system.id,
+        equipmentTypeId: system.defaultEquipmentTypeId,
+        restSecondsOverride: 90,
+        notes: null,
+      })
+      .expect(201);
+    const teId = ex.body.data.workoutTemplates[0].exercises[0].id as string;
+    await request(app.getHttpServer())
+      .post(
+        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`,
+      )
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({
+        setType: 'WORKING',
+        targetRepMin: 8,
+        targetRepMax: 10,
+        targetDurationSeconds: null,
+        targetDistanceMeters: null,
+        targetWeightKg: 50,
+        targetIntensityPercent: null,
+        targetRir: 2,
+        targetRpe: null,
+        restSeconds: 90,
+      })
+      .expect(201);
+
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/shared-workouts')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ name: `MWC ${stamp}` })
+      .expect(201);
+    const roomId = created.body.data.id as string;
+
+    const invite = await request(app.getHttpServer())
+      .post(`/api/v1/shared-workouts/${roomId}/invitations`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ inviteeEmail: emailB })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/shared-workout-invitations/${invite.body.data.id}/accept`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/shared-workouts/${roomId}/start`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ clientCommandId: randomUUID() })
+      .expect(200);
+
+    const socketA = await connectSocket(port, tokenA);
+    const socketB = await connectSocket(port, tokenB);
+    const payloads: Array<Record<string, unknown>> = [];
+    socketA.on('room:changed', (e: Record<string, unknown>) => {
+      payloads.push(e);
+    });
+
+    await emitAck(socketA, 'room:subscribe', { roomId });
+    await emitAck(socketB, 'room:subscribe', { roomId });
+    payloads.length = 0;
+
+    // Mutation échouée : B tente d’attacher une séance inexistante / étrangère.
+    await request(app.getHttpServer())
+      .post(`/api/v1/shared-workouts/${roomId}/my-workout-session/attach`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ workoutSessionId: randomUUID() })
+      .expect(404);
+    await new Promise((r) => setTimeout(r, 80));
+    expect(
+      payloads.some((p) => p.reason === 'MEMBER_WORKOUT_CHANGED'),
+    ).toBe(false);
+
+    const createdSession = await request(app.getHttpServer())
+      .post(`/api/v1/shared-workouts/${roomId}/my-workout-session/create`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ workoutTemplateId: templateId })
+      .expect(201);
+    const workoutId = createdSession.body.data.workoutSession.id as string;
+
+    await new Promise((r) => setTimeout(r, 120));
+    const mwc = payloads.filter((p) => p.reason === 'MEMBER_WORKOUT_CHANGED');
+    expect(mwc.length).toBeGreaterThanOrEqual(1);
+    const event = mwc[0]!;
+    expect(event.roomId).toBe(roomId);
+    expect(event.reason).toBe('MEMBER_WORKOUT_CHANGED');
+    const serialized = JSON.stringify(event);
+    expect(serialized).not.toMatch(
+      /actualWeight|actualReps|"rir"|"rpe"|targetWeight|notes|email/i,
+    );
+    expect(event).not.toHaveProperty('workoutSession');
+    expect(event).not.toHaveProperty('sets');
+    expect(event).not.toHaveProperty('progress');
+
+    const detail = await request(app.getHttpServer())
+      .get(`/api/v1/shared-workouts/${roomId}`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    const memberB = detail.body.data.members.find(
+      (m: { userId: string }) => m.userId === userIdB,
+    );
+    expect(memberB.memberWorkout.status).toBe('ACTIVE');
+    expect(memberB.memberWorkout.workoutName).toBeTruthy();
+    expect(detail.body.data.myWorkoutSessionId).toBeNull();
+    expect(JSON.stringify(detail.body.data)).not.toMatch(
+      /actualWeightKg|actualReps|"rir"|"rpe"/i,
+    );
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/workouts/${workoutId}/cancel`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({
+        expectedVersion: createdSession.body.data.workoutSession.version,
+        clientCommandId: randomUUID(),
+        keepRecordedData: true,
+        reason: 'cleanup',
+      })
+      .expect(200);
+
+    socketA.disconnect();
+    socketB.disconnect();
+  }, 90_000);
 });

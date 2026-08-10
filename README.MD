@@ -458,12 +458,12 @@ Aucun outil de mutation ; le LLM n’accède jamais à Prisma directement.
 Idempotence `clientCommandId`, rate limit, boucle d’outils bornée (max 4).
 
 > **Nomenclature :** les jalons techniques **5.1 → 5.6** forment la **Couche Coaching**
-> (livrée sous la Phase 4 produit). La **roadmap Phase 5 — Séances partagées** est
-> distincte : **Shared 5.1 → 5.6** sont **livrés** ; codes d’invitation publics,
-> sync séries détaillées / stations physiques (Shared 5.7+) restent à venir.
-> « 5.6 complete » ≠ séances partagées terminées.
+> (livrée sous la Phase 4 produit). La **Phase 5 produit — Séances partagées**
+> (**Shared 5.1 → 5.6**) est **COMPLÉTÉE** et distincte. « 5.6 complete » (tag
+> coaching) ≠ Phase 5 Shared. Extensions (inventaire physique, Redis, chat, etc.)
+> restent **post-V1**.
 
-### Phase 5 produit — Shared 5.1 → 5.6 (livrés)
+### Phase 5 produit — Shared Workouts (COMPLÉTÉE — Shared 5.1 → 5.6)
 
 Fondations des salles, adhésion, présence, rattachement, progression live et
 coordination d’équipement logique :
@@ -483,5 +483,9 @@ coordination d’équipement logique :
   **pas** de sync poids/reps, machines numérotées, ETA, timer partagé ;
 - **pas** de code d’invitation public, **pas** de création auto de séance au
   start de salle, **pas** de modèle Presence en base.
+
+Post-V1 / nice-to-have (hors Phase 5) : Redis adapter (multi-instance), inventaire
+machines physiques, timeout / force-release, ready state / countdown, chat,
+notifications.
 
 Les documents du dossier `docs/` restent la source de vérité produit et technique.

@@ -93,7 +93,7 @@ Précisions coaching :
 - les résultats sportifs officiels (records, progression, recommandations, plateau, CoachSummary) restent **serveur-authoritative** ;
 - l’historique de conversation déjà présent dans TanStack Query peut rester visible offline, sans nouvel envoi.
 
-### Shared workouts — NetworkOnly (Shared 5.1 → 5.5)
+### Shared workouts — NetworkOnly (Shared 5.1 → 5.6)
 
 ```text
 /api/v1/shared-workouts/*
