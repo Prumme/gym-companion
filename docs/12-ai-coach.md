@@ -90,18 +90,17 @@ données historiques
 → recommandations déterministes (5.1)
 → décision utilisateur (5.2)
 → CoachSummary déterministe (5.4)
-→ future couche LLM
-→ reformulation / explication / conversation
+→ AiCoachExplanationInput V1 (5.5)
+→ provider LLM
+→ validation structurée
+→ UI
+→ future conversation (hors 5.5)
 ```
 
-Le LLM futur recevra des **faits structurés** provenant du Coach (statut, recommandation,
-raisons, plateau, progression, e1RM, décision récente, notices). Il ne devra pas recevoir
-un accès direct non filtré à toute la base. Il ne doit **pas** inventer un plateau ni
+Le LLM reçoit des **faits structurés** provenant du Coach (statut, recommandation,
+raisons, plateau, progression, e1RM, décision récente, notices). Il ne reçoit
+pas un accès direct non filtré à toute la base. Il ne doit **pas** inventer un plateau ni
 contourner la décision utilisateur.
-
-L’IA future ne doit **pas** devenir la seule source des règles de progression.
-Elle ne doit **pas** pouvoir contourner l’étape « décision utilisateur » pour
-modifier directement le programme.
 
 Le jalon 5.1 livre le moteur déterministe (lecture seule).
 Le jalon 5.2 livre l’application confirmée (ACCEPTED / ADJUSTED / IGNORED), sans
@@ -109,6 +108,16 @@ auto-apply et sans appel OpenAI.
 Le jalon 5.3 livre le signal de stagnation (NONE / WATCH / PLATEAU / …), sans
 prescription corrective.
 Le jalon 5.4 livre le Coach explicatif déterministe (composition, `/coach`), sans LLM.
+Le jalon 5.5 livre l’explication LLM à la demande (pas de chat, pas de mémoire,
+pas d’application d’action, pas de génération de programme).
+
+### Limitations 5.5
+
+- Explication uniquement — le texte IA n’est pas une garantie métier.
+- Pas de chat multi-tour ni de prompt libre utilisateur.
+- Pas de persistance des explications générées.
+- Les décisions métier restent déterministes (5.1–5.4).
+- En cas d’échec fournisseur : message d’erreur contrôlé ; le résumé 5.4 reste visible.
 
 ### 3.3 Les sorties sont structurées
 

@@ -561,6 +561,13 @@ Supprimer les abonnements rejetés par le service push.
 
 Construire un contexte minimal.
 
+Pour le jalon **5.5** (explication Coach) :
+
+- payload versionné `AI_COACH_EXPLANATION_V1` uniquement ;
+- pas d’email, userId, JWT, historique brut, objets Prisma ;
+- noms d’exercice traités comme données non fiables (séparés des instructions) ;
+- aucun prompt libre utilisateur.
+
 ### 20.2 Pseudonymisation
 
 Ne pas envoyer l’identité réelle lorsque cela n’est pas nécessaire.
@@ -578,15 +585,27 @@ Documenter :
 
 ### 20.4 Secrets
 
-La clé IA reste côté serveur.
+La clé IA reste côté serveur (`AI_COACH_API_KEY`). Jamais dans Vite / localStorage / IndexedDB.
 
 ### 20.5 Logs
 
-Ne pas enregistrer automatiquement les prompts complets.
+Ne pas enregistrer automatiquement les prompts complets ni la réponse brute.
+
+Log minimal 5.5 : durée, succès/erreur, code, provider, taille approximative, identifiant utilisateur hashé.
 
 ### 20.6 Sorties
 
-Considérer toute sortie comme non fiable jusqu’à validation.
+Considérer toute sortie comme non fiable jusqu’à validation Zod.
+
+La sortie 5.5 ne contient **aucun** champ décisionnel (`action`, `suggestedWeight`, `plateauStatus`).
+
+### 20.7 Protections 5.5
+
+- timeout configurable (`AI_COACH_TIMEOUT_MS`) ;
+- rate limit par utilisateur authentifié ;
+- fallback déterministe (Coach 5.4) ;
+- feature flag `AI_COACH_ENABLED` ;
+- provider `fake` interdit en production.
 
 ## 21. Emails
 

@@ -20,6 +20,9 @@ export type MeResponse = {
       weeklyTrainingTarget: number | null;
       defaultWorkoutDurationMinutes: number | null;
     };
+    ai: {
+      available: boolean;
+    };
   };
 };
 

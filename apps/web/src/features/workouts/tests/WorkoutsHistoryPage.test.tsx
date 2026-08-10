@@ -62,6 +62,7 @@ function meResponse() {
         weeklyTrainingTarget: null,
         defaultWorkoutDurationMinutes: null,
       },
+      ai: { available: false },
     },
   };
 }

@@ -16,8 +16,9 @@ import {
   JwtAuthGuard,
   type AuthenticatedUser,
 } from '../../common/guards/jwt-auth.guard';
-import { CoachingService } from './coaching.service';
+import { AiCoachExplanationService } from './ai/ai-coach-explanation.service';
 import { CoachSummaryService } from './coach-summary.service';
+import { CoachingService } from './coaching.service';
 
 @ApiTags('coaching')
 @ApiBearerAuth()
@@ -27,6 +28,7 @@ export class CoachingController {
   constructor(
     private readonly coachingService: CoachingService,
     private readonly coachSummaryService: CoachSummaryService,
+    private readonly aiCoachExplanationService: AiCoachExplanationService,
   ) {}
 
   @Get('api/v1/coaching/overview')
@@ -59,9 +61,26 @@ export class CoachingController {
     return createSuccessResponse(data);
   }
 
-  @Get(
-    'api/v1/coaching/exercises/:exerciseId/plateau-analysis',
-  )
+  @Post('api/v1/coaching/exercises/:exerciseId/explanation')
+  @ApiOperation({
+    summary:
+      'Génère une explication IA à partir du ExerciseCoachSummary déterministe (5.5)',
+  })
+  async generateExerciseCoachExplanation(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
+    @Body() body: unknown,
+  ) {
+    const data =
+      await this.aiCoachExplanationService.generateExerciseExplanation(
+        user.id,
+        exerciseId,
+        body ?? {},
+      );
+    return createSuccessResponse(data);
+  }
+
+  @Get('api/v1/coaching/exercises/:exerciseId/plateau-analysis')
   @ApiOperation({
     summary:
       'Analyse déterministe de stagnation / plateau (lecture seule, WEIGHT_REPS)',

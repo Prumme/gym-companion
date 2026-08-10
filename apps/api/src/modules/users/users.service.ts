@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { updateProfileSchema } from '@gym-companion/validation';
 
+import { AppConfigService } from '../../config/app-config.service';
 import { PrismaService } from '../../database/prisma/prisma.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: AppConfigService,
+  ) {}
 
   async getMe(userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -97,6 +101,9 @@ export class UsersService {
           : null,
         weeklyTrainingTarget: user.profile.weeklyTrainingTarget,
         defaultWorkoutDurationMinutes: user.profile.defaultWorkoutDurationMinutes,
+      },
+      ai: {
+        available: this.config.aiCoachAvailable,
       },
     };
   }

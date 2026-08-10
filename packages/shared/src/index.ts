@@ -1029,6 +1029,32 @@ export type ExerciseCoachSummary = {
     latestWorkoutDate: string | null;
     workoutCount: number;
   };
+  /** Fingerprint déterministe du contexte Coach (jalon 5.5 — staleness IA). */
+  coachSummaryFingerprint: string;
+};
+
+export type AiCoachExplanationFocus =
+  | 'GENERAL'
+  | 'LOAD'
+  | 'PROGRESS'
+  | 'PLATEAU';
+
+export type AiCoachExplanation = {
+  title: string;
+  summary: string;
+  keyPoints: string[];
+  caution: string | null;
+};
+
+export type ExerciseCoachExplanationResponse = {
+  explanation: AiCoachExplanation;
+  meta: {
+    schemaVersion: 'AI_COACH_EXPLANATION_V1';
+    promptVersion: 'AI_COACH_PROMPT_V1';
+    focus: AiCoachExplanationFocus;
+    coachSummaryFingerprint: string;
+    generatedAt: string;
+  };
 };
 
 export type CoachingOverviewItem = {

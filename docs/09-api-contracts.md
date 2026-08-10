@@ -1993,6 +1993,45 @@ Priorité : REVIEW > PLATEAU > WATCH > PROGRESSING > STABLE > BUILDING_HISTORY >
 
 Overview : exercices récents (90 j), max 5 items, priorités REVIEW/PLATEAU/WATCH/PROGRESSING (peut être vide).
 
+Le summary expose également `coachSummaryFingerprint` (dérivé, pour staleness IA 5.5).
+
+### 23.2septies Coach IA explicatif (jalon 5.5)
+
+```text
+POST /api/v1/coaching/exercises/:exerciseId/explanation
+```
+
+JWT obligatoire. Corps minimal :
+
+```ts
+{ focus?: "GENERAL" | "LOAD" | "PROGRESS" | "PLATEAU" }
+```
+
+Le serveur charge le summary 5.4, construit `AiCoachExplanationInput` (`AI_COACH_EXPLANATION_V1`), appelle le provider, valide la sortie.
+
+Réponse :
+
+```ts
+{
+  data: {
+    explanation: { title, summary, keyPoints, caution },
+    meta: {
+      schemaVersion: "AI_COACH_EXPLANATION_V1",
+      promptVersion: "AI_COACH_PROMPT_V1",
+      focus,
+      coachSummaryFingerprint,
+      generatedAt
+    }
+  }
+}
+```
+
+Disponibilité : `GET /api/v1/me` → `ai: { available: boolean }` (ne pas déduire d’une erreur réseau).
+
+Codes d’erreur : `AI_COACH_DISABLED` | `AI_COACH_UNAVAILABLE` | `AI_COACH_TIMEOUT` | `AI_COACH_RATE_LIMITED` | `AI_COACH_INVALID_RESPONSE`.
+
+NetworkOnly. Aucune mutation métier. Coach déterministe inchangé si l’IA échoue.
+
 ### 23.3 Records (jalon 4.1)
 
 Calculés **à la demande** depuis l’historique (pas de table `PersonalRecord`).

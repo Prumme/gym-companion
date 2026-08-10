@@ -173,15 +173,18 @@ Routes et navigation livrées en phase 4 :
 - mêmes presets de période que le dashboard (`?period=all` = tout l’historique) ;
 - section **Force estimée** (e1RM Epley V1) pour `WEIGHT_REPS` ;
 - section **Analyse de progression** / plateau (5.3) ;
-- section **Coach** (5.4) — synthèse déterministe + actions de navigation.
+- section **Coach** (5.4) — synthèse déterministe + actions de navigation ;
+- explication IA à la demande (5.5) — distincte du résumé déterministe, uniquement si `ai.available`.
 
-#### `/coach` (jalon 5.4)
+#### `/coach` (jalon 5.4 + 5.5)
 
-Synthèse Coach déterministe (pas d’IA) :
+Synthèse Coach déterministe (overview sans appel LLM) :
 
 - titre + courte explication ;
 - cartes d’attention (REVIEW / PLATEAU / WATCH / PROGRESSING) ;
 - liens vers `/progress/exercises/:id`.
+
+Les explications IA se génèrent uniquement depuis le détail exercice, jamais en masse sur `/coach`.
 
 ### 4.6 Profil
 

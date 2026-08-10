@@ -12,10 +12,18 @@ const { getCoachingOverview, getExerciseCoachSummary } = vi.hoisted(() => ({
   getExerciseCoachSummary: vi.fn(),
 }));
 
+const { getMe } = vi.hoisted(() => ({
+  getMe: vi.fn(),
+}));
+
 vi.mock('../api/coaching-api', () => ({
   getCoachingOverview: (...args: unknown[]) => getCoachingOverview(...args),
   getExerciseCoachSummary: (...args: unknown[]) =>
     getExerciseCoachSummary(...args),
+}));
+
+vi.mock('@/features/profile/api/profile-api', () => ({
+  getMe: (...args: unknown[]) => getMe(...args),
 }));
 
 function baseSummary(
@@ -81,6 +89,7 @@ function baseSummary(
       latestWorkoutDate: '2026-08-03',
       workoutCount: 3,
     },
+    coachSummaryFingerprint: 'fp-watch-1',
     ...overrides,
   };
 }
@@ -89,6 +98,29 @@ describe('Coach frontend (5.4)', () => {
   beforeEach(() => {
     getCoachingOverview.mockReset();
     getExerciseCoachSummary.mockReset();
+    getMe.mockReset();
+    getMe.mockResolvedValue({
+      data: {
+        id: 'user-1',
+        email: 'u@test.local',
+        status: 'ACTIVE',
+        role: 'USER',
+        profile: {
+          displayName: 'Test',
+          timezone: 'Europe/Paris',
+          weightUnit: 'KG',
+          distanceUnit: 'KM',
+          primaryGoal: 'STRENGTH',
+          experienceLevel: 'INTERMEDIATE',
+          effortTrackingMode: 'NONE',
+          heightCm: null,
+          currentWeightKg: null,
+          weeklyTrainingTarget: null,
+          defaultWorkoutDurationMinutes: null,
+        },
+        ai: { available: false },
+      },
+    });
   });
 
   it('page /coach : empty puis cartes', async () => {

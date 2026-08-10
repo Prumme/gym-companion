@@ -442,4 +442,12 @@ actions). Endpoints `GET /api/v1/coaching/exercises/:id/summary` et
 progression d’exercice. **Aucun LLM**, aucune persistance de résumé, aucune
 mutation métier.
 
+Le jalon **5.5** ajoute la **première couche LLM explicative** : reformulation
+naturelle d’un `ExerciseCoachSummary` déterministe via
+`POST /api/v1/coaching/exercises/:id/explanation`. Génération **à la demande**
+uniquement (pas au chargement de `/coach`). Feature flag serveur
+`AI_COACH_ENABLED` ; disponibilité exposée via `GET /api/v1/me` → `ai.available`.
+Sortie structurée validée ; le LLM ne décide ni charge, ni plateau, ni programme.
+Aucune table de génération ; fallback sur le Coach 5.4 en cas d’indisponibilité.
+
 Les documents du dossier `docs/` restent la source de vérité produit et technique.

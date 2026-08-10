@@ -1,6 +1,7 @@
 import type {
   CoachingOverview,
   DecideLoadRecommendationResult,
+  ExerciseCoachExplanationResponse,
   ExerciseCoachSummary,
   LoadRecommendation,
   LoadRecommendationDecisionListResponse,
@@ -77,6 +78,20 @@ export async function getExerciseCoachSummary(
 export async function getCoachingOverview(): Promise<CoachingOverview> {
   const response = await apiFetch<{ data: CoachingOverview }>(
     '/api/v1/coaching/overview',
+  );
+  return response.data;
+}
+
+export async function generateExerciseCoachExplanation(
+  exerciseId: string,
+  input: { focus?: 'GENERAL' | 'LOAD' | 'PROGRESS' | 'PLATEAU' } = {},
+): Promise<ExerciseCoachExplanationResponse> {
+  const response = await apiFetch<{ data: ExerciseCoachExplanationResponse }>(
+    `/api/v1/coaching/exercises/${encodeURIComponent(exerciseId)}/explanation`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
   );
   return response.data;
 }

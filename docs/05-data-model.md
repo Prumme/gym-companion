@@ -1990,6 +1990,15 @@ Les synthèses Coach (`ExerciseCoachSummary`, `CoachingOverview`) sont **dériv�
 - composition des résultats progression / force / load reco / plateau / décisions ;
 - aucun texte généré par LLM.
 
+### Jalon 5.5 — Explications IA (hors tables)
+
+Les explications LLM (`ExerciseCoachExplanationResponse`) sont **éphémères** :
+
+- pas de modèle Prisma `AiExplanation` / `CoachInsight` / historique de génération ;
+- calculées à la demande depuis `ExerciseCoachSummary` + provider ;
+- non stockées dans IndexedDB ;
+- fingerprint `coachSummaryFingerprint` dérivé du summary (staleness UI uniquement).
+
 ### Phase 5
 
 - SharedWorkoutRoom ;

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
 import { ButtonLink } from '@/components/ui/button';
+import { getMe } from '@/features/profile/api/profile-api';
 import { getApiErrorMessage } from '@/lib/api/client';
 
 import { exerciseCoachSummaryQueryOptions } from '../api/coaching-query-options';
@@ -12,6 +13,7 @@ import {
   getCoachLoadActionLabel,
   getExerciseCoachStatusLabel,
 } from '../lib/coach-labels';
+import { ExerciseCoachAiExplanation } from './ExerciseCoachAiExplanation';
 
 type ExerciseCoachSummarySectionProps = {
   exerciseId: string;
@@ -25,6 +27,12 @@ export function ExerciseCoachSummarySection({
   const query = useQuery({
     ...exerciseCoachSummaryQueryOptions(exerciseId),
     enabled: enabled && Boolean(exerciseId),
+  });
+  const meQuery = useQuery({
+    queryKey: ['me'],
+    queryFn: getMe,
+    enabled: enabled && Boolean(exerciseId),
+    staleTime: 60_000,
   });
 
   if (!enabled) return null;
@@ -61,10 +69,21 @@ export function ExerciseCoachSummarySection({
   }
 
   if (!query.data) return null;
-  return <CoachSummaryContent summary={query.data} />;
+  return (
+    <CoachSummaryContent
+      summary={query.data}
+      aiAvailable={meQuery.data?.data.ai.available === true}
+    />
+  );
 }
 
-function CoachSummaryContent({ summary }: { summary: ExerciseCoachSummary }) {
+function CoachSummaryContent({
+  summary,
+  aiAvailable,
+}: {
+  summary: ExerciseCoachSummary;
+  aiAvailable: boolean;
+}) {
   const primaryAction = summary.actions[0] ?? null;
   const load = summary.loadRecommendation;
   const decision = summary.recentDecision;
@@ -143,6 +162,12 @@ function CoachSummaryContent({ summary }: { summary: ExerciseCoachSummary }) {
           ))}
         </ul>
       ) : null}
+
+      <ExerciseCoachAiExplanation
+        exerciseId={summary.exercise.id}
+        summary={summary}
+        aiAvailable={aiAvailable}
+      />
     </section>
   );
 }

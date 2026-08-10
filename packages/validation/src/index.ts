@@ -34,6 +34,32 @@ export const apiEnvSchema = z.object({
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().positive().optional(),
   EMAIL_VERIFICATION_REQUIRED: booleanFromString.default(false),
+
+  /** Coach IA explicatif (jalon 5.5). Désactivé par défaut. */
+  AI_COACH_ENABLED: booleanFromString.default(false),
+  /**
+   * Fournisseur LLM.
+   * - `none` : aucun appel externe
+   * - `openai` : OpenAI Chat Completions (clé requise si enabled)
+   * - `fake` : réservé aux tests (interdit en production)
+   */
+  AI_COACH_PROVIDER: z.enum(['none', 'openai', 'fake']).default('none'),
+  AI_COACH_API_KEY: z.string().min(1).optional(),
+  AI_COACH_MODEL: z.string().min(1).default('gpt-4o-mini'),
+  AI_COACH_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
+  AI_COACH_RATE_LIMIT_PER_MINUTE: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(5),
+}).superRefine((env, ctx) => {
+  if (env.NODE_ENV === 'production' && env.AI_COACH_PROVIDER === 'fake') {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['AI_COACH_PROVIDER'],
+      message: 'AI_COACH_PROVIDER=fake is forbidden in production.',
+    });
+  }
 });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;
@@ -2147,3 +2173,27 @@ export type {
   ExerciseCoachSummaryQuery,
   ResolveExerciseCoachStatusInput,
 } from './exercise-coach';
+
+export {
+  AI_COACH_EXPLANATION_FOCUS_VALUES,
+  AI_COACH_EXPLANATION_SCHEMA_VERSION,
+  AI_COACH_PROMPT_VERSION,
+  AI_COACH_SYSTEM_INSTRUCTIONS,
+  assertAiCoachPayloadMinimized,
+  aiCoachExplanationInputSchema,
+  aiCoachExplanationResultSchema,
+  buildAiCoachExplanationInput,
+  buildAiCoachUserMessage,
+  computeCoachSummaryFingerprint,
+  generateExerciseCoachExplanationBodySchema,
+  parseAiCoachExplanationResult,
+  resolveAvailableAiCoachFocuses,
+} from './ai-coach-explanation';
+export type {
+  AiCoachExplanationFocus,
+  AiCoachExplanationInput,
+  AiCoachExplanationResult,
+  BuildAiCoachExplanationInputArgs,
+  CoachSummaryFingerprintSource,
+  GenerateExerciseCoachExplanationInput,
+} from './ai-coach-explanation';

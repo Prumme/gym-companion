@@ -49,6 +49,7 @@ function meResponse(mode: 'NONE' | 'RIR' | 'RPE' = 'RIR') {
         weeklyTrainingTarget: null,
         defaultWorkoutDurationMinutes: null,
       },
+      ai: { available: false },
     },
   };
 }

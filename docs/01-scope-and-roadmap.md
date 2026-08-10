@@ -468,6 +468,18 @@ Transformer les données enregistrées en informations utiles (records, progress
 
 **Restent hors 5.4 :** chat, streaming, prompts OpenAI, génération de séance/programme, deload auto, nutrition.
 
+**Livré en jalon 5.5 (Coach IA explicatif) :**
+
+- couche LLM **explicative uniquement** au-dessus de `ExerciseCoachSummary` 5.4 ;
+- endpoint `POST /api/v1/coaching/exercises/:id/explanation` (génération à la demande) ;
+- payload LLM versionné `AI_COACH_EXPLANATION_V1` + prompt `AI_COACH_PROMPT_V1` ;
+- sortie structurée validée Zod (`title` / `summary` / `keyPoints` / `caution`) ;
+- feature flag `AI_COACH_ENABLED` + `ai.available` via `GET /api/v1/me` ;
+- fallback déterministe si IA désactivée / erreur / timeout ;
+- **aucune** mutation métier, **aucun** chat, **aucune** persistance du texte généré.
+
+**Restent hors 5.5 :** chat multi-tour, mémoire conversationnelle, function calling, génération de programme/séance, RAG, embeddings, WebSocket.
+
 ### 7.4 Hors périmètre
 
 - Analyse prédictive complexe.

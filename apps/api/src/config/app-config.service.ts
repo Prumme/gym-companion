@@ -72,4 +72,44 @@ export class AppConfigService {
   get smtpPort(): number {
     return this.env.SMTP_PORT ?? 1025;
   }
+
+  get aiCoachEnabled(): boolean {
+    return this.env.AI_COACH_ENABLED;
+  }
+
+  get aiCoachProvider(): ApiEnv['AI_COACH_PROVIDER'] {
+    return this.env.AI_COACH_PROVIDER;
+  }
+
+  get aiCoachApiKey(): string | undefined {
+    return this.env.AI_COACH_API_KEY;
+  }
+
+  get aiCoachModel(): string {
+    return this.env.AI_COACH_MODEL;
+  }
+
+  get aiCoachTimeoutMs(): number {
+    return this.env.AI_COACH_TIMEOUT_MS;
+  }
+
+  get aiCoachRateLimitPerMinute(): number {
+    return this.env.AI_COACH_RATE_LIMIT_PER_MINUTE;
+  }
+
+  /**
+   * Exposé au frontend : explication IA réellement utilisable.
+   * Fake interdit hors test.
+   */
+  get aiCoachAvailable(): boolean {
+    if (!this.env.AI_COACH_ENABLED) return false;
+    if (this.env.AI_COACH_PROVIDER === 'none') return false;
+    if (this.env.AI_COACH_PROVIDER === 'fake') {
+      return this.env.NODE_ENV === 'test' || this.env.NODE_ENV === 'development';
+    }
+    if (this.env.AI_COACH_PROVIDER === 'openai') {
+      return Boolean(this.env.AI_COACH_API_KEY);
+    }
+    return false;
+  }
 }

@@ -591,6 +591,23 @@ données → métriques → moteurs 4.x/5.1/5.2/5.3 → Coach explicatif → fut
 - HOLD 5.1 ne devient pas WATCH sans signal plateau.
 - Actions = navigation uniquement (`VIEW_*`), jamais de mutation.
 
+### 13.3quinquies Coach IA explicatif (jalon 5.5)
+
+```text
+métriques déterministes
+→ ExerciseCoachSummary (5.4)
+→ AiCoachExplanationInput V1
+→ provider LLM
+→ validation structurée
+→ UI (distincte du résumé déterministe)
+```
+
+- L’IA **explique / reformule** ; elle ne **calcule** pas et ne **décide** pas.
+- Aucun prompt libre utilisateur ; aucun outil de mutation.
+- Si `AI_COACH_ENABLED=false` ou fournisseur indisponible : Coach 5.4 seul.
+- Aucune table `AiExplanation` / persistance du texte généré.
+- Rate limit + timeout côté serveur ; erreurs contrôlées (`AI_COACH_*`).
+
 ### 13.4 Cas de progression
 
 Une augmentation peut être proposée lorsqu’un utilisateur réussit de manière répétée les séries prévues avec une marge suffisante.

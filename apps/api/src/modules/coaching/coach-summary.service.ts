@@ -27,6 +27,7 @@ import {
   buildExerciseCoachActions,
   buildExerciseCoachNotices,
   compareExerciseCoachStatusPriority,
+  computeCoachSummaryFingerprint,
   detectExercisePlateau,
   exerciseCoachSummaryQuerySchema,
   inferSignificantRecentProgress,
@@ -36,7 +37,6 @@ import {
   utcDateToLocalDateString,
   type PlateauSessionInput,
 } from '@gym-companion/validation';
-
 import { PrismaService } from '../../database/prisma/prisma.service';
 import { ProgressService } from '../progress/progress.service';
 import { CoachingService } from './coaching.service';
@@ -179,6 +179,65 @@ export class CoachSummaryService {
       progressMaxWeight.availableMetrics.length > 0 ||
       isWeightReps;
 
+    const generatedFrom = {
+      latestWorkoutDate,
+      workoutCount,
+    };
+
+    const coachSummaryFingerprint = computeCoachSummaryFingerprint({
+      schemaVersion: 'AI_COACH_EXPLANATION_V1',
+      exerciseId: exercise.id,
+      measurementType: exercise.measurementType,
+      status,
+      loadRecommendation: loadSummary
+        ? {
+            action: loadSummary.action,
+            currentWeightKg: loadSummary.currentWeightKg,
+            suggestedWeightKg: loadSummary.suggestedWeightKg,
+            reasons: loadSummary.reasons,
+          }
+        : null,
+      plateau: plateauSummary
+        ? {
+            status: plateauSummary.status,
+            reasons: plateauSummary.reasons,
+            analyzedWorkoutCount: plateauSummary.analyzedWorkoutCount,
+          }
+        : null,
+      progress: progressSummary
+        ? {
+            maxWeightFirstKg: progressSummary.maxWeightKg.first,
+            maxWeightLatestKg: progressSummary.maxWeightKg.latest,
+            maxRepsFirst: progressSummary.maxReps.first,
+            maxRepsLatest: progressSummary.maxReps.latest,
+            workoutCount: progressSummary.workoutCount,
+          }
+        : null,
+      strength: strengthSummary
+        ? {
+            latestEstimatedOneRepMaxKg:
+              strengthSummary.latestEstimatedOneRepMaxKg,
+            bestEstimatedOneRepMaxKg: strengthSummary.bestEstimatedOneRepMaxKg,
+            changeKg: strengthSummary.changeKg,
+            changePercent: strengthSummary.changePercent,
+          }
+        : null,
+      recentDecision: recentDecision
+        ? {
+            decisionType: recentDecision.decisionType,
+            recommendationAction: recentDecision.recommendationAction,
+            recommendedWeightKg: recentDecision.recommendedWeightKg,
+            appliedWeightKg: recentDecision.appliedWeightKg,
+            createdAt: recentDecision.createdAt,
+          }
+        : null,
+      notices: notices.map((notice) => ({
+        code: notice.code,
+        severity: notice.severity,
+      })),
+      generatedFrom,
+    });
+
     return {
       exercise: {
         id: exercise.id,
@@ -196,10 +255,8 @@ export class CoachSummaryService {
       recentDecision,
       actions,
       notices,
-      generatedFrom: {
-        latestWorkoutDate,
-        workoutCount,
-      },
+      generatedFrom,
+      coachSummaryFingerprint,
     };
   }
 

@@ -425,9 +425,12 @@ VAPID_PUBLIC_KEY
 VAPID_PRIVATE_KEY
 VAPID_SUBJECT
 
-AI_PROVIDER
-AI_API_KEY
-AI_MODEL
+AI_COACH_ENABLED
+AI_COACH_PROVIDER
+AI_COACH_API_KEY
+AI_COACH_MODEL
+AI_COACH_TIMEOUT_MS
+AI_COACH_RATE_LIMIT_PER_MINUTE
 
 LOG_LEVEL
 SENTRY_DSN
@@ -435,7 +438,10 @@ SENTRY_DSN
 BACKUP_ENCRYPTION_KEY
 ```
 
-Les noms exacts seront définis dans le code.
+Noms alignés sur `apiEnvSchema` (`packages/validation`) pour le Coach IA 5.5.
+`AI_COACH_ENABLED=false` (défaut) : aucun appel fournisseur ; Coach déterministe inchangé.
+`AI_COACH_PROVIDER=openai` nécessite `AI_COACH_API_KEY`.
+`AI_COACH_PROVIDER=fake` réservé aux tests / développement local (interdit en production).
 
 ## 17. Validation des variables
 
