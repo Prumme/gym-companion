@@ -148,6 +148,11 @@ export class PersonalRecordsService {
     return this.computeRecords(userId, { exerciseId });
   }
 
+  /** Records courants (calcul 4.1) — réutilisé par le dashboard 4.4. */
+  async listCurrentRecords(userId: string): Promise<PersonalRecord[]> {
+    return this.computeRecords(userId, {});
+  }
+
   private async assertExerciseAccessible(userId: string, exerciseId: string) {
     const row = await this.prisma.exercise.findFirst({
       where: {

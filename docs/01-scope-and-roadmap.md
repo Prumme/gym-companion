@@ -385,15 +385,24 @@ Transformer les données enregistrées en informations utiles (records, progress
 - page `/progress/exercises/:exerciseId` ;
 - lecture des snapshots historiques même si l’exercice catalogue a changé.
 
-**Restent hors 4.1 / 4.2 / 4.3 :**
+**Livré en 4.4 (dashboard global, calcul à la demande) :**
+
+- page `/progress` + entrée de navigation « Progression » ;
+- totaux / fréquence / timeline (DAY ≤45 j, WEEK ≤9 mois, MONTH au-delà) ;
+- buckets vides inclus ;
+- comparaison période précédente (plages bornées) ;
+- records récents dans la période (4.1) ;
+- top exercices (`sourceExerciseId`) ;
+- endpoint `GET /api/v1/progress/overview`.
+
+**Restent hors 4.1–4.4 :**
 
 - volume maximal sur une série ;
 - volume maximal sur une séance (record) ;
 - meilleur 1RM estimé ;
-- dashboard global `/progress` ;
-- moyennes mobiles / plateaux / fatigue ;
-- comparaison avancée de périodes ;
-- page overview multi-exercices.
+- moyennes mobiles / plateaux / fatigue / coaching ;
+- comparaison avancée multi-périodes ;
+- score propriétaire / gamification.
 
 ### 7.4 Hors périmètre
 

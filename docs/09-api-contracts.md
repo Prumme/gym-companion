@@ -1645,9 +1645,56 @@ Statuts :
 
 ## 23. Progression
 
-### 23.1 Vue globale
+## 23.1 Vue globale (jalon 4.4)
 
-> Hors périmètre 4.3. Pas d’endpoint `GET /api/v1/progress/overview` livré.
+Calculée **à la demande** depuis les séances `COMPLETED` et leurs snapshots.
+Réutilise les définitions 4.2 pour les totaux et 4.1 pour les records récents.
+Aucune table de statistiques.
+
+```text
+GET /api/v1/progress/overview
+```
+
+JWT obligatoire. Absence de séances → 200 avec totaux à zéro (pas 404).
+
+#### Query
+
+| Paramètre | Type | Notes |
+|-----------|------|--------|
+| `from` | `YYYY-MM-DD`? | Inclusif, date locale |
+| `to` | `YYYY-MM-DD`? | Inclusif, `from <= to` |
+| `metric` | `WORKOUT_COUNT` \| `PERFORMED_SETS` \| `TOTAL_REPS` \| `WORKING_EXTERNAL_VOLUME` \| `TOTAL_DURATION` \| `TOTAL_DISTANCE`? | Défaut `WORKOUT_COUNT` |
+
+#### Réponse
+
+```ts
+type ProgressOverviewResponse = {
+  range: { from: string | null; to: string | null };
+  availableMetrics: ProgressOverviewMetric[];
+  selectedMetric: ProgressOverviewMetric;
+  totals: ProgressOverviewTotals; // incl. uniqueExerciseCount, failureSetCount
+  frequency: { activeDayCount: number; averageWorkoutsPerWeek: number | null };
+  comparison: ProgressOverviewComparison | null; // null si plage non bornée
+  timeline: { bucket: 'DAY' | 'WEEK' | 'MONTH'; points: ProgressOverviewPoint[] };
+  recentRecords: PersonalRecord[]; // achievedOn dans la période, max 5
+  topExercises: ProgressTopExercise[]; // max 5, sourceExerciseId
+};
+```
+
+#### Règles (résumé)
+
+- Séances `COMPLETED` uniquement (`localDate`).
+- Granularité : ≤45 j → DAY ; ≤274 j → WEEK (lundi→dimanche) ; sinon MONTH.
+- Buckets vides inclus entre `from` et `to` (ou min/max des données si `Tout`).
+- `averageWorkoutsPerWeek = workoutCount / (daysInRange / 7)` si `daysInRange >= 7`, sinon `null`.
+- Comparaison : période précédente de même durée inclusive immédiatement antérieure.
+- `%` null si base précédente = 0. Pas de coaching.
+- Warmups / volume / reps : mêmes règles que 4.2.
+
+#### Codes d’erreur
+
+`PROGRESS_INVALID_FROM_DATE`, `PROGRESS_INVALID_TO_DATE`, `PROGRESS_INVALID_DATE_RANGE`,
+`PROGRESS_INVALID_METRIC`, `PROGRESS_INVALID_QUERY`.
 
 ### 23.2 Progression d’un exercice (jalon 4.3)
 

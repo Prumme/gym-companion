@@ -119,10 +119,11 @@ La navigation mobile utilise une barre inférieure persistante hors séance acti
 Proposition alignée sur la phase 3 livrée :
 
 ```text
-Accueil | Planning | Historique | Records | Programmes | Exercices | Profil
+Accueil | Planning | Historique | Records | Progression | Programmes | Exercices | Profil
 ```
 
-Routes : `/`, `/planning`, `/workouts`, `/records`, `/programs`, `/exercises`, `/profile`.
+Routes : `/`, `/planning`, `/workouts`, `/records`, `/progress`, `/programs`, `/exercises`, `/profile`.
+Progression par exercice : `/progress/exercises/:exerciseId` (jalon 4.3).
 
 ### 4.1 Accueil / Planning
 
@@ -135,8 +136,7 @@ Accès à `/workouts` (séances `COMPLETED` / `CANCELLED`).
 ### 4.3 Records
 
 Accès à `/records` (jalon 4.1) : records personnels courants calculés à la demande.
-Progression par exercice : `/progress/exercises/:exerciseId` (jalon 4.3, hors nav principale).
-Pas de dashboard global `/progress`.
+Dashboard global : `/progress` (jalon 4.4). Progression par exercice : `/progress/exercises/:exerciseId`.
 
 ### 4.4 Programmes et exercices
 
@@ -775,27 +775,33 @@ Route livrée :
 - volume ;
 - table `PersonalRecord` matérialisée.
 
-## 24. Vue globale de progression
+## 24. Vue globale de progression (jalon 4.4)
 
-> Phase 4 — **non livrée** en 4.3. Seule la progression **par exercice** est disponible.
-
-### Route (future)
+### Route livrée
 
 ```text
-/progress/overview
+/progress
 ```
 
-### Contenu (hors 4.3)
+Entrée de navigation principale « Progression ».
 
-- fréquence d’entraînement ;
-- durée totale ;
-- volume multi-exercices ;
-- records récents ;
-- exercices les plus pratiqués.
+### Contenu
 
-### Règle
+1. titre + sélecteur de période (30 j / 3 mois / 6 mois / 1 an / tout / personnalisé) ;
+2. indicateurs clés (séances, séries, volume, et conditionnellement reps / durée / distance) ;
+3. fréquence (`X séances sur Y jours actifs`, moyenne / semaine si calculable) ;
+4. graphique principal (une métrique à la fois, Recharts) ;
+5. records récents de la période ;
+6. exercices les plus pratiqués → lien `/progress/exercises/:id`.
 
-Les graphiques doivent répondre à une question précise. Ils ne doivent pas être ajoutés uniquement pour décorer.
+Descriptif uniquement — pas de recommandation automatique.
+
+### Hors périmètre 4.4
+
+- coaching / fatigue / plateaux / objectifs ;
+- 1RM / calories / volume musculaire ;
+- comparaison entre utilisateurs ;
+- statistiques persistées.
 
 ## 25. Progression d’un exercice (jalon 4.3)
 
@@ -825,11 +831,12 @@ Pas de 1RM, pas de recommandations, pas de métriques persistées.
 
 ### Hors périmètre 4.3
 
-- `/progress` globale ;
 - 1RM / Epley / Brzycki ;
 - pace / vitesse ;
 - heatmap ;
 - comparaison entre utilisateurs.
+
+> Le dashboard global `/progress` est livré en 4.4.
 
 ## 26. Création d’une séance partagée
 

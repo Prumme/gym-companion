@@ -16,6 +16,22 @@ import { ProgressService } from './progress.service';
 export class ProgressController {
   constructor(private readonly progressService: ProgressService) {}
 
+  @Get('api/v1/progress/overview')
+  @ApiOperation({
+    summary:
+      'Dashboard global de progression (dérivé des séances terminées)',
+  })
+  @ApiQuery({ name: 'from', required: false, type: String })
+  @ApiQuery({ name: 'to', required: false, type: String })
+  @ApiQuery({ name: 'metric', required: false, type: String })
+  async getOverview(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: Record<string, string | undefined>,
+  ) {
+    const data = await this.progressService.getOverview(user.id, query);
+    return createSuccessResponse(data);
+  }
+
   @Get('api/v1/progress/exercises/:exerciseId')
   @ApiOperation({
     summary:

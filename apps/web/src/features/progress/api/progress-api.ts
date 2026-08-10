@@ -1,6 +1,8 @@
 import type {
   ExerciseProgressMetric,
   ExerciseProgressResponse,
+  ProgressOverviewMetric,
+  ProgressOverviewResponse,
 } from '@gym-companion/shared';
 
 import { apiFetch } from '@/lib/api/client';
@@ -12,19 +14,20 @@ export type ExerciseProgressFilters = {
   equipmentId?: string;
 };
 
-function toSearchParams(filters: ExerciseProgressFilters): string {
+export type ProgressOverviewFilters = {
+  metric?: ProgressOverviewMetric;
+  from?: string;
+  to?: string;
+};
+
+function toSearchParams(
+  filters: Record<string, string | undefined>,
+): string {
   const params = new URLSearchParams();
-  if (filters.metric) {
-    params.set('metric', filters.metric);
-  }
-  if (filters.from) {
-    params.set('from', filters.from);
-  }
-  if (filters.to) {
-    params.set('to', filters.to);
-  }
-  if (filters.equipmentId) {
-    params.set('equipmentId', filters.equipmentId);
+  for (const [key, value] of Object.entries(filters)) {
+    if (value) {
+      params.set(key, value);
+    }
   }
   return params.toString();
 }
@@ -36,6 +39,16 @@ export async function getExerciseProgress(
   const suffix = toSearchParams(filters);
   const response = await apiFetch<{ data: ExerciseProgressResponse }>(
     `/api/v1/progress/exercises/${exerciseId}${suffix ? `?${suffix}` : ''}`,
+  );
+  return response.data;
+}
+
+export async function getProgressOverview(
+  filters: ProgressOverviewFilters = {},
+): Promise<ProgressOverviewResponse> {
+  const suffix = toSearchParams(filters);
+  const response = await apiFetch<{ data: ProgressOverviewResponse }>(
+    `/api/v1/progress/overview${suffix ? `?${suffix}` : ''}`,
   );
   return response.data;
 }

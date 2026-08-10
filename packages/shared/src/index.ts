@@ -586,6 +586,80 @@ export type ExerciseProgressResponse = {
   points: ExerciseProgressPoint[];
 };
 
+/** Métriques du dashboard global (jalon 4.4 — dérivées). */
+export type ProgressOverviewMetric =
+  | 'WORKOUT_COUNT'
+  | 'PERFORMED_SETS'
+  | 'TOTAL_REPS'
+  | 'WORKING_EXTERNAL_VOLUME'
+  | 'TOTAL_DURATION'
+  | 'TOTAL_DISTANCE';
+
+export type ProgressOverviewBucket = 'DAY' | 'WEEK' | 'MONTH';
+
+export type ProgressOverviewTotals = {
+  workoutCount: number;
+  /** Occurrences d’exercices avec ≥1 série réalisée (pas d’uniques). */
+  exerciseCount: number;
+  uniqueExerciseCount: number;
+  performedSetCount: number;
+  totalReps: number;
+  workingExternalVolumeKg: number;
+  totalDurationSeconds: number;
+  totalDistanceMeters: number;
+  /** Séries réalisées avec reachedFailure = true (≠ status FAILED). */
+  failureSetCount: number;
+};
+
+export type ProgressOverviewFrequency = {
+  activeDayCount: number;
+  /** null si plage < 7 jours ou plage non bornée (`Tout`). */
+  averageWorkoutsPerWeek: number | null;
+};
+
+export type ProgressOverviewPoint = {
+  periodStart: string;
+  periodEnd: string;
+  workoutCount: number;
+  performedSetCount: number;
+  totalReps: number;
+  workingExternalVolumeKg: number;
+  totalDurationSeconds: number;
+  totalDistanceMeters: number;
+};
+
+export type ProgressOverviewComparison = {
+  workoutCountChangePercent: number | null;
+  performedSetCountChangePercent: number | null;
+  workingExternalVolumeChangePercent: number | null;
+};
+
+export type ProgressTopExercise = {
+  exerciseId: string;
+  exerciseName: string;
+  workoutCount: number;
+  performedSetCount: number;
+  latestPerformedOn: string;
+};
+
+export type ProgressOverviewResponse = {
+  range: {
+    from: string | null;
+    to: string | null;
+  };
+  availableMetrics: ProgressOverviewMetric[];
+  selectedMetric: ProgressOverviewMetric;
+  totals: ProgressOverviewTotals;
+  frequency: ProgressOverviewFrequency;
+  comparison: ProgressOverviewComparison | null;
+  timeline: {
+    bucket: ProgressOverviewBucket;
+    points: ProgressOverviewPoint[];
+  };
+  recentRecords: PersonalRecord[];
+  topExercises: ProgressTopExercise[];
+};
+
 export function createSuccessResponse<T>(data: T): ApiSuccessResponse<T> {
   return { data };
 }

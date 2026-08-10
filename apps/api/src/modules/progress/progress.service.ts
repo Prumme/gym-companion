@@ -8,25 +8,39 @@ import type {
   ExerciseProgressMetric,
   ExerciseProgressPoint,
   ExerciseProgressResponse,
+  ProgressOverviewResponse,
 } from '@gym-companion/shared';
 import {
   EXERCISE_PROGRESS_MAX_POINTS,
+  PROGRESS_OVERVIEW_RECENT_RECORDS_LIMIT,
+  buildProgressOverviewTimeline,
   compareExerciseProgressPointsAsc,
+  computeAverageWorkoutsPerWeek,
   computeExerciseProgressSummary,
   computeExerciseWorkoutProgressPoint,
+  computeProgressOverviewComparison,
+  computeProgressOverviewTotals,
+  computeProgressTopExercises,
   localDateStringToUtcDate,
   parseExerciseProgressQuery,
+  parseProgressOverviewQuery,
+  resolveAvailableOverviewMetrics,
   resolveAvailableProgressMetrics,
   resolveAvailableProgressMetricsFromTypes,
+  resolveDefaultOverviewMetric,
   resolveDefaultProgressMetric,
+  resolvePreviousRange,
+  resolveProgressOverviewBucket,
   utcDateToLocalDateString,
   type ExerciseMeasurementTypeForProgress,
   type ExerciseProgressOccurrenceInput,
   type ExerciseProgressSessionInput,
+  type ProgressOverviewSessionInput,
 } from '@gym-companion/validation';
 import type { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../database/prisma/prisma.service';
+import { PersonalRecordsService } from '../personal-records/personal-records.service';
 
 function decimalToNumber(value: unknown): number | null {
   if (value == null) {
@@ -80,11 +94,150 @@ type SessionExerciseRow = {
   }>;
 };
 
+type OverviewSessionRow = {
+  id: string;
+  localDate: Date;
+  startedAt: Date;
+  completedAt: Date | null;
+  exercises: Array<{
+    sourceExerciseId: string | null;
+    exerciseNameSnapshot: string;
+    measurementTypeSnapshot: string;
+    sets: Array<{
+      setType: string;
+      status: string;
+      actualWeightKg: unknown;
+      actualReps: number | null;
+      actualDurationSeconds: number | null;
+      actualDistanceMeters: unknown;
+      reachedFailure: boolean;
+    }>;
+  }>;
+};
+
 @Injectable()
 export class ProgressService {
   private readonly logger = new Logger(ProgressService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly personalRecordsService: PersonalRecordsService,
+  ) {}
+
+  async getOverview(
+    userId: string,
+    rawQuery: Record<string, string | undefined>,
+  ): Promise<ProgressOverviewResponse> {
+    const parsed = parseProgressOverviewQuery({
+      from: rawQuery.from,
+      to: rawQuery.to,
+      metric: rawQuery.metric,
+    });
+    if (!parsed.ok) {
+      throw new BadRequestException({
+        code: parsed.code,
+        message: parsed.message,
+      });
+    }
+    const query = parsed.data;
+    const rangeFrom = query.from ?? null;
+    const rangeTo = query.to ?? null;
+
+    const sessions = await this.loadCompletedSessionsForOverview(userId, {
+      from: query.from,
+      to: query.to,
+    });
+    const sessionInputs = this.mapOverviewSessions(sessions);
+    const totals = computeProgressOverviewTotals(sessionInputs);
+
+    const activeDays = new Set(sessionInputs.map((session) => session.localDate));
+    const frequency = {
+      activeDayCount: activeDays.size,
+      averageWorkoutsPerWeek: computeAverageWorkoutsPerWeek(
+        totals.workoutCount,
+        rangeFrom,
+        rangeTo,
+      ),
+    };
+
+    let timelineFrom = rangeFrom;
+    let timelineTo = rangeTo;
+    if (!timelineFrom || !timelineTo) {
+      if (sessionInputs.length === 0) {
+        timelineFrom = null;
+        timelineTo = null;
+      } else {
+        const dates = sessionInputs.map((session) => session.localDate).sort();
+        timelineFrom = dates[0]!;
+        timelineTo = dates[dates.length - 1]!;
+      }
+    }
+
+    const bucket =
+      timelineFrom && timelineTo
+        ? resolveProgressOverviewBucket(timelineFrom, timelineTo)
+        : 'DAY';
+    const points =
+      timelineFrom && timelineTo
+        ? buildProgressOverviewTimeline(
+            sessionInputs,
+            timelineFrom,
+            timelineTo,
+            bucket,
+          )
+        : [];
+
+    const availableMetrics = resolveAvailableOverviewMetrics(totals);
+    const selectedMetric = resolveDefaultOverviewMetric(
+      availableMetrics,
+      query.metric,
+    );
+
+    let comparison: ProgressOverviewResponse['comparison'] = null;
+    if (rangeFrom && rangeTo) {
+      const previousRange = resolvePreviousRange(rangeFrom, rangeTo);
+      const previousSessions = await this.loadCompletedSessionsForOverview(
+        userId,
+        previousRange,
+      );
+      const previousTotals = computeProgressOverviewTotals(
+        this.mapOverviewSessions(previousSessions),
+      );
+      comparison = computeProgressOverviewComparison(totals, previousTotals);
+    }
+
+    const allRecords =
+      await this.personalRecordsService.listCurrentRecords(userId);
+    const recentRecords = allRecords
+      .filter((record) => {
+        if (rangeFrom && record.achievedOn < rangeFrom) {
+          return false;
+        }
+        if (rangeTo && record.achievedOn > rangeTo) {
+          return false;
+        }
+        return true;
+      })
+      .slice(0, PROGRESS_OVERVIEW_RECENT_RECORDS_LIMIT);
+
+    const topExercises = computeProgressTopExercises(sessionInputs);
+
+    this.logger.debug(
+      `progress overview workouts=${totals.workoutCount} bucket=${bucket} points=${points.length}`,
+    );
+
+    return {
+      range: { from: rangeFrom, to: rangeTo },
+      availableMetrics,
+      selectedMetric,
+      totals,
+      frequency,
+      comparison,
+      timeline: { bucket, points },
+      recentRecords,
+      topExercises,
+    };
+  }
 
   async getExerciseProgress(
     userId: string,
@@ -375,5 +528,81 @@ export class ProgressService {
     }
 
     return [...bySession.values()];
+  }
+
+  private async loadCompletedSessionsForOverview(
+    userId: string,
+    filters: { from?: string; to?: string },
+  ): Promise<OverviewSessionRow[]> {
+    const where: Prisma.WorkoutSessionWhereInput = {
+      ownerUserId: userId,
+      status: 'COMPLETED',
+    };
+    if (filters.from || filters.to) {
+      where.localDate = {};
+      if (filters.from) {
+        where.localDate.gte = localDateStringToUtcDate(filters.from);
+      }
+      if (filters.to) {
+        where.localDate.lte = localDateStringToUtcDate(filters.to);
+      }
+    }
+
+    const rows = await this.prisma.workoutSession.findMany({
+      where,
+      select: {
+        id: true,
+        localDate: true,
+        startedAt: true,
+        completedAt: true,
+        exercises: {
+          select: {
+            sourceExerciseId: true,
+            exerciseNameSnapshot: true,
+            measurementTypeSnapshot: true,
+            sets: {
+              select: {
+                setType: true,
+                status: true,
+                actualWeightKg: true,
+                actualReps: true,
+                actualDurationSeconds: true,
+                actualDistanceMeters: true,
+                reachedFailure: true,
+              },
+            },
+          },
+          orderBy: { position: 'asc' },
+        },
+      },
+      orderBy: [{ localDate: 'asc' }, { startedAt: 'asc' }, { id: 'asc' }],
+    });
+
+    return rows as OverviewSessionRow[];
+  }
+
+  private mapOverviewSessions(
+    rows: OverviewSessionRow[],
+  ): ProgressOverviewSessionInput[] {
+    return rows.map((row) => ({
+      workoutSessionId: row.id,
+      localDate: utcDateToLocalDateString(row.localDate),
+      startedAt: row.startedAt.toISOString(),
+      completedAt: row.completedAt?.toISOString() ?? null,
+      exercises: row.exercises.map((exercise) => ({
+        sourceExerciseId: exercise.sourceExerciseId,
+        exerciseNameSnapshot: exercise.exerciseNameSnapshot,
+        measurementType: exercise.measurementTypeSnapshot,
+        sets: exercise.sets.map((set) => ({
+          setType: set.setType,
+          status: set.status,
+          actualWeightKg: decimalToNumber(set.actualWeightKg),
+          actualReps: set.actualReps,
+          actualDurationSeconds: set.actualDurationSeconds,
+          actualDistanceMeters: decimalToNumber(set.actualDistanceMeters),
+          reachedFailure: set.reachedFailure,
+        })),
+      })),
+    }));
   }
 }

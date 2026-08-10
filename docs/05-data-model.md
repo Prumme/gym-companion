@@ -1060,6 +1060,13 @@ En 4.1, le contrat API exposé est un DTO dérivé (sans `ownerUserId`, sans lig
 > (séances `COMPLETED`, regroupement par `sourceExerciseId`).
 > Les snapshots historiques restent la source de vérité même si l’exercice catalogue est renommé ou archivé.
 
+## 28ter. Dashboard global (jalon 4.4)
+
+> **Jalon 4.4** : aucune table de statistiques globales.
+> Le dashboard (`GET /api/v1/progress/overview`, page `/progress`) agrège à la demande
+> les séances `COMPLETED` (totaux 4.2, records 4.1, top exercices par `sourceExerciseId`).
+> Granularité DAY / WEEK / MONTH ; buckets vides inclus ; pas de coaching.
+
 ## 29. SharedWorkoutRoom
 
 ```ts
@@ -1889,14 +1896,15 @@ Le modèle `Equipment` reste prévu pour une phase ultérieure consacrée aux é
 
 La création d’une séance depuis un modèle copie un snapshot immuable des informations nécessaires : noms, ordre, type de mesure, équipement prévu, repos, notes et séries cibles.
 
-À la clôture de la phase 3, l’historique paginé et le détail en lecture seule reposent sur ces snapshots. En phase 4 (jalons 4.1 / 4.2 / 4.3), records, métriques de séance et progression temporelle sont calculés à la demande sans matérialisation Prisma.
+À la clôture de la phase 3, l’historique paginé et le détail en lecture seule reposent sur ces snapshots. En phase 4 (jalons 4.1 / 4.2 / 4.3 / 4.4), records, métriques de séance, progression temporelle et dashboard global sont calculés à la demande sans matérialisation Prisma.
 
 ### Phase 4
 
 - ExerciseStrengthReference (future) ;
 - PersonalRecord (matérialisation future — 4.1 calcule à la demande) ;
 - métriques de séance dérivées (4.2 — pas de table) ;
-- progression temporelle dérivée (4.3 — pas de table).
+- progression temporelle dérivée (4.3 — pas de table) ;
+- dashboard global dérivé (4.4 — pas de table).
 
 ### Phase 5
 

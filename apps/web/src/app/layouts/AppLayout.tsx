@@ -1,5 +1,6 @@
 import {
   CalendarDays,
+  ChartColumn,
   ClipboardList,
   Dumbbell,
   History,
@@ -18,6 +19,7 @@ const navItems = [
   { to: '/planning', label: 'Planning', icon: CalendarDays, end: false },
   { to: '/workouts', label: 'Historique', icon: History, end: true },
   { to: '/records', label: 'Records', icon: Trophy, end: true },
+  { to: '/progress', label: 'Progression', icon: ChartColumn, end: true },
   { to: '/programs', label: 'Programmes', icon: ClipboardList, end: false },
   { to: '/exercises', label: 'Exercices', icon: Dumbbell, end: false },
   { to: '/profile', label: 'Profil', icon: UserRound, end: false },

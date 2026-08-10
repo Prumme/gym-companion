@@ -395,4 +395,10 @@ périodes `from`/`to` locales. Warmups exclus de `MAX_WEIGHT` / `MAX_REPS` / vol
 travail, inclus dans les totaux. Pas de 1RM, pas de table matérialisée, pas de dashboard
 global `/progress`.
 
+Le jalon **4.4** ajoute le dashboard global `/progress` : `GET /api/v1/progress/overview`,
+totaux et fréquence dérivés des séances `COMPLETED` (réutilise les métriques 4.2),
+timeline avec granularité DAY/WEEK/MONTH et buckets vides, comparaison de période
+précédente, records récents (4.1) et top exercices. Descriptif uniquement — pas de
+coaching, pas de statistiques persistées.
+
 Les documents du dossier `docs/` restent la source de vérité produit et technique.
