@@ -60,8 +60,10 @@ services:
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
 
-      AI_COACH_ENABLED: 'false'
-      AI_COACH_PROVIDER: 'none'
+      AI_COACH_ENABLED: ${AI_COACH_ENABLED:-false}
+      AI_COACH_PROVIDER: ${AI_COACH_PROVIDER:-none}
+      AI_COACH_MODEL: ${AI_COACH_MODEL:-gpt-5.4-mini}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
 
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/health/live']
