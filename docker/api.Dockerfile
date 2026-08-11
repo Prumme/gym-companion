@@ -19,27 +19,28 @@ RUN pnpm --filter @gym-companion/shared build \
   && pnpm --filter @gym-companion/validation build \
   && pnpm --filter @gym-companion/api build
 
-  FROM node:22-alpine AS runner
-  WORKDIR /app
-  ENV NODE_ENV=production
-  
-  RUN addgroup -S gym && adduser -S gym -G gym
-  
-  COPY --from=build /app/apps/api/dist ./apps/api/dist
-  COPY --from=build /app/apps/api/package.json ./apps/api/package.json
-  
-  COPY --from=build /app/apps/api/prisma ./apps/api/prisma
-  
-  # Nécessaires pour exécuter `prisma migrate deploy`
-  COPY --from=build /app/apps/api/prisma.config.ts ./apps/api/prisma.config.ts
-  COPY --from=build /app/apps/api/scripts ./apps/api/scripts
-  
-  COPY --from=build /app/node_modules ./node_modules
-  COPY --from=build /app/packages ./packages
-  COPY --from=build /app/package.json ./package.json
-  
-  USER gym
-  
-  EXPOSE 3000
-  
-  CMD ["node", "apps/api/dist/main.js"]
+FROM node:22-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+RUN addgroup -S gym && adduser -S gym -G gym
+
+COPY --from=build /app/apps/api/dist ./apps/api/dist
+COPY --from=build /app/apps/api/package.json ./apps/api/package.json
+COPY --from=build /app/apps/api/prisma ./apps/api/prisma
+COPY --from=build /app/apps/api/prisma.config.ts ./apps/api/prisma.config.ts
+COPY --from=build /app/apps/api/scripts ./apps/api/scripts
+
+COPY --from=build /app/node_modules ./node_modules
+
+# Important avec pnpm workspace :
+COPY --from=build /app/apps/api/node_modules ./apps/api/node_modules
+
+COPY --from=build /app/packages ./packages
+COPY --from=build /app/package.json ./package.json
+
+USER gym
+
+EXPOSE 3000
+
+CMD ["node", "apps/api/dist/main.js"]
