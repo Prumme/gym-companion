@@ -24,9 +24,10 @@ services:
     container_name: gym-staging-mailpit
     restart: unless-stopped
     ports:
-      - '127.0.0.1:8025:8025'
+      - '8025:8025'
     networks:
       - gym
+      - proxy
 
   gym-api:
     build:
@@ -108,6 +109,9 @@ networks:
   gym:
     driver: bridge
     internal: true
+
+  mailpit-access:
+    driver: bridge
 
   proxy:
     external: true
