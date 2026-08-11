@@ -1,0 +1,114 @@
+name: gym-companion-staging
+
+services:
+  postgres:
+    image: postgres:16.8-alpine
+    container_name: gym-staging-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - gym_staging_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - gym
+
+  mailpit:
+    image: axllent/mailpit:v1.22
+    container_name: gym-staging-mailpit
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:8025:8025'
+    networks:
+      - gym
+
+  gym-api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    image: gym-companion-api:staging
+    container_name: gym-staging-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL}
+      API_BASE_URL: ${API_BASE_URL}
+
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      REFRESH_TOKEN_EXPIRES_IN: ${REFRESH_TOKEN_EXPIRES_IN:-30d}
+      COOKIE_SECRET: ${COOKIE_SECRET}
+
+      EMAIL_PROVIDER: mailpit
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@gym-companion.local}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+
+      AI_COACH_ENABLED: 'false'
+      AI_COACH_PROVIDER: 'none'
+
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/health/live']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+    networks:
+      gym:
+      proxy:
+        aliases:
+          - gym-staging-api
+
+  gym-web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        VITE_PUBLIC_APP_URL: ${VITE_PUBLIC_APP_URL}
+    image: gym-companion-web:staging
+    container_name: gym-staging-web
+    restart: unless-stopped
+    depends_on:
+      gym-api:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost/']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      proxy:
+        aliases:
+          - gym-staging-web
+
+volumes:
+  gym_staging_pg_data:
+
+networks:
+  gym:
+    driver: bridge
+    internal: true
+
+  proxy:
+    external: true
+    name: prumme-proxy
