@@ -3,17 +3,23 @@ import type { AiCoachChatReference } from '@gym-companion/shared';
 import {
   AI_COACH_READ_ONLY_TOOL_NAMES,
   AI_COACH_RECENT_WORKOUTS_MAX,
+  AI_COACH_SEARCH_EXERCISES_MAX_RESULTS,
   assertReadOnlyToolRegistry,
+  getActiveProgramToolArgsSchema,
   getExerciseCoachSummaryToolArgsSchema,
   getExerciseProgressToolArgsSchema,
   getExerciseStrengthToolArgsSchema,
   getPersonalRecordsToolArgsSchema,
+  getProgramDetailToolArgsSchema,
   getRecentWorkoutsToolArgsSchema,
   getWorkoutDetailToolArgsSchema,
+  searchExercisesToolArgsSchema,
   type AiCoachReadOnlyToolName,
 } from '@gym-companion/validation';
 
+import { ExercisesService } from '../../exercises/exercises.service';
 import { PersonalRecordsService } from '../../personal-records/personal-records.service';
+import { ProgramsService } from '../../programs/programs.service';
 import { ProgressService } from '../../progress/progress.service';
 import { WorkoutsService } from '../../workouts/workouts.service';
 import { CoachSummaryService } from '../coach-summary.service';
@@ -41,6 +47,8 @@ export class AiCoachToolRegistry {
     private readonly progressService: ProgressService,
     private readonly personalRecordsService: PersonalRecordsService,
     private readonly workoutsService: WorkoutsService,
+    private readonly exercisesService: ExercisesService,
+    private readonly programsService: ProgramsService,
   ) {}
 
   listToolNames(): readonly string[] {
@@ -95,6 +103,12 @@ export class AiCoachToolRegistry {
           return await this.getRecentWorkouts(sanitized, context);
         case 'get_workout_detail':
           return await this.getWorkoutDetail(sanitized, context);
+        case 'search_exercises':
+          return await this.searchExercises(sanitized, context);
+        case 'get_active_program':
+          return await this.getActiveProgram(sanitized, context);
+        case 'get_program_detail':
+          return await this.getProgramDetail(sanitized, context);
         default: {
           const _exhaustive: never = name;
           return {
@@ -441,6 +455,100 @@ export class AiCoachToolRegistry {
             : `Séance du ${detail.localDate}`,
         },
       ],
+    };
+  }
+
+  /** Jalon 8 — seule source de vrais exerciseId pour construire une proposal. */
+  private async searchExercises(
+    args: Record<string, unknown>,
+    context: AiCoachToolExecutionContext,
+  ): Promise<AiCoachToolExecutionResult> {
+    const parsed = searchExercisesToolArgsSchema.parse(args);
+    const limit = Math.min(
+      parsed.limit ?? AI_COACH_SEARCH_EXERCISES_MAX_RESULTS,
+      AI_COACH_SEARCH_EXERCISES_MAX_RESULTS,
+    );
+    const result = await this.exercisesService.list(context.ownerUserId, {
+      search: parsed.search,
+      muscleGroupId: parsed.muscleGroupId,
+      equipmentTypeId: parsed.equipmentTypeId,
+      measurementType: parsed.measurementType,
+      limit: String(limit),
+    });
+    const items = result.data.slice(0, limit);
+    return {
+      toolName: 'search_exercises',
+      llmPayload: {
+        count: items.length,
+        exercises: items.map((item) => ({
+          exerciseId: item.id,
+          name: item.name,
+          measurementType: item.measurementType,
+          muscle: item.primaryMuscleGroup.name,
+          equipment: item.defaultEquipmentType?.name ?? null,
+        })),
+      },
+      outputSummary: {
+        count: items.length,
+        search: parsed.search ?? null,
+      },
+      references: [],
+    };
+  }
+
+  /** Jalon 8 — permet à l’IA de s’appuyer sur le programme actif pour une proposal program. */
+  private async getActiveProgram(
+    args: Record<string, unknown>,
+    context: AiCoachToolExecutionContext,
+  ): Promise<AiCoachToolExecutionResult> {
+    getActiveProgramToolArgsSchema.parse(args);
+    const active = await this.programsService.getActive(context.ownerUserId);
+    return {
+      toolName: 'get_active_program',
+      llmPayload: active
+        ? {
+            programId: active.program.id,
+            name: active.program.name,
+            goal: active.program.goal,
+            workoutTemplateCount: active.program.workoutTemplateCount,
+          }
+        : null,
+      outputSummary: { hasActiveProgram: active != null },
+      references: [],
+    };
+  }
+
+  /** Jalon 8 — détail compact d’un programme (sans champs d’audit) pour une proposal program. */
+  private async getProgramDetail(
+    args: Record<string, unknown>,
+    context: AiCoachToolExecutionContext,
+  ): Promise<AiCoachToolExecutionResult> {
+    const parsed = getProgramDetailToolArgsSchema.parse(args);
+    const detail = await this.programsService.getById(
+      context.ownerUserId,
+      parsed.programId,
+    );
+    return {
+      toolName: 'get_program_detail',
+      llmPayload: {
+        programId: detail.id,
+        name: detail.name,
+        goal: detail.goal,
+        workoutTemplates: detail.workoutTemplates.slice(0, 12).map((template) => ({
+          workoutTemplateId: template.id,
+          name: template.name,
+          exercises: template.exercises.slice(0, 12).map((exercise) => ({
+            exerciseId: exercise.exercise.id,
+            name: exercise.exercise.name,
+            setCount: exercise.sets.length,
+          })),
+        })),
+      },
+      outputSummary: {
+        programId: detail.id,
+        workoutTemplateCount: detail.workoutTemplates.length,
+      },
+      references: [],
     };
   }
 }

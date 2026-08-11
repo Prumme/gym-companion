@@ -625,6 +625,30 @@ message utilisateur
 - `ownerUserId` toujours injecté depuis le JWT ; IDs étrangers → inaccessible.
 - Texte utilisateur = contenu non fiable ; permissions définies par le registre, pas le prompt.
 
+### 13.3septies Propositions structurées Coach IA (jalon 8)
+
+```text
+réponse LLM (proposal)
+→ revalidation métier serveur complète
+→ invalide → discussion d'erreur, AUCUNE proposal persistée
+→ valide → AiCoachProposal PENDING
+→ acceptation utilisateur → nouvelle revalidation → création déterministe transactionnelle
+→ AiCoachProposal ACCEPTED
+```
+
+- **L’IA ne crée jamais** directement un `Program` ou un `WorkoutTemplate` : elle ne fait que
+  proposer via `AiCoachProposal` (table dédiée, `docs/05-data-model.md` jalon 8).
+- `search_exercises` est le seul moyen autorisé d’obtenir un `exerciseId` réel ; un `exerciseId`
+  inventé par le modèle est rejeté à la revalidation (proposal jamais persistée).
+- L’acceptation revalide intégralement le payload (le catalogue peut avoir changé depuis la
+  génération) : un exercice devenu obsolète → `AiCoachProposal.status = INVALID`, `400
+  AI_COACH_PROPOSAL_STALE`, aucune création partielle.
+- `WorkoutTemplate` appartient toujours à un `Program` : accepter une proposal `WORKOUT` exige un
+  `programId` fourni explicitement par l’utilisateur.
+- Un `Program` créé depuis une proposal `PROGRAM` reste `DRAFT` : il n’est **jamais activé
+  automatiquement**.
+- Acceptation idempotente : ré-accepter une proposition `ACCEPTED` ne recrée jamais de ressource.
+
 ### 13.4 Cas de progression
 
 Une augmentation peut être proposée lorsqu’un utilisateur réussit de manière répétée les séries prévues avec une marge suffisante.

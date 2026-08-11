@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { AppConfigService } from '../../config/app-config.service';
 import { AuthModule } from '../auth/auth.module';
+import { ExercisesModule } from '../exercises/exercises.module';
 import { PersonalRecordsModule } from '../personal-records/personal-records.module';
 import { ProgramsModule } from '../programs/programs.module';
 import { ProgressModule } from '../progress/progress.module';
@@ -9,6 +10,7 @@ import { WorkoutsModule } from '../workouts/workouts.module';
 import { AiCoachChatService } from './ai/ai-coach-chat.service';
 import { AiCoachExplanationService } from './ai/ai-coach-explanation.service';
 import { AI_COACH_PROVIDER } from './ai/ai-coach-provider';
+import { AiCoachProposalService } from './ai/ai-coach-proposal.service';
 import { AiCoachToolRegistry } from './ai/ai-coach-tool-registry';
 import { DisabledAiCoachProvider } from './ai/disabled-ai-coach.provider';
 import { FakeAiCoachProvider } from './ai/fake-ai-coach.provider';
@@ -24,6 +26,7 @@ import { CoachingService } from './coaching.service';
     ProgressModule,
     WorkoutsModule,
     PersonalRecordsModule,
+    ExercisesModule,
   ],
   controllers: [CoachingController],
   providers: [
@@ -32,6 +35,7 @@ import { CoachingService } from './coaching.service';
     AiCoachExplanationService,
     AiCoachChatService,
     AiCoachToolRegistry,
+    AiCoachProposalService,
     {
       provide: AI_COACH_PROVIDER,
       inject: [AppConfigService],
@@ -54,6 +58,7 @@ import { CoachingService } from './coaching.service';
     CoachSummaryService,
     AiCoachExplanationService,
     AiCoachChatService,
+    AiCoachProposalService,
   ],
 })
 export class CoachingModule {}

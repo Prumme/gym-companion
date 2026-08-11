@@ -650,7 +650,26 @@ La sortie 5.5 ne contient **aucun** champ décisionnel (`action`, `suggestedWeig
 - pas de queue offline pour les messages IA ;
 - rate limit et busy lock **process-local** (dette documentée — pas Redis dans la clôture 5.7).
 
-### 20.9 Contention tests d’intégration
+### 20.9 Propositions structurées (jalon 8)
+
+- l’IA **ne mutate jamais** directement une ressource métier : `search_exercises`,
+  `get_active_program`, `get_program_detail` restent des outils **lecture seule**, ajoutés à
+  l’allowlist stricte (§20.8) — aucun outil `create_*` / `apply_*` n’est exposé au modèle ;
+- une réponse `proposal` est **toujours revalidée côté serveur** avant toute persistance
+  (`AiCoachProposal`) : un `exerciseId` inventé ou inaccessible ne peut jamais aboutir à une
+  création, ni même à une ligne `PENDING` persistée ;
+- `payloadJson` (source de vérité, revalidé à chaque étape) et `previewJson` (aperçu dénormalisé,
+  affichage uniquement — jamais utilisé pour la décision métier) sont explicitement distingués ;
+- l’acceptation (`POST /proposals/:id/accept`) revalide **de nouveau** l’intégralité du payload au
+  moment de la création : le catalogue (exercices, équipement) a pu changer depuis la génération ;
+- `ownerUserId` de la proposal vient exclusivement de la session JWT ; l’accès à une proposal
+  d’un autre utilisateur renvoie `404` (jamais `403`, pour ne pas confirmer l’existence) ;
+- Structured Outputs (`response_format: json_schema`, `strict: true`) réduit mais ne remplace pas
+  la validation Zod côté serveur — toute sortie IA reste non fiable jusqu’à validation complète ;
+- logs d’usage (`prompt_tokens`, `completion_tokens`) sans jamais logger le contenu du prompt, de
+  la réponse brute, ni la clé API.
+
+### 20.10 Contention tests d’intégration
 
 Les suites API coaching partagent parfois la même base PostgreSQL de test.
 Un flaky isolé historique sur `coach-summary` (404 set pendant suite parallèle) est

@@ -18,6 +18,7 @@ import {
 } from '../../common/guards/jwt-auth.guard';
 import { AiCoachChatService } from './ai/ai-coach-chat.service';
 import { AiCoachExplanationService } from './ai/ai-coach-explanation.service';
+import { AiCoachProposalService } from './ai/ai-coach-proposal.service';
 import { CoachSummaryService } from './coach-summary.service';
 import { CoachingService } from './coaching.service';
 
@@ -31,6 +32,7 @@ export class CoachingController {
     private readonly coachSummaryService: CoachSummaryService,
     private readonly aiCoachExplanationService: AiCoachExplanationService,
     private readonly aiCoachChatService: AiCoachChatService,
+    private readonly aiCoachProposalService: AiCoachProposalService,
   ) {}
 
   @Get('api/v1/coaching/overview')
@@ -147,6 +149,37 @@ export class CoachingController {
     const data = await this.aiCoachChatService.archiveConversation(
       user.id,
       conversationId,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Post('api/v1/coaching/proposals/:proposalId/accept')
+  @ApiOperation({
+    summary:
+      'Accepte une proposition Coach IA (jalon 8) : revalidation métier complète puis création déterministe du programme ou du modèle de séance. `programId` requis pour une proposition de séance.',
+  })
+  async acceptAiCoachProposal(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('proposalId', ParseUUIDPipe) proposalId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.aiCoachProposalService.accept(
+      proposalId,
+      user.id,
+      body ?? {},
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Post('api/v1/coaching/proposals/:proposalId/dismiss')
+  @ApiOperation({ summary: 'Refuse une proposition Coach IA (jalon 8)' })
+  async dismissAiCoachProposal(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('proposalId', ParseUUIDPipe) proposalId: string,
+  ) {
+    const data = await this.aiCoachProposalService.dismiss(
+      proposalId,
+      user.id,
     );
     return createSuccessResponse(data);
   }

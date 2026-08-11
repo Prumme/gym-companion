@@ -278,8 +278,18 @@ export function formatSetSummary(set: WorkoutTemplateSetTarget): string {
   return parts.join(' — ');
 }
 
-/** Résumé compact pour TargetSetRow (Program Builder). */
-export function formatSetSummaryCompact(set: WorkoutTemplateSetTarget): {
+/**
+ * Champs de cible d’une série, indépendants de leur persistance (permet de
+ * réutiliser le formatage pour un aperçu de proposition Coach IA non encore
+ * persisté — voir `AiCoachProposalPreviewSet`).
+ */
+export type SetTargetSummaryFields = Omit<
+  WorkoutTemplateSetTarget,
+  'id' | 'position' | 'createdAt' | 'updatedAt'
+>;
+
+/** Résumé compact pour TargetSetRow (Program Builder) et CoachProposalCard. */
+export function formatSetSummaryCompact(set: SetTargetSummaryFields): {
   primary: string;
   secondary: string | null;
 } {

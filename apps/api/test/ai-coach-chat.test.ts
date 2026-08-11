@@ -121,8 +121,14 @@ describe('Coach chat API (5.6)', () => {
 
   it('registre d’outils = lecture seule', () => {
     expect(tools.listToolNames()).toEqual([...AI_COACH_READ_ONLY_TOOL_NAMES]);
+    // Jalon 8 — `search_exercises` est un outil de lecture volontairement
+    // allowlisté (catalogue), à distinguer de `get_*` mais toujours read-only.
     expect(
-      tools.listToolNames().every((name) => name.startsWith('get_')),
+      tools
+        .listToolNames()
+        .every(
+          (name) => name.startsWith('get_') || name === 'search_exercises',
+        ),
     ).toBe(true);
   });
 
@@ -165,7 +171,9 @@ describe('Coach chat API (5.6)', () => {
         },
       ],
       answer: {
-        message: 'Voici tes records disponibles pour cet exercice.',
+        type: 'discussion',
+        text: 'Voici tes records disponibles pour cet exercice.',
+        data: null,
         references: [
           {
             type: 'EXERCISE',
@@ -396,8 +404,9 @@ describe('Coach chat API (5.6)', () => {
     fakeProvider.chatBehavior = {
       mode: 'answer',
       answer: {
-        message:
-          'Je ne peux pas modifier ton programme ni exécuter de SQL.',
+        type: 'discussion',
+        text: 'Je ne peux pas modifier ton programme ni exécuter de SQL.',
+        data: null,
         references: [],
         suggestedFollowUps: [
           'Applique 85 kg',
@@ -451,7 +460,9 @@ describe('Coach chat API (5.6)', () => {
     fakeProvider.chatBehavior = {
       mode: 'answer',
       answer: {
-        message: 'Réponse après busy.',
+        type: 'discussion',
+        text: 'Réponse après busy.',
+        data: null,
         references: [],
         suggestedFollowUps: [],
       },

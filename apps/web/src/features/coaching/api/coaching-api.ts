@@ -1,9 +1,11 @@
 import type {
+  AcceptAiCoachProposalResponse,
   AiCoachConversationDetail,
   AiCoachConversationListItem,
   ApiCursorListResponse,
   CoachingOverview,
   DecideLoadRecommendationResult,
+  DismissAiCoachProposalResponse,
   ExerciseCoachExplanationResponse,
   ExerciseCoachSummary,
   LoadRecommendation,
@@ -11,7 +13,10 @@ import type {
   PlateauAnalysis,
   SendAiCoachMessageResponse,
 } from '@gym-companion/shared';
-import type { DecideLoadRecommendationInput } from '@gym-companion/validation';
+import type {
+  AcceptCoachProposalInput,
+  DecideLoadRecommendationInput,
+} from '@gym-companion/validation';
 
 import { apiFetch } from '@/lib/api/client';
 
@@ -156,6 +161,27 @@ export async function archiveAiCoachConversation(
     data: { id: string; archivedAt: string };
   }>(
     `/api/v1/coaching/conversations/${encodeURIComponent(conversationId)}/archive`,
+    { method: 'POST', body: JSON.stringify({}) },
+  );
+  return response.data;
+}
+
+export async function acceptAiCoachProposal(
+  proposalId: string,
+  input: AcceptCoachProposalInput = {},
+): Promise<AcceptAiCoachProposalResponse> {
+  const response = await apiFetch<{ data: AcceptAiCoachProposalResponse }>(
+    `/api/v1/coaching/proposals/${encodeURIComponent(proposalId)}/accept`,
+    { method: 'POST', body: JSON.stringify(input) },
+  );
+  return response.data;
+}
+
+export async function dismissAiCoachProposal(
+  proposalId: string,
+): Promise<DismissAiCoachProposalResponse> {
+  const response = await apiFetch<{ data: DismissAiCoachProposalResponse }>(
+    `/api/v1/coaching/proposals/${encodeURIComponent(proposalId)}/dismiss`,
     { method: 'POST', body: JSON.stringify({}) },
   );
   return response.data;

@@ -12,6 +12,7 @@ import type {
   AiCoachConversationDetail,
   AiCoachConversationListItem,
   AiCoachConversationMessage,
+  AiCoachProposalSummary,
   ApiCursorListResponse,
   ExerciseMeasurementType,
   SendAiCoachMessageResponse,
@@ -35,10 +36,17 @@ import {
   sendAiCoachMessageBodySchema,
   type AiCoachChatAnswer,
 } from '@gym-companion/validation';
+import type { AiCoachProposal, Prisma } from '@prisma/client';
 import { createHash, randomUUID } from 'node:crypto';
 
 import { AppConfigService } from '../../../config/app-config.service';
 import { PrismaService } from '../../../database/prisma/prisma.service';
+import {
+  AiCoachProposalBusinessError,
+  buildProposalPreview,
+  toAiCoachProposalSummary,
+  validateProposalContext,
+} from './ai-coach-proposal-payload';
 import { AiCoachRateLimiter } from './ai-coach-rate-limiter';
 import {
   AI_COACH_PROVIDER,
@@ -47,6 +55,10 @@ import {
   type AiCoachProvider,
 } from './ai-coach-provider';
 import { AiCoachToolRegistry } from './ai-coach-tool-registry';
+
+/** Réponse de repli (discussion) quand une proposal échoue la revalidation métier serveur. */
+const PROPOSAL_BUSINESS_INVALID_FALLBACK_TEXT =
+  'Je n’ai pas pu valider automatiquement cette proposition (exercice obsolète ou cible invalide). Réessaie avec une description plus précise.';
 
 @Injectable()
 export class AiCoachChatService {
@@ -254,6 +266,7 @@ export class AiCoachChatService {
       },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       take: parsed.data.limit + 1,
+      include: { proposal: true },
     });
 
     const hasMore = rows.length > parsed.data.limit;
@@ -274,7 +287,7 @@ export class AiCoachChatService {
       archivedAt: conversation.archivedAt?.toISOString() ?? null,
       createdAt: conversation.createdAt.toISOString(),
       updatedAt: conversation.updatedAt.toISOString(),
-      messages: page.map((message) => this.mapMessage(message)),
+      messages: page.map((message) => this.mapMessage(message, message.proposal)),
       pagination: {
         nextCursor:
           hasMore && last
@@ -365,10 +378,13 @@ export class AiCoachChatService {
           createdAt: { gt: existing.createdAt },
         },
         orderBy: { createdAt: 'asc' },
+        include: { proposal: true },
       });
       return {
         userMessage: this.mapMessage(existing),
-        assistantMessage: assistant ? this.mapMessage(assistant) : null,
+        assistantMessage: assistant
+          ? this.mapMessage(assistant, assistant.proposal)
+          : null,
       };
     }
 
@@ -469,17 +485,22 @@ export class AiCoachChatService {
         providerRequestId,
       } = await this.runToolLoop(userId, turnInput);
 
+      // Jalon 8 — une proposal est revalidée intégralement avant persistance ;
+      // si invalide (exercice obsolète, cible incohérente…), on ne persiste
+      // jamais l’AiCoachProposal et on répond par un message discussion.
+      const finalAnswer = await this.finalizeAnswer(userId, answer);
+
       const assistant = await this.prisma.$transaction(async (tx) => {
         const created = await tx.aiCoachMessage.create({
           data: {
             conversationId,
             role: 'ASSISTANT',
-            content: answer.message,
+            content: finalAnswer.text,
             providerRequestId,
             generatedFromSchemaVersion: AI_COACH_CHAT_SCHEMA_VERSION,
             promptVersion: AI_COACH_CHAT_PROMPT_VERSION,
-            referencesJson: answer.references,
-            suggestedFollowUpsJson: answer.suggestedFollowUps,
+            referencesJson: finalAnswer.references,
+            suggestedFollowUpsJson: finalAnswer.suggestedFollowUps,
           },
         });
 
@@ -494,6 +515,23 @@ export class AiCoachChatService {
           });
         }
 
+        let proposal: AiCoachProposal | null = null;
+        if (finalAnswer.type === 'proposal' && finalAnswer.data) {
+          proposal = await tx.aiCoachProposal.create({
+            data: {
+              ownerUserId: userId,
+              conversationId,
+              messageId: created.id,
+              kind: finalAnswer.data.kind === 'workout' ? 'WORKOUT' : 'PROGRAM',
+              status: 'PENDING',
+              payloadJson: (finalAnswer.data.kind === 'workout'
+                ? finalAnswer.data.workout
+                : finalAnswer.data.program) as unknown as Prisma.InputJsonValue,
+              previewJson: finalAnswer.preview as unknown as Prisma.InputJsonValue,
+            },
+          });
+        }
+
         await tx.aiCoachConversation.update({
           where: { id: conversationId },
           data: {
@@ -502,7 +540,7 @@ export class AiCoachChatService {
           },
         });
 
-        return created;
+        return { message: created, proposal };
       });
 
       this.logger.log({
@@ -512,13 +550,14 @@ export class AiCoachChatService {
         durationMs: Date.now() - startedAt,
         toolCount: toolInvocations.length,
         toolNames: toolInvocations.map((item) => item.toolName),
+        proposalKind: assistant.proposal?.kind ?? null,
         userHash: hashUserId(userId),
         provider: this.provider.name,
       });
 
       return {
         userMessage: this.mapMessage(userMessage),
-        assistantMessage: this.mapMessage(assistant),
+        assistantMessage: this.mapMessage(assistant.message, assistant.proposal),
       };
     } catch (error) {
       await this.prisma.aiCoachConversation
@@ -563,6 +602,84 @@ export class AiCoachChatService {
       );
     } finally {
       this.busyConversations.delete(conversationId);
+    }
+  }
+
+  /**
+   * Jalon 8 — dernière étape avant persistance : revalide intégralement une
+   * proposal (exercices, équipement, cibles). Si invalide, la proposal n’est
+   * jamais persistée et la réponse bascule vers un message discussion.
+   */
+  private async finalizeAnswer(
+    userId: string,
+    answer: AiCoachChatAnswer,
+  ): Promise<
+    | {
+        type: 'discussion';
+        text: string;
+        data: null;
+        references: AiCoachChatReference[];
+        suggestedFollowUps: string[];
+        preview?: undefined;
+      }
+    | {
+        type: 'proposal';
+        text: string;
+        data: NonNullable<AiCoachChatAnswer['data']>;
+        references: AiCoachChatReference[];
+        suggestedFollowUps: string[];
+        preview: ReturnType<typeof buildProposalPreview>;
+      }
+  > {
+    if (answer.type !== 'proposal' || !answer.data) {
+      return {
+        type: 'discussion',
+        text: answer.text,
+        data: null,
+        references: answer.references,
+        suggestedFollowUps: answer.suggestedFollowUps,
+      };
+    }
+
+    const kind = answer.data.kind === 'workout' ? 'WORKOUT' : 'PROGRAM';
+    try {
+      const context = await validateProposalContext(
+        this.prisma,
+        userId,
+        kind,
+        answer.data.workout,
+        answer.data.program,
+      );
+      const preview = buildProposalPreview(
+        kind,
+        answer.data.workout,
+        answer.data.program,
+        context,
+      );
+      return {
+        type: 'proposal',
+        text: answer.text,
+        data: answer.data,
+        references: answer.references,
+        suggestedFollowUps: answer.suggestedFollowUps,
+        preview,
+      };
+    } catch (error) {
+      if (error instanceof AiCoachProposalBusinessError) {
+        this.logger.warn({
+          event: 'ai_coach_proposal_business_invalid',
+          userHash: hashUserId(userId),
+          reason: error.message,
+        });
+        return {
+          type: 'discussion',
+          text: PROPOSAL_BUSINESS_INVALID_FALLBACK_TEXT,
+          data: null,
+          references: [],
+          suggestedFollowUps: [],
+        };
+      }
+      throw error;
     }
   }
 
@@ -679,8 +796,9 @@ export class AiCoachChatService {
 
     return {
       answer: {
-        message:
-          'Je n’ai pas pu finaliser l’analyse avec les outils disponibles. Réessaie avec une question plus précise.',
+        type: 'discussion',
+        text: 'Je n’ai pas pu finaliser l’analyse avec les outils disponibles. Réessaie avec une question plus précise.',
+        data: null,
         references: [...allowedReferences.values()],
         suggestedFollowUps: [],
       },
@@ -753,14 +871,21 @@ export class AiCoachChatService {
     return exercise;
   }
 
-  private mapMessage(message: {
-    id: string;
-    role: string;
-    content: string;
-    referencesJson?: unknown;
-    suggestedFollowUpsJson?: unknown;
-    createdAt: Date;
-  }): AiCoachConversationMessage {
+  private mapMessage(
+    message: {
+      id: string;
+      role: string;
+      content: string;
+      referencesJson?: unknown;
+      suggestedFollowUpsJson?: unknown;
+      createdAt: Date;
+    },
+    proposal?: AiCoachProposal | null,
+  ): AiCoachConversationMessage {
+    let proposalSummary: AiCoachProposalSummary | null = null;
+    if (proposal) {
+      proposalSummary = toAiCoachProposalSummary(proposal);
+    }
     return {
       id: message.id,
       role: message.role as 'USER' | 'ASSISTANT',
@@ -771,6 +896,7 @@ export class AiCoachChatService {
       suggestedFollowUps: Array.isArray(message.suggestedFollowUpsJson)
         ? (message.suggestedFollowUpsJson as string[])
         : [],
+      proposal: proposalSummary,
       createdAt: message.createdAt.toISOString(),
     };
   }

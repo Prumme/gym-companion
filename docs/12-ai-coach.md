@@ -115,6 +115,62 @@ Le jalon 5.4 livre le Coach explicatif déterministe (composition, `/coach`), sa
 Le jalon 5.5 livre l’explication LLM à la demande (pas de chat, pas de mémoire,
 pas d’application d’action, pas de génération de programme).
 Le jalon 5.6 livre le **chat multi-tour** avec outils lecture seule allowlistés.
+Le jalon 8 livre les **propositions structurées** (`discussion | proposal`) : l’IA ne crée jamais
+directement un programme ou une séance, uniquement une `AiCoachProposal` que l’utilisateur doit
+explicitement accepter (voir §3.2bis).
+
+### 3.2bis Jalon 8 — Propositions structurées (livré)
+
+Depuis le jalon 8, la réponse finale du chat (`AI_COACH_CHAT_STRUCTURED_V1`) est toujours l’une des
+deux formes **canoniques** suivantes :
+
+- `discussion` : `{ type: "discussion", text, data: null, references, suggestedFollowUps }` ;
+- `proposal` : `{ type: "proposal", text (≤ 280 caractères), data: { kind: "workout"|"program",
+  workout, program }, references, suggestedFollowUps }`.
+
+#### Wire format OpenAI (privé provider)
+
+Pour réduire les tokens Structured Outputs, OpenAI reçoit/produit un **wire format compact**
+(`AI_COACH_WIRE_OUTPUT_JSON_SCHEMA`, `strict: true`, Chat Completions `json_schema` — pas de SDK
+`openai`, appels `fetch` bruts).
+
+Ce format :
+
+- est **privé au provider** OpenAI ;
+- **n’est pas** un contrat frontend ;
+- **n’est pas** le modèle métier ni le payload DB ;
+- est immédiatement mappé (`mapAiCoachWireResponse`) vers les DTOs canoniques ci-dessus.
+
+Correspondances principales : `t`→type (`d`/`p`), `x`→text, `d`→data, `k`→kind (`wk`/`pg`),
+`n`→name, `e`→exercises, `id`→exerciseId, `s`→sets, `r`→`[repsMin,repsMax]`, `rir`/`rpe`/`kg`/`pct`/`sec`/`m`/`rest`.
+
+`AiCoachProposal.payloadJson` stocke le payload **canonique** (jamais les clés wire).
+
+Budgets `max_tokens` réponse finale : discussion ≈ 900, workout ≈ 2800, program / défaut ≈ 4500
+(marge anti-troncature). L’option Responses API `verbosity: low` n’est pas utilisée ici (provider =
+Chat Completions).
+
+Trois outils lecture seule supplémentaires permettent à l’IA de construire une proposal réaliste
+sans jamais inventer un identifiant : `search_exercises` (seule source de vrais `exerciseId`),
+`get_active_program`, `get_program_detail`.
+
+Pipeline serveur pour une réponse `proposal` :
+
+```text
+réponse LLM (proposal)
+→ revalidation métier complète (exercices accessibles/non archivés, équipement actif,
+  validateWorkoutTemplateSetTargets)
+→ invalide ? → réponse renvoyée à l’utilisateur en "discussion" (message d’erreur clair),
+  AUCUNE AiCoachProposal créée
+→ valide ? → AiCoachProposal PENDING (payloadJson + previewJson dénormalisé) liée au message
+→ utilisateur : accepter (POST .../proposals/:id/accept) ou refuser (.../dismiss)
+→ accept → nouvelle revalidation intégrale (le catalogue peut avoir changé depuis) → transaction
+  ProgramsService (Program DRAFT jamais activé, ou WorkoutTemplate rattaché à un programId fourni)
+→ AiCoachProposal ACCEPTED (createdProgramId | createdWorkoutTemplateId)
+```
+
+Voir `docs/09-api-contracts.md` §23.2novies pour les endpoints et codes d’erreur, et
+`docs/05-data-model.md` (jalon 8) pour le modèle `AiCoachProposal`.
 
 ### Sécurité chat 5.6
 

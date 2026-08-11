@@ -2205,6 +2205,60 @@ Index utiles : `(ownerUserId, updatedAt)` conversations ; `(conversationId, crea
 **Dettes d’exploitation (volontaires) :** busy lock et rate limiter IA restent **process-local / mémoire**
 (pas Redis) — acceptable monolithe mono-instance.
 
+### Jalon 8 — Propositions structurées Coach IA (table dédiée)
+
+L’IA ne crée **jamais** directement un `Program` ou un `WorkoutTemplate`. Une réponse de chat
+de type `proposal` (voir `docs/09-api-contracts.md` §23.2novies) est revalidée intégralement côté
+serveur puis persistée dans `AiCoachProposal`, seule source de vérité de son état :
+
+```ts
+enum AiCoachProposalKind {
+  WORKOUT,
+  PROGRAM,
+}
+
+enum AiCoachProposalStatus {
+  PENDING,
+  ACCEPTED,
+  DISMISSED,
+  INVALID, // revalidation échouée à l'acceptation (ex. exercice devenu obsolète)
+}
+
+type AiCoachProposal = {
+  id: string;
+  ownerUserId: string; // Cascade avec User
+  conversationId: string; // Cascade avec AiCoachConversation
+  messageId: string; // unique — au plus une proposal par message assistant
+  kind: AiCoachProposalKind;
+  status: AiCoachProposalStatus; // défaut PENDING
+  payloadJson: Json; // CoachWorkoutProposal | CoachProgramProposal, revalidé à l'acceptation
+  previewJson: Json | null; // aperçu compact dénormalisé (affichage uniquement, non fiable métier)
+  acceptedAt: DateTime | null;
+  dismissedAt: DateTime | null;
+  createdProgramId: string | null; // onDelete: SetNull
+  createdWorkoutTemplateId: string | null; // onDelete: SetNull
+  createdAt: DateTime;
+  updatedAt: DateTime;
+};
+```
+
+`AiCoachMessage.proposal` est une relation 1:1 optionnelle (au plus une proposal par message
+assistant). Index utiles : `(ownerUserId, status, createdAt)`, `(conversationId)`.
+
+Règles :
+
+- l’acceptation (`WORKOUT` ou `PROGRAM`) crée les entités dans **une seule transaction** ; un
+  échec de revalidation (exercice archivé/supprimé, équipement inactif, cible incohérente) ne crée
+  jamais de ressource partielle et fait passer la proposition en `INVALID` ;
+- une proposition `PROGRAM` acceptée crée un `Program` en statut `DRAFT` — **jamais activé
+  automatiquement** ;
+- une proposition `WORKOUT` acceptée nécessite un `programId` fourni par l’utilisateur au moment
+  de l’acceptation (un `WorkoutTemplate` appartient toujours à un `Program`) ;
+- l’acceptation est idempotente : ré-accepter une proposition déjà `ACCEPTED` renvoie les
+  identifiants déjà créés sans dupliquer ;
+- `previewJson` est produit exclusivement côté serveur (noms d’exercices/équipement résolus) : il
+  n’est jamais fourni par l’IA et n’a aucune valeur métier — seul `payloadJson` est revalidé.
+
 ### Phase 5 produit (séances partagées — Shared 5.1 → 5.4 livrés)
 
 Livré : `SharedWorkoutRoom` (+ `joinCode`), `SharedWorkoutRoomMember` (+ `leftAt`),

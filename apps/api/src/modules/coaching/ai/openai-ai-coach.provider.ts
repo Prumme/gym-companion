@@ -1,7 +1,10 @@
+import { Logger } from '@nestjs/common';
 import {
   AI_COACH_SYSTEM_INSTRUCTIONS,
   AI_COACH_CHAT_SYSTEM_INSTRUCTIONS,
   AI_COACH_TOOL_DEFINITIONS,
+  AI_COACH_WIRE_MAX_TOKENS,
+  AI_COACH_WIRE_OUTPUT_JSON_SCHEMA,
   buildAiCoachUserMessage,
   parseAiCoachChatAnswer,
   parseAiCoachExplanationResult,
@@ -17,13 +20,19 @@ import {
   type AiCoachProviderRequest,
 } from './ai-coach-provider';
 
+/** Réponse finale : budget large (programme) pour éviter toute troncature Structured Outputs. */
+const FINAL_ANSWER_MAX_TOKENS = AI_COACH_WIRE_MAX_TOKENS.finalDefault;
+
 /**
- * Provider OpenAI via Chat Completions.
+ * Provider OpenAI via Chat Completions (pas de SDK `openai`, fetch brut).
  * 5.5 : JSON object pour explication.
- * 5.6 : tools + JSON final pour chat.
+ * 5.6 + jalon 8 : tools + Structured Outputs (`json_schema`, strict) pour la
+ * réponse finale du chat (discussion|proposal), uniquement quand aucun outil
+ * n’est proposé ou lorsque la boucle d’outils est terminée (`forceFinalAnswer`).
  */
 export class OpenAiCoachProvider implements AiCoachProvider {
   readonly name = 'openai';
+  private readonly logger = new Logger(OpenAiCoachProvider.name);
 
   constructor(
     private readonly apiKey: string,
@@ -51,6 +60,7 @@ export class OpenAiCoachProvider implements AiCoachProvider {
         },
         controller.signal,
       );
+      this.logUsage(response.usage);
       const content = this.requireContent(response);
       try {
         return parseAiCoachExplanationResult(JSON.parse(content));
@@ -133,10 +143,20 @@ export class OpenAiCoachProvider implements AiCoachProvider {
         body.tools = tools;
         body.tool_choice = 'auto';
       } else {
-        body.response_format = { type: 'json_object' };
+        // Réponse finale : Structured Outputs wire compact (strict).
+        body.max_tokens = FINAL_ANSWER_MAX_TOKENS;
+        body.response_format = {
+          type: 'json_schema',
+          json_schema: {
+            name: 'coach_wire_response',
+            strict: true,
+            schema: AI_COACH_WIRE_OUTPUT_JSON_SCHEMA,
+          },
+        };
       }
 
       const response = await this.chatCompletions(body, controller.signal);
+      this.logUsage(response.usage);
       const message = response.choices?.[0]?.message;
       const toolCalls = message?.tool_calls;
 
@@ -204,6 +224,13 @@ export class OpenAiCoachProvider implements AiCoachProvider {
         }>;
       };
     }>;
+    usage?: {
+      prompt_tokens?: number;
+      completion_tokens?: number;
+      total_tokens?: number;
+      prompt_tokens_details?: { cached_tokens?: number };
+      completion_tokens_details?: { reasoning_tokens?: number };
+    };
   }> {
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
@@ -237,7 +264,34 @@ export class OpenAiCoachProvider implements AiCoachProvider {
           }>;
         };
       }>;
+      usage?: {
+        prompt_tokens?: number;
+        completion_tokens?: number;
+        total_tokens?: number;
+        prompt_tokens_details?: { cached_tokens?: number };
+        completion_tokens_details?: { reasoning_tokens?: number };
+      };
     };
+  }
+
+  /** Journalise l’usage token (jamais le contenu des prompts ni la clé API). */
+  private logUsage(usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+    prompt_tokens_details?: { cached_tokens?: number };
+    completion_tokens_details?: { reasoning_tokens?: number };
+  }): void {
+    if (!usage) return;
+    this.logger.log({
+      event: 'ai_coach_openai_usage',
+      promptTokens: usage.prompt_tokens ?? null,
+      cachedPromptTokens: usage.prompt_tokens_details?.cached_tokens ?? null,
+      completionTokens: usage.completion_tokens ?? null,
+      reasoningTokens:
+        usage.completion_tokens_details?.reasoning_tokens ?? null,
+      totalTokens: usage.total_tokens ?? null,
+    });
   }
 
   private requireContent(response: {

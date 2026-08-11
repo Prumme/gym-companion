@@ -2044,9 +2044,79 @@ POST   /api/v1/coaching/conversations/:conversationId/archive
 
 JWT obligatoire. Message : `{ content, clientCommandId }`.
 
-Outils allowlistés : `get_exercise_coach_summary`, `get_exercise_progress`, `get_exercise_strength`, `get_personal_records`, `get_recent_workouts`, `get_workout_detail`.
+Outils allowlistés : `get_exercise_coach_summary`, `get_exercise_progress`, `get_exercise_strength`, `get_personal_records`, `get_recent_workouts`, `get_workout_detail`, `search_exercises`, `get_active_program`, `get_program_detail` (jalon 8, voir §23.2novies).
 
 Codes : `AI_COACH_MESSAGE_COMMAND_CONFLICT`, `AI_COACH_CONVERSATION_BUSY`, `AI_COACH_CONVERSATION_NOT_FOUND`, plus codes 5.5.
+
+### 23.2novies Propositions structurées Coach IA (jalon 8)
+
+Depuis le jalon 8, la réponse finale du chat (`schemaVersion: AI_COACH_CHAT_STRUCTURED_V1`) est
+toujours une des deux formes structurées suivantes (Structured Outputs OpenAI `json_schema`
+strict, voir `docs/12-ai-coach.md`) :
+
+```ts
+type CoachStructuredResponse =
+  | { type: "discussion"; text: string; data: null; references: []; suggestedFollowUps: [] }
+  | {
+      type: "proposal";
+      text: string; // résumé ≤ 280 caractères
+      data: { kind: "workout" | "program"; workout: CoachWorkoutProposal | null; program: CoachProgramProposal | null };
+      references: [];
+      suggestedFollowUps: [];
+    };
+```
+
+**L’IA ne crée jamais directement de `Program` ni de `WorkoutTemplate`.** Lorsqu’une réponse est
+de type `proposal`, le backend la revalide intégralement (exercices accessibles et non archivés,
+équipement actif, cibles de séries cohérentes avec le type de mesure) *avant* de la persister. Si
+la revalidation échoue, aucune `AiCoachProposal` n’est créée : la réponse renvoyée à l’utilisateur
+bascule en `type: "discussion"` avec un message d’erreur clair — le tour de chat n’échoue jamais
+silencieusement.
+
+Si la revalidation réussit, une ligne `AiCoachProposal` (`status: PENDING`) est créée, liée au
+message assistant. Le message assistant renvoyé (`SendAiCoachMessageResponse.assistantMessage`)
+expose alors un champ `proposal` (voir `AiCoachProposalSummary` dans `packages/shared`), incluant
+un `preview` compact dénormalisé (noms d’exercices et d’équipement résolus côté serveur) destiné
+uniquement à l’affichage. Ce même champ `proposal` est renvoyé pour tout message historique via
+`GET /api/v1/coaching/conversations/:conversationId`.
+
+```text
+POST /api/v1/coaching/proposals/:proposalId/accept
+POST /api/v1/coaching/proposals/:proposalId/dismiss
+```
+
+JWT obligatoire ; la proposition doit appartenir à l’utilisateur authentifié (sinon `404
+AI_COACH_PROPOSAL_NOT_FOUND`).
+
+**Accept** — corps :
+
+```ts
+{ programId?: string } // requis si proposal.kind === "WORKOUT"
+```
+
+Le backend revalide intégralement le payload (jamais confiance dans l’ancien aperçu), puis crée
+de façon déterministe et transactionnelle :
+
+- `kind: "WORKOUT"` → `WorkoutTemplate` (+ exercices + séries) rattaché au `programId` fourni
+  (le programme doit appartenir à l’utilisateur et ne pas être archivé) ;
+- `kind: "PROGRAM"` → `Program` (statut `DRAFT`, **jamais activé automatiquement**) + ses
+  `WorkoutTemplate` + exercices + séries + planning optionnel.
+
+Réponse : `{ data: { proposal: AiCoachProposalSummary } }` avec `status: "ACCEPTED"` et
+`createdProgramId` / `createdWorkoutTemplateId` renseigné.
+
+Idempotence : ré-accepter une proposition déjà `ACCEPTED` renvoie le même résultat sans recréer de
+ressources. Si un exercice référencé est devenu obsolète (archivé, supprimé, inaccessible) entre la
+persistance et l’acceptation, la proposition passe en `status: "INVALID"` et la requête échoue avec
+`400 AI_COACH_PROPOSAL_STALE` (message clair, aucune création partielle).
+
+Codes d’erreur : `AI_COACH_PROPOSAL_NOT_FOUND` (404), `AI_COACH_PROPOSAL_PROGRAM_ID_REQUIRED` (400),
+`AI_COACH_PROPOSAL_DISMISSED` (409), `AI_COACH_PROPOSAL_INVALID` (400), `AI_COACH_PROPOSAL_STALE`
+(400), `PROGRAM_NOT_FOUND` (404), `PROGRAM_NOT_EDITABLE` (403).
+
+**Dismiss** — aucun corps. Réponse : `{ data: { proposal: AiCoachProposalSummary } }` avec
+`status: "DISMISSED"`. Idempotent (refuser une proposition déjà refusée est un no-op). Refuser une
+proposition déjà `ACCEPTED` échoue avec `409 AI_COACH_PROPOSAL_ALREADY_ACCEPTED`.
 
 ### 23.3 Records (jalon 4.1)
 

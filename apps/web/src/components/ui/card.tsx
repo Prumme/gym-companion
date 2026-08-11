@@ -1,18 +1,21 @@
-import type { PropsWithChildren } from 'react';
+import type { HTMLAttributes, PropsWithChildren } from 'react';
 import { Link } from 'react-router-dom';
 
 import { cn } from '@/lib/utils';
 
-type CardProps = PropsWithChildren<{
-  className?: string;
-  as?: 'div' | 'section' | 'article';
-}>;
+type CardProps = PropsWithChildren<
+  Omit<HTMLAttributes<HTMLElement>, 'className'> & {
+    className?: string;
+    as?: 'div' | 'section' | 'article';
+  }
+>;
 
 /** Surface légère — à utiliser seulement quand une vraie surface aide la lecture. */
 export function Card({
   children,
   className,
   as: Component = 'div',
+  ...props
 }: CardProps) {
   return (
     <Component
@@ -20,6 +23,7 @@ export function Card({
         'rounded-[var(--radius-surface)] border border-[var(--border)] bg-[var(--surface)] p-[var(--space-4)]',
         className,
       )}
+      {...props}
     >
       {children}
     </Component>

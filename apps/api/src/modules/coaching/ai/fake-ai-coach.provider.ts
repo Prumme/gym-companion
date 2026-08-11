@@ -44,7 +44,9 @@ export class FakeAiCoachProvider implements AiCoachProvider {
   chatBehavior: FakeChatBehavior = {
     mode: 'answer',
     answer: {
-      message: 'Réponse de test.',
+      type: 'discussion',
+      text: 'Réponse de test.',
+      data: null,
       references: [],
       suggestedFollowUps: [],
     },

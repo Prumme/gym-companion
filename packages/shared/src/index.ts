@@ -1085,12 +1085,93 @@ export type AiCoachConversationListItem = {
   updatedAt: string;
 };
 
+/**
+ * Jalon 8 — proposition structurée Coach IA (jamais appliquée directement).
+ * `preview` est un aperçu compact dénormalisé (noms résolus côté serveur)
+ * destiné uniquement à l’affichage ; l’acceptation revalide tout côté serveur.
+ */
+export type AiCoachProposalKind = 'WORKOUT' | 'PROGRAM';
+export type AiCoachProposalStatus =
+  | 'PENDING'
+  | 'ACCEPTED'
+  | 'DISMISSED'
+  | 'INVALID';
+
+export type AiCoachProposalPreviewSet = {
+  setType: WorkoutSetType;
+  targetRepMin: number | null;
+  targetRepMax: number | null;
+  targetDurationSeconds: number | null;
+  targetDistanceMeters: number | null;
+  targetWeightKg: number | null;
+  targetIntensityPercent: number | null;
+  targetRir: number | null;
+  targetRpe: number | null;
+  restSeconds: number | null;
+};
+
+export type AiCoachProposalPreviewExercise = {
+  exerciseId: string;
+  exerciseName: string;
+  measurementType: ExerciseMeasurementType;
+  equipmentTypeId: string | null;
+  equipmentName: string | null;
+  notes: string | null;
+  sets: AiCoachProposalPreviewSet[];
+};
+
+export type AiCoachProposalPreviewWorkout = {
+  name: string;
+  estimatedDurationMinutes: number | null;
+  exercises: AiCoachProposalPreviewExercise[];
+};
+
+export type AiCoachProposalPreviewScheduleEntry = {
+  weekday: Weekday;
+  workoutIndex: number;
+  position: number;
+};
+
+export type AiCoachProposalPreviewProgram = {
+  name: string;
+  description: string | null;
+  goal: TrainingGoal;
+  workouts: AiCoachProposalPreviewWorkout[];
+  schedule: AiCoachProposalPreviewScheduleEntry[] | null;
+};
+
+export type AiCoachProposalPreview =
+  | { kind: 'WORKOUT'; workout: AiCoachProposalPreviewWorkout }
+  | { kind: 'PROGRAM'; program: AiCoachProposalPreviewProgram };
+
+export type AiCoachProposalSummary = {
+  id: string;
+  kind: AiCoachProposalKind;
+  status: AiCoachProposalStatus;
+  preview: AiCoachProposalPreview;
+  createdProgramId: string | null;
+  createdWorkoutTemplateId: string | null;
+  createdAt: string;
+  acceptedAt: string | null;
+  dismissedAt: string | null;
+};
+
+export type AcceptAiCoachProposalResponse = {
+  proposal: AiCoachProposalSummary;
+};
+
+export type DismissAiCoachProposalResponse = {
+  proposal: AiCoachProposalSummary;
+};
+
 export type AiCoachConversationMessage = {
   id: string;
   role: 'USER' | 'ASSISTANT';
   content: string;
   references: AiCoachChatReference[];
   suggestedFollowUps: string[];
+  /** Jalon 8 — présent uniquement sur un message ASSISTANT de type proposal. */
+  proposal: AiCoachProposalSummary | null;
   createdAt: string;
 };
 

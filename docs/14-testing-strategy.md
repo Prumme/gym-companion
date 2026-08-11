@@ -992,40 +992,45 @@ Les tests automatiques utilisent un **fournisseur simulé** (`fake`) — jamais 
 - pas de queue IndexedDB IA ;
 - endpoints coaching NetworkOnly.
 
-### Réponse valide (futur propositions programme)
+### 21.9 Propositions structurées (jalon 8, livré — `apps/api/test/ai-coach-proposal.test.ts`)
 
-- schéma correct ;
-- exercices existants ;
-- valeurs acceptables ;
-- proposition enregistrée.
+Registre d’outils lecture seule étendu (§21.3) : `search_exercises`, `get_active_program`,
+`get_program_detail` couverts par les mêmes assertions anti-mutation et IDOR (§21.4) que les
+outils 5.6.
 
-### Réponse invalide
+**Réponse valide :**
 
-- JSON invalide ;
-- champ absent ;
-- enum inconnu ;
-- exercice inexistant ;
-- charge négative ;
-- volume hors limite.
+- schéma correct (`coachStructuredResponseSchema`, Structured Outputs strict) ;
+- exercices existants et accessibles (`search_exercises` uniquement) ;
+- cibles de séries cohérentes avec le type de mesure ;
+- `AiCoachProposal` `PENDING` persistée et renvoyée dans la réponse du message.
 
-### Sécurité
+**Réponse invalide (business) :**
 
-- diagnostic ;
-- traitement ;
-- substance ;
-- restriction ignorée ;
-- instruction dangereuse ;
-- prompt injection dans une note.
+- JSON invalide / champ absent / enum inconnu → rejeté par la validation Zod avant toute logique
+  métier (`ai-coach-structured.test.ts`) ;
+- exercice inexistant, archivé ou appartenant à un autre utilisateur ;
+- équipement inactif ou incompatible ;
+- cible de série hors limites (`validateWorkoutTemplateSetTargets`) ;
+- dans tous ces cas : **aucune** `AiCoachProposal` persistée, réponse renvoyée en `discussion`
+  avec message d’erreur clair (le tour de chat ne plante jamais).
 
-### Cycle (futur propositions)
+**Sécurité :**
 
-- génération ;
-- expiration ;
-- acceptation ;
-- double acceptation ;
-- refus ;
-- quota ;
-- timeout.
+- diagnostic ; traitement ; substance ; restriction ignorée ; instruction dangereuse ; prompt
+  injection dans une note ou dans un nom d’exercice ;
+- `exerciseId` inventé par le modèle → jamais accepté (seule source valide : `search_exercises`).
+
+**Cycle de vie (livré) :**
+
+- génération (`PENDING`) ;
+- acceptation (`ACCEPTED`, création transactionnelle programme/séance) ;
+- double acceptation → idempotent, aucune ressource dupliquée ;
+- refus (`DISMISSED`) → acceptation ultérieure refusée ;
+- exercice devenu obsolète avant acceptation → `INVALID`, `400 AI_COACH_PROPOSAL_STALE`, aucune
+  création partielle ;
+- séance sans `programId` fourni à l’acceptation → `400` explicite (`WorkoutTemplate` doit
+  toujours appartenir à un `Program`).
 
 ## 22. Tests end-to-end prioritaires
 
@@ -1093,13 +1098,18 @@ Les tests automatiques utilisent un **fournisseur simulé** (`fake`) — jamais 
 6. chat : tool call + IDOR + busy + conflict command ;
 7. offline chat : envoi bloqué.
 
-## 22.6bis Coach IA — génération de programme (futur)
+## 22.6bis Coach IA — propositions structurées (jalon 8, livré)
 
-1. créer une demande ;
-2. recevoir une proposition simulée ;
-3. modifier ;
-4. accepter ;
-5. vérifier le programme créé.
+1. poser une question au chat entraînant une proposition (programme ou séance) ;
+2. recevoir une proposition simulée (provider `fake`) sous forme de carte dédiée, pas de JSON brut ;
+3. consulter le détail (aperçu dénormalisé) ;
+4. accepter (séance : choisir un programme cible) ;
+5. vérifier le programme/la séance créé(e) côté déterministe (`ProgramsService`) ;
+6. rafraîchir la page et vérifier que le statut `ACCEPTED` persiste ;
+7. refuser une autre proposition et vérifier qu’elle ne peut plus être acceptée.
+
+Modification/négociation en langage naturel avant acceptation reste hors périmètre du jalon 8
+(la proposition est accept/dismiss uniquement — pas d’édition inline).
 
 ## 22.7 Confidentialité
 

@@ -73,6 +73,7 @@ model User {
   workoutSets             WorkoutSet[]
   loadRecommendationDecisions LoadRecommendationDecision[]
   aiCoachConversations    AiCoachConversation[]
+  aiCoachProposals        AiCoachProposal[]
   ownedSharedWorkoutRooms SharedWorkoutRoom[]             @relation("SharedWorkoutRoomOwner")
   sharedWorkoutRoomMemberships SharedWorkoutRoomMember[]
   sharedWorkoutRoomLifecycleCommands SharedWorkoutRoomLifecycleCommand[]
@@ -311,6 +312,8 @@ model Program {
   scheduleEntries  ProgramScheduleEntry[]
   sourceSessions   WorkoutSession[]
   loadRecommendationDecisions LoadRecommendationDecision[]
+  /// Jalon 8 — proposition(s) Coach IA à l’origine de la création (traçabilité, pas d’écriture IA directe).
+  createdByAiCoachProposals AiCoachProposal[] @relation("AiCoachProposalCreatedProgram")
 
   @@index([ownerUserId, archivedAt])
   @@index([ownerUserId, updatedAt, id])
@@ -380,6 +383,8 @@ model WorkoutTemplate {
   scheduleEntries ProgramScheduleEntry[]
   sourceSessions  WorkoutSession[]
   loadRecommendationDecisions LoadRecommendationDecision[]
+  /// Jalon 8 — proposition(s) Coach IA à l’origine de la création.
+  createdByAiCoachProposals AiCoachProposal[] @relation("AiCoachProposalCreatedWorkoutTemplate")
 
   @@unique([programId, positionInProgram])
   @@index([ownerUserId])
@@ -679,6 +684,7 @@ model AiCoachConversation {
   owner           User             @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
   contextExercise Exercise?        @relation(fields: [contextExerciseId], references: [id], onDelete: SetNull)
   messages        AiCoachMessage[]
+  proposals       AiCoachProposal[]
 
   @@index([ownerUserId, updatedAt])
   @@index([ownerUserId, archivedAt, updatedAt])
@@ -701,10 +707,56 @@ model AiCoachMessage {
 
   conversation    AiCoachConversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   toolInvocations AiCoachToolInvocation[]
+  /// Jalon 8 — proposition structurée portée par ce message assistant (au plus une).
+  proposal        AiCoachProposal?
 
   @@unique([conversationId, clientCommandId])
   @@index([conversationId, createdAt])
   @@map("ai_coach_messages")
+}
+
+/// Jalon 8 — Coach IA : propositions structurées (jamais d’écriture directe).
+/// L’IA propose ; l’acceptation utilisateur déclenche une création déterministe
+/// via ProgramsService après revalidation métier complète côté serveur.
+enum AiCoachProposalKind {
+  WORKOUT
+  PROGRAM
+}
+
+enum AiCoachProposalStatus {
+  PENDING
+  ACCEPTED
+  DISMISSED
+  INVALID
+}
+
+model AiCoachProposal {
+  id             String                 @id @default(uuid()) @db.Uuid
+  ownerUserId    String                 @db.Uuid
+  conversationId String                 @db.Uuid
+  messageId      String                 @unique @db.Uuid
+  kind           AiCoachProposalKind
+  status         AiCoachProposalStatus  @default(PENDING)
+  /// Payload structuré complet (CoachWorkoutProposal | CoachProgramProposal), revalidé à l’acceptation.
+  payloadJson    Json
+  /// Aperçu compact dénormalisé pour l’UI (noms d’exercices résolus, compteurs) — non fiable côté métier.
+  previewJson    Json?
+  acceptedAt     DateTime?
+  dismissedAt    DateTime?
+  createdProgramId         String?      @db.Uuid
+  createdWorkoutTemplateId String?      @db.Uuid
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  owner        User                @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  conversation AiCoachConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  message      AiCoachMessage      @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  createdProgram         Program?         @relation("AiCoachProposalCreatedProgram", fields: [createdProgramId], references: [id], onDelete: SetNull)
+  createdWorkoutTemplate WorkoutTemplate? @relation("AiCoachProposalCreatedWorkoutTemplate", fields: [createdWorkoutTemplateId], references: [id], onDelete: SetNull)
+
+  @@index([ownerUserId, status, createdAt])
+  @@index([conversationId])
+  @@map("ai_coach_proposals")
 }
 
 model AiCoachToolInvocation {

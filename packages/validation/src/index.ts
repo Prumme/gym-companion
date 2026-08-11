@@ -2209,6 +2209,7 @@ export {
   AI_COACH_MAX_TOOL_CALLS_PER_TURN,
   AI_COACH_READ_ONLY_TOOL_NAMES,
   AI_COACH_RECENT_WORKOUTS_MAX,
+  AI_COACH_SEARCH_EXERCISES_MAX_RESULTS,
   AI_COACH_TOOL_DEFINITIONS,
   AI_COACH_USER_MESSAGE_MAX_LENGTH,
   aiCoachChatAnswerSchema,
@@ -2225,13 +2226,16 @@ export {
   filterAiCoachFollowUps,
   fingerprintAiCoachMessageContent,
   isAiCoachMutationFollowUp,
+  getActiveProgramToolArgsSchema,
   getExerciseCoachSummaryToolArgsSchema,
   getExerciseProgressToolArgsSchema,
   getExerciseStrengthToolArgsSchema,
   getPersonalRecordsToolArgsSchema,
+  getProgramDetailToolArgsSchema,
   getRecentWorkoutsToolArgsSchema,
   getWorkoutDetailToolArgsSchema,
   parseAiCoachChatAnswer,
+  searchExercisesToolArgsSchema,
   sendAiCoachMessageBodySchema,
 } from './ai-coach-chat';
 export type {
@@ -2246,6 +2250,50 @@ export type {
   CreateAiCoachConversationInput,
   SendAiCoachMessageInput,
 } from './ai-coach-chat';
+
+export {
+  AI_COACH_STRUCTURED_SCHEMA_VERSION,
+  AI_COACH_STRUCTURED_PROMPT_VERSION,
+  AI_COACH_PROPOSAL_TEXT_MAX,
+  AI_COACH_DISCUSSION_TEXT_MAX,
+  AI_COACH_PROPOSAL_MAX_EXERCISES_PER_WORKOUT,
+  AI_COACH_PROPOSAL_MAX_SETS_PER_EXERCISE,
+  AI_COACH_PROPOSAL_MAX_WORKOUTS_PER_PROGRAM,
+  acceptCoachProposalBodySchema,
+  coachProgramProposalSchema,
+  coachProgramScheduleEntrySchema,
+  coachProposalDataSchema,
+  coachProposalExerciseSchema,
+  coachProposalSetSchema,
+  coachStructuredResponseSchema,
+  coachWorkoutProposalSchema,
+  normalizeProposalText,
+  parseCoachStructuredResponse,
+} from './ai-coach-structured';
+export type {
+  AcceptCoachProposalInput,
+  CoachProgramProposal,
+  CoachProposalData,
+  CoachProposalExercise,
+  CoachProposalSet,
+  CoachStructuredResponse,
+  CoachWorkoutProposal,
+} from './ai-coach-structured';
+
+export {
+  AI_COACH_WIRE_KEY_MAP,
+  AI_COACH_WIRE_MAX_TOKENS,
+  AI_COACH_WIRE_OUTPUT_JSON_SCHEMA,
+  /** @deprecated alias → AI_COACH_WIRE_OUTPUT_JSON_SCHEMA */
+  COACH_STRUCTURED_OUTPUT_JSON_SCHEMA,
+  aiCoachWireRepsRangeSchema,
+  aiCoachWireResponseSchema,
+  estimateWireSavingsChars,
+  mapAiCoachWireResponse,
+  parseAiCoachOpenAiWireResponse,
+  parseAiCoachWireResponse,
+} from './ai-coach-wire';
+export type { AiCoachWireResponse } from './ai-coach-wire';
 
 export {
   SHARED_WORKOUT_ROOM_DEFAULT_NAME,

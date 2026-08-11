@@ -63,7 +63,10 @@ services:
       AI_COACH_ENABLED: ${AI_COACH_ENABLED:-false}
       AI_COACH_PROVIDER: ${AI_COACH_PROVIDER:-none}
       AI_COACH_MODEL: ${AI_COACH_MODEL:-gpt-5.4-mini}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # `AppConfigService.aiCoachApiKey` lit uniquement AI_COACH_API_KEY (ai.available
+      # en dépend) : on retombe sur OPENAI_API_KEY si seule cette variable est définie
+      # dans l’environnement de déploiement. Aucun secret n’est codé en dur ici.
+      AI_COACH_API_KEY: ${AI_COACH_API_KEY:-${OPENAI_API_KEY:-}}
 
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/health/live']

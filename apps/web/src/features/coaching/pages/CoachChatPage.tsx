@@ -21,6 +21,7 @@ import {
   createAiCoachConversation,
   sendAiCoachMessage,
 } from '../api/coaching-api';
+import { CoachProposalCard } from '../components/CoachProposalCard';
 import {
   aiCoachConversationQueryOptions,
   aiCoachConversationsQueryOptions,
@@ -139,6 +140,7 @@ export function CoachChatPage() {
         content: input.content,
         references: [],
         suggestedFollowUps: [],
+        proposal: null,
         createdAt: new Date().toISOString(),
       };
       setLocalMessages((prev) => [...prev, optimistic]);
@@ -356,6 +358,14 @@ export function CoachChatPage() {
                 <p className="mt-1 whitespace-pre-wrap leading-relaxed">
                   {message.content}
                 </p>
+                {message.proposal && conversationId ? (
+                  <div className="mt-3">
+                    <CoachProposalCard
+                      proposal={message.proposal}
+                      conversationId={conversationId}
+                    />
+                  </div>
+                ) : null}
                 {message.references.length > 0 ? (
                   <div className="mt-3">
                     <p className="text-xs font-medium text-[var(--muted-foreground)]">

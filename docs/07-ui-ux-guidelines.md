@@ -1068,7 +1068,27 @@ Mention : « Généré à partir de tes données d’entraînement. »
 Questions sur l’historique, read-only. Suggestions initiales.
 Composer compact + safe-area. Busy : « Coach réfléchit… ».
 Rate limit / busy : messages humains (pas de jargon HTTP).
-Pas de CTA appliquer depuis le chat.
+Une réponse `discussion` reste du texte simple ; une réponse `proposal` (jalon 8) s’affiche via la
+carte dédiée §28.7bis — jamais de JSON brut ni de CTA « appliquer » sur un message `discussion`.
+
+### 28.7bis Proposition structurée (jalon 8)
+
+Une proposal (programme ou séance) s’affiche dans le fil comme une **carte distincte** du texte de
+l’assistant, jamais comme un tableau large ni une modale longue (mobile-first, §7/§9) :
+
+- résumé compact (nom, nombre de séances/exercices) + bouton « Voir le détail » ouvrant une
+  **page dédiée ou un bottom sheet** avec la hiérarchie complète (programme → séances → exercices
+  → séries cibles) ;
+- deux actions explicites : **Accepter** et **Refuser** — jamais d’action silencieuse ni de
+  minuteur d’auto-acceptation ;
+- une proposal `WORKOUT` (séance seule) ouvre, avant confirmation finale, un sélecteur de
+  **programme cible** (une séance appartient toujours à un programme) ;
+- l’état (`PENDING` / `ACCEPTÉE` / `REFUSÉE` / `INVALIDE`) est visuellement distinct et persiste
+  au rafraîchissement (source : API, jamais déduit localement) ;
+- une proposal `INVALIDE` (ex. exercice devenu obsolète) affiche un message clair — pas de code
+  d’erreur brut — et retire les CTA d’acceptation ;
+- jamais de mention « L’IA a créé… » : le wording reste « L’IA propose… », l’action de création
+  appartient explicitement à l’utilisateur (« Tu as créé… » après acceptation).
 
 ### 28.8 Style
 

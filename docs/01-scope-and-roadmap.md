@@ -879,6 +879,11 @@ La phase est terminée lorsque :
 
 ## 11. Phase 8 — Coach IA
 
+> Statut : chat explicatif (jalons techniques 5.5/5.6) + **propositions structurées de programme et
+> de séance livrées** (jalon technique 8, sous couverture de la Phase 4/Couche Coaching — voir
+> `docs/12-ai-coach.md` §3.2bis). Restent hors périmètre : questionnaire de création guidé,
+> analyse de progression pilotée par l’IA, suggestions de charge/deload, exercice alternatif.
+
 ### 11.1 Objectif
 
 Ajouter une assistance personnalisée construite au-dessus de données fiables.
@@ -886,8 +891,8 @@ Ajouter une assistance personnalisée construite au-dessus de données fiables.
 ### 11.2 Fonctionnalités incluses
 
 - Questionnaire de création de programme.
-- Proposition de programme.
-- Proposition de séance.
+- Proposition de programme. *(livré, jalon technique 8 — `AiCoachProposal` kind `PROGRAM`)*
+- Proposition de séance. *(livré, jalon technique 8 — `AiCoachProposal` kind `WORKOUT`, nécessite un programme cible)*
 - Analyse de progression.
 - Suggestion de charge.
 - Suggestion de diminution de charge.
