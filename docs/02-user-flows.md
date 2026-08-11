@@ -394,16 +394,16 @@ Les valeurs calculées doivent être distinguées des valeurs saisies.
    * nombre attendu de participants ;
    * durée cible ;
    * équipements disponibles.
-5. Le serveur crée la salle.
+5. Le serveur crée la salle et génère un **code d’accès** (6 caractères, affiché `XXX-XXX`).
 6. L’utilisateur devient hôte.
-7. Un code et un lien sont affichés.
-8. L’hôte partage l’invitation.
+7. Le code est affiché sur le détail salle (owner, `LOBBY` / `ACTIVE`).
+8. L’hôte partage le code manuellement (messagerie, oral, etc.).
 
 ## 24. Rejoindre une séance partagée
 
-1. Le participant ouvre un lien ou saisit un code.
-2. Il doit être authentifié.
-3. Le serveur vérifie la validité de l’invitation.
+1. Le participant authentifié saisit le code (depuis `/shared-workouts` ou une sheet dédiée).
+2. Le client normalise la saisie (casse, tiret optionnel).
+3. Le serveur vérifie le code et le statut de la salle (`LOBBY` / `ACTIVE` uniquement).
 4. Le participant voit :
 
    * nom de l’hôte ;

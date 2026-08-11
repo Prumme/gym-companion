@@ -6,10 +6,7 @@ import {
   getSharedWorkoutEquipmentCoordination,
   getSharedWorkoutRoom,
   getSharedWorkoutSessionContext,
-  listReceivedInvitations,
-  listRoomInvitations,
   listSharedWorkoutRooms,
-  type SharedWorkoutInvitationListFilters,
   type SharedWorkoutRoomListFilters,
 } from './shared-workouts-api';
 import { sharedWorkoutRoomQueryKeys } from './shared-workout-query-keys';
@@ -65,29 +62,5 @@ export function mySharedEquipmentQueryOptions(roomId: string) {
     queryKey: sharedWorkoutRoomQueryKeys.myEquipment(roomId),
     queryFn: () => getMySharedEquipment(roomId),
     enabled: Boolean(roomId),
-  });
-}
-
-export function sharedWorkoutRoomInvitationsQueryOptions(
-  roomId: string,
-  filters: SharedWorkoutInvitationListFilters = {},
-) {
-  return queryOptions({
-    queryKey: sharedWorkoutRoomQueryKeys.roomInvitations(roomId, {
-      status: filters.status,
-    }),
-    queryFn: () => listRoomInvitations(roomId, filters),
-    enabled: Boolean(roomId),
-  });
-}
-
-export function sharedWorkoutReceivedInvitationsQueryOptions(
-  filters: SharedWorkoutInvitationListFilters = {},
-) {
-  return queryOptions({
-    queryKey: sharedWorkoutRoomQueryKeys.receivedInvitations({
-      status: filters.status,
-    }),
-    queryFn: () => listReceivedInvitations(filters),
   });
 }

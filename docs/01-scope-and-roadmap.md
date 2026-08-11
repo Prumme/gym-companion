@@ -22,7 +22,7 @@ Deux axes de numérotation coexistent volontairement ; ils ne doivent **pas** ê
 | Libellé | Signification |
 |---------|----------------|
 | **Couche Coaching — jalons techniques 5.1 → 5.6** | Moteurs déterministes + Coach + IA explicative + chat READ ONLY, livrés **sous la Phase 4** produit (records / stats / progression / coaching). |
-| **Roadmap produit Phase 5 — Séances partagées** | Collaboration multi-utilisateurs (salles, invitations, Socket.IO). **COMPLÉTÉE** — Shared 5.1 → 5.6 livrés (salle, invitations, présence, séances, progression, coordination équipements). |
+| **Roadmap produit Phase 5 — Séances partagées** | Collaboration multi-utilisateurs (salles, codes d’accès, Socket.IO). **COMPLÉTÉE** — Shared 5.1 → 5.6 livrés (salle, join codes, présence, séances, progression, coordination équipements). |
 
 Un tag ou un libellé du type `phase-5.6-complete` / « jalon 5.6 livré » désigne la **couche Coaching** (sous Phase 4), **pas** la Phase 5 Shared. La Phase 5 produit Shared (5.1 → 5.6) est **clôturée** ; les extensions (inventaire physique, Redis, etc.) sont post-V1.
 
@@ -548,7 +548,7 @@ La phase est terminée lorsque :
 > | Jalon | Contenu | Statut |
 > |-------|---------|--------|
 > | **Shared 5.1** | Fondations salle (`SharedWorkoutRoom` / membership / lifecycle REST) | **Livré** |
-> | **Shared 5.2** | Invitations email / accept-decline / leave | **Livré** |
+> | **Shared 5.2** | Codes d’accès / join / rotation / leave | **Livré** |
 > | **Shared 5.3** | Présence Socket.IO + invalidation REST (pas de sync workout) | **Livré** |
 > | **Shared 5.4** | Rattachement / création `WorkoutSession` individuelle par membre | **Livré** |
 > | **Shared 5.5** | Exercice courant + progression live (compteurs, sans perfs) | **Livré** |
@@ -571,26 +571,26 @@ Livré :
 - JWT, IDOR 404 neutre, owner-only mutations, idempotence `clientCommandId` ;
 - **pas** de Socket.IO / présence dans ce jalon, ni lien auto `WorkoutSession`.
 
-### 8.0bis Shared 5.2 — Invitations et leave (livré)
+### 8.0bis Shared 5.2 — Codes d’accès et leave (livré)
 
-Adhésion multi-membres via invitation **par email exact** (compte existant `ACTIVE`).
-Pas de username / handle ; normalisation email = trim + lowercase (comme auth).
+Adhésion multi-membres via **code d’accès** partagé manuellement. JWT obligatoire pour rejoindre.
+
+> **Évolution produit :** le premier livré Shared 5.2 utilisait des invitations email (`SharedWorkoutRoomInvitation`). Remplacé par `joinCode` sur `SharedWorkoutRoom` — modèle invitation **supprimé**.
 
 Livré :
 
-- modèle `SharedWorkoutRoomInvitation` (`PENDING` / `ACCEPTED` / `DECLINED` / `CANCELLED`) ;
+- champs `joinCode` (`@unique`), `joinCodeCreatedAt`, `joinCodeRotatedAt?` sur `SharedWorkoutRoom` ;
+- alphabet sans I/O/0/1 ; génération `crypto.randomInt` ; affichage `XXX-XXX` ;
 - `SharedWorkoutRoomMember.leftAt` — membership actif = `leftAt IS NULL` ;
-- index unique partiel : une seule invitation `PENDING` par `(roomId, inviteeUserId)` ;
-- owner : invite, liste invitations salle, cancel `PENDING` ;
-- invitee : liste reçues, accept, decline ;
-- MEMBER actif : leave (soft) ; OWNER ne peut pas leave ;
-- accept sur ex-membre → rejoin (`leftAt = null`) ;
-- `COMPLETED` / `CANCEL` room → annulation auto des `PENDING` ; `START` ne les annule pas ;
-- anti-énumération : utilisateur inconnu / inactif → `SHARED_WORKOUT_INVITATION_CANNOT_CREATE` ;
-- API sous `/api/v1/shared-workouts` + `/api/v1/shared-workout-invitations` ;
-- UI `/shared-workouts/invitations`, invite sur détail salle, leave pour MEMBER ;
-- REST uniquement dans ce jalon, NetworkOnly ; **pas** de code / lien public,
-  **pas** de Socket.IO (ajouté en Shared 5.3), **pas** de `WorkoutSession` auto.
+- création salle → code auto-généré ;
+- `POST /api/v1/shared-workouts/join` (rate limit ~10/min, throttler process-local) ;
+- owner : `POST .../join-code/rotate` en `LOBBY` / `ACTIVE` ;
+- join / rejoin (`leftAt = null`) ; déjà membre → idempotent ;
+- salle terminale → join refusé (`SHARED_WORKOUT_JOIN_CODE_INVALID`, message neutre) ;
+- pas d’expiration temporelle V1 ; codes des salles terminées conservés en base ;
+- API sous `/api/v1/shared-workouts` uniquement ;
+- UI sheet join-by-code + section code owner sur détail ; leave pour MEMBER ;
+- REST uniquement dans ce jalon, NetworkOnly ; **pas** de Socket.IO (ajouté en Shared 5.3), **pas** de `WorkoutSession` auto.
 
 ### 8.0ter Shared 5.3 — Présence Socket.IO et invalidation (livré)
 
@@ -610,15 +610,15 @@ Livré :
   multi-onglets) — **aucune** migration Prisma / colonne Presence ;
 - REST reste autoritaire ; socket = invalidation TanStack Query après commit PostgreSQL ;
 - `COMPLETED` / `CANCELLED` : clear présence + refuse nouveaux `subscribe` ;
-- leave REST → `MEMBER_LEFT` + eviction sockets ; accept → `MEMBER_JOINED`
+- leave REST → `MEMBER_LEFT` + eviction sockets ; join → `MEMBER_JOINED`
   (présence « en ligne » seulement après `subscribe`) ;
 - frontend : `shared-workout-realtime.ts` + `useSharedWorkoutRoomRealtime` sur
   `/shared-workouts/:roomId` ; libellés En ligne / Hors ligne / Présence inconnue ;
 - hors ligne navigateur : présence indisponible, page REST toujours utilisable ;
 - **une** instance API ; adapter Redis = dette future (multi-instance).
 
-Hors Shared 5.3 : sync workout, rotation, codes publics, `WorkoutSession` auto
-(rattachement volontaire = Shared 5.4).
+Hors Shared 5.3 : sync workout, rotation, lien public `/invite/:code`,
+`WorkoutSession` auto (rattachement volontaire = Shared 5.4).
 
 ### 8.0quater Shared 5.4 — Séance individuelle rattachée (livré)
 
@@ -706,10 +706,11 @@ Permettre à plusieurs utilisateurs de réaliser une même séance en organisant
 - Création d’une séance partagée. *(Shared 5.1)*
 - Sélection d’un modèle. *(ultérieur)*
 - Séance libre. *(ultérieur)*
-- Invitation par email (compte existant). *(Shared 5.2)*
-- Acceptation / refus / annulation d’invitation. *(Shared 5.2)*
-- Quitter une salle (MEMBER) / rejoindre via nouvelle invitation. *(Shared 5.2)*
-- Code / lien d’invitation publics, expiration. *(ultérieur — hors Shared 5.2)*
+- Code d’accès auto-généré à la création ; partage manuel. *(Shared 5.2)*
+- Rejoindre via `POST /join` (JWT). *(Shared 5.2)*
+- Rotation du code (owner). *(Shared 5.2)*
+- Quitter une salle (MEMBER) / rejoin via code. *(Shared 5.2)*
+- Lien public `/invite/:code`. *(ultérieur — hors V1)*
 - Liste des participants. *(Shared 5.1 : owner ; Shared 5.2 : multi-membres actifs)*
 
 #### Préparation
@@ -769,7 +770,7 @@ Permettre à plusieurs utilisateurs de réaliser une même séance en organisant
 La Phase 5 produit Shared (5.1 → 5.6) est **terminée** lorsque :
 
 - plusieurs utilisateurs peuvent créer / rejoindre / quitter une salle privée ;
-- lifecycle salle (`LOBBY` → `ACTIVE` → terminal) et invitations sont cohérents ;
+- lifecycle salle (`LOBBY` → `ACTIVE` → terminal) et codes d’accès sont cohérents ;
 - chaque membre rattache ou crée sa propre `WorkoutSession` (ownership individuel) ;
 - la présence Socket.IO + `room:changed` invalidation REST fonctionnent ;
 - la progression partagée expose uniquement des compteurs (pas de perfs croisées) ;
@@ -851,7 +852,6 @@ Rappeler les actions utiles sans rendre l’application intrusive.
 - Demande de permission contextuelle.
 - Rappel de séance planifiée.
 - Notification de fin de repos.
-- Invitation à une séance.
 - Début imminent d’une séance partagée.
 - Changement de station.
 - Rappel alimentaire facultatif.

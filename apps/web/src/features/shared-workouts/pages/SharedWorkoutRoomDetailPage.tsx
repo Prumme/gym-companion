@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { X } from 'lucide-react';
 
 import { Button, ButtonLink } from '@/components/ui/button';
 import type { ContextMenuItem } from '@/features/programs/components/ContextMenu';
@@ -11,23 +10,20 @@ import { getApiErrorMessage } from '@/lib/api/client';
 import {
   mySharedEquipmentQueryOptions,
   sharedWorkoutRoomDetailQueryOptions,
-  sharedWorkoutRoomInvitationsQueryOptions,
 } from '../api/shared-workout-query-options';
 import { SharedParticipantRow } from '../components/SharedParticipantRow';
 import { SharedRoomHeader } from '../components/SharedRoomHeader';
 import { SharedWorkoutEquipmentSection } from '../components/SharedWorkoutEquipmentSection';
 import { SharedWorkoutMySessionSection } from '../components/SharedWorkoutMySessionSection';
+import { SharedWorkoutOwnerJoinCodeSection } from '../components/SharedWorkoutOwnerJoinCodeSection';
 import {
-  useCancelRoomInvitationMutation,
   useCancelSharedWorkoutRoomMutation,
   useCompleteSharedWorkoutRoomMutation,
-  useInviteSharedWorkoutRoomMutation,
   useLeaveSharedWorkoutRoomMutation,
   useStartSharedWorkoutRoomMutation,
   useUpdateSharedWorkoutRoomMutation,
 } from '../hooks/use-shared-workout-mutations';
 import { useSharedWorkoutRoomRealtime } from '../hooks/use-shared-workout-room-realtime';
-import { getSharedWorkoutInvitationStatusLabel } from '../lib/shared-workout-labels';
 
 function createClientCommandId(): string {
   return crypto.randomUUID();
@@ -48,30 +44,18 @@ export function SharedWorkoutRoomDetailPage() {
   const startMutation = useStartSharedWorkoutRoomMutation(roomId);
   const completeMutation = useCompleteSharedWorkoutRoomMutation(roomId);
   const cancelMutation = useCancelSharedWorkoutRoomMutation(roomId);
-  const inviteMutation = useInviteSharedWorkoutRoomMutation(roomId);
-  const cancelInviteMutation = useCancelRoomInvitationMutation(roomId);
   const leaveMutation = useLeaveSharedWorkoutRoomMutation(roomId);
 
   const room = query.data;
   const { connectedUserIds, connectionStatus, realtimeAvailable } =
     useSharedWorkoutRoomRealtime(roomId, room?.status);
-  const canManageInvites = Boolean(
-    room?.isOwner && (room.status === 'LOBBY' || room.status === 'ACTIVE'),
-  );
-  const invitationsQuery = useQuery({
-    ...sharedWorkoutRoomInvitationsQueryOptions(roomId),
-    enabled: Boolean(roomId) && canManageInvites,
-  });
   const myEquipmentQuery = useQuery({
     ...mySharedEquipmentQueryOptions(roomId),
     enabled: Boolean(roomId) && room?.status === 'ACTIVE',
   });
 
   const [renameOpen, setRenameOpen] = useState(false);
-  const [inviteOpen, setInviteOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const offline = typeof navigator !== 'undefined' && !navigator.onLine;
 
@@ -80,13 +64,16 @@ export function SharedWorkoutRoomDetailPage() {
     startMutation.isPending ||
     completeMutation.isPending ||
     cancelMutation.isPending ||
-    inviteMutation.isPending ||
-    cancelInviteMutation.isPending ||
     leaveMutation.isPending;
 
   const canMutateLifecycle = Boolean(room?.isOwner && !offline);
   const isActiveMember = Boolean(
     room && !room.isOwner && (room.status === 'LOBBY' || room.status === 'ACTIVE'),
+  );
+  const showOwnerJoinCode = Boolean(
+    room?.isOwner &&
+      (room.status === 'LOBBY' || room.status === 'ACTIVE') &&
+      room.joinCode,
   );
 
   const onlineCount = useMemo(() => {
@@ -114,28 +101,6 @@ export function SharedWorkoutRoomDetailPage() {
     } catch (error) {
       setActionError(
         getApiErrorMessage(error, 'Impossible de renommer la salle.'),
-      );
-    }
-  }
-
-  async function handleInvite(event: FormEvent) {
-    event.preventDefault();
-    if (offline) {
-      setActionError(
-        'Une connexion est nécessaire pour gérer les invitations et les membres.',
-      );
-      return;
-    }
-    setActionError(null);
-    setInviteSuccess(null);
-    try {
-      await inviteMutation.mutateAsync({ inviteeEmail: inviteEmail });
-      setInviteSuccess('Invitation envoyée.');
-      setInviteEmail('');
-      setInviteOpen(false);
-    } catch (error) {
-      setActionError(
-        getApiErrorMessage(error, 'Impossible d’envoyer l’invitation.'),
       );
     }
   }
@@ -200,7 +165,7 @@ export function SharedWorkoutRoomDetailPage() {
     if (!window.confirm(leaveMessage)) return;
     if (offline) {
       setActionError(
-        'Une connexion est nécessaire pour gérer les invitations et les membres.',
+        'Une connexion est nécessaire pour quitter la salle.',
       );
       return;
     }
@@ -243,7 +208,6 @@ export function SharedWorkoutRoomDetailPage() {
     );
   }
 
-  const invitations = invitationsQuery.data?.data ?? [];
   const isTerminal =
     room.status === 'COMPLETED' || room.status === 'CANCELLED';
   const showProgress =
@@ -299,7 +263,6 @@ export function SharedWorkoutRoomDetailPage() {
 
   function refetchRest() {
     void query.refetch();
-    void invitationsQuery.refetch();
     void myEquipmentQuery.refetch();
   }
 
@@ -320,8 +283,7 @@ export function SharedWorkoutRoomDetailPage() {
           role="status"
           className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--muted)]"
         >
-          Une connexion est nécessaire pour gérer les invitations et les
-          membres.
+          Une connexion est nécessaire pour gérer la salle.
         </p>
       ) : null}
 
@@ -353,10 +315,12 @@ export function SharedWorkoutRoomDetailPage() {
         </p>
       ) : null}
 
-      {inviteSuccess ? (
-        <p role="status" className="text-sm text-[var(--foreground)]">
-          {inviteSuccess}
-        </p>
+      {showOwnerJoinCode && room.joinCode ? (
+        <SharedWorkoutOwnerJoinCodeSection
+          roomId={roomId}
+          joinCode={room.joinCode}
+          offline={offline}
+        />
       ) : null}
 
       {renameOpen ? (
@@ -413,92 +377,11 @@ export function SharedWorkoutRoomDetailPage() {
             id="participants-heading"
             className="text-xs font-semibold tracking-[0.12em] text-[var(--muted)] uppercase"
           >
-            {room.status === 'LOBBY' ? 'Participants' : 'Participants'}
+            Participants
             {' · '}
             {room.members.length}
           </h2>
-          {canManageInvites && !inviteOpen ? (
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={offline || pending}
-              onClick={() => setInviteOpen(true)}
-              className="min-h-11"
-            >
-              + Inviter
-            </Button>
-          ) : null}
         </div>
-
-        {inviteOpen ? (
-          <form
-            onSubmit={handleInvite}
-            className="mb-3 flex flex-col gap-3 rounded-[var(--radius-surface)] border border-[var(--border)] bg-[var(--surface)] p-4"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold">Inviter quelqu’un</h3>
-              <button
-                type="button"
-                aria-label="Fermer"
-                className="inline-flex size-11 items-center justify-center"
-                onClick={() => setInviteOpen(false)}
-              >
-                <X className="size-5" aria-hidden="true" />
-              </button>
-            </div>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium">E-mail</span>
-              <input
-                type="email"
-                required
-                value={inviteEmail}
-                onChange={(event) => setInviteEmail(event.target.value)}
-                autoComplete="off"
-                className="min-h-11 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--background)] px-3"
-              />
-            </label>
-            <Button type="submit" disabled={pending || offline}>
-              Envoyer l’invitation
-            </Button>
-          </form>
-        ) : null}
-
-        {canManageInvites && invitations.some((i) => i.status === 'PENDING') ? (
-          <ul className="mb-3 flex flex-col gap-1 text-sm text-[var(--muted)]">
-            {invitations
-              .filter((i) => i.status === 'PENDING')
-              .map((invitation) => (
-                <li
-                  key={invitation.id}
-                  className="flex flex-wrap items-center justify-between gap-2"
-                >
-                  <span>
-                    {invitation.invitee.displayName ?? 'Invité'} —{' '}
-                    {getSharedWorkoutInvitationStatusLabel(invitation.status)}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={pending || offline}
-                    onClick={() =>
-                      void cancelInviteMutation
-                        .mutateAsync(invitation.id)
-                        .catch((error: unknown) => {
-                          setActionError(
-                            getApiErrorMessage(
-                              error,
-                              'Impossible d’annuler l’invitation.',
-                            ),
-                          );
-                        })
-                    }
-                  >
-                    Annuler
-                  </Button>
-                </li>
-              ))}
-          </ul>
-        ) : null}
 
         <ul className="border-y border-[var(--border)]">
           {(room.status === 'LOBBY' ? room.members : otherMembers).map(

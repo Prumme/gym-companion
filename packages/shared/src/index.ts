@@ -1205,10 +1205,20 @@ export type SharedWorkoutRoomDetail = {
   /** true si l’utilisateur courant est le propriétaire. */
   isOwner: boolean;
   /**
+   * Code d’accès formaté XXX-XXX — uniquement si `isOwner` et room LOBBY/ACTIVE.
+   * Jamais exposé aux autres membres ni dans la liste.
+   */
+  joinCode: string | null;
+  /**
    * ID de la WorkoutSession du viewer s’il en a rattaché une.
    * Jamais l’ID des autres membres (Shared 5.4).
    */
   myWorkoutSessionId: string | null;
+};
+
+/** Réponse rotation / création — code formaté pour l’owner. */
+export type SharedWorkoutJoinCodeDto = {
+  joinCode: string;
 };
 
 /**
@@ -1252,35 +1262,6 @@ export type SharedWorkoutSessionContextDto = {
 
 export type SharedWorkoutRoomListResponse =
   ApiCursorListResponse<SharedWorkoutRoomListItem>;
-
-/** Shared 5.2 — invitation directe (email). */
-export type SharedWorkoutRoomInvitationStatus =
-  | 'PENDING'
-  | 'ACCEPTED'
-  | 'DECLINED'
-  | 'CANCELLED';
-
-export type SharedWorkoutRoomInvitationDto = {
-  id: string;
-  room: {
-    id: string;
-    name: string;
-    status: SharedWorkoutRoomStatus;
-  };
-  inviter: {
-    displayName: string | null;
-  };
-  invitee: {
-    displayName: string | null;
-  };
-  status: SharedWorkoutRoomInvitationStatus;
-  createdAt: string;
-  respondedAt: string | null;
-  cancelledAt: string | null;
-};
-
-export type SharedWorkoutRoomInvitationListResponse =
-  ApiCursorListResponse<SharedWorkoutRoomInvitationDto>;
 
 /** Shared 5.3 — protocole Socket.IO (présence + invalidation). */
 export const SHARED_WORKOUT_REALTIME_PROTOCOL_V1 = 1 as const;

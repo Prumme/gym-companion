@@ -34,7 +34,7 @@ Les risques principaux sont :
 - fuite de tokens ;
 - exposition de données dans les logs ;
 - modification non autorisée d’une séance ;
-- invitation partagée utilisée par une personne non prévue ;
+- code d’accès partagé utilisé par une personne non prévue ;
 - commandes WebSocket falsifiées ;
 - injection ;
 - abus du service IA ;
@@ -487,40 +487,39 @@ Déconnecter ou refuser les clients :
 - envoyant des payloads invalides de manière répétée ;
 - abusant du service.
 
-## 16. Invitations de séance
+## 16. Codes d’accès de séance partagée
 
-### 16.1 Code
+### 16.1 Génération
 
-Le code doit être suffisamment aléatoire.
+Le code doit être suffisamment aléatoire (`crypto.randomInt`, alphabet sans I/O/0/1).
 
-Éviter les identifiants incrémentaux.
+Éviter les identifiants incrémentaux ou prévisibles.
 
-### 16.2 Expiration
+### 16.2 Validité
 
-Toute invitation possède une expiration.
+En V1, pas d’expiration temporelle : le code est joinable tant que la salle est `LOBBY` ou `ACTIVE`. Une salle terminée refuse le join avec une erreur neutre (pas de fuite d’existence).
 
-### 16.3 Révocation
+Les codes des salles terminées restent en base pour éviter une réutilisation immédiate.
 
-L’hôte peut la révoquer.
+### 16.3 Rotation
+
+L’hôte peut régénérer le code en `LOBBY` / `ACTIVE`. L’ancien code cesse d’être valide immédiatement.
 
 ### 16.4 Capacité
 
 Une salle complète refuse les nouveaux participants.
 
-### 16.5 Confirmation
+### 16.5 Authentification
 
-Un utilisateur qui possède le lien doit encore confirmer qu’il rejoint la séance.
+Rejoindre exige un JWT valide. Le code seul ne suffit pas.
 
-### 16.6 Partage
+### 16.6 Partage et confidentialité
 
-L’invitation ne doit pas exposer de données privées avant authentification.
+Le code ne doit pas exposer de données privées des participants.
 
-Informations publiques maximales :
+Informations visibles après join (membership) : inchangées (privacy coarse Shared 5.5).
 
-- nom affiché de l’hôte ;
-- nom générique de la séance ;
-- nombre de participants ;
-- statut de disponibilité.
+Rate limit sur `POST /join` (~10/min, throttler process-local ; Redis multi-instance = dette future).
 
 ## 17. Protection des données locales
 
@@ -762,7 +761,7 @@ Une sauvegarde non testée ne doit pas être considérée comme fiable.
 - mot de passe ;
 - access token ;
 - refresh token ;
-- code complet d’invitation ;
+- code complet d’accès ;
 - token de réinitialisation ;
 - clés push ;
 - clé IA ;
@@ -941,7 +940,7 @@ Ils ne doivent pas voir automatiquement :
 
 La première version ne possède pas de profil public.
 
-Un utilisateur n’est visible par un autre que dans le contexte d’une invitation ou séance partagée.
+Un utilisateur n’est visible par un autre que dans le contexte d’une séance partagée (membership active).
 
 ## 34. Sécurité nutritionnelle
 
@@ -1041,7 +1040,7 @@ Limiter :
 - tentatives de connexion ;
 - reset password ;
 - création de salles ;
-- invitations ;
+- join par code ;
 - commandes Socket.IO ;
 - appels IA ;
 - exports ;
@@ -1126,7 +1125,7 @@ Le système doit permettre :
 - révocation de toutes les sessions ;
 - désactivation d’un compte ;
 - désactivation de l’IA ;
-- désactivation des invitations ;
+- désactivation des joins par code ;
 - désactivation des notifications ;
 - mise en maintenance.
 
@@ -1144,7 +1143,7 @@ Le système doit permettre :
 ### Intégration
 
 - accès à une ressource étrangère ;
-- invitation expirée ;
+- code invalide ou salle terminée ;
 - modification de série étrangère ;
 - refresh token révoqué ;
 - payload trop large ;
@@ -1155,7 +1154,7 @@ Le système doit permettre :
 
 - utilisateur A tente d’accéder aux données B ;
 - participant tente une action hôte ;
-- code d’invitation révoqué ;
+- code d’accès rotaté (ancien code refusé) ;
 - compte désactivé ;
 - changement de compte sur une PWA avec données locales ;
 - suppression du compte ;
@@ -1194,7 +1193,7 @@ La sécurité initiale est considérée comme acceptable lorsque :
 - les refresh tokens sont révocables et hachés ;
 - les routes vérifient la propriété ;
 - les connexions Socket.IO sont authentifiées ;
-- les invitations expirent ;
+- les codes des salles terminées ne sont plus joinables ;
 - les données locales sont nettoyées au changement de compte ;
 - les logs excluent les données sensibles ;
 - les données IA sont minimisées ;

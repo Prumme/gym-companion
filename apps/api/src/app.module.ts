@@ -20,7 +20,10 @@ import { SharedWorkoutsModule } from './modules/shared-workouts/shared-workouts.
   imports: [
     AppConfigModule,
     PrismaModule,
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60_000, limit: 100 }],
+      skipIf: () => process.env.NODE_ENV === 'test',
+    }),
     HealthModule,
     AuthModule,
     UsersModule,

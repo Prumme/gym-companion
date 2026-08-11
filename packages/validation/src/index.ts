@@ -2278,22 +2278,17 @@ export type {
   UpdateSharedWorkoutRoomInput,
 } from './shared-workout-rooms';
 export {
-  buildSharedWorkoutRoomInvitationCursorFilter,
-  canAcceptSharedWorkoutRoomInvitation,
-  canInviteToSharedWorkoutRoom,
+  SHARED_WORKOUT_JOIN_CODE_ALPHABET,
+  SHARED_WORKOUT_JOIN_CODE_GENERATE_MAX_ATTEMPTS,
+  SHARED_WORKOUT_JOIN_CODE_LENGTH,
+  canJoinSharedWorkoutRoomByCode,
   canLeaveSharedWorkoutRoom,
-  createSharedWorkoutRoomInvitationBodySchema,
-  decodeSharedWorkoutRoomInvitationCursor,
-  encodeSharedWorkoutRoomInvitationCursor,
-  sharedWorkoutRoomInvitationListQuerySchema,
-  sharedWorkoutRoomInvitationStatusSchema,
-} from './shared-workout-invitations';
-export type {
-  CreateSharedWorkoutRoomInvitationInput,
-  SharedWorkoutRoomInvitationCursorPayload,
-  SharedWorkoutRoomInvitationListQuery,
-  SharedWorkoutRoomInvitationStatusValue,
-} from './shared-workout-invitations';
+  canRotateSharedWorkoutJoinCode,
+  formatSharedWorkoutJoinCode,
+  joinSharedWorkoutBodySchema,
+  normalizeSharedWorkoutJoinCode,
+} from './shared-workout-join-code';
+export type { JoinSharedWorkoutInput } from './shared-workout-join-code';
 export {
   sharedWorkoutRoomSubscribeBodySchema,
   sharedWorkoutRoomUnsubscribeBodySchema,

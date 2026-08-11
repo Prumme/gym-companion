@@ -58,7 +58,7 @@ Structure cible (routes livrées en gras conceptuel via commentaires) :
 ├── forgot-password
 ├── reset-password
 ├── verify-email                    # futur
-├── invite/:invitationCode          # futur (codes publics — hors Shared 5.2)
+├── invite/:invitationCode          # futur (lien public — hors V1)
 │
 ├── profile                         # livré
 ├── planning                        # livré
@@ -79,9 +79,7 @@ Structure cible (routes livrées en gras conceptuel via commentaires) :
 │
 ├── shared-workouts                 # Shared 5.1 → 5.4 livrés
 │   ├── new                         # livré
-│   ├── invitations                 # Shared 5.2 — invitations reçues
-│   ├── join                        # futur (codes / liens publics)
-│   └── :roomId                     # livré (lobby + Ma séance 5.4 + présence 5.3)
+│   └── :roomId                     # livré (lobby + code owner + Ma séance 5.4 + présence 5.3)
 │       ├── lobby                   # futur (alias possible)
 │       ├── active                  # futur (alias possible)
 │       └── summary                 # futur
@@ -114,9 +112,9 @@ Structure cible (routes livrées en gras conceptuel via commentaires) :
 > Routes coaching livrées : `/coach`, `/coach/chat`, `/progress/exercises/:exerciseId`.
 > `/coach/proposals/:proposalId` reste **futur** (génération de programme) — hors Couche Coaching 5.1–5.6.
 > « Phase 5 » / Shared (`shared-workouts`) = roadmap **Séances partagées** :
-> **Shared 5.1 → 5.4 livrés** (`/shared-workouts`, `/new`, `/invitations`, `/:roomId`
-> avec présence Socket.IO + section Ma séance) ; join par code / rotation /
-> sync séries = **Shared 5.5+**.
+> **Shared 5.1 → 5.4 livrés** (`/shared-workouts`, `/new`, `/:roomId`
+> avec code d’accès owner, join-by-code sheet, présence Socket.IO + section Ma séance) ;
+> rotation / sync séries = **Shared 5.5+**.
 
 ## 4. Navigation mobile principale
 
@@ -257,7 +255,7 @@ Les pages publiques utilisent un layout distinct.
 - mot de passe oublié ;
 - réinitialisation ;
 - vérification d’email ;
-- invitation nécessitant une connexion.
+- code d’accès nécessitant une connexion pour rejoindre.
 
 ### Contenu du layout
 
@@ -390,7 +388,7 @@ Contenu :
 
 #### Séance partagée
 
-- invitation en attente ;
+- salle partagée en attente de join ;
 - salle programmée ;
 - participants ;
 - bouton Rejoindre.
@@ -442,7 +440,7 @@ La page Aujourd’hui peut servir de tableau de bord principal. Une route distin
 - évolution récente ;
 - objectif nutritionnel ;
 - poids ;
-- invitations ;
+- codes d’accès / salles partagées ;
 - raccourcis.
 
 La page ne doit pas devenir une accumulation de cartes sans hiérarchie.
@@ -899,14 +897,14 @@ Hors scope 4.5 : autres formules, 1RM RIR/RPE, recommandations, matérialisation
 
 > **Shared 5.1 (livré)** — formulaire minimal (nom optionnel).  
 > Sélection de modèle, équipements et capacité = jalons ultérieurs.
-> Invitation par email = Shared 5.2 (depuis le détail salle).
+> Code d’accès auto-généré à la création (Shared 5.2).
 
 ### Shared 5.1 — étapes
 
 1. Saisir un nom de salle (ou laisser le défaut serveur).
 2. Créer la salle.
 3. Naviguer vers `/shared-workouts/:roomId`.
-4. *(Shared 5.2)* Inviter des comptes par email depuis le détail.
+4. *(Shared 5.2)* Copier / partager le code d’accès depuis le détail (owner).
 
 ### Cible produit (ultérieur)
 
@@ -914,7 +912,7 @@ Hors scope 4.5 : autres formules, 1RM RIR/RPE, recommandations, matérialisation
 2. Définir les équipements disponibles.
 3. Définir les options de salle.
 4. Créer la salle.
-5. Partager un code / lien public (hors Shared 5.2).
+5. Partager un lien public `/invite/:code` (hors V1).
 
 ### Informations Shared 5.1
 
@@ -927,8 +925,8 @@ Hors scope 4.5 : autres formules, 1RM RIR/RPE, recommandations, matérialisation
 ```
 
 Affiche les salles dont l’utilisateur est **membre actif** (filtre `status`, pagination cursor).
-UX-6 : invitations reçues prioritaires en tête de page ; salles en lignes compactes ;
-empty state avec un seul CTA « Créer une salle ». Page `/invitations` conservée en secours.
+UX-6 : header + CTA « Créer une salle » et sheet « Rejoindre avec un code » ;
+salles en lignes compactes ; empty state avec un seul CTA « Créer une salle ».
 
 ### Lobby / détail unifié Shared 5.1 → 5.4 (UX-6)
 
@@ -939,7 +937,7 @@ empty state avec un seul CTA « Créer une salle ». Page `/invitations` conserv
 Selon `status` : préparation (LOBBY), en cours (ACTIVE), terminée / annulée (read-only).
 Header compact + menu `…` selon rôle.
 Actions owner : renommer (LOBBY/ACTIVE), démarrer, terminer, annuler ;
-inviter par email + lister / annuler les `PENDING` (LOBBY/ACTIVE).
+afficher / copier / rotater le code d’accès (LOBBY/ACTIVE).
 Actions MEMBER actif : quitter la salle (LOBBY/ACTIVE).
 Membres affichés = memberships actifs uniquement (`leftAt IS NULL`).
 Bottom nav globale **conservée** (pas de focus mode room).
@@ -980,51 +978,39 @@ l’écran workout en lobby partagé. Aucune nouvelle page obligatoire.
 - attach / create **online-only** (message connexion si offline) ;
 - `MEMBER_WORKOUT_CHANGED` / Shared 5.5 progress events → refetch détail + « ma séance ».
 
-### Invitations reçues (Shared 5.2)
-
-```text
-/shared-workouts/invitations
-```
-
-Liste des invitations reçues (filtre `status`, cursor). Actions : accepter / refuser
-les `PENDING`. Acceptation → membership `MEMBER` puis navigation vers la salle.
-
 ## 27. Rejoindre une séance partagée
 
-> **Shared 5.2 livré** via invitations email (`/shared-workouts/invitations`).
-> Les routes ci-dessous (codes / liens publics) restent **futures**.
+> **Shared 5.2 livré** — sheet « Rejoindre avec un code » depuis `/shared-workouts`
+> (utilisateur authentifié). Pas de page `/shared-workouts/invitations`.
 
-### Routes futures (codes)
+### Parcours livré
+
+1. Ouvrir `/shared-workouts`.
+2. Ouvrir la sheet « Rejoindre avec un code ».
+3. Saisir le code (`XXX-XXX`, tiret optionnel).
+4. Confirmer → `POST /api/v1/shared-workouts/join`.
+5. Navigation vers `/shared-workouts/:roomId` en cas de succès.
+
+### États UI
+
+- code valide → lobby ;
+- code invalide / salle terminée → « Code invalide ou expiré. » ;
+- déjà membre → détail salle (idempotent) ;
+- connexion requise (JWT).
+
+### Route publique future (hors V1)
 
 ```text
 /invite/:invitationCode
-/shared-workouts/join
 ```
 
-### Contenu (cible codes)
-
-- informations de la salle ;
-- hôte ;
-- participants ;
-- séance ;
-- validité de l’invitation ;
-- bouton Rejoindre.
-
-### États (cible codes)
-
-- invitation valide ;
-- expirée ;
-- révoquée ;
-- salle complète ;
-- salle terminée ;
-- connexion requise ;
-- déjà membre.
+Permettrait de pré-remplir le code avant authentification ; non livré en V1.
 
 ## 28. Lobby d’une séance partagée
 
 > En Shared 5.1–5.4 le lobby est unifié sur `/shared-workouts/:roomId`
-> (invite email + leave + présence Socket.IO + Ma séance). Route dédiée /
-> codes publics / rotation = **Shared 5.5+**.
+> (code d’accès owner + join-by-code + leave + présence Socket.IO + Ma séance).
+> Route dédiée `/lobby` / rotation = **Shared 5.5+**.
 
 ### Route (cible — alias optionnel)
 
@@ -1036,7 +1022,8 @@ les `PENDING`. Acceptation → membership `MEMBER` puis navigation vers la salle
 
 - hôte / membres actifs ;
 - libellés de présence en ligne (Shared 5.3) ;
-- invite email + leave (Shared 5.2) ;
+- code d’accès owner : copier / rotater (Shared 5.2) ;
+- leave (Shared 5.2) ;
 - lifecycle owner (Shared 5.1) ;
 - section **Ma séance** : attach / create + résumé `memberWorkout` (Shared 5.4).
 
@@ -1045,14 +1032,13 @@ les `PENDING`. Acceptation → membership `MEMBER` puis navigation vers la salle
 - équipements ;
 - séance / plans ;
 - rotation proposée ;
-- code d’invitation (futur) ;
 - durée cible ;
 - statuts participant enrichis (ready, station, etc.).
 
 ### Actions de l’hôte
 
-- partager ;
-- révoquer le code ;
+- partager le code ;
+- rotater le code ;
 - retirer un participant ;
 - modifier les équipements ;
 - recalculer la rotation ;
@@ -1320,7 +1306,7 @@ Contenu futur :
 
 ### Contenu
 
-- invitations ;
+- codes d’accès / salles partagées ;
 - rappels ;
 - changements importants ;
 - sécurité du compte ;
@@ -1452,7 +1438,7 @@ Expliquer quelles fonctions restent disponibles.
 - mot de passe oublié ;
 - réinitialisation ;
 - vérification ;
-- invitation avant authentification.
+- lien public `/invite/:code` (futur, hors V1).
 
 ### Routes authentifiées
 
@@ -1464,8 +1450,8 @@ Routes sous `/admin` avec rôle adapté.
 
 ### Séance partagée
 
-L’utilisateur doit être **membre actif** de la salle, ou accéder aux invitations
-reçues (`/shared-workouts/invitations`) pour accept / decline.
+L’utilisateur doit être **membre actif** de la salle. Pour rejoindre : sheet
+« Rejoindre avec un code » sur `/shared-workouts` (authentification requise).
 
 ## 44. Gestion des redirections
 
@@ -1474,7 +1460,7 @@ Après connexion, l’utilisateur doit revenir vers l’action initialement dema
 Exemple :
 
 ```text
-invitation → connexion → lobby de la séance
+code d’accès → connexion → join → lobby de la séance
 ```
 
 Une route invalide ou interdite ne doit pas créer de boucle de redirection.

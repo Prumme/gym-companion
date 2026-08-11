@@ -129,6 +129,24 @@ async function createActiveRoom(
   return roomId;
 }
 
+async function joinWithCode(
+  app: INestApplication,
+  ownerToken: string,
+  memberToken: string,
+  roomId: string,
+) {
+  const detail = await request(app.getHttpServer())
+    .get(`/api/v1/shared-workouts/${roomId}`)
+    .set('Authorization', `Bearer ${ownerToken}`)
+    .expect(200);
+  const joinCode = detail.body.data.joinCode as string;
+  await request(app.getHttpServer())
+    .post('/api/v1/shared-workouts/join')
+    .set('Authorization', `Bearer ${memberToken}`)
+    .send({ code: joinCode })
+    .expect(200);
+}
+
 async function cancelActiveWorkout(
   app: INestApplication,
   token: string,
@@ -237,16 +255,8 @@ describe('Shared workout member sessions (Shared 5.4)', () => {
   it('attach ACTIVE + détail membre + IDOR + unicité room', async () => {
     const roomId = await createActiveRoom(app, tokenA, 'Attach room');
 
-    // Invite B
-    const invite = await request(app.getHttpServer())
-      .post(`/api/v1/shared-workouts/${roomId}/invitations`)
-      .set('Authorization', `Bearer ${tokenA}`)
-      .send({ inviteeEmail: `sw54-b-${stamp}@test.local` })
-      .expect(201);
-    await request(app.getHttpServer())
-      .post(`/api/v1/shared-workout-invitations/${invite.body.data.id}/accept`)
-      .set('Authorization', `Bearer ${tokenB}`)
-      .expect(200);
+    // Join B
+    await joinWithCode(app, tokenA, tokenB, roomId);
 
     const session = await request(app.getHttpServer())
       .post('/api/v1/workouts')
@@ -334,15 +344,7 @@ describe('Shared workout member sessions (Shared 5.4)', () => {
 
   it('create depuis room atomique + leave independence + rejoin', async () => {
     const roomId = await createActiveRoom(app, tokenA, 'Create room');
-    const invite = await request(app.getHttpServer())
-      .post(`/api/v1/shared-workouts/${roomId}/invitations`)
-      .set('Authorization', `Bearer ${tokenA}`)
-      .send({ inviteeEmail: `sw54-b-${stamp}@test.local` })
-      .expect(201);
-    await request(app.getHttpServer())
-      .post(`/api/v1/shared-workout-invitations/${invite.body.data.id}/accept`)
-      .set('Authorization', `Bearer ${tokenB}`)
-      .expect(200);
+    await joinWithCode(app, tokenA, tokenB, roomId);
 
     const created = await request(app.getHttpServer())
       .post(`/api/v1/shared-workouts/${roomId}/my-workout-session/create`)
@@ -379,16 +381,8 @@ describe('Shared workout member sessions (Shared 5.4)', () => {
     });
     expect(links).toBe(1);
 
-    // Rejoin via new invite
-    const invite2 = await request(app.getHttpServer())
-      .post(`/api/v1/shared-workouts/${roomId}/invitations`)
-      .set('Authorization', `Bearer ${tokenA}`)
-      .send({ inviteeEmail: `sw54-b-${stamp}@test.local` })
-      .expect(201);
-    await request(app.getHttpServer())
-      .post(`/api/v1/shared-workout-invitations/${invite2.body.data.id}/accept`)
-      .set('Authorization', `Bearer ${tokenB}`)
-      .expect(200);
+    // Rejoin via code
+    await joinWithCode(app, tokenA, tokenB, roomId);
 
     const my = await request(app.getHttpServer())
       .get(`/api/v1/shared-workouts/${roomId}/my-workout-session`)
@@ -443,16 +437,7 @@ describe('Shared workout member sessions (Shared 5.4)', () => {
 
   it('attach PAUSED autorisé — ownership, unicité, lifecycle inchangé', async () => {
     const roomId = await createActiveRoom(app, tokenA, 'Paused attach');
-
-    const invite = await request(app.getHttpServer())
-      .post(`/api/v1/shared-workouts/${roomId}/invitations`)
-      .set('Authorization', `Bearer ${tokenA}`)
-      .send({ inviteeEmail: `sw54-b-${stamp}@test.local` })
-      .expect(201);
-    await request(app.getHttpServer())
-      .post(`/api/v1/shared-workout-invitations/${invite.body.data.id}/accept`)
-      .set('Authorization', `Bearer ${tokenB}`)
-      .expect(200);
+    await joinWithCode(app, tokenA, tokenB, roomId);
 
     const session = await request(app.getHttpServer())
       .post('/api/v1/workouts')

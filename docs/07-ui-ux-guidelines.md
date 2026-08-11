@@ -223,7 +223,7 @@ Ouvre un sheet mobile (safe-area) groupé — pas une liste plate :
 Chaque entrée : icône + label + description courte + `>`.
 Fermeture Escape / overlay / navigation.
 Pas de destination « Paramètres » tant qu’aucune page n’existe.
-Pas de faux badge invitations (requête shell dédiée hors scope).
+Pas de faux badge « invitations reçues » (ancien flux email supprimé).
 
 ### 8.3 Navigation pendant une séance
 
@@ -596,8 +596,7 @@ Règles métier / realtime : voir `docs/10-realtime-workouts.md` (REST = vérit�
 
 ### 17.1 Liste (`/shared-workouts`)
 
-- Header + CTA `+ Créer une salle`
-- Section **Invitations** en tête si non vide (Rejoindre / Refuser)
+- Header + CTA `+ Créer une salle` + action « Rejoindre avec un code » (sheet)
 - **Mes salles** en lignes compactes (statut + N participants)
 - Empty : un seul CTA Créer (pas de double si déjà en header)
 
@@ -605,7 +604,7 @@ Règles métier / realtime : voir `docs/10-realtime-workouts.md` (REST = vérit�
 
 Route unifiée. Header compact + menu `…` selon rôle.
 
-**Lobby** : présence ●/○ + texte, inviter (owner), ta séance (attente), CTA Démarrer (owner).
+**Lobby** : présence ●/○ + texte, code d’accès (owner : copier / rotater), ta séance (attente), CTA Démarrer (owner).
 
 **ACTIVE** :
 1. Toi (séance liée + exercice courant coarse + Ouvrir)
@@ -635,8 +634,8 @@ Pas d’IDs ni `requestedAt`.
 
 ### 17.6 Owner vs member
 
-Owner : inviter, renommer, démarrer, terminer, annuler.
-Member : accepter/refuser invitation, quitter, gérer sa séance et son équipement.
+Owner : code d’accès (copier / rotater), renommer, démarrer, terminer, annuler.
+Member : rejoindre via code (sheet liste), quitter, gérer sa séance et son équipement.
 Ne pas simuler une permission absente serveur.
 
 ## 17bis. Exercices / Plus / Profil (UX-7)

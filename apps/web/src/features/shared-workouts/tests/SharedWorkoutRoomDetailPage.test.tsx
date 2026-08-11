@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,6 +9,7 @@ import type { SharedWorkoutRoomDetail } from '@gym-companion/shared';
 import { SharedWorkoutRoomDetailPage } from '../pages/SharedWorkoutRoomDetailPage';
 
 const getSharedWorkoutRoom = vi.fn();
+const rotateSharedWorkoutJoinCode = vi.fn();
 
 const realtimeState = {
   connectedUserIds: new Set(['user-a']),
@@ -26,6 +27,8 @@ vi.mock('../hooks/use-shared-workout-room-realtime', () => ({
 
 vi.mock('../api/shared-workouts-api', () => ({
   getSharedWorkoutRoom: (...args: unknown[]) => getSharedWorkoutRoom(...args),
+  rotateSharedWorkoutJoinCode: (...args: unknown[]) =>
+    rotateSharedWorkoutJoinCode(...args),
   getMySharedWorkoutSession: vi.fn(async () => ({
     linked: false,
     workoutSession: null,
@@ -41,16 +44,10 @@ vi.mock('../api/shared-workouts-api', () => ({
     queuePosition: null,
     occupiedBy: null,
   })),
-  listRoomInvitations: vi.fn(async () => ({
-    data: [],
-    pagination: { nextCursor: null, hasMore: false },
-  })),
   updateSharedWorkoutRoom: vi.fn(),
   startSharedWorkoutRoom: vi.fn(),
   completeSharedWorkoutRoom: vi.fn(),
   cancelSharedWorkoutRoom: vi.fn(),
-  inviteToSharedWorkoutRoom: vi.fn(),
-  cancelRoomInvitation: vi.fn(),
   leaveSharedWorkoutRoom: vi.fn(),
   attachMySharedWorkoutSession: vi.fn(),
   createMySharedWorkoutSession: vi.fn(),
@@ -121,6 +118,7 @@ function roomFixture(
     createdAt: '2026-08-10T10:00:00.000Z',
     updatedAt: '2026-08-10T10:00:00.000Z',
     isOwner: true,
+    joinCode: 'K7M-4PX',
     myWorkoutSessionId: null,
     ...overrides,
   };
@@ -147,9 +145,15 @@ function renderDetail(roomId = 'room-1') {
 describe('SharedWorkoutRoomDetailPage', () => {
   beforeEach(() => {
     getSharedWorkoutRoom.mockReset();
+    rotateSharedWorkoutJoinCode.mockReset();
     realtimeState.connectedUserIds = new Set(['user-a']);
     realtimeState.connectionStatus = 'connected';
     realtimeState.realtimeAvailable = true;
+
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      onLine: true,
+    });
   });
 
   it('affiche le lobby owner avec start', async () => {
@@ -164,6 +168,75 @@ describe('SharedWorkoutRoomDetailPage', () => {
       screen.getByRole('button', { name: /démarrer la séance/i }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/temps réel connecté/i)).not.toBeInTheDocument();
+  });
+
+  it('affiche le code d’accès owner sans invitation e-mail', async () => {
+    getSharedWorkoutRoom.mockResolvedValue(roomFixture());
+    renderDetail();
+
+    expect(await screen.findByText(/code d’accès/i)).toBeInTheDocument();
+    expect(screen.getByText('K7M-4PX')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /^copier$/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /régénérer/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/inviter/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/e-mail/i)).not.toBeInTheDocument();
+  });
+
+  it('copie le code d’accès', async () => {
+    const user = userEvent.setup();
+    getSharedWorkoutRoom.mockResolvedValue(roomFixture());
+    renderDetail();
+
+    await user.click(await screen.findByRole('button', { name: /^copier$/i }));
+    expect(
+      await screen.findByRole('button', { name: /code copié/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('régénère le code après confirmation', async () => {
+    const user = userEvent.setup();
+    getSharedWorkoutRoom.mockResolvedValue(roomFixture());
+    rotateSharedWorkoutJoinCode.mockResolvedValue({ joinCode: 'ABC-2XY' });
+    renderDetail();
+
+    await user.click(await screen.findByRole('button', { name: /régénérer/i }));
+    expect(
+      screen.getByRole('alertdialog', { name: /régénérer le code/i }),
+    ).toBeInTheDocument();
+
+    const dialog = screen.getByRole('alertdialog', { name: /régénérer le code/i });
+    await user.click(
+      within(dialog).getByRole('button', { name: /^régénérer$/i }),
+    );
+
+    await waitFor(() => {
+      expect(rotateSharedWorkoutJoinCode).toHaveBeenCalledWith('room-1');
+    });
+    expect(await screen.findByText('ABC-2XY')).toBeInTheDocument();
+  });
+
+  it('n’affiche pas le code en salle terminée', async () => {
+    getSharedWorkoutRoom.mockResolvedValue(
+      roomFixture({
+        status: 'COMPLETED',
+        startedAt: '2026-08-10T11:00:00.000Z',
+        completedAt: '2026-08-10T12:00:00.000Z',
+        joinCode: null,
+      }),
+    );
+    renderDetail();
+
+    expect(
+      await screen.findByText(/séance partagée terminée/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/code d’accès/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /régénérer/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('affiche ACTIVE avec terminer / annuler dans le menu', async () => {
@@ -195,6 +268,7 @@ describe('SharedWorkoutRoomDetailPage', () => {
         startedAt: '2026-08-10T11:00:00.000Z',
         completedAt: '2026-08-10T12:00:00.000Z',
         isOwner: true,
+        joinCode: null,
       }),
     );
     renderDetail();
@@ -215,6 +289,7 @@ describe('SharedWorkoutRoomDetailPage', () => {
     getSharedWorkoutRoom.mockResolvedValue(
       roomFixture({
         isOwner: false,
+        joinCode: null,
         members: [
           {
             userId: 'user-a',
@@ -250,6 +325,7 @@ describe('SharedWorkoutRoomDetailPage', () => {
     renderDetail();
 
     expect(await screen.findByText(/bob/i)).toBeInTheDocument();
+    expect(screen.queryByText(/code d’accès/i)).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /démarrer/i }),
     ).not.toBeInTheDocument();

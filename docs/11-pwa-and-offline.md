@@ -47,7 +47,7 @@ Lorsque le réseau est coupé, l’application ne doit pas prétendre que :
 
 - les données sont sur le serveur ;
 - une séance partagée continue normalement ;
-- une invitation est envoyée ;
+- une tentative de join est effectuée ;
 - une proposition IA est générée.
 
 ### 2.4 Préservation des données
@@ -97,13 +97,12 @@ Précisions coaching :
 
 ```text
 /api/v1/shared-workouts/*
-/api/v1/shared-workout-invitations/*
 ```
 
 également **NetworkOnly**. Serveur authoritative ; **aucune** queue offline IndexedDB
-pour les rooms, invitations, ni l’**association** séance↔salle (Shared 5.4),
+pour les rooms, join codes, ni l’**association** séance↔salle (Shared 5.4),
 ni l’exercice courant shared (Shared 5.5).
-Création / invite / accept / decline / leave / mutations lifecycle / attach /
+Création / join / rotate code / leave / mutations lifecycle / attach /
 create `my-workout-session` / `current-exercise` nécessitent une connexion ;
 message UI :
 
@@ -255,8 +254,7 @@ Recommandation :
 - TanStack Query pour le cache mémoire ;
 - IndexedDB pour les données explicitement nécessaires ;
 - pas de cache opaque généralisé des endpoints privés dans le service worker ;
-- en particulier `/api/v1/coaching/*`, `/api/v1/shared-workouts/*` et
-  `/api/v1/shared-workout-invitations/*` → **NetworkOnly** (voir §3).
+- en particulier `/api/v1/coaching/*` et `/api/v1/shared-workouts/*` → **NetworkOnly** (voir §3).
 
 ### 6.5 Réponses d’authentification
 
@@ -940,7 +938,7 @@ Exemples :
 
 - activer les rappels ;
 - activer la fin de repos ;
-- recevoir les invitations.
+- recevoir les rappels de séance partagée ;
 
 ### 34.3 Réception
 

@@ -10,6 +10,7 @@ import type {
 import {
   buildExerciseProgressSummary,
   buildWorkoutProgressSummary,
+  formatSharedWorkoutJoinCode,
 } from '@gym-companion/validation';
 
 type SetStatusRow = { status: string };
@@ -55,6 +56,7 @@ type RoomRow = {
   name: string;
   status: string;
   ownerUserId: string;
+  joinCode: string;
   startedAt: Date | null;
   completedAt: Date | null;
   cancelledAt: Date | null;
@@ -155,6 +157,9 @@ export function toSharedWorkoutRoomDetail(
   const members = activeMembers(room.members);
   const ownerMember = members.find((member) => member.role === 'OWNER');
   const viewerMember = members.find((member) => member.userId === viewerUserId);
+  const isOwner = room.ownerUserId === viewerUserId;
+  const showJoinCode =
+    isOwner && (room.status === 'LOBBY' || room.status === 'ACTIVE');
   return {
     id: room.id,
     name: room.name,
@@ -180,7 +185,10 @@ export function toSharedWorkoutRoomDetail(
     cancelledAt: room.cancelledAt?.toISOString() ?? null,
     createdAt: room.createdAt.toISOString(),
     updatedAt: room.updatedAt.toISOString(),
-    isOwner: room.ownerUserId === viewerUserId,
+    isOwner,
+    joinCode: showJoinCode
+      ? formatSharedWorkoutJoinCode(room.joinCode)
+      : null,
     myWorkoutSessionId:
       viewerMember?.memberSession?.workoutSessionId ?? null,
   };

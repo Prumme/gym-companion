@@ -138,21 +138,21 @@ async function createActiveRoom(
   return roomId;
 }
 
-async function inviteAndAccept(
+async function joinWithCode(
   app: INestApplication,
   ownerToken: string,
-  inviteeToken: string,
+  memberToken: string,
   roomId: string,
-  inviteeEmail: string,
 ) {
-  const invite = await request(app.getHttpServer())
-    .post(`/api/v1/shared-workouts/${roomId}/invitations`)
+  const detail = await request(app.getHttpServer())
+    .get(`/api/v1/shared-workouts/${roomId}`)
     .set('Authorization', `Bearer ${ownerToken}`)
-    .send({ inviteeEmail })
-    .expect(201);
+    .expect(200);
+  const joinCode = detail.body.data.joinCode as string;
   await request(app.getHttpServer())
-    .post(`/api/v1/shared-workout-invitations/${invite.body.data.id}/accept`)
-    .set('Authorization', `Bearer ${inviteeToken}`)
+    .post('/api/v1/shared-workouts/join')
+    .set('Authorization', `Bearer ${memberToken}`)
+    .send({ code: joinCode })
     .expect(200);
 }
 
@@ -243,7 +243,6 @@ describe('Shared workout progress (Shared 5.5)', () => {
   let tokenA: string;
   let userIdA: string;
   let tokenB: string;
-  let emailB: string;
   let tokenC: string;
   let templateA: string;
   let templateB: string;
@@ -274,7 +273,6 @@ describe('Shared workout progress (Shared 5.5)', () => {
     tokenA = a.token;
     userIdA = a.userId;
     tokenB = b.token;
-    emailB = b.email;
     tokenC = c.token;
 
     templateA = (await createStartableTemplate(app, tokenA, prisma, `A-${stamp}`, 2))
@@ -294,7 +292,7 @@ describe('Shared workout progress (Shared 5.5)', () => {
 
   it('current exercise update + progress + privacy + context', async () => {
     const roomId = await createActiveRoom(app, tokenA, `Progress ${stamp}`);
-    await inviteAndAccept(app, tokenA, tokenB, roomId, emailB);
+    await joinWithCode(app, tokenA, tokenB, roomId);
 
     const created = await request(app.getHttpServer())
       .post(`/api/v1/shared-workouts/${roomId}/my-workout-session/create`)
@@ -449,7 +447,7 @@ describe('Shared workout progress (Shared 5.5)', () => {
 
   it('refuse cross-session exercise + room/workout states', async () => {
     const roomId = await createActiveRoom(app, tokenA, `States ${stamp}`);
-    await inviteAndAccept(app, tokenA, tokenB, roomId, emailB);
+    await joinWithCode(app, tokenA, tokenB, roomId);
 
     const createdA = await request(app.getHttpServer())
       .post(`/api/v1/shared-workouts/${roomId}/my-workout-session/create`)
@@ -548,7 +546,7 @@ describe('Shared workout progress (Shared 5.5)', () => {
 
   it('realtime current exercise + progress without noise', async () => {
     const roomId = await createActiveRoom(app, tokenA, `RT ${stamp}`);
-    await inviteAndAccept(app, tokenA, tokenB, roomId, emailB);
+    await joinWithCode(app, tokenA, tokenB, roomId);
 
     const created = await request(app.getHttpServer())
       .post(`/api/v1/shared-workouts/${roomId}/my-workout-session/create`)
@@ -682,7 +680,7 @@ describe('Shared workout progress (Shared 5.5)', () => {
 
   it('leave stops progress broadcast; unlinked context', async () => {
     const roomId = await createActiveRoom(app, tokenA, `Leave ${stamp}`);
-    await inviteAndAccept(app, tokenA, tokenB, roomId, emailB);
+    await joinWithCode(app, tokenA, tokenB, roomId);
 
     const created = await request(app.getHttpServer())
       .post(`/api/v1/shared-workouts/${roomId}/my-workout-session/create`)

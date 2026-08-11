@@ -3,9 +3,8 @@ import type {
   MySharedWorkoutEquipmentState,
   MySharedWorkoutSessionDto,
   SharedWorkoutEquipmentCoordinationDto,
+  SharedWorkoutJoinCodeDto,
   SharedWorkoutRoomDetail,
-  SharedWorkoutRoomInvitationDto,
-  SharedWorkoutRoomInvitationStatus,
   SharedWorkoutRoomListItem,
   SharedWorkoutRoomStatus,
   SharedWorkoutSessionContextDto,
@@ -16,12 +15,6 @@ import { apiFetch } from '@/lib/api/client';
 
 export type SharedWorkoutRoomListFilters = {
   status?: SharedWorkoutRoomStatus;
-  cursor?: string;
-  limit?: number;
-};
-
-export type SharedWorkoutInvitationListFilters = {
-  status?: SharedWorkoutRoomInvitationStatus;
   cursor?: string;
   limit?: number;
 };
@@ -117,12 +110,11 @@ export async function cancelSharedWorkoutRoom(
   return response.data;
 }
 
-export async function inviteToSharedWorkoutRoom(
-  roomId: string,
-  input: { inviteeEmail: string },
-): Promise<SharedWorkoutRoomInvitationDto> {
-  const response = await apiFetch<{ data: SharedWorkoutRoomInvitationDto }>(
-    `/api/v1/shared-workouts/${encodeURIComponent(roomId)}/invitations`,
+export async function joinSharedWorkoutRoom(input: {
+  code: string;
+}): Promise<SharedWorkoutRoomDetail> {
+  const response = await apiFetch<{ data: SharedWorkoutRoomDetail }>(
+    '/api/v1/shared-workouts/join',
     {
       method: 'POST',
       body: JSON.stringify(input),
@@ -131,26 +123,11 @@ export async function inviteToSharedWorkoutRoom(
   return response.data;
 }
 
-export async function listRoomInvitations(
+export async function rotateSharedWorkoutJoinCode(
   roomId: string,
-  filters: SharedWorkoutInvitationListFilters = {},
-): Promise<ApiCursorListResponse<SharedWorkoutRoomInvitationDto>> {
-  const params = new URLSearchParams();
-  if (filters.status) params.set('status', filters.status);
-  if (filters.cursor) params.set('cursor', filters.cursor);
-  if (filters.limit != null) params.set('limit', String(filters.limit));
-  const qs = params.toString();
-  return apiFetch<ApiCursorListResponse<SharedWorkoutRoomInvitationDto>>(
-    `/api/v1/shared-workouts/${encodeURIComponent(roomId)}/invitations${qs ? `?${qs}` : ''}`,
-  );
-}
-
-export async function cancelRoomInvitation(
-  roomId: string,
-  invitationId: string,
-): Promise<SharedWorkoutRoomInvitationDto> {
-  const response = await apiFetch<{ data: SharedWorkoutRoomInvitationDto }>(
-    `/api/v1/shared-workouts/${encodeURIComponent(roomId)}/invitations/${encodeURIComponent(invitationId)}/cancel`,
+): Promise<SharedWorkoutJoinCodeDto> {
+  const response = await apiFetch<{ data: SharedWorkoutJoinCodeDto }>(
+    `/api/v1/shared-workouts/${encodeURIComponent(roomId)}/join-code/rotate`,
     { method: 'POST' },
   );
   return response.data;
@@ -298,35 +275,3 @@ export async function cancelMySharedEquipmentWaiting(
   return response.data;
 }
 
-export async function listReceivedInvitations(
-  filters: SharedWorkoutInvitationListFilters = {},
-): Promise<ApiCursorListResponse<SharedWorkoutRoomInvitationDto>> {
-  const params = new URLSearchParams();
-  if (filters.status) params.set('status', filters.status);
-  if (filters.cursor) params.set('cursor', filters.cursor);
-  if (filters.limit != null) params.set('limit', String(filters.limit));
-  const qs = params.toString();
-  return apiFetch<ApiCursorListResponse<SharedWorkoutRoomInvitationDto>>(
-    `/api/v1/shared-workout-invitations${qs ? `?${qs}` : ''}`,
-  );
-}
-
-export async function acceptSharedWorkoutInvitation(
-  invitationId: string,
-): Promise<SharedWorkoutRoomInvitationDto> {
-  const response = await apiFetch<{ data: SharedWorkoutRoomInvitationDto }>(
-    `/api/v1/shared-workout-invitations/${encodeURIComponent(invitationId)}/accept`,
-    { method: 'POST' },
-  );
-  return response.data;
-}
-
-export async function declineSharedWorkoutInvitation(
-  invitationId: string,
-): Promise<SharedWorkoutRoomInvitationDto> {
-  const response = await apiFetch<{ data: SharedWorkoutRoomInvitationDto }>(
-    `/api/v1/shared-workout-invitations/${encodeURIComponent(invitationId)}/decline`,
-    { method: 'POST' },
-  );
-  return response.data;
-}

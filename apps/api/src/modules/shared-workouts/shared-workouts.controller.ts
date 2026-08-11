@@ -11,6 +11,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { createSuccessResponse } from '@gym-companion/shared';
 
@@ -66,48 +67,15 @@ export class SharedWorkoutsController {
     return createSuccessResponse(data);
   }
 
-  @Get(':roomId/invitations')
-  @ApiOperation({ summary: 'Lister les invitations d’une salle (owner)' })
-  async listRoomInvitations(
+  @Post('join')
+  @HttpCode(200)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Rejoindre une salle via code d’accès' })
+  async join(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('roomId', ParseUUIDPipe) roomId: string,
-    @Query() query: Record<string, string | undefined>,
-  ) {
-    return this.sharedWorkoutsService.listRoomInvitations(
-      user.id,
-      roomId,
-      query,
-    );
-  }
-
-  @Post(':roomId/invitations')
-  @ApiOperation({ summary: 'Inviter un compte existant par email (owner)' })
-  async invite(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('roomId', ParseUUIDPipe) roomId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.sharedWorkoutsService.inviteMember(
-      user.id,
-      roomId,
-      body,
-    );
-    return createSuccessResponse(data);
-  }
-
-  @Post(':roomId/invitations/:invitationId/cancel')
-  @HttpCode(200)
-  @ApiOperation({ summary: 'Annuler une invitation PENDING (owner)' })
-  async cancelInvitation(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('roomId', ParseUUIDPipe) roomId: string,
-    @Param('invitationId', ParseUUIDPipe) invitationId: string,
-  ) {
-    const data = await this.sharedWorkoutsService.cancelInvitation(
-      user.id,
-      roomId,
-      invitationId,
-    );
+    const data = await this.sharedWorkoutsService.joinByCode(user.id, body);
     return createSuccessResponse(data);
   }
 
@@ -338,6 +306,20 @@ export class SharedWorkoutsController {
       user.id,
       roomId,
       body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Post(':roomId/join-code/rotate')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Régénérer le code d’accès (owner, LOBBY/ACTIVE)' })
+  async rotateJoinCode(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('roomId', ParseUUIDPipe) roomId: string,
+  ) {
+    const data = await this.sharedWorkoutsService.rotateJoinCode(
+      user.id,
+      roomId,
     );
     return createSuccessResponse(data);
   }

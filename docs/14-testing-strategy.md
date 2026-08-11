@@ -167,7 +167,7 @@ Ils couvrent :
 - rate limiting ;
 - validation ;
 - secrets ;
-- invitations ;
+- join codes ;
 - WebSocket.
 
 ### 3.9 Tests manuels exploratoires
@@ -635,7 +635,7 @@ Tester :
 - multi-onglets : 2e socket même user → pas de 2e `presence:joined` ;
   dernier socket fermé → `presence:left` ;
 - leave REST → `MEMBER_LEFT` + eviction sockets + `presence:left` ;
-- accept invitation → `MEMBER_JOINED` ; présence online seulement après subscribe ;
+- join via code → `MEMBER_JOINED` ; présence online seulement après subscribe ;
 - rename / start / complete / cancel → `room:changed` **après** commit ;
 - attach / create / lifecycle workout lié → `MEMBER_WORKOUT_CHANGED` **après**
   commit (Shared 5.4) ;
@@ -744,28 +744,23 @@ Tester :
 - aucune `WorkoutSession` créée/modifiée ;
 - UI liste / création / lobby ; offline message ; pas de Socket.IO.
 
-#### Shared 5.2 (invitations / leave — livré)
+#### Shared 5.2 (codes d’accès / leave — livré)
 
-Tester machine à états invitation :
+Tester :
 
-- invite email (trim + lowercase) → `PENDING` ;
-- accept → `ACCEPTED` + membership `MEMBER` ;
-- decline → `DECLINED` ;
-- cancel owner → `CANCELLED` ;
-- accept/decline déjà dans l’état cible = idempotent ;
-- transition invalide → `SHARED_WORKOUT_INVITATION_INVALID_STATUS` ;
-- unique partiel : 2e `PENDING` même invitee → `SHARED_WORKOUT_INVITATION_ALREADY_PENDING` ;
-- anti-énumération : email inconnu / inactif → `SHARED_WORKOUT_INVITATION_CANNOT_CREATE` ;
-- auto-invite / salle terminale → même code ;
-- déjà membre actif → `SHARED_WORKOUT_ROOM_ALREADY_MEMBER` ;
-- complete / cancel room → annule les `PENDING` ; start ne les annule pas ;
-- accept concurrent (race claim PENDING) ;
-- IDOR : non-invitee → 404 sur accept/decline ; non-owner → 403 invite/cancel ;
+- création salle → `joinCode` généré (format affiché `XXX-XXX`, stockage normalisé) ;
+- join avec code (casse / tiret optionnels) → membership `MEMBER` ;
+- join idempotent si déjà membre actif ;
+- code inconnu / salle `COMPLETED` / `CANCELLED` → `SHARED_WORKOUT_JOIN_CODE_INVALID` (message neutre) ;
+- rejoin après leave via même code → `leftAt = null` ;
+- rotate owner → nouveau code ; ancien code refusé ;
+- rotate / join refusés en salle terminale ;
+- rate limit ~10/min sur `POST /join` ;
+- détail : `joinCode` visible owner `LOBBY`/`ACTIVE` uniquement ; null pour les autres ;
 - leave MEMBER → `leftAt` ; OWNER → `SHARED_WORKOUT_ROOM_OWNER_CANNOT_LEAVE` ;
 - leave répété idempotent ; leave en salle terminale refusé ;
-- rejoin : leave puis nouvelle invite acceptée → `leftAt = null` ;
 - listes / détail n’exposent que membres actifs ;
-- UI `/shared-workouts/invitations`, invite sur détail, leave MEMBER ;
+- UI sheet join-by-code, section code owner sur détail, leave MEMBER ;
 - NetworkOnly / message connexion ; pas de Socket.IO ; pas de `WorkoutSession` auto.
 
 #### Shared 5.3 (présence Socket.IO + invalidation — livré)
@@ -845,7 +840,7 @@ Tester :
 - déconnexion / grâce / snapshot workout ;
 - changement de rotation ;
 - restrictions de rôle ;
-- codes / liens d’invitation publics (si retenus).
+- lien public `/invite/:code` (si retenu).
 
 ### 17.4 Nutrition
 
@@ -1253,10 +1248,10 @@ Vérifications prioritaires :
 - entrée HTML ;
 - requête brute ;
 - accès admin ;
-- invitation email (anti-énumération, IDOR invitee/owner) ;
+- join par code (rate limit, code invalide neutre, owner-only rotate) ;
 - Shared 5.4 : attach IDOR (séance étrangère → 404) ; pas de cross-write ;
   `myWorkoutSessionId` viewer-only ;
-- code d’invitation public (futur) ;
+- lien public `/invite/:code` (futur) ;
 - événement Socket.IO étranger ;
 - export d’un autre utilisateur.
 

@@ -77,8 +77,6 @@ model User {
   sharedWorkoutRoomMemberships SharedWorkoutRoomMember[]
   sharedWorkoutRoomLifecycleCommands SharedWorkoutRoomLifecycleCommand[]
   sharedWorkoutEquipmentCommands SharedWorkoutEquipmentCommand[]
-  sharedWorkoutRoomInvitationsSent     SharedWorkoutRoomInvitation[] @relation("SharedWorkoutInvitationInviter")
-  sharedWorkoutRoomInvitationsReceived SharedWorkoutRoomInvitation[] @relation("SharedWorkoutInvitationInvitee")
 
   @@index([status])
   @@map("users")
@@ -736,28 +734,24 @@ enum SharedWorkoutRoomMemberRole {
   MEMBER
 }
 
-enum SharedWorkoutRoomInvitationStatus {
-  PENDING
-  ACCEPTED
-  DECLINED
-  CANCELLED
-}
-
 model SharedWorkoutRoom {
-  id           String                   @id @default(uuid()) @db.Uuid
-  ownerUserId  String                   @db.Uuid
-  name         String
-  status       SharedWorkoutRoomStatus  @default(LOBBY)
-  startedAt    DateTime?
-  completedAt  DateTime?
-  cancelledAt  DateTime?
-  createdAt    DateTime                 @default(now())
-  updatedAt    DateTime                 @updatedAt
+  id                 String                  @id @default(uuid()) @db.Uuid
+  ownerUserId        String                  @db.Uuid
+  name               String
+  status             SharedWorkoutRoomStatus @default(LOBBY)
+  /// Code d’accès normalisé (6 chars, sans tiret). UNIQUE.
+  joinCode           String                  @unique
+  joinCodeCreatedAt  DateTime                @default(now())
+  joinCodeRotatedAt  DateTime?
+  startedAt          DateTime?
+  completedAt        DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
 
   owner        User                                @relation("SharedWorkoutRoomOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
   members      SharedWorkoutRoomMember[]
   commands     SharedWorkoutRoomLifecycleCommand[]
-  invitations  SharedWorkoutRoomInvitation[]
   equipmentQueueEntries SharedWorkoutEquipmentQueueEntry[]
   equipmentCommands     SharedWorkoutEquipmentCommand[]
 
@@ -824,28 +818,6 @@ model SharedWorkoutRoomLifecycleCommand {
   @@unique([ownerUserId, clientCommandId])
   @@index([roomId])
   @@map("shared_workout_room_lifecycle_commands")
-}
-
-/// Shared 5.2 — invitation directe vers un compte existant (email).
-model SharedWorkoutRoomInvitation {
-  id              String                            @id @default(uuid()) @db.Uuid
-  roomId          String                            @db.Uuid
-  invitedByUserId String                            @db.Uuid
-  inviteeUserId   String                            @db.Uuid
-  status          SharedWorkoutRoomInvitationStatus @default(PENDING)
-  createdAt       DateTime                          @default(now())
-  respondedAt     DateTime?
-  cancelledAt     DateTime?
-
-  room      SharedWorkoutRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  invitedBy User              @relation("SharedWorkoutInvitationInviter", fields: [invitedByUserId], references: [id], onDelete: Cascade)
-  invitee   User              @relation("SharedWorkoutInvitationInvitee", fields: [inviteeUserId], references: [id], onDelete: Cascade)
-
-  @@index([inviteeUserId, status, createdAt])
-  @@index([roomId, status, createdAt])
-  @@index([roomId, inviteeUserId])
-  @@index([createdAt, id])
-  @@map("shared_workout_room_invitations")
 }
 
 /// Shared 5.6 — file d’attente / occupation d’un EquipmentType logique (pas d’inventaire physique).

@@ -1,6 +1,6 @@
 import { Plus, ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
 import type { SharedWorkoutRoomStatus } from '@gym-companion/shared';
@@ -11,14 +11,8 @@ import { Button, ButtonLink } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getApiErrorMessage } from '@/lib/api/client';
 
-import {
-  sharedWorkoutReceivedInvitationsQueryOptions,
-  sharedWorkoutRoomsListQueryOptions,
-} from '../api/shared-workout-query-options';
-import {
-  useAcceptInvitationMutation,
-  useDeclineInvitationMutation,
-} from '../hooks/use-shared-workout-mutations';
+import { sharedWorkoutRoomsListQueryOptions } from '../api/shared-workout-query-options';
+import { SharedWorkoutJoinSheet } from '../components/SharedWorkoutJoinSheet';
 import { getSharedWorkoutRoomStatusLabel } from '../lib/shared-workout-labels';
 
 const FILTERS: Array<{ value: '' | SharedWorkoutRoomStatus; label: string }> = [
@@ -30,11 +24,10 @@ const FILTERS: Array<{ value: '' | SharedWorkoutRoomStatus; label: string }> = [
 ];
 
 export function SharedWorkoutsPage() {
-  const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<'' | SharedWorkoutRoomStatus>(
     '',
   );
-  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [joinSheetOpen, setJoinSheetOpen] = useState(false);
   const filters = useMemo(
     () => ({
       status: statusFilter || undefined,
@@ -43,11 +36,6 @@ export function SharedWorkoutsPage() {
     [statusFilter],
   );
   const query = useQuery(sharedWorkoutRoomsListQueryOptions(filters));
-  const invitationsQuery = useQuery(
-    sharedWorkoutReceivedInvitationsQueryOptions({ status: 'PENDING' }),
-  );
-  const acceptMutation = useAcceptInvitationMutation();
-  const declineMutation = useDeclineInvitationMutation();
   const offline = typeof navigator !== 'undefined' && !navigator.onLine;
 
   const sorted = useMemo(() => {
@@ -65,45 +53,9 @@ export function SharedWorkoutsPage() {
     });
   }, [query.data?.data]);
 
-  const invitations = invitationsQuery.data?.data ?? [];
   const isEmpty =
     !query.isLoading && !query.isError && sorted.length === 0;
-  const showHeaderCreate = !isEmpty || invitations.length > 0;
-
-  async function handleAccept(invitationId: string, roomId: string) {
-    if (offline) {
-      setInviteError(
-        'Une connexion est nécessaire pour gérer les invitations.',
-      );
-      return;
-    }
-    setInviteError(null);
-    try {
-      await acceptMutation.mutateAsync(invitationId);
-      void navigate(`/shared-workouts/${roomId}`);
-    } catch (err) {
-      setInviteError(
-        getApiErrorMessage(err, 'Impossible d’accepter l’invitation.'),
-      );
-    }
-  }
-
-  async function handleDecline(invitationId: string) {
-    if (offline) {
-      setInviteError(
-        'Une connexion est nécessaire pour gérer les invitations.',
-      );
-      return;
-    }
-    setInviteError(null);
-    try {
-      await declineMutation.mutateAsync(invitationId);
-    } catch (err) {
-      setInviteError(
-        getApiErrorMessage(err, 'Impossible de refuser l’invitation.'),
-      );
-    }
-  }
+  const showHeaderCreate = !isEmpty;
 
   return (
     <main className="flex w-full flex-1 flex-col gap-5">
@@ -128,75 +80,25 @@ export function SharedWorkoutsPage() {
         }
       />
 
+      {!offline ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setJoinSheetOpen(true)}
+          >
+            Rejoindre avec un code
+          </Button>
+        </div>
+      ) : null}
+
       {offline ? (
         <p
           role="status"
           className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--muted)]"
         >
-          Une connexion est nécessaire pour gérer les invitations et les
-          membres.
+          Une connexion est nécessaire pour créer ou rejoindre une salle.
         </p>
-      ) : null}
-
-      {inviteError ? (
-        <p role="alert" className="text-sm text-[var(--danger)]">
-          {inviteError}
-        </p>
-      ) : null}
-
-      {invitations.length > 0 ? (
-        <section aria-labelledby="shared-invitations-heading">
-          <h2
-            id="shared-invitations-heading"
-            className="mb-2 text-xs font-semibold tracking-[0.12em] text-[var(--muted)] uppercase"
-          >
-            Invitations
-          </h2>
-          <ul className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
-            {invitations.map((invitation) => (
-              <li
-                key={invitation.id}
-                className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[var(--foreground)]">
-                    {invitation.room.name}
-                  </p>
-                  <p className="text-sm text-[var(--muted)]">
-                    {invitation.inviter.displayName ?? 'Quelqu’un'} t’invite
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    disabled={
-                      offline ||
-                      acceptMutation.isPending ||
-                      declineMutation.isPending
-                    }
-                    onClick={() =>
-                      void handleAccept(invitation.id, invitation.room.id)
-                    }
-                  >
-                    Rejoindre
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={
-                      offline ||
-                      acceptMutation.isPending ||
-                      declineMutation.isPending
-                    }
-                    onClick={() => void handleDecline(invitation.id)}
-                  >
-                    Refuser
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
       ) : null}
 
       <div
@@ -243,15 +145,27 @@ export function SharedWorkoutsPage() {
       ) : null}
 
       {isEmpty ? (
-        <EmptyState
-          title="Aucune séance partagée"
-          description="Crée une salle pour t’entraîner avec d’autres personnes."
-          action={
-            offline
-              ? undefined
-              : { label: 'Créer une salle', to: '/shared-workouts/new' }
-          }
-        />
+        <div className="flex flex-col gap-3">
+          <EmptyState
+            title="Aucune séance partagée"
+            description="Crée une salle pour t’entraîner avec d’autres personnes."
+            action={
+              offline
+                ? undefined
+                : { label: 'Créer une salle', to: '/shared-workouts/new' }
+            }
+          />
+          {!offline ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="self-center"
+              onClick={() => setJoinSheetOpen(true)}
+            >
+              Saisir un code
+            </Button>
+          ) : null}
+        </div>
       ) : null}
 
       {!isEmpty && sorted.length > 0 ? (
@@ -293,6 +207,11 @@ export function SharedWorkoutsPage() {
           </ul>
         </section>
       ) : null}
+
+      <SharedWorkoutJoinSheet
+        open={joinSheetOpen}
+        onClose={() => setJoinSheetOpen(false)}
+      />
     </main>
   );
 }

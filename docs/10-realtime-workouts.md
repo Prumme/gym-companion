@@ -7,8 +7,8 @@
 
 ### Shared 5.1 + 5.2 — REST (livré)
 
-Fondations salle, invitations email, accept/decline/cancel et leave en HTTP
-(`/api/v1/shared-workouts`, `/api/v1/shared-workout-invitations`).
+Fondations salle, codes d’accès, join / rotation / leave en HTTP
+(`/api/v1/shared-workouts`).
 REST / PostgreSQL restent la **source de vérité métier**.
 
 ### Shared 5.3 — Présence + invalidation Socket.IO (livré)
@@ -102,7 +102,7 @@ commande de sync de séries ni un snapshot workout.
 - Émettre **après** commit PostgreSQL de la mutation REST.
 - `COMPLETED` / `CANCELLED` → clear présence + refuse nouveaux `subscribe`.
 - Leave REST → `MEMBER_LEFT` + eviction sockets (+ `presence:left` si était en ligne).
-- Accept invitation → `MEMBER_JOINED` ; présence « en ligne » seulement après `subscribe`.
+- Join via code → `MEMBER_JOINED` ; présence « en ligne » seulement après `subscribe`.
 - Membership ≠ présence.
 - Shared 5.4 : attach/create + lifecycle workout lié → `MEMBER_WORKOUT_CHANGED`.
 - Shared 5.5 : PUT current-exercise → `MEMBER_CURRENT_EXERCISE_CHANGED` ;
@@ -185,12 +185,11 @@ présence et besoin de refetch (`MEMBER_WORKOUT_CHANGED` = statut séance membre
 HTTP est utilisé pour :
 
 - créer une salle ;
-- inviter par email / accepter / refuser / annuler une invitation *(Shared 5.2 livré)* ;
+- rejoindre via code / rotater le code *(Shared 5.2 livré)* ;
 - quitter une salle (leave soft) *(Shared 5.2 livré)* ;
 - rename / start / complete / cancel *(Shared 5.1 livré)* ;
 - rattacher / créer ma `WorkoutSession` (`/my-workout-session`) *(Shared 5.4 livré)* ;
-- résoudre un code d’invitation public *(futur)* ;
-- rejoindre via code *(futur)* ;
+- résoudre un lien public `/invite/:code` *(futur)* ;
 - récupérer un snapshot workout *(Shared 5.5+)* ;
 - consulter le résumé ;
 - modifier des paramètres hors séance.
@@ -367,7 +366,7 @@ CANCELLED
 
 ### `LOBBY`
 
-- invitations ouvertes ;
+- code d’accès actif (join autorisé) ;
 - participants rejoignent ;
 - participants indiquent leur disponibilité ;
 - équipements configurés.
@@ -1461,7 +1460,7 @@ Scénario principal :
 
 1. création de deux comptes ;
 2. création d’une salle ;
-3. invitation ;
+3. partage et saisie du code d’accès ;
 4. arrivée dans le lobby ;
 5. confirmation des participants ;
 6. démarrage ;

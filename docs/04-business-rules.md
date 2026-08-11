@@ -69,8 +69,8 @@ Chaque donnée personnelle possède un propriétaire explicite.
 
 Un utilisateur ne peut consulter ou modifier une donnée appartenant à un autre utilisateur que dans les cas prévus :
 
-- séance partagée ;
-- invitation ;
+- séance partagée (membership) ;
+- code d’accès partagé manuellement ;
 - fonctionnalité administrative autorisée ;
 - partage explicite futur.
 
@@ -773,7 +773,7 @@ Le conflit ne doit pas être résolu silencieusement en supprimant les données 
 
 ## 18. Séances partagées
 
-> **Shared 5.1 → 5.4 (livrés)** : fondations salle REST + invitations email /
+> **Shared 5.1 → 5.4 (livrés)** : fondations salle REST + codes d’accès /
 > leave + présence Socket.IO / invalidation + rattachement de `WorkoutSession`
 > individuelle par membre.
 > Rotation, sync séries et snapshot workout partagé restent **Shared 5.5+**.
@@ -795,7 +795,7 @@ Démarrer / terminer / annuler une salle **ne crée, ne modifie et ne termine** 
 Rôles membres :
 
 - `OWNER` — propriétaire ; source autoritative aussi via `ownerUserId` ;
-- `MEMBER` — membre ordinaire (créé à l’acceptation d’une invitation en Shared 5.2).
+- `MEMBER` — membre ordinaire (créé via `POST /join` avec code valide en Shared 5.2).
 
 À la création : `ownerUserId = currentUser` **et** membership `OWNER` dans la même transaction.
 
@@ -810,8 +810,7 @@ Un rôle `OBSERVER` pourra être ajouté plus tard.
 - Lecture salle : uniquement membership **actif** (sinon **404 neutre**).
 - Mutations rename / start / complete / cancel : **owner-only** (`ownerUserId`).
 - Membre non-owner actif : lecture OK, mutations lifecycle → **403** `SHARED_WORKOUT_ROOM_NOT_OWNER`.
-- Invite / liste invitations salle / cancel invitation : **owner-only**.
-- Accept / decline : **invitee uniquement** (identité JWT).
+- Rotation du code d’accès : **owner-only**, salle `LOBBY` / `ACTIVE`.
 - Leave : MEMBER actif uniquement ; OWNER → **403** `SHARED_WORKOUT_ROOM_OWNER_CANNOT_LEAVE`.
 - Pas de suppression physique UI ; `CANCELLED` suffit pour retirer une salle inutilisée.
 - Rename autorisé uniquement en `LOBBY` / `ACTIVE` (historique terminal stable).
@@ -835,30 +834,26 @@ Timestamps : création → tous null ; start → `startedAt` ; complete → `com
 Idempotence lifecycle via `clientCommandId` (`SharedWorkoutRoomLifecycleCommand`), même principe que les `WorkoutSession`.
 Concurrence : update conditionnel sur `status` — un seul résultat lifecycle gagne.
 
-Effet invitations (Shared 5.2) :
+Concurrence : update conditionnel sur `status` — un seul résultat lifecycle gagne.
 
-- `complete` / `cancel` → toutes les invitations `PENDING` de la salle passent à `CANCELLED` (`cancelledAt`) ;
-- `start` **ne** annule **pas** les invitations `PENDING` (invitation encore acceptables en `ACTIVE`).
+### 18.2bis Codes d’accès (Shared 5.2)
 
-### 18.2bis Invitations (Shared 5.2)
+Adhésion multi-membres via **code d’accès** partagé manuellement. JWT obligatoire pour rejoindre.
 
-Invitation **directe par email exact** vers un compte existant. Pas de username / handle.
-Normalisation : `trim` + `toLowerCase` (identique auth).
-
-Statuts invitation : `PENDING` | `ACCEPTED` | `DECLINED` | `CANCELLED`.
+**Format :** alphabet `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (pas I/O/0/1) ; 6 caractères ; génération `crypto.randomInt` (pas `Math.random`) ; stockage normalisé sans tiret ; affichage `XXX-XXX`.
 
 Règles :
 
-- invite autorisée en `LOBBY` / `ACTIVE` uniquement (salle terminale → `SHARED_WORKOUT_INVITATION_CANNOT_CREATE`) ;
-- invitee doit être `ACTIVE` ; sinon (inconnu / inactif) → **même** code `SHARED_WORKOUT_INVITATION_CANNOT_CREATE` (anti-énumération) ;
-- auto-invitation interdite (`SHARED_WORKOUT_INVITATION_CANNOT_CREATE`) ;
-- déjà membre actif → `SHARED_WORKOUT_ROOM_ALREADY_MEMBER` ;
-- une seule `PENDING` par `(roomId, inviteeUserId)` (index unique partiel) → conflit `SHARED_WORKOUT_INVITATION_ALREADY_PENDING` ;
-- accept / decline / cancel owner : transition depuis `PENDING` uniquement ; accept/decline déjà dans l’état cible = idempotent ; autre statut → `SHARED_WORKOUT_INVITATION_INVALID_STATUS` ;
-- accept : crée membership `MEMBER` ou clear `leftAt` (rejoin) ; salle doit être `LOBBY` / `ACTIVE` ;
-- decline : `DECLINED` + `respondedAt` ;
-- cancel owner : `CANCELLED` + `cancelledAt` ;
-- **pas** de code / lien public en Shared 5.2.
+- code généré automatiquement à la création de salle (`joinCode`, `joinCodeCreatedAt`) ;
+- join autorisé en `LOBBY` / `ACTIVE` uniquement ; salle terminale ou code inconnu → **404 neutre** `SHARED_WORKOUT_JOIN_CODE_INVALID` (« Code invalide ou expiré. ») — pas de distinction publique entre code invalide et salle terminée ;
+- **pas** d’expiration temporelle en V1 ;
+- codes des salles `COMPLETED` / `CANCELLED` **conservés** en base (contrainte `@unique`) pour éviter une réutilisation immédiate ;
+- owner peut **rotater** le code en `LOBBY` / `ACTIVE` (`joinCodeRotatedAt`) ;
+- déjà membre actif → join idempotent (retour détail sans nouvel événement) ;
+- ex-membre (`leftAt` non null) → rejoin via même code (`leftAt = null`) ;
+- rate limit ~10 requêtes/min sur `POST /join` (throttler process-local ; Redis multi-instance = dette future) ;
+- détail salle : `joinCode` exposé **uniquement** au owner et en `LOBBY` / `ACTIVE` ;
+- modèle `SharedWorkoutRoomInvitation` **supprimé** (remplace invitations email).
 
 ### 18.2ter Leave et rejoin (Shared 5.2)
 
@@ -867,7 +862,7 @@ Règles :
 - Leave déjà effectué → idempotent `{ left: true }`.
 - OWNER ne peut pas leave.
 - Après leave, l’utilisateur n’est plus membre actif (404 neutre sur la salle).
-- Rejoin uniquement via **nouvelle** invitation acceptée (réutilise la ligne member, `leftAt = null`).
+- Rejoin via **même code d’accès** ou nouveau code après rotation owner (réutilise la ligne member, `leftAt = null`).
 
 ### 18.2quater Autorité (Shared 5.1–5.4)
 
@@ -885,7 +880,7 @@ Le frontend affiche une représentation de l’état REST.
   `room:subscribe`. Persistant en base.
 - **Présence en ligne** = au moins un socket abonné à la salle. **Éphémère**,
   mémoire process uniquement (`roomId → userId → Set<socketId>`), multi-onglets.
-- Accepter une invitation (`MEMBER_JOINED`) ne place **pas** le membre en ligne :
+- Rejoindre via code (`MEMBER_JOINED`) ne place **pas** le membre en ligne :
   la présence commence au premier `room:subscribe` réussi.
 - Leave REST → `MEMBER_LEFT` + eviction des sockets + `presence:left` si était
   en ligne.
@@ -1243,7 +1238,6 @@ Catégories initiales :
 
 - séance planifiée ;
 - fin de repos ;
-- invitation ;
 - début d’une séance partagée ;
 - changement de station ;
 - rappel nutritionnel ;

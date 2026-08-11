@@ -139,21 +139,21 @@ async function createActiveRoom(
   return roomId;
 }
 
-async function inviteAndAccept(
+async function joinWithCode(
   app: INestApplication,
   ownerToken: string,
-  inviteeToken: string,
+  memberToken: string,
   roomId: string,
-  inviteeEmail: string,
 ) {
-  const invite = await request(app.getHttpServer())
-    .post(`/api/v1/shared-workouts/${roomId}/invitations`)
+  const detail = await request(app.getHttpServer())
+    .get(`/api/v1/shared-workouts/${roomId}`)
     .set('Authorization', `Bearer ${ownerToken}`)
-    .send({ inviteeEmail })
-    .expect(201);
+    .expect(200);
+  const joinCode = detail.body.data.joinCode as string;
   await request(app.getHttpServer())
-    .post(`/api/v1/shared-workout-invitations/${invite.body.data.id}/accept`)
-    .set('Authorization', `Bearer ${inviteeToken}`)
+    .post('/api/v1/shared-workouts/join')
+    .set('Authorization', `Bearer ${memberToken}`)
+    .send({ code: joinCode })
     .expect(200);
 }
 
@@ -251,8 +251,7 @@ describe('Shared equipment coordination (Shared 5.6)', () => {
   let tokenA: string;
   let tokenB: string;
   let tokenC: string;
-  let emailB: string;
-  let emailC: string;
+  let userIdB: string;
   let templateA: string;
   let templateB: string;
   let templateC: string;
@@ -283,8 +282,7 @@ describe('Shared equipment coordination (Shared 5.6)', () => {
     tokenA = a.token;
     tokenB = b.token;
     tokenC = c.token;
-    emailB = b.email;
-    emailC = c.email;
+    userIdB = b.userId;
 
     templateA = (await createStartableTemplate(app, tokenA, prisma, `A-${stamp}`, 'cable'))
       .templateId;
@@ -306,8 +304,8 @@ describe('Shared equipment coordination (Shared 5.6)', () => {
 
   it('request libre → USING ; concurrent → 1 USING + WAITING ; release FIFO', async () => {
     const roomId = await createActiveRoom(app, tokenA, `Eq ${stamp}`);
-    await inviteAndAccept(app, tokenA, tokenB, roomId, emailB);
-    await inviteAndAccept(app, tokenA, tokenC, roomId, emailC);
+    await joinWithCode(app, tokenA, tokenB, roomId);
+    await joinWithCode(app, tokenA, tokenC, roomId);
 
     await attachCreatedSession(app, tokenA, roomId, templateA);
     await attachCreatedSession(app, tokenB, roomId, templateB);
@@ -369,7 +367,7 @@ describe('Shared equipment coordination (Shared 5.6)', () => {
 
   it('refuse change exercise while USING different equipment ; WAITING cancel on change', async () => {
     const roomId = await createActiveRoom(app, tokenA, `Change ${stamp}`);
-    await inviteAndAccept(app, tokenA, tokenB, roomId, emailB);
+    await joinWithCode(app, tokenA, tokenB, roomId);
 
     const a = await attachCreatedSession(app, tokenA, roomId, templateA);
     await attachCreatedSession(app, tokenB, roomId, templateB);
@@ -430,7 +428,7 @@ describe('Shared equipment coordination (Shared 5.6)', () => {
 
   it('leave USING promotes next ; socket disconnect does not release', async () => {
     const roomId = await createActiveRoom(app, tokenA, `Leave ${stamp}`);
-    await inviteAndAccept(app, tokenA, tokenB, roomId, emailB);
+    await joinWithCode(app, tokenA, tokenB, roomId);
 
     await attachCreatedSession(app, tokenA, roomId, templateA);
     await attachCreatedSession(app, tokenB, roomId, templateB);
@@ -474,7 +472,7 @@ describe('Shared equipment coordination (Shared 5.6)', () => {
 
   it('room complete clears queues without promotion ; outsider 404 ; forged equipment rejected', async () => {
     const roomId = await createActiveRoom(app, tokenA, `Term ${stamp}`);
-    await inviteAndAccept(app, tokenA, tokenB, roomId, emailB);
+    await joinWithCode(app, tokenA, tokenB, roomId);
     await attachCreatedSession(app, tokenA, roomId, templateA);
     await attachCreatedSession(app, tokenB, roomId, templateB);
 
@@ -531,16 +529,12 @@ describe('Shared equipment coordination (Shared 5.6)', () => {
 
   it('race leave vs release — membership left, no active entry, max 1 USING', async () => {
     const roomId = await createActiveRoom(app, tokenA, `LeaveRace ${stamp}`);
-    await inviteAndAccept(app, tokenA, tokenB, roomId, emailB);
+    await joinWithCode(app, tokenA, tokenB, roomId);
     // Même équipement logique (cable) : A WAITING pendant que B USING.
     await attachCreatedSession(app, tokenA, roomId, templateA);
     const sessionB = await attachCreatedSession(app, tokenB, roomId, templateB);
 
-    const bUser = await prisma.user.findFirstOrThrow({
-      where: { email: emailB },
-      select: { id: true },
-    });
-
+    const bUser = { id: userIdB };
     await request(app.getHttpServer())
       .post(`/api/v1/shared-workouts/${roomId}/my-equipment/request`)
       .set('Authorization', `Bearer ${tokenB}`)
@@ -609,7 +603,7 @@ describe('Shared equipment coordination (Shared 5.6)', () => {
 
   it('realtime EQUIPMENT_COORDINATION_CHANGED on request/release', async () => {
     const roomId = await createActiveRoom(app, tokenA, `RT eq ${stamp}`);
-    await inviteAndAccept(app, tokenA, tokenB, roomId, emailB);
+    await joinWithCode(app, tokenA, tokenB, roomId);
     await attachCreatedSession(app, tokenA, roomId, templateA);
     await attachCreatedSession(app, tokenB, roomId, templateB);
 

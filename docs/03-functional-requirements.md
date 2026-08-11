@@ -625,29 +625,29 @@ Un utilisateur authentifié peut créer une salle privée.
 
 Le créateur devient hôte.
 
-### SHR-003 — Code d’invitation
+### SHR-003 — Code d’accès
 
 **Priorité : MUST**
 
-Une salle dispose d’un code d’invitation.
+Une salle dispose d’un code d’accès unique, généré à la création (alphabet sans caractères ambigus, affiché `XXX-XXX`, stocké normalisé sans tiret).
 
-### SHR-004 — Lien d’invitation
-
-**Priorité : MUST**
-
-Une salle dispose d’un lien partageable.
-
-### SHR-005 — Expiration
+### SHR-004 — Partage du code
 
 **Priorité : MUST**
 
-Une invitation peut expirer.
+L’hôte peut copier et partager manuellement le code d’accès. Aucun envoi email automatique en V1.
 
-### SHR-006 — Révocation
+### SHR-005 — Validité du code
 
 **Priorité : MUST**
 
-L’hôte peut révoquer l’invitation.
+Le code est utilisable tant que la salle est en `LOBBY` ou `ACTIVE`. Pas d’expiration temporelle en V1 ; une salle `COMPLETED` / `CANCELLED` refuse le join (erreur neutre).
+
+### SHR-006 — Rotation du code
+
+**Priorité : MUST**
+
+L’hôte peut régénérer (rotater) le code en `LOBBY` / `ACTIVE`. Les codes des salles terminées restent en base pour éviter une réutilisation immédiate.
 
 ### SHR-007 — Participants
 
@@ -973,11 +973,11 @@ Une notification peut rappeler une séance.
 
 Une notification peut signaler la fin d’un repos.
 
-### NOT-006 — Invitation
+### NOT-006 — Séance partagée
 
-**Priorité : MUST**
+**Priorité : SHOULD**
 
-Une invitation partagée peut déclencher une notification.
+Une activité de salle partagée (démarrage, etc.) peut déclencher une notification. Le partage de code d’accès reste manuel en V1 (pas de notification push à l’envoi du code).
 
 ### NOT-007 — Changement de station
 

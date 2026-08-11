@@ -83,7 +83,7 @@ export const moreNavGroups: readonly MoreNavGroup[] = [
       {
         id: 'shared',
         label: 'Séances partagées',
-        description: 'Salles et invitations',
+        description: 'Salles partagées',
         to: '/shared-workouts',
         icon: Users,
         end: false,

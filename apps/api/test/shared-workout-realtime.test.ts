@@ -53,6 +53,24 @@ async function registerUser(
   return { token, userId: me.body.data.id as string, email };
 }
 
+async function joinWithCode(
+  app: INestApplication,
+  ownerToken: string,
+  memberToken: string,
+  roomId: string,
+) {
+  const detail = await request(app.getHttpServer())
+    .get(`/api/v1/shared-workouts/${roomId}`)
+    .set('Authorization', `Bearer ${ownerToken}`)
+    .expect(200);
+  const joinCode = detail.body.data.joinCode as string;
+  await request(app.getHttpServer())
+    .post('/api/v1/shared-workouts/join')
+    .set('Authorization', `Bearer ${memberToken}`)
+    .send({ code: joinCode })
+    .expect(200);
+}
+
 function connectSocket(port: number, token?: string): Promise<Socket> {
   return new Promise((resolve, reject) => {
     const socket = io(`http://127.0.0.1:${port}${SHARED_WORKOUT_SOCKET_NAMESPACE}`, {
@@ -95,7 +113,6 @@ describe('Shared workout realtime gateway (Shared 5.3)', () => {
   let userIdA: string;
   let tokenB: string;
   let userIdB: string;
-  let emailB: string;
   const stamp = Date.now();
 
   beforeAll(async () => {
@@ -122,7 +139,6 @@ describe('Shared workout realtime gateway (Shared 5.3)', () => {
     userIdA = a.userId;
     tokenB = b.token;
     userIdB = b.userId;
-    emailB = b.email;
   }, 120_000);
 
   afterAll(async () => {
@@ -165,19 +181,7 @@ describe('Shared workout realtime gateway (Shared 5.3)', () => {
       .expect(201);
     const roomId = created.body.data.id as string;
 
-    await request(app.getHttpServer())
-      .post(`/api/v1/shared-workouts/${roomId}/invitations`)
-      .set('Authorization', `Bearer ${tokenA}`)
-      .send({ inviteeEmail: emailB })
-      .expect(201)
-      .then(async (res) => {
-        await request(app.getHttpServer())
-          .post(
-            `/api/v1/shared-workout-invitations/${res.body.data.id}/accept`,
-          )
-          .set('Authorization', `Bearer ${tokenB}`)
-          .expect(200);
-      });
+    await joinWithCode(app, tokenA, tokenB, roomId);
 
     const socketA = await connectSocket(port, tokenA);
     const socketB1 = await connectSocket(port, tokenB);
@@ -242,16 +246,8 @@ describe('Shared workout realtime gateway (Shared 5.3)', () => {
     expect(denied.code).toBe('ROOM_NOT_ACCESSIBLE');
     outsider.disconnect();
 
-    // Re-invite B for remaining tests
-    const invite = await request(app.getHttpServer())
-      .post(`/api/v1/shared-workouts/${roomId}/invitations`)
-      .set('Authorization', `Bearer ${tokenA}`)
-      .send({ inviteeEmail: emailB })
-      .expect(201);
-    await request(app.getHttpServer())
-      .post(`/api/v1/shared-workout-invitations/${invite.body.data.id}/accept`)
-      .set('Authorization', `Bearer ${tokenB}`)
-      .expect(200);
+    // Re-join B for remaining tests
+    await joinWithCode(app, tokenA, tokenB, roomId);
     expect(changedA).toContain('MEMBER_JOINED');
 
     const socketB = await connectSocket(port, tokenB);
@@ -357,15 +353,7 @@ describe('Shared workout realtime gateway (Shared 5.3)', () => {
       .expect(201);
     const roomId = created.body.data.id as string;
 
-    const invite = await request(app.getHttpServer())
-      .post(`/api/v1/shared-workouts/${roomId}/invitations`)
-      .set('Authorization', `Bearer ${tokenA}`)
-      .send({ inviteeEmail: emailB })
-      .expect(201);
-    await request(app.getHttpServer())
-      .post(`/api/v1/shared-workout-invitations/${invite.body.data.id}/accept`)
-      .set('Authorization', `Bearer ${tokenB}`)
-      .expect(200);
+    await joinWithCode(app, tokenA, tokenB, roomId);
 
     await request(app.getHttpServer())
       .post(`/api/v1/shared-workouts/${roomId}/start`)

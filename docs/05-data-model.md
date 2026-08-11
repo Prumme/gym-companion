@@ -1113,6 +1113,10 @@ type SharedWorkoutRoom = {
   completedAt: Date | null;
   cancelledAt: Date | null;
 
+  joinCode: string; // 6 chars normalisés, @unique
+  joinCodeCreatedAt: Date;
+  joinCodeRotatedAt: Date | null;
+
   createdAt: Date;
   updatedAt: Date;
 
@@ -1120,18 +1124,17 @@ type SharedWorkoutRoom = {
   owner: User;
   members: SharedWorkoutRoomMember[];
   commands: SharedWorkoutRoomLifecycleCommand[];
-  invitations: SharedWorkoutRoomInvitation[]; // Shared 5.2
 };
 ```
 
-Index : `ownerUserId`, `status`, `(updatedAt, id)`.
+Index : `ownerUserId`, `status`, `(updatedAt, id)`, `joinCode` unique.
 
 ### Invariants Shared 5.1 / 5.2 / 5.3 / 5.4
 
-- création transactionnelle room + membership `OWNER` ;
+- création transactionnelle room + membership `OWNER` + génération `joinCode` ;
 - `ownerUserId` = source autoritative de propriété ;
 - membership actif = `leftAt IS NULL` ;
-- invitations email persistées (pas de code public en 5.2) ;
+- code d’accès unique par salle ; join valide en `LOBBY` / `ACTIVE` uniquement ;
 - room ≠ `WorkoutSession` (aucun lien automatique au start de salle) ;
 - Shared 5.4 : lien **volontaire** via `SharedWorkoutRoomMemberSession` ;
 - **pas** de modèle `Presence` / colonnes `onlineAt` : présence Socket.IO
@@ -1142,7 +1145,7 @@ Index : `ownerUserId`, `status`, `(updatedAt, id)`.
 Champs futurs possibles (non en base) :
 
 - `sourceTemplateId` ;
-- invitation code hash / expiration / révocation (codes publics) ;
+- lien public `/invite/:code` (hors V1) ;
 - `maxParticipants`, `targetDurationMinutes` ;
 - `stateVersion`, `rotationAlgorithmVersion`.
 
@@ -1169,7 +1172,7 @@ type SharedWorkoutRoomMember = {
 
 Contraintes : `UNIQUE(roomId, userId)` ; index `userId`, `roomId`, `(userId, leftAt)`.
 
-Leave = soft (`leftAt`) ; rejoin via accept réutilise la ligne et remet `leftAt = null`.
+Leave = soft (`leftAt`) ; rejoin via `POST /join` avec code valide réutilise la ligne et remet `leftAt = null`.
 
 ### SharedWorkoutRoomLifecycleCommand
 
@@ -1189,33 +1192,7 @@ type SharedWorkoutRoomLifecycleCommand = {
 
 `UNIQUE(ownerUserId, clientCommandId)`.
 
-## 30bis. SharedWorkoutRoomInvitation (Shared 5.2 — livré)
-
-Invitation directe vers un compte existant (email). Pas de code / token public.
-
-```ts
-type SharedWorkoutRoomInvitationStatus =
-  | "PENDING"
-  | "ACCEPTED"
-  | "DECLINED"
-  | "CANCELLED";
-
-type SharedWorkoutRoomInvitation = {
-  id: string;
-  roomId: string;
-  invitedByUserId: string;
-  inviteeUserId: string;
-  status: SharedWorkoutRoomInvitationStatus; // défaut PENDING
-  createdAt: Date;
-  respondedAt: Date | null; // accept / decline
-  cancelledAt: Date | null; // cancel owner ou auto terminal room
-};
-```
-
-Index : `(inviteeUserId, status, createdAt)`, `(roomId, status, createdAt)`,
-`(roomId, inviteeUserId)`, `(createdAt, id)`.
-
-Index unique partiel : une seule ligne `PENDING` par `(roomId, inviteeUserId)`.
+> **`SharedWorkoutRoomInvitation` supprimé** — remplacé par `joinCode` sur `SharedWorkoutRoom` (Shared 5.2).
 
 ## 30ter. SharedWorkoutRoomMemberSession (Shared 5.4 — livré)
 
@@ -1931,8 +1908,7 @@ L’audit ne doit pas contenir :
 - `SharedWorkoutRoomMember.(roomId, userId)` unique ;
 - `SharedWorkoutRoomMember.(userId, leftAt)` ;
 - `SharedWorkoutRoomLifecycleCommand.(ownerUserId, clientCommandId)` unique ;
-- `SharedWorkoutRoomInvitation.(inviteeUserId, status, createdAt)` ;
-- `SharedWorkoutRoomInvitation` unique partiel `(roomId, inviteeUserId) WHERE status = PENDING` ;
+- `SharedWorkoutRoom.joinCode` unique ;
 - `SharedWorkoutRoomMemberSession.(roomMemberId)` unique ; *(Shared 5.4)*
 - `SharedWorkoutRoomMemberSession.(workoutSessionId)` unique ; *(Shared 5.4)*
 - (futur Shared 5.5+) `SharedWorkoutParticipant.*` / `RealtimeCommand.commandId`.
@@ -2032,7 +2008,6 @@ L’activation courante utilise `ProgramActivation` et impose une contrainte d�
 
 - SharedWorkoutRoom ;
 - SharedWorkoutRoomMember ;
-- SharedWorkoutRoomInvitation ; *(Shared 5.2)*
 - SharedWorkoutRoomLifecycleCommand ;
 - SharedWorkoutRoomMemberSession ; *(Shared 5.4)*
 - SharedWorkoutParticipant ; *(cible Shared 5.5+)*
@@ -2232,8 +2207,8 @@ Index utiles : `(ownerUserId, updatedAt)` conversations ; `(conversationId, crea
 
 ### Phase 5 produit (séances partagées — Shared 5.1 → 5.4 livrés)
 
-Livré : `SharedWorkoutRoom`, `SharedWorkoutRoomMember` (+ `leftAt`),
-`SharedWorkoutRoomLifecycleCommand`, `SharedWorkoutRoomInvitation`,
+Livré : `SharedWorkoutRoom` (+ `joinCode`), `SharedWorkoutRoomMember` (+ `leftAt`),
+`SharedWorkoutRoomLifecycleCommand`,
 `SharedWorkoutRoomMemberSession` (Shared 5.4).
 Présence Socket.IO **non persistée** (mémoire process).
 
@@ -2243,7 +2218,7 @@ Modèles futurs (Shared 5.5+) :
 - SharedParticipantExercisePlan ;
 - SharedRotationAssignment ;
 - RealtimeCommand ;
-- codes d’invitation publics (si retenus).
+- lien public `/invite/:code` (si retenu).
 
 ### Phase 6
 

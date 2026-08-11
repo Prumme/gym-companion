@@ -2083,13 +2083,13 @@ JWT obligatoire. Exercice système ou personnel du propriétaire (y compris arch
 > **Shared 5.1 → 5.4 (livrés).** Shared 5.3 n’ajoute aucune route HTTP de présence.
 > Shared 5.4 ajoute `/my-workout-session` (attach / create).
 > Socket.IO (présence + `room:changed`) : voir `docs/10-realtime-workouts.md`.
-> Ressources : `/api/v1/shared-workouts` et `/api/v1/shared-workout-invitations`
-> (ne pas confondre avec `/workouts`). Invitation **par email** (compte existant) ;
-> **pas** de codes / liens publics en Shared 5.2–5.4.
+> Ressource : `/api/v1/shared-workouts` (ne pas confondre avec `/workouts`).
+> Adhésion via **code d’accès** (Shared 5.2) ; JWT obligatoire pour rejoindre.
+> **`/api/v1/shared-workout-invitations/*` supprimé** (anciennes invitations email).
 
 JWT obligatoire sur tous les endpoints. Accès lecture salle = membership **actif**
 (`leftAt IS NULL`) ; hors membership → **404 neutre**.
-Mutations rename / lifecycle / invite salle = owner-only
+Mutations rename / lifecycle / rotation code = owner-only
 (membre non-owner → **403** `SHARED_WORKOUT_ROOM_NOT_OWNER`).
 
 ### 24.1 Créer (Shared 5.1)
@@ -2127,6 +2127,7 @@ GET /api/v1/shared-workouts/:roomId
 
 DTO : id, name, status, owner `{ userId, displayName }`, members **actifs**
 (chaque membre inclut `memberWorkout` résumé Shared 5.4), timestamps, `isOwner`,
+`joinCode` (format `XXX-XXX`, **owner uniquement**, salle `LOBBY`/`ACTIVE`, sinon `null`),
 `myWorkoutSessionId` (ID de la séance du **viewer** uniquement, sinon `null`).
 Pas d’email / tokens / auth. **Jamais** l’ID de séance des autres membres.
 
@@ -2156,57 +2157,77 @@ Corps :
 { "clientCommandId": "uuid" }
 ```
 
-| Action | Depuis | Timestamps | Invitations PENDING |
-|--------|--------|------------|---------------------|
-| start | `LOBBY` | `startedAt` | inchangées |
-| complete | `ACTIVE` | `completedAt` | → `CANCELLED` |
-| cancel | `LOBBY` ou `ACTIVE` | `cancelledAt` | → `CANCELLED` |
+| Action | Depuis | Timestamps |
+|--------|--------|------------|
+| start | `LOBBY` | `startedAt` |
+| complete | `ACTIVE` | `completedAt` |
+| cancel | `LOBBY` ou `ACTIVE` | `cancelledAt` |
 
-Aucune `WorkoutSession` créée / modifiée. Idempotence + conflit fingerprint via `SharedWorkoutRoomLifecycleCommand`.
+Aucune `WorkoutSession` créée / modifiée. Le code d’accès reste en base mais n’est plus joinable en statut terminal.
+Idempotence + conflit fingerprint via `SharedWorkoutRoomLifecycleCommand`.
 
 Codes : `SHARED_WORKOUT_ROOM_NOT_FOUND`, `SHARED_WORKOUT_ROOM_INVALID_STATUS`, `SHARED_WORKOUT_ROOM_NOT_OWNER`, `SHARED_WORKOUT_ROOM_COMMAND_CONFLICT`, `SHARED_WORKOUT_ROOM_INVALID_CURSOR`.
 
-### 24.6 Invitations par email (Shared 5.2 — livré)
+### 24.6 Codes d’accès et join (Shared 5.2 — livré)
 
-Pas de username / handle. `inviteeEmail` normalisé trim + lowercase (comme auth).
-Anti-énumération : utilisateur inconnu / inactif → `SHARED_WORKOUT_INVITATION_CANNOT_CREATE`
-(même code que salle terminale / auto-invite).
+Alphabet : `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (pas I/O/0/1). Stockage 6 caractères sans tiret ; affichage `XXX-XXX`. Génération `crypto.randomInt`. Pas d’expiration temporelle V1.
 
-#### Sur une salle (owner)
+#### Rejoindre via code (utilisateur authentifié)
 
 ```text
-POST /api/v1/shared-workouts/:roomId/invitations
-GET  /api/v1/shared-workouts/:roomId/invitations?status=&cursor=&limit=
-POST /api/v1/shared-workouts/:roomId/invitations/:invitationId/cancel
+POST /api/v1/shared-workouts/join
 ```
 
-Corps create (strict) :
+Corps (strict) :
 
 ```json
-{ "inviteeEmail": "alice@example.com" }
+{ "code": "K7M-4PX" }
 ```
 
-Invite autorisée en `LOBBY` / `ACTIVE`. Une seule `PENDING` par `(roomId, inviteeUserId)`.
-Déjà membre actif → `SHARED_WORKOUT_ROOM_ALREADY_MEMBER`.
-Doublon PENDING → `SHARED_WORKOUT_INVITATION_ALREADY_PENDING`.
+`code` accepte casse libre et tiret optionnel ; normalisation serveur vers 6 caractères uppercase.
 
-#### Invitations reçues (invitee)
+Réponse : détail salle (`SharedWorkoutRoomDetail`) ; `joinCode` = `null` pour le joiner (non-owner).
+
+Règles :
+
+- salle `LOBBY` / `ACTIVE` uniquement ;
+- crée membership `MEMBER` ou clear `leftAt` (rejoin) ;
+- déjà membre actif → idempotent (détail sans nouvel événement socket) ;
+- code inconnu ou salle terminale → **404** `SHARED_WORKOUT_JOIN_CODE_INVALID` (« Code invalide ou expiré. ») ;
+- rate limit **~10 req/min** par utilisateur sur cette route (throttler Nest process-local ; Redis multi-instance = dette future).
+
+Émission socket : `MEMBER_JOINED` sur `room:changed` si membership effectivement appliqué.
+
+#### Rotation du code (owner)
 
 ```text
-GET  /api/v1/shared-workout-invitations?status=&cursor=&limit=
-POST /api/v1/shared-workout-invitations/:invitationId/accept
-POST /api/v1/shared-workout-invitations/:invitationId/decline
+POST /api/v1/shared-workouts/:roomId/join-code/rotate
 ```
 
-Accept (salle `LOBBY`/`ACTIVE`) : `ACCEPTED` + membership `MEMBER` (ou clear `leftAt`).
-Decline : `DECLINED`. Accept/decline déjà dans l’état cible = idempotent.
-Hors invitee → **404** `SHARED_WORKOUT_INVITATION_NOT_FOUND`.
+Réponse :
 
-DTO : id, room `{ id, name, status }`, inviter/invitee `{ displayName }`, status,
-`createdAt`, `respondedAt`, `cancelledAt`. Pas d’email exposé.
+```json
+{ "joinCode": "K7M-4PX" }
+```
 
-Autres codes : `SHARED_WORKOUT_INVITATION_INVALID_STATUS`,
-`SHARED_WORKOUT_INVITATION_INVALID_CURSOR`, `SHARED_WORKOUT_ROOM_INVALID_STATUS`.
+Owner-only ; salle `LOBBY` / `ACTIVE`. Met à jour `joinCode`, `joinCodeCreatedAt`, `joinCodeRotatedAt`. L’ancien code cesse d’être joinable immédiatement.
+
+Codes : `SHARED_WORKOUT_JOIN_CODE_INVALID`, `SHARED_WORKOUT_JOIN_CODE_GENERATION_FAILED`,
+`SHARED_WORKOUT_ROOM_INVALID_STATUS`, `SHARED_WORKOUT_ROOM_NOT_OWNER`,
+`SHARED_WORKOUT_ROOM_ALREADY_MEMBER` (race concurrente rare).
+
+#### Endpoints invitations email — **supprimés**
+
+```text
+POST /api/v1/shared-workouts/:roomId/invitations          # supprimé
+GET  /api/v1/shared-workouts/:roomId/invitations          # supprimé
+POST /api/v1/shared-workouts/:roomId/invitations/:id/cancel  # supprimé
+GET  /api/v1/shared-workout-invitations                   # supprimé
+POST /api/v1/shared-workout-invitations/:id/accept        # supprimé
+POST /api/v1/shared-workout-invitations/:id/decline       # supprimé
+```
+
+Anciens codes d’erreur `SHARED_WORKOUT_INVITATION_*` : retirés.
 
 ### 24.6bis Leave (Shared 5.2 — livré)
 
@@ -2218,16 +2239,7 @@ MEMBER actif uniquement → `{ "left": true }` (`leftAt`). OWNER → **403**
 `SHARED_WORKOUT_ROOM_OWNER_CANNOT_LEAVE`. Leave répété = idempotent.
 Salle terminale → `SHARED_WORKOUT_ROOM_INVALID_STATUS`.
 
-### 24.6ter Codes / join publics (futur — hors Shared 5.2–5.4)
-
-```text
-GET  /api/v1/shared-workouts/invitations/:invitationCode
-POST /api/v1/shared-workouts/:roomId/join
-POST /api/v1/shared-workouts/:roomId/revoke-invitation
-POST /api/v1/shared-workouts/:roomId/regenerate-invitation
-```
-
-### 24.6quater Ma séance individuelle (Shared 5.4 — livré)
+### 24.6ter Ma séance individuelle (Shared 5.4 — livré)
 
 Association volontaire d’une `WorkoutSession` à la membership du current user.
 REST autoritaire ; salle `ACTIVE` requise pour attach / create.
@@ -2931,12 +2943,18 @@ WORKOUT_OFFLINE_CONFLICT
 ### Séances partagées
 
 ```text
-SHARED_ROOM_NOT_FOUND
+SHARED_WORKOUT_ROOM_NOT_FOUND
+SHARED_WORKOUT_ROOM_INVALID_STATUS
+SHARED_WORKOUT_ROOM_NOT_OWNER
+SHARED_WORKOUT_ROOM_ALREADY_MEMBER
+SHARED_WORKOUT_ROOM_OWNER_CANNOT_LEAVE
+SHARED_WORKOUT_ROOM_INVALID_CURSOR
+SHARED_WORKOUT_ROOM_COMMAND_CONFLICT
+SHARED_WORKOUT_JOIN_CODE_INVALID
+SHARED_WORKOUT_JOIN_CODE_GENERATION_FAILED
 SHARED_ROOM_FULL
 SHARED_ROOM_ALREADY_STARTED
 SHARED_ROOM_ALREADY_COMPLETED
-SHARED_INVITATION_EXPIRED
-SHARED_INVITATION_REVOKED
 SHARED_PARTICIPANT_ALREADY_JOINED
 SHARED_ROTATION_CONFLICT
 SHARED_STATE_VERSION_CONFLICT

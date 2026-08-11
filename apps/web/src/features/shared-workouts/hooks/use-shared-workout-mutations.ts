@@ -4,16 +4,14 @@ import { workoutQueryKeys } from '@/features/workouts/api/workout-query-keys';
 import { persistServerSnapshot } from '@/features/workouts/offline/store';
 
 import {
-  acceptSharedWorkoutInvitation,
   attachMySharedWorkoutSession,
-  cancelRoomInvitation,
   cancelSharedWorkoutRoom,
   completeSharedWorkoutRoom,
   createMySharedWorkoutSession,
   createSharedWorkoutRoom,
-  declineSharedWorkoutInvitation,
-  inviteToSharedWorkoutRoom,
+  joinSharedWorkoutRoom,
   leaveSharedWorkoutRoom,
+  rotateSharedWorkoutJoinCode,
   startSharedWorkoutRoom,
   updateSharedWorkoutRoom,
 } from '../api/shared-workouts-api';
@@ -33,18 +31,7 @@ function invalidateRoomQueries(
     void queryClient.invalidateQueries({
       queryKey: sharedWorkoutRoomQueryKeys.myWorkoutSession(roomId),
     });
-    void queryClient.invalidateQueries({
-      queryKey: sharedWorkoutRoomQueryKeys.roomInvitations(roomId),
-    });
   }
-}
-
-function invalidateReceivedInvitations(
-  queryClient: ReturnType<typeof useQueryClient>,
-) {
-  void queryClient.invalidateQueries({
-    queryKey: [...sharedWorkoutRoomQueryKeys.all, 'received-invitations'],
-  });
 }
 
 export function useCreateSharedWorkoutRoomMutation() {
@@ -86,7 +73,6 @@ export function useCompleteSharedWorkoutRoomMutation(roomId: string) {
       completeSharedWorkoutRoom(roomId, clientCommandId),
     onSuccess: () => {
       invalidateRoomQueries(queryClient, roomId);
-      invalidateReceivedInvitations(queryClient);
     },
   });
 }
@@ -98,58 +84,33 @@ export function useCancelSharedWorkoutRoomMutation(roomId: string) {
       cancelSharedWorkoutRoom(roomId, clientCommandId),
     onSuccess: () => {
       invalidateRoomQueries(queryClient, roomId);
-      invalidateReceivedInvitations(queryClient);
     },
   });
 }
 
-export function useInviteSharedWorkoutRoomMutation(roomId: string) {
+export function useJoinSharedWorkoutMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: { inviteeEmail: string }) =>
-      inviteToSharedWorkoutRoom(roomId, input),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: sharedWorkoutRoomQueryKeys.roomInvitations(roomId),
-      });
+    mutationFn: (input: { code: string }) => joinSharedWorkoutRoom(input),
+    onSuccess: (room) => {
+      invalidateRoomQueries(queryClient, room.id);
     },
   });
 }
 
-export function useCancelRoomInvitationMutation(roomId: string) {
+export function useRotateSharedWorkoutJoinCodeMutation(roomId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (invitationId: string) =>
-      cancelRoomInvitation(roomId, invitationId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: sharedWorkoutRoomQueryKeys.roomInvitations(roomId),
-      });
-      invalidateReceivedInvitations(queryClient);
-    },
-  });
-}
-
-export function useAcceptInvitationMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: acceptSharedWorkoutInvitation,
-    onSuccess: (invitation) => {
-      invalidateReceivedInvitations(queryClient);
-      invalidateRoomQueries(queryClient, invitation.room.id);
-    },
-  });
-}
-
-export function useDeclineInvitationMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: declineSharedWorkoutInvitation,
-    onSuccess: (invitation) => {
-      invalidateReceivedInvitations(queryClient);
-      void queryClient.invalidateQueries({
-        queryKey: sharedWorkoutRoomQueryKeys.roomInvitations(invitation.room.id),
-      });
+    mutationFn: () => rotateSharedWorkoutJoinCode(roomId),
+    onSuccess: (result) => {
+      queryClient.setQueryData(
+        sharedWorkoutRoomQueryKeys.detail(roomId),
+        (current) =>
+          current && typeof current === 'object' && 'joinCode' in current
+            ? { ...current, joinCode: result.joinCode }
+            : current,
+      );
+      invalidateRoomQueries(queryClient, roomId);
     },
   });
 }
