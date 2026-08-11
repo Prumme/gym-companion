@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { UserRound } from 'lucide-react';
 
 import { EmptyState } from '@/components/common/EmptyState';
+import { LoadingState } from '@/components/common/LoadingState';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { ButtonLink } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -42,11 +43,16 @@ function ActiveProgramSummaryCard({ active }: { active: ActiveProgramSummary }) 
 }
 
 export function HomePage() {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const authStatus = useAuthStore((state) => state.authStatus);
+  const isAuthenticated = authStatus === 'authenticated';
   const activeQuery = useQuery({
     ...activeProgramQueryOptions(),
     enabled: isAuthenticated,
   });
+
+  if (authStatus === 'initializing') {
+    return <LoadingState label="Vérification de la session…" />;
+  }
 
   if (!isAuthenticated) {
     return (

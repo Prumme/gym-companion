@@ -1,3 +1,5 @@
+import { useAuthStore } from '@/stores/auth-store';
+
 function resolveApiBaseUrl(): string {
   const configured = import.meta.env.VITE_API_BASE_URL;
   if (typeof configured === 'string' && configured.length > 0) {
@@ -61,10 +63,12 @@ async function refreshAccessToken(): Promise<string | null> {
       });
       if (!response.ok) {
         accessToken = null;
+        useAuthStore.getState().clearSession();
         return null;
       }
       const json = (await response.json()) as { data: { accessToken: string } };
       accessToken = json.data.accessToken;
+      useAuthStore.getState().setSession(accessToken);
       return accessToken;
     })().finally(() => {
       refreshPromise = null;
@@ -92,7 +96,13 @@ export async function apiFetch<T>(
     credentials: 'include',
   });
 
-  if (response.status === 401 && retry && !path.includes('/auth/login')) {
+  const isAuthEndpoint =
+    path.includes('/auth/login') ||
+    path.includes('/auth/register') ||
+    path.includes('/auth/refresh') ||
+    path.includes('/auth/logout');
+
+  if (response.status === 401 && retry && !isAuthEndpoint) {
     const token = await refreshAccessToken();
     if (token) {
       return apiFetch<T>(path, init, false);

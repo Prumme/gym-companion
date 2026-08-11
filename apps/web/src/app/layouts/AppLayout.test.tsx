@@ -11,10 +11,13 @@ import {
 } from '@/app/navigation/nav-config';
 import { TrainingHubPage } from '@/app/pages/TrainingHubPage';
 
-const authState = { isAuthenticated: true };
+const authState = {
+  isAuthenticated: true,
+  authStatus: 'authenticated' as const,
+};
 
 vi.mock('@/stores/auth-store', () => ({
-  useAuthStore: (selector: (state: { isAuthenticated: boolean }) => unknown) =>
+  useAuthStore: (selector: (state: typeof authState) => unknown) =>
     selector(authState),
 }));
 
@@ -47,6 +50,7 @@ function renderShell(initialPath = '/') {
 describe('App shell navigation', () => {
   beforeEach(() => {
     authState.isAuthenticated = true;
+    authState.authStatus = 'authenticated';
     // jsdom: matchMedia for md breakpoint — treat as mobile by default
     Object.defineProperty(window, 'matchMedia', {
       writable: true,

@@ -1,12 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { register as registerAccount } from '@/features/auth/api/auth-api';
+import { resolvePostAuthPath } from '@/features/auth/lib/resolve-post-auth-path';
 
 const schema = z.object({
   email: z.string().email(),
@@ -18,6 +19,7 @@ type FormValues = z.infer<typeof schema>;
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [error, setError] = useState<string | null>(null);
   const {
     register,
@@ -34,7 +36,7 @@ export function RegisterPage() {
         ...values,
         acceptedTermsVersion: '2026-08',
       });
-      navigate('/profile');
+      navigate(resolvePostAuthPath(location.state), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Inscription impossible');
     }

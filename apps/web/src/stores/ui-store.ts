@@ -1,11 +1,9 @@
 import { create } from 'zustand';
 
-type UiStore = {
-  isBootstrapping: boolean;
-  setBootstrapping: (value: boolean) => void;
-};
+/**
+ * Store UI global (hors auth).
+ * L’état d’initialisation auth vit dans `auth-store` (`authStatus`).
+ */
+type UiStore = Record<string, never>;
 
-export const useUiStore = create<UiStore>((set) => ({
-  isBootstrapping: false,
-  setBootstrapping: (value) => set({ isBootstrapping: value }),
-}));
+export const useUiStore = create<UiStore>(() => ({}));

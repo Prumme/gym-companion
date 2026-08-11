@@ -6,8 +6,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { HomePage } from './pages/HomePage';
 
 vi.mock('@/stores/auth-store', () => ({
-  useAuthStore: (selector: (state: { isAuthenticated: boolean }) => unknown) =>
-    selector({ isAuthenticated: false }),
+  useAuthStore: (selector: (state: {
+    isAuthenticated: boolean;
+    authStatus: 'unauthenticated';
+  }) => unknown) =>
+    selector({ isAuthenticated: false, authStatus: 'unauthenticated' }),
 }));
 
 describe('HomePage', () => {

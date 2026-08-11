@@ -1,4 +1,8 @@
-import { apiFetch, setAccessToken } from '@/lib/api/client';
+import {
+  apiFetch,
+  setAccessToken,
+  type ApiRequestError,
+} from '@/lib/api/client';
 import { useAuthStore } from '@/stores/auth-store';
 
 type AuthPayload = {
@@ -13,6 +17,9 @@ type AuthPayload = {
     expiresInSeconds: number;
   };
 };
+
+/** Single-flight : StrictMode / multi-appel ne relancent pas un 2e refresh. */
+let bootstrapPromise: Promise<boolean> | null = null;
 
 export async function register(input: {
   email: string;
@@ -40,9 +47,12 @@ export async function login(input: { email: string; password: string }) {
 }
 
 export async function logout() {
-  await apiFetch<void>('/api/v1/auth/logout', { method: 'POST' });
-  setAccessToken(null);
-  useAuthStore.getState().clearSession();
+  try {
+    await apiFetch<void>('/api/v1/auth/logout', { method: 'POST' });
+  } finally {
+    setAccessToken(null);
+    useAuthStore.getState().clearSession();
+  }
 }
 
 export async function forgotPassword(email: string) {
@@ -59,17 +69,49 @@ export async function resetPassword(token: string, password: string) {
   });
 }
 
-export async function bootstrapSession() {
-  try {
-    const result = await apiFetch<AuthPayload>('/api/v1/auth/refresh', {
-      method: 'POST',
-    });
-    setAccessToken(result.data.accessToken);
-    useAuthStore.getState().setSession(result.data.accessToken);
-    return true;
-  } catch {
-    setAccessToken(null);
-    useAuthStore.getState().clearSession();
-    return false;
+function isAuthFailure(error: unknown): boolean {
+  const status = (error as ApiRequestError | undefined)?.status;
+  return status === 401 || status === 403;
+}
+
+/**
+ * Restaure la session via le refresh cookie HttpOnly.
+ * À appeler une seule fois au démarrage (single-flight).
+ *
+ * - refresh OK → authenticated
+ * - 401/403 → unauthenticated
+ * - autre erreur (réseau/5xx) → unauthenticated (dette : pas de retry soft)
+ */
+export async function bootstrapSession(): Promise<boolean> {
+  if (bootstrapPromise) {
+    return bootstrapPromise;
   }
+
+  bootstrapPromise = (async () => {
+    try {
+      const result = await apiFetch<AuthPayload>('/api/v1/auth/refresh', {
+        method: 'POST',
+      });
+      setAccessToken(result.data.accessToken);
+      useAuthStore.getState().setSession(result.data.accessToken);
+      return true;
+    } catch (error) {
+      setAccessToken(null);
+      useAuthStore.getState().clearSession();
+      if (!isAuthFailure(error)) {
+        // Dette : une indisponibilité API au bootstrap se comporte comme déconnecté.
+        // Le cookie HttpOnly peut rester valide ; un reload ultérieur retentera.
+      }
+      return false;
+    } finally {
+      // Garde le promise résolu pour les appels suivants (idempotent).
+    }
+  })();
+
+  return bootstrapPromise;
+}
+
+/** Test-only : réinitialise le single-flight bootstrap. */
+export function resetBootstrapSessionForTests() {
+  bootstrapPromise = null;
 }
