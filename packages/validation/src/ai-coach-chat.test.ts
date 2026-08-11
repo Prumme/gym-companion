@@ -42,18 +42,70 @@ describe('ai-coach-chat (5.6 + jalon 8 structuré)', () => {
   });
 
   it('valide le message utilisateur', () => {
+    const cmd = '11111111-1111-1111-1111-111111111111';
     expect(
       sendAiCoachMessageBodySchema.parse({
         content: '  Bonjour  ',
-        clientCommandId: '11111111-1111-1111-1111-111111111111',
+        clientCommandId: cmd,
       }).content,
     ).toBe('Bonjour');
-    expect(() =>
-      sendAiCoachMessageBodySchema.parse({
+    expect(
+      sendAiCoachMessageBodySchema.safeParse({
+        content: 'Est-ce que je progresse aux tractions ?',
+        clientCommandId: cmd,
+      }).success,
+    ).toBe(true);
+    expect(
+      sendAiCoachMessageBodySchema.safeParse({
+        content: 'Propose-moi une séance dos de 45 minutes',
+        clientCommandId: cmd,
+      }).success,
+    ).toBe(true);
+    expect(
+      sendAiCoachMessageBodySchema.safeParse({
+        content: 'Propose-moi un programme upper/lower sur 4 jours',
+        clientCommandId: cmd,
+      }).success,
+    ).toBe(true);
+    expect(
+      sendAiCoachMessageBodySchema.safeParse({
         content: '',
-        clientCommandId: '11111111-1111-1111-1111-111111111111',
-      }),
-    ).toThrow();
+        clientCommandId: cmd,
+      }).success,
+    ).toBe(false);
+    expect(
+      sendAiCoachMessageBodySchema.safeParse({
+        content: '   ',
+        clientCommandId: cmd,
+      }).success,
+    ).toBe(false);
+    expect(
+      sendAiCoachMessageBodySchema.safeParse({
+        content: 42,
+        clientCommandId: cmd,
+      }).success,
+    ).toBe(false);
+    expect(
+      sendAiCoachMessageBodySchema.safeParse({
+        clientCommandId: cmd,
+      }).success,
+    ).toBe(false);
+    expect(
+      sendAiCoachMessageBodySchema.safeParse({
+        content: 'x'.repeat(1501),
+        clientCommandId: cmd,
+      }).success,
+    ).toBe(false);
+    // conversationId appartient à l’URL, pas au body (.strict)
+    const leakedId = sendAiCoachMessageBodySchema.safeParse({
+      conversationId: '11111111-1111-1111-1111-111111111111',
+      content: 'Bonjour',
+      clientCommandId: '22222222-2222-2222-2222-222222222222',
+    });
+    expect(leakedId.success).toBe(false);
+    expect(leakedId.success ? null : leakedId.error.issues[0]?.code).toBe(
+      'unrecognized_keys',
+    );
   });
 
   it('valide une réponse chat structurée discussion', () => {

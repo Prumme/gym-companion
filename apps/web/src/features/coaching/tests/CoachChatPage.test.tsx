@@ -177,7 +177,103 @@ describe('CoachChatPage (5.6)', () => {
       expect(createAiCoachConversation).toHaveBeenCalled();
       expect(sendAiCoachMessage).toHaveBeenCalled();
     });
+    expect(sendAiCoachMessage).toHaveBeenCalledWith(
+      'conv-1',
+      expect.objectContaining({
+        content: 'À quoi sert le RIR ?',
+        clientCommandId: expect.any(String),
+      }),
+    );
+    const [, body] = sendAiCoachMessage.mock.calls[0] as [
+      string,
+      Record<string, unknown>,
+    ];
+    expect(body).not.toHaveProperty('conversationId');
+    expect(Object.keys(body).sort()).toEqual(['clientCommandId', 'content']);
     await screen.findByText(/Le RIR estime/i);
+  });
+
+  it('suggestion starter envoie le même contrat body (sans conversationId)', async () => {
+    const user = userEvent.setup();
+    createAiCoachConversation.mockResolvedValue({
+      id: 'conv-2',
+      title: null,
+      contextExercise: null,
+      archivedAt: null,
+      createdAt: '2026-08-10T10:00:00.000Z',
+      updatedAt: '2026-08-10T10:00:00.000Z',
+      messages: [],
+      pagination: { nextCursor: null, hasMore: false },
+    });
+    sendAiCoachMessage.mockResolvedValue({
+      userMessage: {
+        id: 'm1',
+        role: 'USER',
+        content: 'Pourquoi ma progression aux tractions stagne ?',
+        references: [],
+        suggestedFollowUps: [],
+        proposal: null,
+        createdAt: '2026-08-10T10:01:00.000Z',
+      },
+      assistantMessage: {
+        id: 'm2',
+        role: 'ASSISTANT',
+        content: 'On regarde le volume et la récupération.',
+        references: [],
+        suggestedFollowUps: [],
+        proposal: null,
+        createdAt: '2026-08-10T10:01:01.000Z',
+      },
+    });
+    getAiCoachConversation.mockResolvedValue({
+      id: 'conv-2',
+      title: null,
+      contextExercise: null,
+      archivedAt: null,
+      createdAt: '2026-08-10T10:00:00.000Z',
+      updatedAt: '2026-08-10T10:00:00.000Z',
+      messages: [],
+      pagination: { nextCursor: null, hasMore: false },
+    });
+
+    render(
+      <QueryClientProvider
+        client={
+          new QueryClient({
+            defaultOptions: {
+              queries: { retry: false },
+              mutations: { retry: false },
+            },
+          })
+        }
+      >
+        <MemoryRouter initialEntries={['/coach/chat']}>
+          <Routes>
+            <Route path="/coach/chat" element={<CoachChatPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await screen.findByText(/Choisis une suggestion/i);
+    await user.click(
+      screen.getByRole('button', {
+        name: /Pourquoi ma progression aux tractions stagne/i,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(sendAiCoachMessage).toHaveBeenCalled();
+    });
+    const [, body] = sendAiCoachMessage.mock.calls[0] as [
+      string,
+      Record<string, unknown>,
+    ];
+    expect(body).toEqual({
+      content: 'Pourquoi ma progression aux tractions stagne ?',
+      clientCommandId: expect.any(String),
+    });
+    expect(body).not.toHaveProperty('conversationId');
   });
 
   it('masque le chat si IA désactivée', async () => {

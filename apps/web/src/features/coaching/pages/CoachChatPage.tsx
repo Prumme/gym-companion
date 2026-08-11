@@ -17,6 +17,8 @@ import {
   type ApiRequestError,
 } from '@/lib/api/client';
 
+import { createClientCommandId } from '@/features/workouts/offline/command-id';
+
 import {
   createAiCoachConversation,
   sendAiCoachMessage,
@@ -36,13 +38,6 @@ function referenceHref(reference: AiCoachChatReference): string {
     return `/progress/exercises/${reference.exerciseId}`;
   }
   return `/exercises/${reference.exerciseId}`;
-}
-
-function createClientCommandId(): string {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return crypto.randomUUID();
-  }
-  return `cmd-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 function getErrorCode(error: unknown): string | null {
@@ -132,7 +127,11 @@ export function CoachChatPage() {
       conversationId: string;
       content: string;
       clientCommandId: string;
-    }) => sendAiCoachMessage(input.conversationId, input),
+    }) =>
+      sendAiCoachMessage(input.conversationId, {
+        content: input.content,
+        clientCommandId: input.clientCommandId,
+      }),
     onMutate: async (input) => {
       const optimistic: AiCoachConversationMessage = {
         id: `local-${input.clientCommandId}`,

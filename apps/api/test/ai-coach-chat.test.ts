@@ -160,6 +160,90 @@ describe('Coach chat API (5.6)', () => {
       .expect(404);
   });
 
+  it('refuse un body invalide sans appeler le provider (conversationId leak / empty)', async () => {
+    fakeProvider.resetChat();
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/coaching/conversations')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({})
+      .expect(201);
+    const conversationId = created.body.data.id as string;
+
+    const leaked = await request(app.getHttpServer())
+      .post(`/api/v1/coaching/conversations/${conversationId}/messages`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({
+        conversationId,
+        content: 'Bonjour',
+        clientCommandId: randomUUID(),
+      });
+    expect(leaked.status).toBe(400);
+    expect(leaked.body.error.code).toBe('VALIDATION_ERROR');
+    expect(leaked.body.error.message).toBe('Message invalide.');
+    expect(fakeProvider.chatCallCount).toBe(0);
+
+    const empty = await request(app.getHttpServer())
+      .post(`/api/v1/coaching/conversations/${conversationId}/messages`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ content: '   ', clientCommandId: randomUUID() });
+    expect(empty.status).toBe(400);
+    expect(empty.body.error.code).toBe('VALIDATION_ERROR');
+    expect(fakeProvider.chatCallCount).toBe(0);
+
+    const missing = await request(app.getHttpServer())
+      .post(`/api/v1/coaching/conversations/${conversationId}/messages`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ clientCommandId: randomUUID() });
+    expect(missing.status).toBe(400);
+    expect(fakeProvider.chatCallCount).toBe(0);
+
+    const tooLong = await request(app.getHttpServer())
+      .post(`/api/v1/coaching/conversations/${conversationId}/messages`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ content: 'x'.repeat(1501), clientCommandId: randomUUID() });
+    expect(tooLong.status).toBe(400);
+    expect(fakeProvider.chatCallCount).toBe(0);
+
+    expect(
+      await prisma.aiCoachMessage.count({ where: { conversationId } }),
+    ).toBe(0);
+  });
+
+  it('accepte un message canonique (accents) et appelle le provider', async () => {
+    fakeProvider.resetChat();
+    fakeProvider.chatBehavior = {
+      mode: 'answer',
+      answer: {
+        type: 'discussion',
+        text: 'Salut !',
+        data: null,
+        references: [],
+        suggestedFollowUps: [],
+      },
+    };
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/coaching/conversations')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({})
+      .expect(201);
+    const conversationId = created.body.data.id as string;
+
+    const response = await request(app.getHttpServer())
+      .post(`/api/v1/coaching/conversations/${conversationId}/messages`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({
+        content: '  Est-ce que je progresse aux tractions ?  ',
+        clientCommandId: randomUUID(),
+      })
+      .expect(201);
+
+    expect(response.body.data.userMessage.content).toBe(
+      'Est-ce que je progresse aux tractions ?',
+    );
+    expect(response.body.data.assistantMessage.content).toBe('Salut !');
+    expect(fakeProvider.chatCallCount).toBe(1);
+  });
+
   it('envoie un message avec tool call et refuse IDOR tool', async () => {
     fakeProvider.resetChat();
     fakeProvider.chatBehavior = {

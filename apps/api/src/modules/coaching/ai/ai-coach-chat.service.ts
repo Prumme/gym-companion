@@ -325,6 +325,24 @@ export class AiCoachChatService {
     this.assertAiAvailable();
     const parsed = sendAiCoachMessageBodySchema.safeParse(body);
     if (!parsed.success) {
+      this.logger.warn({
+        event: 'coach.chat.validation_failed',
+        conversationId,
+        issues: parsed.error.issues.map((issue) => {
+          const base = {
+            path: issue.path.map(String),
+            code: issue.code,
+          };
+          if (
+            issue.code === 'unrecognized_keys' &&
+            'keys' in issue &&
+            Array.isArray(issue.keys)
+          ) {
+            return { ...base, keys: issue.keys as string[] };
+          }
+          return base;
+        }),
+      });
       throw new HttpException(
         { code: 'VALIDATION_ERROR', message: 'Message invalide.' },
         HttpStatus.BAD_REQUEST,

@@ -16,6 +16,7 @@ import type {
 import type {
   AcceptCoachProposalInput,
   DecideLoadRecommendationInput,
+  SendAiCoachMessageInput,
 } from '@gym-companion/validation';
 
 import { apiFetch } from '@/lib/api/client';
@@ -140,15 +141,24 @@ export async function getAiCoachConversation(
   return response.data;
 }
 
+/**
+ * Envoie un message Coach.
+ * `conversationId` est UNIQUEMENT dans l’URL — jamais dans le body
+ * (`sendAiCoachMessageBodySchema` est `.strict()`).
+ */
 export async function sendAiCoachMessage(
   conversationId: string,
-  input: { content: string; clientCommandId: string },
+  input: SendAiCoachMessageInput,
 ): Promise<SendAiCoachMessageResponse> {
+  const body: SendAiCoachMessageInput = {
+    content: input.content,
+    clientCommandId: input.clientCommandId,
+  };
   const response = await apiFetch<{ data: SendAiCoachMessageResponse }>(
     `/api/v1/coaching/conversations/${encodeURIComponent(conversationId)}/messages`,
     {
       method: 'POST',
-      body: JSON.stringify(input),
+      body: JSON.stringify(body),
     },
   );
   return response.data;
