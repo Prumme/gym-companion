@@ -31,11 +31,11 @@ COPY --from=build /app/apps/api/prisma ./apps/api/prisma
 COPY --from=build /app/apps/api/prisma.config.ts ./apps/api/prisma.config.ts
 COPY --from=build /app/apps/api/scripts ./apps/api/scripts
 
+COPY --from=build /app/apps/api/src/modules/reference/reference-seed-data.json ./apps/api/src/modules/reference/reference-seed-data.json
+COPY --from=build /app/apps/api/src/modules/exercises/exercises-seed-data.json ./apps/api/src/modules/exercises/exercises-seed-data.json
+
 COPY --from=build /app/node_modules ./node_modules
-
-# Important avec pnpm workspace :
 COPY --from=build /app/apps/api/node_modules ./apps/api/node_modules
-
 COPY --from=build /app/packages ./packages
 COPY --from=build /app/package.json ./package.json
 

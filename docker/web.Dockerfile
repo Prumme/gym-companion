@@ -20,7 +20,8 @@ ARG VITE_PUBLIC_APP_URL=http://localhost:8080
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV VITE_PUBLIC_APP_URL=$VITE_PUBLIC_APP_URL
 RUN pnpm --filter @gym-companion/shared build \
-  && pnpm --filter @gym-companion/web build
+&& pnpm --filter @gym-companion/validation build \
+&& pnpm --filter @gym-companion/web build
 
 FROM nginx:1.27-alpine AS runner
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
