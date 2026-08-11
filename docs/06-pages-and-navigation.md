@@ -122,36 +122,44 @@ Structure cible (routes livrées en gras conceptuel via commentaires) :
 
 La navigation mobile utilise une barre inférieure persistante hors séance active.
 
-Proposition alignée sur la phase 3 livrée :
+**Règle stricte :** exactement **4** emplacements — 3 destinations métier + « Plus ».
+Aucun scroll horizontal.
 
 ```text
-Accueil | Planning | Historique | Records | Progression | Programmes | Exercices | Profil
+Accueil | Entraînement | Progression | Plus
 ```
 
-Routes : `/`, `/planning`, `/workouts`, `/records`, `/progress`, `/coach`, `/programs`, `/exercises`, `/profile`.
-Progression par exercice : `/progress/exercises/:exerciseId` (jalon 4.3 + sections coaching).
-Chat Coach : `/coach/chat` (jalon 5.6).
+| Item | Route hub | Domaine (routes conservées) |
+|------|-----------|-----------------------------|
+| Accueil | `/` | Accueil |
+| Entraînement | `/training` | `/planning`, `/programs`, `/workouts` |
+| Progression | `/progress` | `/progress/overview`, `/records`, `/progress/exercises/:id` |
+| Plus (sheet) | — | `/exercises`, `/shared-workouts`, `/coach`, `/profile` |
 
-### 4.1 Accueil / Planning
+Les deep links historiques restent valides. Pendant `/workouts/active` : **mode focus** (barre masquée).
 
-Accès au planning hebdomadaire, au programme courant et au démarrage d’une séance depuis un modèle.
+### 4.1 Accueil / Entraînement
+
+Hub Entraînement (`/training`) → Planning, Programmes, Historique.
+Accueil : programme courant ou empty state (créer / choisir un programme).
 
 ### 4.2 Historique
 
-Accès à `/workouts` (séances `COMPLETED` / `CANCELLED`).
+Accès via hub Entraînement → `/workouts` (séances `COMPLETED` / `CANCELLED`).
 
 ### 4.3 Records et progression
 
-Accès à `/records` (jalon 4.1) : records personnels **réels** courants calculés à la demande
-(`MAX_WEIGHT`, `MAX_REPS`, `MAX_DURATION`, `MAX_DISTANCE`).
+Hub Progression (`/progress`) = vue d’ensemble (UX-4). Records (`/records`).
+`/progress/overview` est un alias de la même page.
+Records n’est **pas** une destination bottom-nav indépendante.
 
-Dashboard global : `/progress` (jalon 4.4). Progression par exercice :
+Dashboard : `/progress` (jalon 4.4 / UX-4). Progression par exercice :
 `/progress/exercises/:exerciseId` (jalon 4.3), avec section force estimée e1RM pour
 `WEIGHT_REPS` (jalon 4.5).
 
 ### 4.4 Programmes et exercices
 
-Accès aux programmes, modèles et catalogue d’exercices (`/programs`, `/exercises`). Le détail exercice affiche une section « Records personnels » et un lien vers la progression.
+Programmes via hub Entraînement (`/programs`). Exercices via menu Plus (`/exercises`).
 
 ### 4.5 Progression (livrée)
 
@@ -160,17 +168,20 @@ Routes et navigation livrées en phase 4 :
 #### `/records`
 
 - records personnels réels (`MAX_WEIGHT`, `MAX_REPS`, `MAX_DURATION`, `MAX_DISTANCE`) ;
-- contexte (charge/reps, équipement snapshot) ;
-- liens vers séance et exercice.
+- hero « Dernier record battu » si données ;
+- lignes compactes groupées par exercice ;
+- navigation vers `/progress/exercises/:id`.
 
-#### `/progress`
+#### `/progress` (vue d’ensemble)
 
-- dashboard global ;
-- filtres de période (30 j / 3 mois / 6 mois / 1 an / **Tout** via `?period=all` / personnalisé) ;
-- défaut sans paramètres : **3 mois** ;
-- totaux, fréquence, timeline (DAY/WEEK/MONTH) ;
-- records récents de la période ;
-- exercices les plus pratiqués → `/progress/exercises/:id`.
+- résumé activité + performances (entrée bottom nav) ;
+- chips de période + métrique compacte ;
+- tuiles, graphique, records récents, tops exercices ;
+- lien vers `/records`.
+
+#### `/progress/overview`
+
+Alias de `/progress` (rétrocompatibilité).
 
 #### `/progress/exercises/:exerciseId`
 
@@ -183,51 +194,53 @@ Routes et navigation livrées en phase 4 :
 - section **Coach** (5.4) — synthèse déterministe + actions de navigation ;
 - explication IA à la demande (5.5) — distincte du résumé déterministe, uniquement si `ai.available`.
 
-#### `/coach` (jalon 5.4 + 5.5)
+#### `/coach` (jalon 5.4 + UX-8)
 
 Synthèse Coach déterministe (overview sans appel LLM) :
 
-- titre + courte explication ;
-- cartes d’attention (REVIEW / PLATEAU / WATCH / PROGRESSING) ;
-- liens vers `/progress/exercises/:id`.
+- lignes denses « À surveiller » (pas de cards) ;
+- liens vers `/progress/exercises/:id` ;
+- section séparée « Poser une question » (IA soft-disable).
 
 Les explications IA se génèrent uniquement depuis le détail exercice, jamais en masse sur `/coach`.
 
-#### `/coach/chat` (jalon 5.6)
+#### `/coach/chat` (jalon 5.6 + UX-8)
 
-Chat multi-tour :
+Chat multi-tour read-only :
 
-- liste des conversations ;
-- messages USER / ASSISTANT ;
-- références cliquables (exercice / progression / séance) ;
-- suggestions de suivi ;
-- offline → action désactivée.
+- suggestions initiales ;
+- messages USER / ASSISTANT (pas de bulles ChatGPT) ;
+- données consultées (labels humains) ;
+- composer compact + safe-area ;
+- offline / busy / rate-limit → messages humains.
 
 ### 4.6 Profil
 
-Accès au profil et à la déconnexion (`/profile`), avec confirmation si des commandes hors ligne sont en attente.
+Accès via menu **Plus** → `/profile`, avec confirmation si des commandes hors ligne
+sont en attente.
 
 ## 5. Navigation desktop
 
-Sur desktop, la navigation principale peut utiliser une barre latérale ou la même barre que le mobile.
+À partir de `md` (~768px) : **sidebar compacte** (pas de bottom nav étirée).
+Même configuration que le mobile (`nav-config.ts`).
 
-Sections livrées :
-
-- Accueil ;
-- Planning ;
-- Historique (`/workouts`) ;
-- Records (`/records`) ;
-- Progression (`/progress`, `/progress/exercises/:exerciseId`) ;
-- Coach (`/coach`) ;
-- Séances partagées (`/shared-workouts`, `/shared-workouts/invitations`) — Shared 5.1 → 5.4 ;
-- Programmes ;
-- Exercices ;
-- Profil.
+```text
+Gym Companion
+Accueil
+Entraînement
+Progression
+----------
+Plus
+  Entraînement — Exercices, Séances partagées
+  Coaching — Coach
+  Compte — Profil
+```
 
 Sections futures :
 
 - Nutrition ;
 - Join shared par code / lien public (hors Shared 5.2) ;
+- Paramètres (page dédiée absente — ne pas inventer dans Plus) ;
 - Coach IA (génération programme) ;
 - Paramètres avancés.
 
@@ -442,14 +455,14 @@ La page ne doit pas devenir une accumulation de cartes sans hiérarchie.
 /exercises
 ```
 
-### Contenu
+### Contenu (UX-7)
 
-- barre de recherche ;
-- filtres ;
-- favoris ;
-- exercices récents ;
-- liste des résultats ;
-- bouton Nouvel exercice.
+- header compact + CTA `+ Créer` ;
+- recherche sticky (debounce URL) ;
+- filtres en bottom sheet + chips actives ;
+- liste dense (lignes, pas cards) ;
+- empty state compact ;
+- infinite query « Charger plus ».
 
 ### Filtres
 
@@ -460,14 +473,14 @@ La page ne doit pas devenir une accumulation de cartes sans hiérarchie.
 - favoris ;
 - archivés, uniquement sur demande.
 
-### Carte d’exercice
+### Ligne d’exercice
 
-- nom ;
-- muscle principal ;
-- équipement ;
-- indicateur personnel ou système ;
-- dernière performance facultative ;
-- favori.
+- nom (prioritaire) ;
+- muscle · équipement ;
+- type de mesure ;
+- badge Personnel si `USER` (pas de badge SYSTEM) ;
+- favori actionnable ;
+- archivé si applicable.
 
 ## 13. Détail d’un exercice
 
@@ -477,47 +490,20 @@ La page ne doit pas devenir une accumulation de cartes sans hiérarchie.
 /exercises/:exerciseId
 ```
 
-### Onglets ou sections
+### Sections (UX-7)
 
-#### Vue générale
-
-- nom ;
-- muscles ;
+- header + favori ; résumé muscle · équipement · mesure · repos ;
+- instructions repliables ;
 - équipement ;
-- instructions ;
-- temps de repos ;
-- préférences personnelles.
-
-#### Historique
-
-- dernières performances ;
-- charge ;
-- répétitions ;
-- dates ;
-- séances sources.
-
-#### Progression
-
+- préférences (édition en sheet, reset secondaire) ;
+- progression → `/progress/exercises/:id` ;
 - records ;
-- graphique ;
-- 1RM estimé ;
-- volume ;
-- comparaison.
-
-#### Paramètres personnels
-
-- équipement préféré ;
-- repos par défaut ;
-- notes ;
-- favori ;
-- exclusion.
+- gestion (edit/archive) si permissions.
 
 ### Actions
 
-- ajouter à une séance ;
-- ajouter à un programme ;
-- modifier si personnel ;
-- archiver si personnel.
+- modifier / archiver / restaurer si permissions ;
+- ouvrir la progression.
 
 ## 14. Création ou modification d’exercice
 
@@ -572,26 +558,25 @@ Le formulaire peut être découpé en sections repliables, mais ne doit pas masq
 
 ```text
 /programs/:programId
+/programs/:programId?templateId=:templateId   # éditeur focused d’une séance
 ```
 
 ### Contenu
 
-- nom ;
-- objectif ;
-- description ;
-- statut ;
-- séances du programme ;
-- fréquence ou organisation facultative ;
-- date de modification.
+- header compact (retour, nom, badge Actif/Archivé, menu `…`) ;
+- liste des séances (nom, nb exercices / séries) — pas le détail inline de toutes les séances ;
+- activation / archivage en sections secondaires ;
+- lien Planning conservé dans le menu.
+
+Tap sur une séance → éditeur focused (`templateId`). Voir aussi `docs/07-ui-ux-guidelines.md` § Program Builder.
 
 ### Actions
 
 - activer ;
-- modifier ;
-- dupliquer ;
-- archiver ;
-- démarrer une séance ;
-- demander une adaptation IA, phase future.
+- modifier les informations ;
+- archiver / restaurer ;
+- ajouter une séance ;
+- démarrer une séance (depuis l’éditeur).
 
 ## 17. Éditeur de programme
 
@@ -604,18 +589,13 @@ Le formulaire peut être découpé en sections repliables, mais ne doit pas masq
 
 ### Structure
 
-1. Informations générales.
-2. Liste des séances.
-3. Édition d’une séance.
-4. Résumé.
-5. Enregistrement.
+1. Informations générales (nom, objectif, description facultative).
+2. Sur le détail : liste des séances puis éditeur focused.
 
 ### Contraintes
 
-- sauvegarde de brouillon ;
 - alerte avant sortie avec modifications non enregistrées ;
-- réorganisation tactile ;
-- duplication de séance ;
+- réorganisation via menus contextuels (pas de flèches permanentes) ;
 - suppression avec confirmation.
 
 ## 18. Éditeur de séance modèle
@@ -623,29 +603,25 @@ Le formulaire peut être découpé en sections repliables, mais ne doit pas masq
 ### Routes
 
 ```text
-/programs/:programId/workouts/new
-/programs/:programId/workouts/:templateId/edit
+/programs/:programId?templateId=:templateId
 ```
+
+(Anciennes routes `/workouts/new` et `/workouts/:templateId/edit` sous programme : non utilisées par le builder UX-3 ; l’édition passe par le query param ci-dessus.)
 
 ### Contenu
 
-- nom ;
-- description ;
-- liste ordonnée d’exercices ;
-- nombre de séries ;
-- cibles ;
-- repos ;
-- notes ;
-- estimation de durée.
+- header (retour programme, nom séance, compteurs, menu `…`) ;
+- sections exercices compactes ;
+- `TargetSetRow` pour les séries cibles ;
+- recommandation de charge en ligne compacte ;
+- bottom sheet pour ajouter / modifier une série.
 
 ### Actions
 
-- ajouter un exercice ;
-- dupliquer un exercice ;
-- réordonner ;
-- modifier les séries ;
-- supprimer ;
-- enregistrer.
+- ajouter un exercice (catalogue existant) ;
+- réordonner exercice / série via menu ;
+- modifier / supprimer avec confirmation ;
+- démarrer la séance.
 
 ## 19. Prévisualisation avant séance
 
@@ -766,20 +742,16 @@ L’utilisateur peut sélectionner directement un exercice.
 - si la séance est `ACTIVE` ou `PAUSED` : redirection vers `/workouts/active` ;
 - si la séance est `COMPLETED` ou `CANCELLED` : détail historique en **lecture seule**.
 
-### Contenu (lecture seule)
+### Contenu (lecture seule, UX-5)
 
-- nom snapshot ;
-- statut ;
-- date locale, début, fin ou annulation ;
-- durée écoulée (si calculable ; pas une durée d’effort nette) ;
-- programme / modèle snapshot ;
-- notes et motif d’annulation ;
-- résumé des compteurs de séries ;
-- exercices et séries (cibles, résultats, statuts, RIR/RPE, échec musculaire).
+- header résumé (nom · date · durée · programme/modèle · statut) — pas de dump `Label : valeur` ;
+- synthèse compacte (compteurs non nuls + barre de progression) ;
+- liste d’exercices compacte → séries read-only (`WorkoutSetCard`) ;
+- métadonnées secondaires (timestamps, notes, motif) dans une section « Détails » repliable.
 
 ### Hors périmètre actuel
 
-- volume officiel ;
+- volume « inventé » hors `metrics` existantes ;
 - records ;
 - comparaison avec une séance précédente ;
 - correction des performances ;
@@ -794,12 +766,12 @@ L’utilisateur peut sélectionner directement un exercice.
 /workouts
 ```
 
-### Contenu (jalon 3.6)
+### Contenu (UX-5)
 
-- liste chronologique des séances `COMPLETED` / `CANCELLED` ;
-- filtres statut + plage de dates (synchronisés dans l’URL) ;
+- header « Historique / Tes séances passées » ;
+- filtres compacts : chips statut + sheet période (`status`, `from`, `to` URL) ;
+- timeline groupée (Aujourd’hui / Hier / mois) en lignes compactes ;
 - pagination « Charger plus » ;
-- cartes avec résumé de séries (noms snapshotés) ;
 - lien vers le détail `/workouts/:workoutSessionId` (filtres conservés au retour) ;
 - badge local « En attente de synchronisation » pour une fin/annulation hors ligne non confirmée.
 
@@ -846,14 +818,15 @@ Entrée de navigation principale « Progression ».
 
 ### Contenu
 
-1. titre + sélecteur de période (30 j / 3 mois / 6 mois / 1 an / tout / personnalisé) ;
+1. titre + lien Records + chips de période (1 mois / 3 mois / 6 mois / 1 an / tout / perso.) ;
    - défaut sans query : 3 mois ;
    - **Tout** : `?period=all` (pas de `from`/`to` ; distinct d’une URL vide) ;
-2. indicateurs clés (séances, séries, volume, et conditionnellement reps / durée / distance) ;
-3. fréquence (`X séances sur Y jours actifs`, moyenne / semaine si calculable) ;
-4. graphique principal (une métrique à la fois, Recharts) ;
-5. records récents de la période ;
-6. exercices les plus pratiqués → lien `/progress/exercises/:id`.
+2. métrique du graphique (select compact) ;
+3. tuiles de synthèse (séances, séries, volume, exercices… + deltas si dispo) ;
+4. fréquence (`X séances sur Y jours actifs`) ;
+5. graphique principal (titre métrique + valeur récente + Recharts) ;
+6. records récents (lignes compactes) ;
+7. exercices les plus pratiqués → lien `/progress/exercises/:id`.
 
 Descriptif uniquement — pas de recommandation automatique.
 
@@ -954,44 +927,47 @@ Hors scope 4.5 : autres formules, 1RM RIR/RPE, recommandations, matérialisation
 ```
 
 Affiche les salles dont l’utilisateur est **membre actif** (filtre `status`, pagination cursor).
-État vide + CTA « Créer une salle ». Lien vers `/shared-workouts/invitations`.
+UX-6 : invitations reçues prioritaires en tête de page ; salles en lignes compactes ;
+empty state avec un seul CTA « Créer une salle ». Page `/invitations` conservée en secours.
 
-### Lobby / détail unifié Shared 5.1 → 5.4
+### Lobby / détail unifié Shared 5.1 → 5.4 (UX-6)
 
 ```text
 /shared-workouts/:roomId
 ```
 
 Selon `status` : préparation (LOBBY), en cours (ACTIVE), terminée / annulée (read-only).
+Header compact + menu `…` selon rôle.
 Actions owner : renommer (LOBBY/ACTIVE), démarrer, terminer, annuler ;
 inviter par email + lister / annuler les `PENDING` (LOBBY/ACTIVE).
 Actions MEMBER actif : quitter la salle (LOBBY/ACTIVE).
 Membres affichés = memberships actifs uniquement (`leftAt IS NULL`).
+Bottom nav globale **conservée** (pas de focus mode room).
 
 **Présence (Shared 5.3)** — même route, pas de `/lobby` dédié :
-hook `useSharedWorkoutRoomRealtime` ; libellés texte par membre
-« En ligne » / « Hors ligne » / « Présence inconnue » (socket indisponible).
-`room:changed` → invalidation TanStack Query (refetch REST). Hors ligne navigateur :
-présence masquée, actions REST selon NetworkOnly.
+hook `useSharedWorkoutRoomRealtime` ; ●/○ + libellés texte
+« En ligne » / « Hors ligne » / « Présence inconnue ».
+Pas de jargon « Temps réel connecté ». Si socket en erreur : bandeau + Actualiser (REST).
+`room:changed` → invalidation TanStack Query (refetch REST).
 
-**Ma séance (Shared 5.4)** — section sur la même route (`SharedWorkoutMySessionSection`) :
-attach / create + lien vers `/workouts/:id` ou `/workouts/active`.
+**Ma séance (Shared 5.4)** — section Toi / Ta séance :
+attach / create + lien vers `/workouts/:id` (Active Workout UX-2).
 
-**Progression live (Shared 5.5)** — sur les cartes membres lorsque la salle est
-`ACTIVE` (et historique utile en `COMPLETED`/`CANCELLED`) :
+**Progression live (Shared 5.5)** — lignes participants privacy-safe (`ACTIVE` / terminal) :
 
-- exercice courant (nom snapshot) + `X / Y séries` renseignées ;
-- progression globale textuelle + barre accessible ;
-- statut séance (dont pause) ; **aucune** perf détaillée ni bouton « voir détail ».
+- exercice courant (nom) + `X / Y séries` + % + barre ;
+- **aucune** perf détaillée (poids / reps / RIR / RPE / notes / PR).
 
 La sélection d’exercice dans `/workouts/active` synchronise l’exercice courant
 serveur (online, room ACTIVE) via `PUT .../current-exercise` — **sans** transformer
 l’écran workout en lobby partagé. Aucune nouvelle page obligatoire.
 
-**Équipements (Shared 5.6)** — section sur la même route ACTIVE :
+**Équipements (Shared 5.6 / UX-6)** — section Matériel sur room ACTIVE :
 
-- listes USING / WAITING par équipement logique ;
-- actions Utiliser / Rejoindre la file / Quitter / Libérer dans Ma séance ;
+- labels humains : Disponible / Utiliser · Utilisée par X · file ordonnée ·
+  Rejoindre / Quitter la file · Tu l’utilises / Libérer ;
+- pas d’IDs ni `requestedAt` ;
+- erreur `SHARED_EQUIPMENT_STILL_USING` → « Libère d’abord… » + CTA Libérer ;
 - warnings leave / complete si occupation active.
 
 - LOBBY : message indiquant que le rattachement sera possible après le lancement ;
@@ -1308,16 +1284,16 @@ Une variation journalière ne doit pas être présentée comme une tendance sign
 
 ### Contenu `/coach`
 
-- overview déterministe (REVIEW / PLATEAU / WATCH / PROGRESSING) ;
-- lien « Discuter avec le Coach » → `/coach/chat` ;
+- overview déterministe en lignes denses (REVIEW / PLATEAU / WATCH / …) ;
+- CTA IA secondaire « Demander au Coach IA » (soft-disable) ;
 - **aucune** génération IA en masse au chargement.
 
 ### Contenu `/coach/chat`
 
-- conversations persistées ;
+- conversations persistées (liste compacte) ;
 - messages USER / ASSISTANT ;
 - outils lecture seule côté serveur ;
-- offline : envoi impossible.
+- offline / busy / rate-limit : envoi impossible ou message humain.
 
 ### Page de proposition (futur — hors 5.1–5.6)
 
@@ -1360,14 +1336,13 @@ Cette page ne remplace pas les notifications système.
 /profile
 ```
 
-### Contenu
+### Contenu (UX-7)
 
-- nom ;
-- objectif ;
-- niveau ;
-- unités ;
-- statistiques synthétiques ;
-- accès aux paramètres.
+- identité (nom affiché, email) ;
+- préférences en lecture (fuseau, unités, objectif, niveau, effort) ;
+- **Modifier** → formulaire groupé ;
+- déconnexion secondaire (confirm si offline pending) ;
+- pas de page Paramètres / password / 2FA tant qu’absents produit.
 
 ## 40. Paramètres
 

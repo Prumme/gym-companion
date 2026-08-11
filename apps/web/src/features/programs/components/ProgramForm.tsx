@@ -21,6 +21,9 @@ type ProgramFormProps = {
   onSubmit: (values: ProgramFormValues) => Promise<void> | void;
 };
 
+const fieldClass =
+  'min-h-11 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--background)] px-3 outline-none focus:border-[var(--primary)]';
+
 export function ProgramForm({
   mode,
   initialValues = EMPTY_PROGRAM_FORM_VALUES,
@@ -77,7 +80,7 @@ export function ProgramForm({
 
   return (
     <form
-      className="flex flex-col gap-5"
+      className="flex flex-col gap-4"
       noValidate
       onSubmit={handleSubmit(async (values) => {
         await onSubmit(values);
@@ -90,7 +93,7 @@ export function ProgramForm({
           id="program-name"
           type="text"
           autoComplete="off"
-          className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 outline-none focus:border-[var(--primary)]"
+          className={fieldClass}
           aria-invalid={Boolean(errors.name)}
           aria-describedby={errors.name ? 'program-name-error' : undefined}
           {...register('name')}
@@ -102,15 +105,39 @@ export function ProgramForm({
         ) : null}
       </label>
 
+      <label className="flex flex-col gap-1.5 text-sm" htmlFor="program-goal">
+        <span className="font-medium">Objectif</span>
+        <select
+          id="program-goal"
+          className={fieldClass}
+          aria-invalid={Boolean(errors.goal)}
+          {...register('goal')}
+        >
+          {TRAINING_GOAL_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        {errors.goal ? (
+          <span className="text-[var(--danger)]" role="alert">
+            {errors.goal.message}
+          </span>
+        ) : null}
+      </label>
+
       <label
         className="flex flex-col gap-1.5 text-sm"
         htmlFor="program-description"
       >
-        <span className="font-medium">Description</span>
+        <span className="font-medium">
+          Description{' '}
+          <span className="font-normal text-[var(--muted)]">(facultatif)</span>
+        </span>
         <textarea
           id="program-description"
-          rows={4}
-          className="rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 py-2 outline-none focus:border-[var(--primary)]"
+          rows={3}
+          className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--background)] px-3 py-2 outline-none focus:border-[var(--primary)]"
           aria-invalid={Boolean(errors.description)}
           aria-describedby={
             errors.description ? 'program-description-error' : undefined
@@ -128,38 +155,20 @@ export function ProgramForm({
         ) : null}
       </label>
 
-      <label className="flex flex-col gap-1.5 text-sm" htmlFor="program-goal">
-        <span className="font-medium">Objectif</span>
-        <select
-          id="program-goal"
-          className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 outline-none focus:border-[var(--primary)]"
-          aria-invalid={Boolean(errors.goal)}
-          {...register('goal')}
-        >
-          {TRAINING_GOAL_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        {errors.goal ? (
-          <span className="text-[var(--danger)]" role="alert">
-            {errors.goal.message}
-          </span>
-        ) : null}
-      </label>
-
       {submitError ? (
         <p className="text-sm text-[var(--danger)]" role="alert">
           {submitError}
         </p>
       ) : null}
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+      <div className="flex flex-col gap-2 pt-2">
+        <Button type="submit" className="w-full" disabled={pending}>
+          {pending ? 'Enregistrement…' : submitLabel}
+        </Button>
         <ButtonLink
           to={cancelTo}
-          variant="secondary"
-          className="w-full sm:w-auto"
+          variant="ghost"
+          className="w-full text-[var(--muted)]"
           onClick={(event) => {
             if (!confirmLeave()) {
               event.preventDefault();
@@ -168,13 +177,6 @@ export function ProgramForm({
         >
           Annuler
         </ButtonLink>
-        <Button
-          type="submit"
-          className="w-full sm:w-auto"
-          disabled={pending}
-        >
-          {pending ? 'Enregistrement…' : submitLabel}
-        </Button>
       </div>
     </form>
   );

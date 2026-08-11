@@ -29,6 +29,58 @@ L’interface ne doit pas ressembler à un logiciel médical ni à un jeu excess
 
 Le produit peut être motivant sans devenir agressif ou culpabilisant.
 
+## 2bis. Fondations UX — Performance / Training Log (jalon shell)
+
+Direction artistique : **Performance / Training Log**.
+
+L’UI évoque performance, progression, précision et entraînement — pas un dashboard SaaS
+générique ni un outil administratif.
+
+### Navigation globale
+
+- Mobile : Accueil · Entraînement · Progression · Plus (sheet).
+- Desktop (`md+`) : sidebar alimentée par la même config (`apps/web/src/app/navigation/nav-config.ts`).
+- Séance active (`/workouts/active`) : mode focus — bottom nav et sidebar masquées.
+- Branding « Gym Companion » : Accueil / sidebar desktop uniquement — pages internes = top bar compacte (`PageHeader`).
+
+### Domaines
+
+| Domaine | Hub | Contenu |
+|---------|-----|---------|
+| Accueil | `/` | Programme courant / empty state |
+| Entraînement | `/training` | Planning, programmes, historique |
+| Progression | `/progress` | Vue d’ensemble, records |
+| Plus | sheet groupé / sidebar | Entraînement · Coaching · Compte |
+
+### Design tokens (`global.css`)
+
+| Token | Rôle | Valeur indicative |
+|-------|------|-------------------|
+| `--background` | fond app | `#F5F6F3` |
+| `--surface` / `--card` | surfaces | `#FFFFFF` |
+| `--foreground` | texte | `#11150F` |
+| `--muted-foreground` | secondaire | `#687066` |
+| `--border` | séparateurs | `#DEE3DA` |
+| `--primary` | accent lime ponctuel | `#B7F34A` |
+| `--primary-foreground` | texte sur accent | très sombre |
+| `--success` / `--danger` | sémantique | verts / rouge maîtrisés |
+
+L’accent lime reste **ponctuel** (CTA, progression positive, série validée, activité, record).
+Ne pas peindre de grandes surfaces en lime. Ne pas hardcoder les hex dans les composants.
+
+### Typographie & espacements
+
+- Titre page ~28–32px ; section ~18–20px ; body ~15–16px ; secondary ~14–15px.
+- Valeurs sportives : classe `.tabular-nums`.
+- Échelle d’espacement : 4 / 8 / 12 / 16 / 24 / 32 ; padding-inline mobile = 16px.
+- Contrôles : hauteur ~48–52px ; radius contrôles 10–14px ; surfaces 16–20px.
+- Largeur minimale supportée : **320px**.
+
+### Empty states
+
+Composant `EmptyState` : icône optionnelle, titre, description courte, CTA principal,
+action secondaire optionnelle. **Ne pas** dupliquer le même CTA hors du empty state.
+
 ## 3. Direction visuelle
 
 ### 3.1 Style général
@@ -44,16 +96,17 @@ Le produit peut être motivant sans devenir agressif ou culpabilisant.
 
 ### 3.2 Couleurs
 
-La palette exacte sera définie dans le thème Tailwind.
+Palette **light-first** via tokens CSS (`--background`, `--primary`, etc.) — voir §2bis.
 
-Rôles recommandés :
+Rôles :
 
-- couleur principale : actions et sélection ;
-- vert : réussite ou synchronisation confirmée ;
-- orange : attention, attente ou série partielle ;
-- rouge : erreur, suppression ou danger ;
-- bleu : information ou état partagé ;
-- gris : éléments secondaires ou désactivés.
+- `--primary` (lime) : CTA principal, indicateurs de progression ponctuels ;
+- `--success` : réussite / sync confirmée (distinct du lime si besoin) ;
+- `--warning` : attention, série partielle ;
+- `--danger` : erreur, suppression ;
+- `--muted-foreground` : secondaire / désactivé.
+
+Ne plus utiliser bleu CTA + orange navigation active comme couple dominant.
 
 ### 3.3 Règle d’accessibilité
 
@@ -153,27 +206,35 @@ Exemples sensibles :
 La barre inférieure doit rester :
 
 - visible hors séance active ;
-- facilement compréhensible ;
-- limitée à cinq destinations ;
-- compatible avec les safe areas du téléphone.
+- exactement **4** emplacements (Accueil, Entraînement, Progression, Plus) ;
+- icône + label, zones tactiles ≥ 44×44 px ;
+- état actif identifiable (indicateur lime discret — pas de gros contour) ;
+- compatible `safe-area-inset-bottom` ;
+- sans overflow horizontal ni scroll.
 
-### 8.2 Action centrale
+### 8.2 Menu Plus
 
-Le bouton central peut ouvrir les actions de création.
+Ouvre un sheet mobile (safe-area) groupé — pas une liste plate :
 
-Il doit avoir un libellé accessible et ne pas dépendre uniquement de l’icône `+`.
+- **Entraînement** : Exercices, Séances partagées
+- **Coaching** : Coach
+- **Compte** : Profil
+
+Chaque entrée : icône + label + description courte + `>`.
+Fermeture Escape / overlay / navigation.
+Pas de destination « Paramètres » tant qu’aucune page n’existe.
+Pas de faux badge invitations (requête shell dédiée hors scope).
 
 ### 8.3 Navigation pendant une séance
 
-Pendant une séance, la barre principale peut être remplacée par une navigation dédiée :
+Sur `/workouts/active` (mode focus) :
 
-- exercice précédent ;
-- liste de séance ;
-- exercice suivant ;
-- chronomètre ;
-- terminer.
+- la barre principale globale est **masquée** ;
+- header minimal côté page ;
+- maximiser la surface de saisie des séries.
 
-L’utilisateur doit pouvoir revenir à l’application sans perdre la séance.
+Une navigation dédiée séance (précédent / liste / suivant) pourra compléter ce mode
+dans un jalon UX ultérieur. L’utilisateur doit pouvoir revenir sans perdre la séance.
 
 ## 9. Boutons
 
@@ -314,69 +375,190 @@ Adapté aux filtres et paramètres rapides.
 
 Une modale ne doit pas contenir un formulaire complexe ou une page entière.
 
-## 15. Page de séance active
+## 15. Page de séance active / Focus Mode
 
-La page de séance active est l’écran le plus important du produit.
+La page `/workouts/active` est l’écran le plus important du produit. Elle tourne en **mode focus** : aucune bottom navigation globale, aucune sidebar.
 
-### 15.1 Priorités visuelles
+### 15.1 Hiérarchie
 
-Ordre recommandé :
+Répondre immédiatement à trois questions :
 
-1. exercice actuel ;
-2. série actuelle ;
-3. charge ;
-4. cible de répétitions ;
-5. action de validation ;
-6. chronomètre ;
-7. progression générale ;
-8. actions secondaires.
+1. Quel exercice suis-je en train de faire ?
+2. Quelle série dois-je réaliser maintenant ?
+3. Quelle action dois-je effectuer ensuite ?
 
-### 15.2 Saisie rapide
+Ordre visuel :
 
-La charge précédente et la cible doivent être préremplies lorsque possible.
+1. header sticky (quit ×, nom compact, menu …, progression) ;
+2. navigation exercices compacte ;
+3. nom de l’exercice courant ;
+4. série suivante / cible ;
+5. liste compacte des séries ;
+6. CTA principal sticky (ou timer de repos) ;
+7. actions secondaires uniquement dans le menu `…`.
 
-L’utilisateur doit pouvoir valider une série avec peu d’interactions.
+Les métadonnées administratives (statut, programme, modèle, date, début) vivent dans la sheet **Détails de la séance**, pas dans le flux principal.
 
-### 15.3 Action de validation
+### 15.2 CTA principal
 
-Le bouton principal peut utiliser un libellé explicite :
+Toujours une seule action dominante :
+
+| Contexte | CTA |
+| --- | --- |
+| Série à faire | `Enregistrer la série` |
+| Repos en cours | Timer (état principal) |
+| Exercice terminé + suivant | `Exercice suivant` |
+| Dernier exercice terminé | `Terminer la séance` |
+
+Le CTA respecte `safe-area-inset-bottom`. Pendant le repos, le timer occupe le bas de l’écran.
+
+### 15.3 Séries
+
+Représentation en lignes compactes, pas en cards empilées :
+
+- `✓` terminée / partielle / échouée ;
+- `●` série courante ;
+- `○` à venir ;
+- `—` ignorée / annulée.
+
+Tap sur une série ouvrable pour consulter / modifier. Pas de boutons « Saisir / Ignorer / Échouée » répétés sur chaque ligne.
+
+### 15.4 Bottom sheet d’enregistrement
+
+Sur mobile, préférer un bottom sheet à une modale centrée.
+
+- Titre : `Série N` + cible compacte (`8–10 reps · RIR 2`) ;
+- Grille Charge / Répétitions (quand pertinent) ;
+- Champs numériques `min-h-12`, `inputMode` adapté, `tabular-nums` ;
+- Sticky : **Enregistrer** ;
+- Secondaires discrets : Annuler · Ignorer la série ;
+- Statut / notes dans « Plus d’options ».
+
+Préserver le préremplissage métier existant (cibles, valeurs déjà saisies). Ne pas inventer de nouvelle recommandation.
+
+### 15.5 Timer de repos
+
+Compact, chiffre dominant (`text-5xl`, `tabular-nums`) :
 
 ```text
-Valider la série
+REPOS
+01:57
+[-15 s]   Pause   [+15 s]
+Passer le repos
 ```
 
-Après validation :
+« Passer le repos » arrête la minuterie locale (comportement historique de stop). Pas de matrice 2×2 de gros boutons.
 
-- retour visuel immédiat ;
-- lancement du repos ;
-- passage clair à la suite ;
-- possibilité d’annuler brièvement une erreur.
+### 15.6 Navigation exercices
 
-### 15.4 Statut d’une série
+Compacte : `‹  Nom · Exercice N / M  ›` + pastilles de progression. Aucune flèche géante ni carousel de cards.
 
-Le statut peut être proposé après saisie ou déduit provisoirement de la cible.
+Le changement d’exercice ne modifie aucune règle métier.
 
-L’utilisateur garde toujours la possibilité de le modifier.
+### 15.7 Fin d’exercice / fin de séance
 
-### 15.5 Échec
+Quand toutes les séries de l’exercice sont traitées : message clair + CTA `Exercice suivant`.
 
-L’action « Échec » ne doit pas être mise en scène comme une faute.
+Sur le dernier exercice : CTA `Terminer la séance` (confirmation via le dialogue lifecycle existant).
 
-Libellés préférables :
+### 15.8 Offline / sync
 
-- série partielle ;
-- cible non atteinte ;
-- série interrompue.
+Indicateur discret (`Hors ligne`, `Synchronisation…`). Ne jamais bloquer l’enregistrement local pour une raison visuelle. IndexedDB, queue, idempotence et conflits inchangés.
 
-### 15.6 Écran actif
+### 15.9 Desktop
+
+Mode focus conservé (pas de sidebar). Largeur du contenu limitée (`max-w-xl`). Même hiérarchie que le mobile.
+
+### 15.10 Échec / statut
+
+L’action « Échec » / statut reste accessible via le sheet (options), sans mise en scène punitive.
+
+Libellés préférables : série partielle, cible non atteinte, série interrompue.
+
+### 15.11 Écran actif
 
 L’application peut demander à maintenir l’écran actif pendant une séance, avec consentement et uniquement lorsque la plateforme le permet.
+
+## 15bis. Program Builder
+
+Les écrans `/programs/*` construisent et éditent la hiérarchie :
+
+```text
+Programme
+  └── Séances (WorkoutTemplate)
+        └── Exercices (WorkoutTemplateExercise)
+              └── Séries cibles (WorkoutTemplateSet)
+```
+
+Objectif : permettre de comprendre et modifier une séance complète sur téléphone sans cards imbriquées.
+
+### 15bis.1 Navigation
+
+| Vue | Contenu |
+| --- | --- |
+| Liste | Lignes compactes (nom, objectif, nb séances, badge Actif/Archivé) + menu `…` secondaire |
+| Détail programme | Header compact + liste des séances (pas le contenu de chaque séance) |
+| Éditeur séance | `?templateId=` — exercices et séries en sections / lignes |
+
+Tap sur une séance → éditeur focused. Retour via `‹` vers le détail programme.
+
+### 15bis.2 Densité
+
+Échelle d’espacement UX-1 : 4 / 8 / 12 / 16 / 24 / 32.
+
+Sur ~390px, un exercice doit montrer nom + méta + 2–3 séries compactes sans un viewport de scroll vide.
+
+Éviter : paddings 32px répétés, contrôles 70–80px permanents, cards dans cards.
+
+### 15bis.3 TargetSetRow
+
+Une série cible tient sur une ligne principale :
+
+```text
+1  Travail    8–10 reps · RIR 2     ⋮
+```
+
+Composant : `TargetSetRow` + `formatSetSummaryCompact`. Tap ou menu `…` : modifier / déplacer / supprimer (selon API existante). Pas de duplication inventée.
+
+### 15bis.4 Menus contextuels
+
+Les flèches haut/bas permanentes sont interdites dans le builder. Reorder via menu `…` :
+
+- Déplacer vers le haut / bas
+- Modifier
+- Supprimer
+
+Zones tactiles ≥ 44px, `aria-label`, focus-visible.
+
+### 15bis.5 Ajout / édition de série
+
+Bottom sheet (pattern UX-2) :
+
+- Type, reps/durée/distance selon `measurementType`, charge si pertinent, RIR + repos
+- « Plus d’options » : intensité, RPE
+- CTA sticky unique ; Annuler secondaire
+
+Ne pas changer les validations métier : seuls l’affichage et le regroupement des champs évoluent.
+
+### 15bis.6 Recommandation de charge
+
+Dans le builder uniquement : `LoadRecommendationCard variant="compact"` — une ligne (`Suggestion` + valeur + `Voir`). Pas de grande card vide si non supporté / indisponible. Le moteur et le détail complet restent inchangés.
+
+### 15bis.7 Sticky
+
+Pas de footer sticky permanent sur les pages liste / détail / éditeur. Sticky réservé aux sheets et étapes de validation.
+
+### 15bis.8 Hors périmètre builder
+
+Planning, Active Workout, Progression, Shared Workouts, catalogue global, Coach : inchangés par ce jalon.
 
 ## 16. Chronomètre
 
 ### 16.1 Affichage
 
-Le temps restant doit être très lisible.
+Le temps restant doit être très lisible (chiffre dominant, `tabular-nums`).
+
+En séance active, le timer est sticky en bas et remplace temporairement le CTA d’enregistrement.
 
 ### 16.2 États
 
@@ -388,11 +570,11 @@ Le temps restant doit être très lisible.
 
 ### 16.3 Actions
 
-- pause ;
-- reprise ;
-- ajouter 15 ou 30 secondes ;
-- retirer du temps ;
-- terminer.
+- pause / reprise ;
+- ±15 secondes ;
+- passer le repos (stop local).
+
+Éviter une grille de gros boutons équivalents.
 
 ### 16.4 Fin du repos
 
@@ -405,52 +587,87 @@ Utiliser plusieurs signaux possibles :
 
 L’utilisateur doit pouvoir désactiver chaque signal.
 
-## 17. Séance partagée
+## 17. Séance partagée (UX-6)
 
-### 17.1 Information principale
+Shared Workout = **coordination sociale**. Active Workout (UX-2) = **saisie des séries**.
+Ne pas fusionner les deux écrans. CTA « Ouvrir ma séance » → `/workouts/:id` → Active.
 
-Chaque participant doit voir en priorité :
+Règles métier / realtime : voir `docs/10-realtime-workouts.md` (REST = vérité ; Socket = hint).
 
-```text
-Où aller ?
-Quel exercice ?
-Quelle charge ?
-Combien de répétitions ?
-```
+### 17.1 Liste (`/shared-workouts`)
 
-### 17.2 Station actuelle
+- Header + CTA `+ Créer une salle`
+- Section **Invitations** en tête si non vide (Rejoindre / Refuser)
+- **Mes salles** en lignes compactes (statut + N participants)
+- Empty : un seul CTA Créer (pas de double si déjà en header)
 
-La station actuelle doit être représentée par une carte dominante.
+### 17.2 Lobby / ACTIVE / TERMINAL (`/:roomId`)
 
-### 17.3 Prochaine station
+Route unifiée. Header compact + menu `…` selon rôle.
 
-La prochaine station peut être affichée de manière secondaire pour permettre l’anticipation.
+**Lobby** : présence ●/○ + texte, inviter (owner), ta séance (attente), CTA Démarrer (owner).
 
-### 17.4 Présence des participants
+**ACTIVE** :
+1. Toi (séance liée + exercice courant coarse + Ouvrir)
+2. Participants (lignes privacy-safe)
+3. Matériel (FIFO humain)
 
-Utiliser des statuts explicites :
+**Terminal** : lecture seule, pas d’équipement / lifecycle, retour liste.
 
-- prêt ;
-- en exercice ;
-- en repos ;
-- en attente ;
-- déconnecté ;
-- terminé.
+**Bottom nav** : conservée sur room ACTIVE (pas de 2e focus mode).
 
-### 17.5 Confidentialité
+### 17.3 Privacy (bloquant)
 
-Ne pas afficher les données détaillées d’un participant à tous les autres sans règle explicite.
+Ne jamais afficher pour un autre participant : poids, reps, RIR/RPE, notes, targets, PR.
 
-La présence et la station peuvent être partagées. Les charges et performances peuvent rester privées par défaut.
+Partagé uniquement (coarse) : nom, présence, exercice courant, processed/total sets, %, statut séance.
 
-### 17.6 Changement de rotation
+### 17.4 Présence
 
-Un changement doit produire :
+● En ligne / ○ Hors ligne + `aria-label`. Pas de socket id / jargon « Temps réel connecté ».
 
-- un message visible ;
-- une animation légère ;
-- une nouvelle station clairement identifiée ;
-- une notification éventuelle.
+Socket down : bandeau « Temps réel indisponible » + **Actualiser** (refetch REST). Room utilisable sans Socket.
+
+### 17.5 Matériel
+
+Labels humains : Disponible / Utiliser · Utilisée par X · File d’attente · Ta position · Libérer / Quitter la file.
+Pas d’IDs ni `requestedAt`.
+
+### 17.6 Owner vs member
+
+Owner : inviter, renommer, démarrer, terminer, annuler.
+Member : accepter/refuser invitation, quitter, gérer sa séance et son équipement.
+Ne pas simuler une permission absente serveur.
+
+## 17bis. Exercices / Plus / Profil (UX-7)
+
+Destinations secondaires via Plus. Même langage UX-1 (PageHeader, EmptyState, tokens).
+
+### Catalogue (`/exercises`)
+
+- Header compact + CTA `+ Créer` (pas pleine largeur)
+- Recherche principale sticky (~48–52 px) ; debounce / URL / infinite query inchangés
+- Filtres : action compacte → bottom sheet ; chips actives + Effacer
+- Liste dense (lignes, pas grosses cards) : nom · muscle · équipement · mesure · favori
+- Badge **Personnel** uniquement (pas de badge SYSTEM)
+- Empty : « Aucun exercice ne correspond à ces critères. » + Effacer / Créer
+
+### Détail (`/exercises/:id`)
+
+- Header + favori ; résumé `Muscle · Équipement` (pas fiche `label: valeur`)
+- Instructions repliables ; Préférences en sheet ; reset en text button
+- Lien Progression si route existante ; pas de lien Coach inventé
+- Gestion perso (edit/archive) inchangée côté permissions
+
+### Menu Plus
+
+Voir §8.2 — groupes Entraînement / Coaching / Compte.
+
+### Profil (`/profile`)
+
+- Vue identité + préférences en lignes ; **Modifier** ouvre le formulaire
+- Déconnexion en action secondaire (pas bouton rouge permanent)
+- Pas de inventer password / 2FA / suppression compte
 
 ## 18. États réseau
 
@@ -478,13 +695,9 @@ Mode hors ligne — les changements seront synchronisés
 
 ### 18.4 Séance partagée déconnectée
 
-Afficher clairement :
-
-```text
-Connexion perdue — la séance du groupe n’est plus synchronisée
-```
-
-Le client ne doit pas simuler les changements des autres participants.
+Socket down (LOBBY / ACTIVE) : bandeau discret « Temps réel indisponible » +
+bouton **Actualiser** (refetch REST). La room reste utilisable ; pas de simulation
+des changements des autres participants. Voir §17.4.
 
 ## 19. Gestion des erreurs
 
@@ -672,7 +885,60 @@ L’ajout alimentaire doit proposer :
 
 ## 27. Progression et motivation
 
-### 27.1 Records
+### 27.0 Program Builder vs Progression
+
+La construction des programmes (UX-3) et le suivi de progression (UX-4) sont des domaines séparés. Ce chapitre couvre `/progress`, `/records` et `/progress/exercises/:id`.
+
+### 27.1 Hub Progression (`/progress`)
+
+`/progress` affiche directement la vue d’ensemble (plus un simple hub à deux cartes). Lien secondaire vers Records.
+
+Structure :
+
+1. header (titre + lien Records) ;
+2. chips de période (`1 mois` / `3 mois` / `6 mois` / `1 an` / `Tout`) ;
+3. select métrique compact ;
+4. tuiles de synthèse (2 colonnes mobile) ;
+5. graphique principal (titre métrique + valeur récente + Recharts) ;
+6. records récents (lignes compactes) ;
+7. exercices les plus travaillés (lignes compactes → détail).
+
+Chiffres importants en `tabular-nums`. Pas de gros selects empilés.
+
+### 27.2 Records (`/records`)
+
+Header motivant + éventuel bloc « Dernier record battu » (compact).
+
+Liste groupée par exercice en lignes :
+
+```text
+Charge maximale
+100 kg · 8 répétitions · Barre
+12 août 2026                              Voir →
+```
+
+CTA Voir → `/progress/exercises/:id`. Pas de cards épaisses répétitives.
+
+### 27.3 Détail exercice (`/progress/exercises/:id`)
+
+```text
+‹ Progression
+Curl avec haltères
+Biceps · Haltères
+```
+
+Puis : meilleure perf → chips période / métrique → graphique → dernières séances → records → e1RM / coach si déjà présents.
+
+### 27.4 États vides
+
+Progression / Records :
+
+- un titre clair ;
+- une phrase utile ;
+- CTA principal (programmes) ;
+- CTA secondaire discret (historique).
+
+### 27.5 Records (valorisation)
 
 Un record peut être valorisé avec :
 
@@ -681,7 +947,7 @@ Un record peut être valorisé avec :
 - comparaison ;
 - animation légère.
 
-### 27.2 Pas de culpabilisation
+### 27.6 Pas de culpabilisation
 
 Une baisse de performance doit être présentée de manière neutre.
 
@@ -697,7 +963,7 @@ et non :
 Tu as régressé
 ```
 
-### 27.3 Contexte
+### 27.7 Contexte
 
 Lorsque pertinent, rappeler que les performances peuvent varier selon :
 
@@ -707,50 +973,108 @@ Lorsque pertinent, rappeler que les performances peuvent varier selon :
 - temps de repos ;
 - conditions de séance.
 
-## 28. Coach IA
+## 27bis. Planning et Historique
 
-### 28.1 Positionnement
+Le domaine **Entraînement** se partage entre futur immédiat (Planning) et passé (Historique). Program Builder, Active Workout et Progression restent des surfaces distinctes.
 
-L’interface doit clairement présenter les résultats comme des propositions.
+### 27bis.1 Planning (`/planning`)
 
-Utiliser des termes comme :
+Répond à : « Qu’est-ce que je dois faire ? »
 
-- proposition ;
-- suggestion ;
-- hypothèse ;
-- adaptation recommandée.
+Structure :
 
-### 28.2 Confirmation
+1. `PageHeader` — Planning / Ta semaine d’entraînement ;
+2. contexte programme compact (nom + ACTIF + N séances / semaine + Voir →) — **pas** de grosse card « Programme courant » ;
+3. bloc **Aujourd’hui** (séance + démarrer, ou ligne légère « Aucune séance prévue ») ;
+4. **semaine type** en 7 lignes compactes (`Lun · Pull A >` / `Repos`) ;
+5. édition : tap jour → bottom sheet (choix séance / retirer) puis `PUT` replace atomique existant ; lien secondaire « Modifier le planning » pour multi-séances / jour.
 
-Une proposition IA doit proposer :
+Jour actuel identifiable par label « Aujourd’hui » + typo/accent discret, pas uniquement la couleur.
 
-- accepter ;
-- modifier ;
-- refuser.
+États vides :
 
-### 28.3 Explication
+- aucun programme actif → CTA principal Programmes ;
+- schedule vide → « Planning non configuré » + un seul CTA « Configurer ma semaine ».
 
-Afficher :
+Métriques « aujourd’hui » : uniquement `exerciseCount` + durée estimée du contrat schedule (pas de séries inventées).
 
-- données principales utilisées ;
-- hypothèses ;
-- raisons ;
-- avertissements ;
-- éléments non pris en compte.
+### 27bis.2 Historique (`/workouts`)
 
-### 28.4 Chargement
+Répond à : « Qu’est-ce que j’ai fait ? »
 
-La génération peut prendre du temps.
+Structure :
 
-Afficher un état clair sans bloquer toute l’application.
+1. `PageHeader` — Historique / Tes séances passées ;
+2. barre filtres compacte : chips statut + bouton période (sheet) ;
+3. timeline groupée (Aujourd’hui / Hier / mois) en lignes compactes ;
+4. empty state utilisateur (pas de jargon snapshots).
 
-### 28.5 Erreur
+Filtres API inchangés (`status`, `from`, `to`). Pagination « Charger plus » conservée.
 
-En cas d’échec, proposer :
+### 27bis.3 Résumé de séance (`/workouts/:id`)
 
-- réessayer ;
-- modifier la demande ;
-- créer manuellement.
+Header résumé (nom · date · durée · programme/modèle · statut) — pas de dump `Label : valeur`.
+
+Synthèse unique : compteurs utiles (masquer les zéros), barre de progression condensée, liste exercices compacte → séries read-only (`WorkoutSetCard`).
+
+Métadonnées brutes (timestamps, motif, notes) dans une section repliable « Détails ».
+
+Dette connue : une durée écoulée multi-jours peut être lisible mais absurde UX si `completedAt − startedAt` n’est pas une durée d’effort — ne pas « corriger » le métier dans UX-5.
+
+## 28. Coach (UX-8)
+
+Le Coach combine deux systèmes distincts. Ne jamais les mélanger dans une même
+carte ou une même phrase d’attribution.
+
+### 28.1 Déterministe vs IA
+
+| | Coach Gym Companion | Explication / Chat IA |
+|--|--|--|
+| Source | moteurs charge / plateau / résumé | provider facultatif |
+| Rôle | recommande, détecte, synthétise | explique, reformule, répond |
+| Mutation | décisions apply/ignore hors chat | **aucune** (read-only) |
+
+Ne jamais écrire « L’IA recommande 12,5 kg » si la valeur vient du moteur.
+
+### 28.2 Overview (`/coach`)
+
+- Header + description « Conseils basés sur ton entraînement »
+- **À surveiller** : lignes denses (pas de cards) → progression exercice
+- Section séparée **Poser une question** (IA) en bas ; soft-disable si `ai.available === false`
+
+### 28.3 Synthèse exercice (progression)
+
+Sections : État · Prochaine séance (kg fort) · Tendance · Explication IA séparée.
+Liens secondaires (progression / programme) en lignes.
+
+### 28.4 Recommandation de charge
+
+Valeur forte + contexte. Appliquer / Ignorer explicites.
+409 stale → « Cette recommandation a changé depuis son affichage. » + **Actualiser**.
+Pas de fingerprint / clientCommandId visibles.
+
+### 28.5 Plateau
+
+Ton prudent : « Stagnation possible », « signal », pas de diagnostic certain.
+Section **Tendance**, pas d’alerte dramatique.
+
+### 28.6 Explication IA
+
+Label clair « Explication IA ». Soft state si désactivée.
+Loading / erreur isolés — le déterministe reste utilisable.
+Mention : « Généré à partir de tes données d’entraînement. »
+
+### 28.7 Chat (`/coach/chat`)
+
+Questions sur l’historique, read-only. Suggestions initiales.
+Composer compact + safe-area. Busy : « Coach réfléchit… ».
+Rate limit / busy : messages humains (pas de jargon HTTP).
+Pas de CTA appliquer depuis le chat.
+
+### 28.8 Style
+
+Pas de violet IA / glow / mascotte. Même DA Performance / Training Log.
+Différencier IA par label et wording, pas par une nouvelle identité.
 
 ## 29. Confidentialité
 

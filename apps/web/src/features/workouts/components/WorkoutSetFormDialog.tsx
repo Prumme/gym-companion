@@ -15,9 +15,13 @@ import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
 import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
+import { cn } from '@/lib/utils';
 
 import { useUpdateWorkoutSetMutation } from '../hooks/use-workout-mutations';
-import { formatWorkoutSetTargetSummary } from '../lib/workout-labels';
+import {
+  formatWorkoutSetTargetCompact,
+  getWorkoutSetTypeLabelSafe,
+} from '../lib/workout-labels';
 
 const formSchema = updateWorkoutSetSchema;
 
@@ -123,6 +127,9 @@ function nullableNumber(value: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+const fieldClass =
+  'min-h-12 w-full rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--background)] px-3 text-base tabular-nums';
+
 export function WorkoutSetFormDialog({
   open,
   workoutSessionId,
@@ -139,6 +146,7 @@ export function WorkoutSetFormDialog({
   const titleId = useId();
   const mutation = useUpdateWorkoutSetMutation(workoutSessionId);
   const [confirmClose, setConfirmClose] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const defaults = useMemo(
     () =>
       buildDefaults(set, effortTrackingMode, expectedVersion, initialStatus),
@@ -163,6 +171,7 @@ export function WorkoutSetFormDialog({
         buildDefaults(set, effortTrackingMode, expectedVersion, initialStatus),
       );
       setConfirmClose(false);
+      setMoreOpen(false);
     }
   }, [open, set, effortTrackingMode, expectedVersion, initialStatus, reset]);
 
@@ -196,6 +205,8 @@ export function WorkoutSetFormDialog({
       : measurementType === 'BODYWEIGHT_REPS'
         ? 'Charge additionnelle (kg)'
         : 'Charge (kg)';
+  const compactTarget = formatWorkoutSetTargetCompact(set);
+  const typeLabel = getWorkoutSetTypeLabelSafe(set.setType);
 
   function requestClose() {
     if (mutation.isPending) {
@@ -258,7 +269,7 @@ export function WorkoutSetFormDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
       role="presentation"
       onClick={requestClose}
     >
@@ -266,209 +277,257 @@ export function WorkoutSetFormDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-lg"
+        className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[1rem] border border-[var(--border)] bg-[var(--card)] shadow-lg sm:rounded-[var(--radius)]"
         onClick={(event) => event.stopPropagation()}
       >
-        <h3 id={titleId} className="text-lg font-semibold">
-          Série {set.position + 1}
-        </h3>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Cible : {formatWorkoutSetTargetSummary(set) || '—'}
-        </p>
+        <div className="shrink-0 border-b border-[var(--border)] px-4 pb-3 pt-3">
+          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[var(--border)] sm:hidden" />
+          <h3 id={titleId} className="text-lg font-semibold">
+            Série {set.position + 1}
+          </h3>
+          <p className="mt-0.5 text-sm text-[var(--muted)]">
+            {typeLabel}
+            {compactTarget ? ` · ${compactTarget}` : ''}
+          </p>
+        </div>
 
         <form
-          className="mt-4 flex flex-col gap-3"
+          className="flex min-h-0 flex-1 flex-col"
           onSubmit={(event) => {
             void handleSubmit(submit)(event);
           }}
         >
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Statut</span>
-            <select
-              className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--background)] px-3"
-              {...register('status')}
-            >
-              <option value="COMPLETED">Terminée</option>
-              <option value="PARTIAL">Partielle</option>
-              <option value="FAILED">Échouée</option>
-              <option value="SKIPPED">Ignorée</option>
-              <option value="PENDING">À faire</option>
-            </select>
-            {errors.status ? (
-              <span className="text-[var(--danger)]" role="alert">
-                {errors.status.message}
-              </span>
-            ) : null}
-          </label>
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div className="flex flex-col gap-3">
+              {status !== 'SKIPPED' && status !== 'PENDING' ? (
+                <>
+                  {(showWeight || showReps) && (
+                    <div
+                      className={cn(
+                        'grid gap-3',
+                        showWeight && showReps
+                          ? 'grid-cols-2'
+                          : 'grid-cols-1',
+                      )}
+                    >
+                      {showWeight ? (
+                        <label className="flex flex-col gap-1 text-sm">
+                          <span className="font-medium">{weightLabel}</span>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            step="0.5"
+                            min={0}
+                            className={fieldClass}
+                            {...register('actualWeightKg', {
+                              setValueAs: nullableNumber,
+                            })}
+                          />
+                          {errors.actualWeightKg ? (
+                            <span className="text-[var(--danger)]" role="alert">
+                              {errors.actualWeightKg.message}
+                            </span>
+                          ) : null}
+                        </label>
+                      ) : null}
 
-          {status !== 'SKIPPED' && status !== 'PENDING' ? (
-            <>
-              {showWeight ? (
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium">{weightLabel}</span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.5"
-                    min={0}
-                    className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--background)] px-3"
-                    {...register('actualWeightKg', {
-                      setValueAs: nullableNumber,
-                    })}
-                  />
-                  {errors.actualWeightKg ? (
-                    <span className="text-[var(--danger)]" role="alert">
-                      {errors.actualWeightKg.message}
-                    </span>
+                      {showReps ? (
+                        <label className="flex flex-col gap-1 text-sm">
+                          <span className="font-medium">Répétitions</span>
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            className={fieldClass}
+                            {...register('actualReps', {
+                              setValueAs: nullableNumber,
+                            })}
+                          />
+                          {errors.actualReps ? (
+                            <span className="text-[var(--danger)]" role="alert">
+                              {errors.actualReps.message}
+                            </span>
+                          ) : null}
+                        </label>
+                      ) : null}
+                    </div>
+                  )}
+
+                  {showDuration ? (
+                    <label className="flex flex-col gap-1 text-sm">
+                      <span className="font-medium">Durée (secondes)</span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        className={fieldClass}
+                        {...register('actualDurationSeconds', {
+                          setValueAs: nullableNumber,
+                        })}
+                      />
+                      {errors.actualDurationSeconds ? (
+                        <span className="text-[var(--danger)]" role="alert">
+                          {errors.actualDurationSeconds.message}
+                        </span>
+                      ) : null}
+                    </label>
                   ) : null}
-                </label>
-              ) : null}
 
-              {showReps ? (
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium">Répétitions</span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--background)] px-3"
-                    {...register('actualReps', { setValueAs: nullableNumber })}
-                  />
-                  {errors.actualReps ? (
-                    <span className="text-[var(--danger)]" role="alert">
-                      {errors.actualReps.message}
-                    </span>
+                  {showDistance ? (
+                    <label className="flex flex-col gap-1 text-sm">
+                      <span className="font-medium">Distance (mètres)</span>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        className={fieldClass}
+                        {...register('actualDistanceMeters', {
+                          setValueAs: nullableNumber,
+                        })}
+                      />
+                      {errors.actualDistanceMeters ? (
+                        <span className="text-[var(--danger)]" role="alert">
+                          {errors.actualDistanceMeters.message}
+                        </span>
+                      ) : null}
+                    </label>
                   ) : null}
-                </label>
-              ) : null}
 
-              {showDuration ? (
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium">Durée (secondes)</span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--background)] px-3"
-                    {...register('actualDurationSeconds', {
-                      setValueAs: nullableNumber,
-                    })}
-                  />
-                  {errors.actualDurationSeconds ? (
-                    <span className="text-[var(--danger)]" role="alert">
-                      {errors.actualDurationSeconds.message}
-                    </span>
+                  {effortTrackingMode === 'RIR' ? (
+                    <label className="flex flex-col gap-1 text-sm">
+                      <span className="font-medium">RIR</span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        max={10}
+                        className={fieldClass}
+                        {...register('actualRir', {
+                          setValueAs: nullableNumber,
+                        })}
+                      />
+                    </label>
                   ) : null}
-                </label>
-              ) : null}
 
-              {showDistance ? (
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium">Distance (mètres)</span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    min={0}
-                    className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--background)] px-3"
-                    {...register('actualDistanceMeters', {
-                      setValueAs: nullableNumber,
-                    })}
-                  />
-                  {errors.actualDistanceMeters ? (
-                    <span className="text-[var(--danger)]" role="alert">
-                      {errors.actualDistanceMeters.message}
-                    </span>
+                  {effortTrackingMode === 'RPE' ? (
+                    <label className="flex flex-col gap-1 text-sm">
+                      <span className="font-medium">RPE</span>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min={1}
+                        max={10}
+                        step="0.5"
+                        className={fieldClass}
+                        {...register('actualRpe', {
+                          setValueAs: nullableNumber,
+                        })}
+                      />
+                    </label>
                   ) : null}
-                </label>
+
+                  <label className="flex min-h-12 items-center justify-between gap-3 rounded-[var(--radius-control)] border border-[var(--border)] px-3 text-sm">
+                    <span className="font-medium">Échec musculaire</span>
+                    <input
+                      type="checkbox"
+                      className="size-5 accent-[var(--primary)]"
+                      {...register('reachedFailure')}
+                    />
+                  </label>
+                </>
               ) : null}
 
-              {effortTrackingMode === 'RIR' ? (
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium">RIR</span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    max={10}
-                    className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--background)] px-3"
-                    {...register('actualRir', { setValueAs: nullableNumber })}
-                  />
-                </label>
+              <button
+                type="button"
+                className="self-start text-sm text-[var(--muted)] underline-offset-4 hover:text-[var(--foreground)] hover:underline"
+                onClick={() => setMoreOpen((value) => !value)}
+                aria-expanded={moreOpen}
+              >
+                {moreOpen ? 'Masquer les options' : 'Plus d’options'}
+              </button>
+
+              <div className={moreOpen ? 'flex flex-col gap-3 border-t border-[var(--border)] pt-3' : 'sr-only'}>
+                  <label className="flex flex-col gap-1 text-sm">
+                    <span className="font-medium">Statut</span>
+                    <select
+                      className={cn(fieldClass, 'text-sm')}
+                      {...register('status')}
+                    >
+                      <option value="COMPLETED">Terminée</option>
+                      <option value="PARTIAL">Partielle</option>
+                      <option value="FAILED">Échouée</option>
+                      <option value="SKIPPED">Ignorée</option>
+                      <option value="PENDING">À faire</option>
+                    </select>
+                    {errors.status ? (
+                      <span className="text-[var(--danger)]" role="alert">
+                        {errors.status.message}
+                      </span>
+                    ) : null}
+                  </label>
+
+                  {status !== 'SKIPPED' && status !== 'PENDING' ? (
+                    <label className="flex flex-col gap-1 text-sm">
+                      <span className="font-medium">Notes</span>
+                      <textarea
+                        rows={2}
+                        className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
+                        {...register('notes')}
+                      />
+                    </label>
+                  ) : null}
+                </div>
+
+              {apiError ? (
+                <p className="text-sm text-[var(--danger)]" role="alert">
+                  {apiError}
+                </p>
               ) : null}
-
-              {effortTrackingMode === 'RPE' ? (
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium">RPE</span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    min={1}
-                    max={10}
-                    step="0.5"
-                    className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--background)] px-3"
-                    {...register('actualRpe', { setValueAs: nullableNumber })}
-                  />
-                </label>
+              {(mutation.error as ApiRequestError | null)?.code ===
+              'WORKOUT_VERSION_CONFLICT' ? (
+                <p className="text-sm text-[var(--danger)]" role="alert">
+                  La séance a été modifiée depuis un autre onglet ou appareil.
+                  Les dernières données ont été rechargées.
+                </p>
               ) : null}
+            </div>
+          </div>
 
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" {...register('reachedFailure')} />
-                <span>Échec musculaire atteint</span>
-              </label>
-
-              <label className="flex flex-col gap-1 text-sm">
-                <span className="font-medium">Notes</span>
-                <textarea
-                  rows={2}
-                  className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--background)] px-3 py-2"
-                  {...register('notes')}
-                />
-              </label>
-            </>
-          ) : null}
-
-          {apiError ? (
-            <p className="text-sm text-[var(--danger)]" role="alert">
-              {apiError}
-            </p>
-          ) : null}
-          {(mutation.error as ApiRequestError | null)?.code ===
-          'WORKOUT_VERSION_CONFLICT' ? (
-            <p className="text-sm text-[var(--danger)]" role="alert">
-              La séance a été modifiée depuis un autre onglet ou appareil. Les
-              dernières données ont été rechargées.
-            </p>
-          ) : null}
-
-          <div className="sticky bottom-0 mt-2 flex flex-col gap-2 bg-[var(--card)] pt-2 sm:flex-row sm:flex-wrap sm:justify-end">
+          <div className="shrink-0 border-t border-[var(--border)] bg-[var(--card)] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <Button
-              type="button"
-              variant="secondary"
+              type="submit"
+              className="w-full"
               disabled={mutation.isPending}
-              onClick={() => {
-                setValue('status', 'SKIPPED');
-                void handleSubmit(submit)();
-              }}
             >
-              Ignorer la série
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={mutation.isPending}
-              onClick={requestClose}
-            >
-              Annuler
-            </Button>
-            <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending ? 'Enregistrement…' : 'Enregistrer'}
             </Button>
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                className="min-h-11 px-1 text-sm text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-50"
+                disabled={mutation.isPending}
+                onClick={requestClose}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className="min-h-11 px-1 text-sm text-[var(--danger)] hover:underline disabled:opacity-50"
+                disabled={mutation.isPending}
+                onClick={() => {
+                  setValue('status', 'SKIPPED');
+                  void handleSubmit(submit)();
+                }}
+              >
+                Ignorer la série
+              </button>
+            </div>
           </div>
         </form>
 
         {confirmClose ? (
           <div
-            className="mt-4 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--background)] p-3"
+            className="absolute inset-x-0 bottom-0 z-10 border-t border-[var(--border)] bg-[var(--card)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg"
             role="alertdialog"
             aria-label="Modifications non enregistrées"
           >
@@ -480,11 +539,12 @@ export function WorkoutSetFormDialog({
               <Button
                 type="button"
                 variant="secondary"
+                className="flex-1"
                 onClick={() => setConfirmClose(false)}
               >
                 Continuer la saisie
               </Button>
-              <Button type="button" onClick={onClose}>
+              <Button type="button" className="flex-1" onClick={onClose}>
                 Fermer
               </Button>
             </div>

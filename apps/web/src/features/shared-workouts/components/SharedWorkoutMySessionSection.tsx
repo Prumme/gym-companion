@@ -1,10 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import type { SharedWorkoutRoomStatus } from '@gym-companion/shared';
+import { ChevronRight } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
-import { Button, ButtonLink } from '@/components/ui/button';
-import { activeProgramQueryOptions } from '@/features/programs/api/program-query-options';
-import { programDetailQueryOptions } from '@/features/programs/api/program-query-options';
+import { Button } from '@/components/ui/button';
+import {
+  activeProgramQueryOptions,
+  programDetailQueryOptions,
+} from '@/features/programs/api/program-query-options';
 import { getWorkoutStatusLabel } from '@/features/workouts/lib/workout-labels';
 import { getApiErrorMessage } from '@/lib/api/client';
 
@@ -13,12 +17,19 @@ import {
   useAttachMySharedWorkoutSessionMutation,
   useCreateMySharedWorkoutSessionMutation,
 } from '../hooks/use-shared-workout-mutations';
+import {
+  formatSharedExerciseProgress,
+} from '../lib/shared-workout-labels';
 
 type Props = {
   roomId: string;
   roomStatus: SharedWorkoutRoomStatus;
   myWorkoutSessionId: string | null;
   offline: boolean;
+  /** Coarse progress for self from room members (privacy-safe). */
+  selfExerciseName?: string | null;
+  selfExerciseProgress?: { processed: number; total: number } | null;
+  variant?: 'lobby' | 'active' | 'terminal';
 };
 
 export function SharedWorkoutMySessionSection({
@@ -26,69 +37,83 @@ export function SharedWorkoutMySessionSection({
   roomStatus,
   myWorkoutSessionId,
   offline,
+  selfExerciseName = null,
+  selfExerciseProgress = null,
+  variant,
 }: Props) {
+  const mode =
+    variant ??
+    (roomStatus === 'LOBBY'
+      ? 'lobby'
+      : roomStatus === 'ACTIVE'
+        ? 'active'
+        : 'terminal');
+
   const myQuery = useQuery({
     ...mySharedWorkoutSessionQueryOptions(roomId),
-    enabled: roomStatus === 'ACTIVE' || Boolean(myWorkoutSessionId),
+    enabled: mode === 'active' || Boolean(myWorkoutSessionId),
   });
   const activeProgramQuery = useQuery({
     ...activeProgramQueryOptions(),
-    enabled: roomStatus === 'ACTIVE' && !offline,
+    enabled: mode === 'active' && !offline,
   });
   const activeProgramId = activeProgramQuery.data?.program.id;
   const programDetailQuery = useQuery({
     ...programDetailQueryOptions(activeProgramId ?? ''),
-    enabled: Boolean(activeProgramId) && roomStatus === 'ACTIVE' && !offline,
+    enabled: Boolean(activeProgramId) && mode === 'active' && !offline,
   });
 
   const attachMutation = useAttachMySharedWorkoutSessionMutation(roomId);
   const createMutation = useCreateMySharedWorkoutSessionMutation(roomId);
   const [templateId, setTemplateId] = useState('');
+  const [chooserOpen, setChooserOpen] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
-  if (roomStatus === 'LOBBY') {
+  if (mode === 'lobby') {
     return (
-      <section
-        aria-labelledby="my-workout-heading"
-        className="rounded-[var(--radius)] border border-[var(--border)] p-4"
-      >
-        <h2 id="my-workout-heading" className="text-lg font-semibold">
-          Ma séance
+      <section aria-labelledby="my-workout-heading" className="flex flex-col gap-2">
+        <h2
+          id="my-workout-heading"
+          className="text-xs font-semibold tracking-[0.12em] text-[var(--muted)] uppercase"
+        >
+          Ta séance
         </h2>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          Les séances individuelles pourront être démarrées lorsque la salle
-          sera lancée.
+        <p className="text-sm text-[var(--muted)]">
+          Aucune séance liée. Tu pourras démarrer quand la salle sera lancée.
         </p>
       </section>
     );
   }
 
-  if (roomStatus === 'COMPLETED' || roomStatus === 'CANCELLED') {
+  if (mode === 'terminal') {
     const linkedId = myWorkoutSessionId ?? myQuery.data?.workoutSession?.id;
     return (
-      <section
-        aria-labelledby="my-workout-heading"
-        className="rounded-[var(--radius)] border border-[var(--border)] p-4"
-      >
-        <h2 id="my-workout-heading" className="text-lg font-semibold">
-          Ma séance
+      <section aria-labelledby="my-workout-heading" className="flex flex-col gap-2">
+        <h2
+          id="my-workout-heading"
+          className="text-xs font-semibold tracking-[0.12em] text-[var(--muted)] uppercase"
+        >
+          Ta séance
         </h2>
         {linkedId ? (
-          <div className="mt-3 flex flex-col gap-2">
-            <p className="text-sm">
-              {myQuery.data?.workoutSession?.workoutName ?? 'Séance rattachée'}
-              {myQuery.data?.workoutSession
-                ? ` — ${getWorkoutStatusLabel(myQuery.data.workoutSession.status)}`
-                : null}
-            </p>
-            <ButtonLink to={`/workouts/${linkedId}`} variant="secondary" className="w-fit">
-              Ouvrir ma séance
-            </ButtonLink>
-          </div>
+          <Link
+            to={`/workouts/${linkedId}`}
+            className="flex min-h-14 items-center justify-between gap-3 py-2 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+          >
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">
+                {myQuery.data?.workoutSession?.workoutName ?? 'Séance rattachée'}
+              </p>
+              {myQuery.data?.workoutSession ? (
+                <p className="text-sm text-[var(--muted)]">
+                  {getWorkoutStatusLabel(myQuery.data.workoutSession.status)}
+                </p>
+              ) : null}
+            </div>
+            <span className="text-sm font-medium">Ouvrir →</span>
+          </Link>
         ) : (
-          <p className="mt-2 text-sm text-[var(--muted)]">
-            Aucune séance rattachée
-          </p>
+          <p className="text-sm text-[var(--muted)]">Aucune séance rattachée</p>
         )}
       </section>
     );
@@ -109,6 +134,7 @@ export function SharedWorkoutMySessionSection({
     setLocalError(null);
     try {
       await attachMutation.mutateAsync({ workoutSessionId: sessionId });
+      setChooserOpen(false);
     } catch (error) {
       setLocalError(
         getApiErrorMessage(error, 'Impossible de rattacher la séance.'),
@@ -130,6 +156,7 @@ export function SharedWorkoutMySessionSection({
     setLocalError(null);
     try {
       await createMutation.mutateAsync({ workoutTemplateId: templateId });
+      setChooserOpen(false);
     } catch (error) {
       setLocalError(
         getApiErrorMessage(error, 'Impossible de démarrer la séance.'),
@@ -138,78 +165,95 @@ export function SharedWorkoutMySessionSection({
   }
 
   return (
-    <section
-      aria-labelledby="my-workout-heading"
-      className="rounded-[var(--radius)] border border-[var(--border)] p-4"
-    >
-      <h2 id="my-workout-heading" className="text-lg font-semibold">
-        Ma séance
+    <section aria-labelledby="my-workout-heading" className="flex flex-col gap-3">
+      <h2
+        id="my-workout-heading"
+        className="text-xs font-semibold tracking-[0.12em] text-[var(--muted)] uppercase"
+      >
+        Toi
       </h2>
 
       {offline ? (
-        <p role="status" className="mt-2 text-sm text-[var(--muted)]">
+        <p role="status" className="text-sm text-[var(--muted)]">
           Une connexion est nécessaire pour rattacher une séance à la salle.
         </p>
       ) : null}
 
       {localError ? (
-        <p role="alert" className="mt-2 text-sm text-[var(--destructive)]">
+        <p role="alert" className="text-sm text-[var(--danger)]">
           {localError}
         </p>
       ) : null}
 
       {myQuery.isLoading ? (
-        <p className="mt-2 text-sm text-[var(--muted)]">Chargement…</p>
+        <div className="h-14 animate-pulse rounded-[var(--radius-control)] bg-[var(--border)]/60" />
       ) : null}
 
       {my?.linked && my.workoutSession ? (
-        <div className="mt-3 flex flex-col gap-2">
-          <p className="text-sm">
-            <span className="font-medium">{my.workoutSession.workoutName}</span>
-            {' — '}
-            {getWorkoutStatusLabel(my.workoutSession.status)}
-          </p>
-          <p className="text-xs text-[var(--muted)]">
-            Démarrée :{' '}
-            {new Date(my.workoutSession.startedAt).toLocaleString('fr-FR')}
-          </p>
-          <ButtonLink to={`/workouts/${my.workoutSession.id}`} className="w-fit">
-            Ouvrir ma séance
-          </ButtonLink>
-        </div>
+        <Link
+          to={`/workouts/${my.workoutSession.id}`}
+          className="flex min-h-14 items-center justify-between gap-3 border-b border-[var(--border)] py-2 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+        >
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold">
+              {my.workoutSession.workoutName}
+            </p>
+            <p className="text-sm text-[var(--muted)]">
+              {getWorkoutStatusLabel(my.workoutSession.status)}
+              {selfExerciseName ? ` · ${selfExerciseName}` : ''}
+            </p>
+            {selfExerciseProgress && selfExerciseProgress.total > 0 ? (
+              <p className="text-sm text-[var(--muted)]">
+                {formatSharedExerciseProgress(
+                  selfExerciseProgress.processed,
+                  selfExerciseProgress.total,
+                )}
+              </p>
+            ) : null}
+          </div>
+          <span className="inline-flex items-center gap-1 text-sm font-medium shrink-0">
+            Ouvrir
+            <ChevronRight className="size-4" aria-hidden="true" />
+          </span>
+        </Link>
       ) : null}
 
-      {!my?.linked &&
-      my?.activeWorkoutElsewhere &&
-      !my.activeWorkoutElsewhere.linkedToOtherRoom ? (
-        <div className="mt-3 flex flex-col gap-2">
-          <p className="text-sm">
-            Séance en cours :{' '}
-            <span className="font-medium">
-              {my.activeWorkoutElsewhere.workoutName}
-            </span>{' '}
-            ({getWorkoutStatusLabel(my.activeWorkoutElsewhere.status)})
+      {!my?.linked && !chooserOpen ? (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-[var(--muted)]">Aucune séance liée</p>
+          <p className="text-sm text-[var(--muted)]">
+            Choisis une séance existante ou démarre depuis un modèle.
           </p>
           <Button
             type="button"
             disabled={offline || pending}
-            onClick={() => void handleAttach(my.activeWorkoutElsewhere!.id)}
+            onClick={() => setChooserOpen(true)}
+            className="w-fit"
           >
-            Rattacher ma séance en cours
+            Choisir une séance
           </Button>
         </div>
       ) : null}
 
-      {!my?.linked &&
-      my?.activeWorkoutElsewhere?.linkedToOtherRoom ? (
-        <p className="mt-3 text-sm text-[var(--muted)]">
-          Ta séance en cours est déjà rattachée à une autre salle.
-        </p>
-      ) : null}
+      {!my?.linked && chooserOpen ? (
+        <div className="flex flex-col gap-3">
+          {my?.activeWorkoutElsewhere &&
+          !my.activeWorkoutElsewhere.linkedToOtherRoom ? (
+            <Button
+              type="button"
+              disabled={offline || pending}
+              onClick={() => void handleAttach(my.activeWorkoutElsewhere!.id)}
+            >
+              Rattacher « {my.activeWorkoutElsewhere.workoutName} »
+            </Button>
+          ) : null}
 
-      {!my?.linked && !my?.activeWorkoutElsewhere ? (
-        <div className="mt-3 flex flex-col gap-3">
-          <p className="text-sm text-[var(--muted)]">Aucune séance rattachée</p>
+          {my?.activeWorkoutElsewhere?.linkedToOtherRoom ? (
+            <p className="text-sm text-[var(--muted)]">
+              Ta séance en cours est déjà rattachée à une autre salle.
+            </p>
+          ) : null}
+
           {templates.length > 0 ? (
             <>
               <label className="flex flex-col gap-1 text-sm">
@@ -218,7 +262,7 @@ export function SharedWorkoutMySessionSection({
                   value={templateId}
                   onChange={(event) => setTemplateId(event.target.value)}
                   disabled={offline || pending}
-                  className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-transparent px-3"
+                  className="min-h-11 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--background)] px-3"
                 >
                   <option value="">Choisir…</option>
                   {templates.map((tpl) => (
@@ -236,12 +280,19 @@ export function SharedWorkoutMySessionSection({
                 Démarrer ma séance
               </Button>
             </>
-          ) : (
+          ) : !my?.activeWorkoutElsewhere ? (
             <p className="text-sm text-[var(--muted)]">
-              Aucun modèle disponible dans le programme actif. Crée un programme
-              ou active-en un pour démarrer.
+              Aucun modèle disponible dans le programme actif.
             </p>
-          )}
+          ) : null}
+
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setChooserOpen(false)}
+          >
+            Annuler
+          </Button>
         </div>
       ) : null}
     </section>

@@ -16,7 +16,7 @@ export function Input({ label, error, id, className, ...props }: InputProps) {
       <input
         id={inputId}
         className={cn(
-          'min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 outline-none focus:border-[var(--primary)]',
+          'min-h-12 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] px-3 text-[0.9375rem] outline-none transition focus:border-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]',
           error && 'border-[var(--danger)]',
           className,
         )}
@@ -25,7 +25,7 @@ export function Input({ label, error, id, className, ...props }: InputProps) {
         {...props}
       />
       {error ? (
-        <span id={`${inputId}-error`} className="text-[var(--danger)]">
+        <span id={`${inputId}-error`} className="text-sm text-[var(--danger)]">
           {error}
         </span>
       ) : null}

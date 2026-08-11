@@ -17,7 +17,11 @@ import { Link } from 'react-router-dom';
 import { ButtonLink } from '@/components/ui/button';
 import { formatPersonalRecordWeight } from '@/features/personal-records/lib/personal-record-labels';
 
-import { formatProgressChartDate } from '../lib/progress-filters';
+import {
+  buildProgressChartAxisLabels,
+  createDedupedAxisTickFormatter,
+  formatProgressChartDate,
+} from '../lib/progress-filters';
 import {
   formatEstimatedOneRepMaxKg,
   formatStrengthSourceSet,
@@ -179,14 +183,14 @@ export function EstimatedStrengthSection({
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  const mode = longRange ? 'month' : 'short';
+  const axisLabels = buildProgressChartAxisLabels(points, mode);
+  const tickFormatter = createDedupedAxisTickFormatter();
   const chartData: StrengthChartRow[] = points.map((point, index) => ({
     index,
     localDate: point.localDate,
     estimatedOneRepMaxKg: point.estimatedOneRepMaxKg,
-    label: formatProgressChartDate(
-      point.localDate,
-      longRange ? 'month' : 'short',
-    ),
+    label: axisLabels[index] ?? formatProgressChartDate(point.localDate, mode),
     point,
   }));
 
@@ -303,6 +307,7 @@ export function EstimatedStrengthSection({
                   axisLine={{ stroke: 'var(--border)' }}
                   interval="preserveStartEnd"
                   minTickGap={28}
+                  tickFormatter={tickFormatter}
                 />
                 <YAxis
                   tick={{ fontSize: 12, fill: 'var(--muted)' }}

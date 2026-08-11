@@ -278,6 +278,67 @@ export function formatSetSummary(set: WorkoutTemplateSetTarget): string {
   return parts.join(' — ');
 }
 
+/** Résumé compact pour TargetSetRow (Program Builder). */
+export function formatSetSummaryCompact(set: WorkoutTemplateSetTarget): {
+  primary: string;
+  secondary: string | null;
+} {
+  const primaryParts: string[] = [];
+  if (set.targetRepMin != null && set.targetRepMax != null) {
+    primaryParts.push(
+      set.targetRepMin === set.targetRepMax
+        ? `${set.targetRepMin} reps`
+        : `${set.targetRepMin}–${set.targetRepMax} reps`,
+    );
+  }
+  if (set.targetDurationSeconds != null) {
+    primaryParts.push(`${set.targetDurationSeconds} s`);
+  }
+  if (set.targetDistanceMeters != null) {
+    primaryParts.push(`${set.targetDistanceMeters} m`);
+  }
+
+  const secondaryParts: string[] = [];
+  if (set.targetWeightKg != null) {
+    secondaryParts.push(`${set.targetWeightKg} kg`);
+  }
+  if (set.targetRir != null) {
+    secondaryParts.push(`RIR ${set.targetRir}`);
+  }
+  if (set.targetRpe != null) {
+    secondaryParts.push(`RPE ${set.targetRpe}`);
+  }
+  if (set.targetIntensityPercent != null) {
+    secondaryParts.push(`${set.targetIntensityPercent} %`);
+  }
+
+  // Prefer weight on primary row when no effort metric competing for secondary.
+  if (set.targetWeightKg != null && secondaryParts.length === 1) {
+    primaryParts.push(`${set.targetWeightKg} kg`);
+    return {
+      primary: primaryParts.join('  ') || '—',
+      secondary: null,
+    };
+  }
+
+  if (set.targetWeightKg != null) {
+    // Keep weight visible on primary for WEIGHT_REPS density.
+    primaryParts.push(`${set.targetWeightKg} kg`);
+    const secondary = secondaryParts
+      .filter((part) => !part.endsWith(' kg'))
+      .join(' · ');
+    return {
+      primary: primaryParts.join('  ') || '—',
+      secondary: secondary || null,
+    };
+  }
+
+  return {
+    primary: primaryParts.join('  ') || '—',
+    secondary: secondaryParts.join(' · ') || null,
+  };
+}
+
 export function compatibleEquipmentOptions(
   exercise: ExerciseDetail,
 ): Array<{ id: string; name: string }> {

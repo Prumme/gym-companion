@@ -95,7 +95,7 @@ describe('CreateExercisePage', () => {
 
     await user.type(screen.getByLabelText(/Nom/i), 'Nouveau perso');
     await user.selectOptions(
-      screen.getByLabelText(/Groupe musculaire principal/i),
+      screen.getByLabelText(/Muscle principal/i),
       MUSCLE_CHEST,
     );
     await user.click(screen.getByRole('button', { name: /Créer l’exercice/i }));
@@ -117,7 +117,7 @@ describe('CreateExercisePage', () => {
     await screen.findByLabelText(/Nom/i);
     await user.type(screen.getByLabelText(/Nom/i), 'Échec');
     await user.selectOptions(
-      screen.getByLabelText(/Groupe musculaire principal/i),
+      screen.getByLabelText(/Muscle principal/i),
       MUSCLE_CHEST,
     );
     await user.click(screen.getByRole('button', { name: /Créer l’exercice/i }));

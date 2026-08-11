@@ -8,9 +8,9 @@ const STATUS_LABELS: Record<ExerciseCoachStatus, string> = {
   NO_DATA: 'Pas encore assez de données',
   BUILDING_HISTORY: 'Historique en construction',
   PROGRESSING: 'Progression récente',
-  STABLE: 'Performances stables',
+  STABLE: 'Progression stable',
   WATCH: 'Progression à surveiller',
-  PLATEAU: 'Stagnation détectée',
+  PLATEAU: 'Stagnation possible',
   REVIEW: 'Analyse à vérifier',
 };
 

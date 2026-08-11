@@ -56,7 +56,7 @@ describe('ExerciseForm', () => {
   it('renders create form with initial values', () => {
     renderForm();
     expect(screen.getByLabelText(/Nom/i)).toHaveValue('');
-    expect(screen.getByLabelText(/Groupe musculaire principal/i)).toHaveValue('');
+    expect(screen.getByLabelText(/Muscle principal/i)).toHaveValue('');
     expect(screen.getByLabelText(/Type de mesure/i)).toHaveValue('WEIGHT_REPS');
     expect(
       screen.getByRole('button', { name: /Créer l’exercice/i }),
@@ -87,7 +87,7 @@ describe('ExerciseForm', () => {
 
     await user.type(screen.getByLabelText(/Nom/i), 'Tirage poitrine');
     await user.selectOptions(
-      screen.getByLabelText(/Groupe musculaire principal/i),
+      screen.getByLabelText(/Muscle principal/i),
       MUSCLE_CHEST,
     );
     await user.selectOptions(
@@ -128,7 +128,7 @@ describe('ExerciseForm', () => {
     const user = userEvent.setup();
     renderForm();
     await user.selectOptions(
-      screen.getByLabelText(/Groupe musculaire principal/i),
+      screen.getByLabelText(/Muscle principal/i),
       MUSCLE_CHEST,
     );
 
@@ -147,7 +147,7 @@ describe('ExerciseForm', () => {
 
     await user.type(screen.getByLabelText(/Nom/i), 'Développé');
     await user.selectOptions(
-      screen.getByLabelText(/Groupe musculaire principal/i),
+      screen.getByLabelText(/Muscle principal/i),
       MUSCLE_CHEST,
     );
     await user.selectOptions(
@@ -177,7 +177,7 @@ describe('ExerciseForm', () => {
     const { onSubmit } = renderForm();
     await user.type(screen.getByLabelText(/Nom/i), 'Test');
     await user.selectOptions(
-      screen.getByLabelText(/Groupe musculaire principal/i),
+      screen.getByLabelText(/Muscle principal/i),
       MUSCLE_CHEST,
     );
     await user.type(screen.getByLabelText(/Repos par défaut/i), '99999');

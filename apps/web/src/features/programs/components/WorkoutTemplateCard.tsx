@@ -4,12 +4,13 @@ import type {
   ProgramDetail,
   WorkoutTemplateDetail,
 } from '@gym-companion/shared';
-import { ChevronDown, MoreHorizontal, Plus } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { getExercise } from '@/features/exercises/api/exercise-api';
 import { getApiErrorMessage } from '@/lib/api/client';
+import { StartWorkoutButton } from '@/features/workouts/components/StartWorkoutButton';
 
 import { programQueryKeys } from '../api/program-query-keys';
 import { useProgramContentMutations } from '../hooks/use-program-mutations';
@@ -29,12 +30,11 @@ import {
   type WorkoutTemplateFormValues,
 } from '../lib/workout-template-form';
 import { ConfirmDialog } from './ConfirmDialog';
+import { ContextMenu } from './ContextMenu';
 import { ExercisePicker } from './ExercisePicker';
-import { ReorderControls } from './ReorderControls';
 import { TemplateExerciseForm } from './TemplateExerciseForm';
 import { TemplateExerciseCard } from './TemplateExerciseCard';
 import { WorkoutTemplateForm } from './WorkoutTemplateForm';
-import { StartWorkoutButton } from '@/features/workouts/components/StartWorkoutButton';
 
 type WorkoutTemplateCardProps = {
   programId: string;
@@ -42,7 +42,10 @@ type WorkoutTemplateCardProps = {
   index: number;
   total: number;
   readOnly: boolean;
-  defaultOpen?: boolean;
+  /** focused = éditeur plein écran UX-3 */
+  mode?: 'accordion' | 'focused';
+  programName?: string;
+  onBack?: () => void;
   onStatus: (message: string) => void;
 };
 
@@ -52,12 +55,13 @@ export function WorkoutTemplateCard({
   index,
   total,
   readOnly,
-  defaultOpen = false,
+  mode = 'focused',
+  programName,
+  onBack,
   onStatus,
 }: WorkoutTemplateCardProps) {
   const mutations = useProgramContentMutations();
-  const [expanded, setExpanded] = useState(defaultOpen);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const focused = mode === 'focused';
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -74,6 +78,11 @@ export function WorkoutTemplateCard({
   const existingExerciseIds = useMemo(
     () => new Set(template.exercises.map((item) => item.exercise.id)),
     [template.exercises],
+  );
+
+  const setCount = template.exercises.reduce(
+    (sum, exercise) => sum + exercise.sets.length,
+    0,
   );
 
   async function handleUpdate(values: WorkoutTemplateFormValues) {
@@ -100,6 +109,7 @@ export function WorkoutTemplateCard({
       });
       setDeleteOpen(false);
       onStatus('Séance supprimée.');
+      onBack?.();
     } catch (err) {
       setError(getApiErrorMessage(err, 'Impossible de supprimer cette séance.'));
     }
@@ -167,7 +177,6 @@ export function WorkoutTemplateCard({
       });
       setConfigureOpen(false);
       setSelectedExercise(null);
-      setExpanded(true);
       onStatus('Exercice ajouté à la séance.');
     } catch (err) {
       setError(getApiErrorMessage(err, 'Impossible d’ajouter cet exercice.'));
@@ -175,150 +184,118 @@ export function WorkoutTemplateCard({
   }
 
   return (
-    <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm">
-      <div className="flex items-start gap-2">
-        <button
-          type="button"
-          className="min-w-0 flex-1 rounded-[var(--radius)] text-left outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
-          aria-expanded={expanded}
-          onClick={() => setExpanded((value) => !value)}
-        >
-          <div className="flex items-start gap-2">
-            <ChevronDown
-              className={`mt-1 size-5 shrink-0 text-[var(--muted)] transition ${expanded ? '' : '-rotate-90'}`}
-              aria-hidden="true"
-            />
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-[var(--muted)]">
-                Séance {index + 1}
-              </p>
-              <h3 className="text-base font-semibold">{template.name}</h3>
-              {template.description ? (
-                <p className="mt-1 text-sm text-[var(--muted)]">
-                  {template.description}
-                </p>
-              ) : null}
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                {template.exerciseCount} exercice
-                {template.exerciseCount === 1 ? '' : 's'}
-                {template.estimatedDurationMinutes != null
-                  ? ` · ${template.estimatedDurationMinutes} min`
-                  : ''}
-              </p>
-            </div>
-          </div>
-        </button>
-
-        <div className="flex shrink-0 flex-col items-end gap-2">
+    <section className="flex flex-col gap-4">
+      <header className="flex items-start gap-2">
+        {focused && onBack ? (
+          <button
+            type="button"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-control)] hover:bg-[var(--surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+            aria-label={
+              programName
+                ? `Retour à ${programName}`
+                : 'Retour au programme'
+            }
+            onClick={onBack}
+          >
+            <ArrowLeft className="size-5" aria-hidden="true" />
+          </button>
+        ) : null}
+        <div className="min-w-0 flex-1">
+          {programName ? (
+            <p className="text-xs text-[var(--muted)]">{programName}</p>
+          ) : null}
+          <h2 className="truncate text-lg font-semibold tracking-tight sm:text-xl">
+            {template.name}
+          </h2>
+          <p className="mt-0.5 text-sm text-[var(--muted)]">
+            {template.exerciseCount} exercice
+            {template.exerciseCount === 1 ? '' : 's'} · {setCount} série
+            {setCount === 1 ? '' : 's'}
+            {template.estimatedDurationMinutes != null
+              ? ` · ${template.estimatedDurationMinutes} min`
+              : ''}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-0.5">
           {template.exerciseCount > 0 ? (
             <StartWorkoutButton
               sourceWorkoutTemplateId={template.id}
               label="Démarrer"
               disabled={readOnly}
+              className="min-h-9 px-2.5 text-sm"
             />
           ) : null}
           {!readOnly ? (
-            <>
-            <ReorderControls
-              label={`la séance ${template.name}`}
-              canMoveUp={canMoveUp(index)}
-              canMoveDown={canMoveDown(index, total)}
-              disabled={busy || mutations.reorderTemplates.isPending}
-              onMoveUp={() => void handleReorder('up')}
-              onMoveDown={() => void handleReorder('down')}
+            <ContextMenu
+              label={`Actions pour ${template.name}`}
+              items={[
+                {
+                  label: 'Modifier',
+                  onSelect: () => setEditOpen(true),
+                },
+                {
+                  label: 'Déplacer vers le haut',
+                  disabled: !canMoveUp(index) || busy,
+                  onSelect: () => void handleReorder('up'),
+                },
+                {
+                  label: 'Déplacer vers le bas',
+                  disabled: !canMoveDown(index, total) || busy,
+                  onSelect: () => void handleReorder('down'),
+                },
+                {
+                  label: 'Ajouter un exercice',
+                  onSelect: () => setPickerOpen(true),
+                },
+                {
+                  label: 'Supprimer',
+                  destructive: true,
+                  onSelect: () => setDeleteOpen(true),
+                },
+              ]}
             />
-            <div className="relative">
-              <Button
-                type="button"
-                variant="ghost"
-                className="min-h-10 px-2"
-                aria-expanded={menuOpen}
-                aria-label={`Actions pour ${template.name}`}
-                onClick={() => setMenuOpen((value) => !value)}
-              >
-                <MoreHorizontal className="size-5" aria-hidden="true" />
-              </Button>
-              {menuOpen ? (
-                <div className="absolute right-0 z-10 mt-1 w-44 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-1 shadow-lg">
-                  <button
-                    type="button"
-                    className="block w-full rounded px-3 py-2 text-left text-sm hover:bg-slate-50"
-                    onClick={() => {
-                      setEditOpen(true);
-                      setMenuOpen(false);
-                    }}
-                  >
-                    Modifier
-                  </button>
-                  <button
-                    type="button"
-                    className="block w-full rounded px-3 py-2 text-left text-sm hover:bg-slate-50"
-                    onClick={() => {
-                      setPickerOpen(true);
-                      setMenuOpen(false);
-                      setExpanded(true);
-                    }}
-                  >
-                    Ajouter un exercice
-                  </button>
-                  <button
-                    type="button"
-                    className="block w-full rounded px-3 py-2 text-left text-sm text-[var(--danger)] hover:bg-red-50"
-                    onClick={() => {
-                      setDeleteOpen(true);
-                      setMenuOpen(false);
-                    }}
-                  >
-                    Supprimer
-                  </button>
-                </div>
-              ) : null}
-            </div>
-            </>
           ) : null}
         </div>
-      </div>
+      </header>
 
       {error ? (
-        <p className="mt-2 text-sm text-[var(--danger)]" role="alert">
+        <p className="text-sm text-[var(--danger)]" role="alert">
           {error}
         </p>
       ) : null}
 
-      {expanded ? (
-        <div className="mt-4 space-y-3 border-t border-[var(--border)] pt-4">
-          {template.exercises.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">
-              Aucun exercice dans cette séance.
-            </p>
-          ) : null}
-          {template.exercises.map((exercise, exerciseIndex) => (
-            <TemplateExerciseCard
-              key={exercise.id}
-              programId={programId}
-              workoutTemplateId={template.id}
-              exercise={exercise}
-              index={exerciseIndex}
-              total={template.exercises.length}
-              readOnly={readOnly}
-              busy={busy}
-              onStatus={onStatus}
-              onBusyChange={setBusy}
-            />
-          ))}
-          {!readOnly ? (
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-full gap-2"
-              onClick={() => setPickerOpen(true)}
-            >
-              <Plus className="size-4" aria-hidden="true" />
-              Ajouter un exercice
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
+      <div>
+        {template.exercises.length === 0 ? (
+          <p className="py-6 text-sm text-[var(--muted)]" role="status">
+            Aucun exercice
+          </p>
+        ) : null}
+        {template.exercises.map((exercise, exerciseIndex) => (
+          <TemplateExerciseCard
+            key={exercise.id}
+            programId={programId}
+            workoutTemplateId={template.id}
+            exercise={exercise}
+            index={exerciseIndex}
+            total={template.exercises.length}
+            readOnly={readOnly}
+            busy={busy}
+            onStatus={onStatus}
+            onBusyChange={setBusy}
+          />
+        ))}
+        {!readOnly ? (
+          <Button
+            type="button"
+            variant="secondary"
+            className="mt-2 w-full gap-2"
+            onClick={() => setPickerOpen(true)}
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            Ajouter un exercice
+          </Button>
+        ) : null}
+      </div>
 
       <WorkoutTemplateForm
         open={editOpen}
@@ -412,6 +389,7 @@ export function CreateWorkoutTemplateButton({
     <>
       <Button
         type="button"
+        variant="secondary"
         className="w-full gap-2 sm:w-auto"
         onClick={() => {
           setError(null);

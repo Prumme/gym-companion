@@ -120,10 +120,12 @@ describe('Workout lifecycle UI (3.3)', () => {
     });
 
     renderActive();
-    expect(await screen.findByRole('button', { name: /Mettre en pause/i })).toBeInTheDocument();
     await user.click(
-      screen.getByRole('button', { name: /Autres actions de séance/i }),
+      await screen.findByRole('button', { name: /Actions de séance/i }),
     );
+    expect(
+      screen.getByRole('menuitem', { name: /Mettre en pause/i }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('menuitem', { name: /Terminer la séance/i }),
     ).toBeInTheDocument();
@@ -134,14 +136,14 @@ describe('Workout lifecycle UI (3.3)', () => {
       screen.queryByRole('button', { name: /Reprendre la séance/i }),
     ).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /Mettre en pause/i }));
+    await user.click(screen.getByRole('menuitem', { name: /Mettre en pause/i }));
     await waitFor(() => expect(pauseWorkoutSession).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText(/Statut : En pause/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Séance en pause/i)).toBeInTheDocument();
     expect(
       screen.getByText(/Saisie des séries désactivée pendant la pause/i),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /Saisir la série/i }),
+      screen.queryByRole('button', { name: /Enregistrer la série/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -171,7 +173,9 @@ describe('Workout lifecycle UI (3.3)', () => {
       await screen.findByRole('button', { name: /Reprendre la séance/i }),
     );
     await waitFor(() => expect(resumeWorkoutSession).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText(/Statut : En cours/i)).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: /Enregistrer la série/i }),
+    ).toBeInTheDocument();
   });
 
   it('termine avec avertissement de séries restantes et navigue', async () => {
@@ -221,7 +225,7 @@ describe('Workout lifecycle UI (3.3)', () => {
 
     const client = renderActive();
     await user.click(
-      await screen.findByRole('button', { name: /Autres actions de séance/i }),
+      await screen.findByRole('button', { name: /Actions de séance/i }),
     );
     await user.click(
       screen.getByRole('menuitem', { name: /Terminer la séance/i }),
@@ -239,7 +243,7 @@ describe('Workout lifecycle UI (3.3)', () => {
     );
 
     await waitFor(() => expect(completeWorkoutSession).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText(/Statut : Terminée/i)).toBeInTheDocument();
+    expect(await screen.findByText('Terminée')).toBeInTheDocument();
     expect(client.getQueryData(['workouts', 'active'])).toBeNull();
   });
 
@@ -291,7 +295,7 @@ describe('Workout lifecycle UI (3.3)', () => {
 
     renderActive();
     await user.click(
-      await screen.findByRole('button', { name: /Autres actions de séance/i }),
+      await screen.findByRole('button', { name: /Actions de séance/i }),
     );
     await user.click(
       screen.getByRole('menuitem', { name: /^Annuler la séance$/i }),
@@ -303,9 +307,11 @@ describe('Workout lifecycle UI (3.3)', () => {
     );
 
     await waitFor(() => expect(cancelWorkoutSession).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText(/Statut : Annulée/i)).toBeInTheDocument();
+    expect(await screen.findByText('Annulée')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^Détails$/i }));
     expect(screen.getByText(/Fatigue/i)).toBeInTheDocument();
-    expect(screen.getByText(/Réalisé :/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Développé couché/i }));
+    expect(await screen.findAllByText(/60 kg/i)).not.toHaveLength(0);
     expect(
       screen.queryByRole('button', {
         name: /Mettre en pause|Terminer|Reprendre la séance/i,
@@ -325,7 +331,10 @@ describe('Workout lifecycle UI (3.3)', () => {
 
     renderActive();
     await user.click(
-      await screen.findByRole('button', { name: /Mettre en pause/i }),
+      await screen.findByRole('button', { name: /Actions de séance/i }),
+    );
+    await user.click(
+      screen.getByRole('menuitem', { name: /Mettre en pause/i }),
     );
     expect(
       await screen.findByText(
@@ -335,6 +344,7 @@ describe('Workout lifecycle UI (3.3)', () => {
   });
 
   it('redirige /workouts/:id vers /workouts/active si la séance est encore active', async () => {
+    const user = userEvent.setup();
     const active = createWorkoutSessionDetail();
     getWorkoutSessionDetail.mockResolvedValue(active);
     getActiveWorkoutSession.mockResolvedValue(active);
@@ -365,8 +375,11 @@ describe('Workout lifecycle UI (3.3)', () => {
     );
 
     expect(await screen.findByText('Séance Push')).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: /Actions de séance/i }),
+    );
     expect(
-      screen.getByRole('button', { name: /Mettre en pause/i }),
+      screen.getByRole('menuitem', { name: /Mettre en pause/i }),
     ).toBeInTheDocument();
   });
 });

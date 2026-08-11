@@ -165,6 +165,22 @@ export function addDraftEntry(
   return reindexDraftEntries([...entries, nextEntry]);
 }
 
+/**
+ * Remplace toutes les entrées d’un jour par une seule séance (ou aucune).
+ * Préserve les autres jours — adapté au sheet d’édition jour (UX-5).
+ */
+export function setDraftDaySingleTemplate(
+  entries: DraftScheduleEntry[],
+  weekday: Weekday,
+  template: WorkoutTemplateDetail | null,
+): DraftScheduleEntry[] {
+  const withoutDay = entries.filter((entry) => entry.weekday !== weekday);
+  if (!template) {
+    return reindexDraftEntries(withoutDay);
+  }
+  return addDraftEntry(withoutDay, weekday, template);
+}
+
 export function draftEntriesEqual(
   left: DraftScheduleEntry[],
   right: DraftScheduleEntry[],

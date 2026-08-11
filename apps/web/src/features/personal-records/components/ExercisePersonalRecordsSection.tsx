@@ -1,29 +1,29 @@
 import type { PersonalRecord } from '@gym-companion/shared';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 
-import { ButtonLink } from '@/components/ui/button';
 import { getApiErrorMessage } from '@/lib/api/client';
 
 import { exercisePersonalRecordsQueryOptions } from '../api/personal-record-query-options';
-import { PersonalRecordCard } from './PersonalRecordCard';
+import { PersonalRecordRow } from './PersonalRecordRow';
 
 type ExercisePersonalRecordsSectionProps = {
   exerciseId: string;
+  /** Masque le CTA progression (déjà sur la page détail). */
+  hideProgressCta?: boolean;
 };
 
 export function ExercisePersonalRecordsSection({
   exerciseId,
+  hideProgressCta = false,
 }: ExercisePersonalRecordsSectionProps) {
   const recordsQuery = useQuery(exercisePersonalRecordsQueryOptions(exerciseId));
 
   return (
-    <section
-      className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-4"
-      aria-labelledby="exercise-personal-records-heading"
-    >
+    <section aria-labelledby="exercise-personal-records-heading">
       <h2
         id="exercise-personal-records-heading"
-        className="mb-3 text-sm font-semibold tracking-wide text-[var(--muted)] uppercase"
+        className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]"
       >
         Records personnels
       </h2>
@@ -59,24 +59,27 @@ export function ExercisePersonalRecordsSection({
       ) : null}
 
       {recordsQuery.isSuccess && recordsQuery.data.length > 0 ? (
-        <ul className="flex flex-col gap-3">
+        <ul className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
           {recordsQuery.data.map((record: PersonalRecord) => (
-            <li key={`${record.recordType}-${record.source.workoutSetId}`}>
-              <PersonalRecordCard record={record} showExerciseLink={false} />
-            </li>
+            <PersonalRecordRow
+              key={`${record.recordType}-${record.source.workoutSetId}`}
+              record={record}
+              showExerciseName={false}
+            />
           ))}
         </ul>
       ) : null}
 
-      <div className="mt-4">
-        <ButtonLink
-          to={`/progress/exercises/${exerciseId}`}
-          variant="secondary"
-          className="w-full sm:w-auto"
-        >
-          Voir ma progression
-        </ButtonLink>
-      </div>
+      {!hideProgressCta ? (
+        <div className="mt-3">
+          <Link
+            to={`/progress/exercises/${exerciseId}`}
+            className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)]"
+          >
+            Voir ma progression
+          </Link>
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -115,9 +115,7 @@ export function ExerciseForm({
       })}
     >
       <section className="flex flex-col gap-4">
-        <h2 className="text-sm font-semibold tracking-wide text-[var(--muted)] uppercase">
-          Informations
-        </h2>
+        <h2 className="section-title">Identité</h2>
 
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium" htmlFor="exercise-name">
@@ -127,7 +125,7 @@ export function ExerciseForm({
             id="exercise-name"
             type="text"
             maxLength={120}
-            className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] px-3 text-sm"
+            className="min-h-11 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm"
             aria-invalid={Boolean(errors.name)}
             aria-describedby={errors.name ? 'exercise-name-error' : undefined}
             disabled={pending}
@@ -151,7 +149,7 @@ export function ExerciseForm({
             render={({ field }) => (
               <MuscleGroupSelector
                 id="primary-muscle"
-                label="Groupe musculaire principal"
+                label="Muscle principal"
                 required
                 muscleGroups={muscleGroups}
                 value={field.value}
@@ -162,50 +160,51 @@ export function ExerciseForm({
             )}
           />
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium" htmlFor="measurement-type">
-              Type de mesure <span className="text-[var(--danger)]">*</span>
-            </label>
-            <select
-              id="measurement-type"
-              className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] px-3 text-sm"
-              disabled={pending}
-              {...register('measurementType')}
-            >
-              {MEASUREMENT_TYPE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            {errors.measurementType ? (
-              <p className="text-xs text-[var(--danger)]" role="alert">
-                {errors.measurementType.message}
-              </p>
-            ) : null}
-          </div>
+          <Controller
+            control={control}
+            name="secondaryMuscleGroupIds"
+            render={({ field }) => (
+              <SecondaryMuscleGroupSelector
+                muscleGroups={muscleGroups}
+                primaryMuscleGroupId={primaryMuscleGroupId}
+                value={field.value}
+                onChange={field.onChange}
+                error={errors.secondaryMuscleGroupIds?.message}
+                disabled={pending}
+              />
+            )}
+          />
         </div>
-
-        <Controller
-          control={control}
-          name="secondaryMuscleGroupIds"
-          render={({ field }) => (
-            <SecondaryMuscleGroupSelector
-              muscleGroups={muscleGroups}
-              primaryMuscleGroupId={primaryMuscleGroupId}
-              value={field.value}
-              onChange={field.onChange}
-              error={errors.secondaryMuscleGroupIds?.message}
-              disabled={pending}
-            />
-          )}
-        />
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-sm font-semibold tracking-wide text-[var(--muted)] uppercase">
-          Équipement
-        </h2>
+        <h2 className="section-title">Mesure</h2>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium" htmlFor="measurement-type">
+            Type de mesure <span className="text-[var(--danger)]">*</span>
+          </label>
+          <select
+            id="measurement-type"
+            className="min-h-11 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm"
+            disabled={pending}
+            {...register('measurementType')}
+          >
+            {MEASUREMENT_TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          {errors.measurementType ? (
+            <p className="text-xs text-[var(--danger)]" role="alert">
+              {errors.measurementType.message}
+            </p>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <h2 className="section-title">Équipement</h2>
         <Controller
           control={control}
           name="compatibleEquipmentTypes"
@@ -230,15 +229,13 @@ export function ExerciseForm({
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-sm font-semibold tracking-wide text-[var(--muted)] uppercase">
-          Repos et instructions
-        </h2>
+        <h2 className="section-title">Paramètres</h2>
 
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium" htmlFor="default-rest">
             Repos par défaut (secondes)
           </label>
-          <p id="default-rest-desc" className="text-xs text-[var(--muted)]">
+          <p id="default-rest-desc" className="text-xs text-[var(--muted-foreground)]">
             Laisse vide si aucun repos par défaut n’est nécessaire.
           </p>
           <input
@@ -248,7 +245,7 @@ export function ExerciseForm({
             min={0}
             max={3600}
             step={1}
-            className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] px-3 text-sm md:max-w-xs"
+            className="min-h-11 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm md:max-w-xs"
             aria-describedby="default-rest-desc"
             aria-invalid={Boolean(errors.defaultRestSeconds)}
             disabled={pending}
@@ -260,6 +257,10 @@ export function ExerciseForm({
             </p>
           ) : null}
         </div>
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <h2 className="section-title">Détails</h2>
 
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium" htmlFor="instructions">
@@ -269,12 +270,12 @@ export function ExerciseForm({
             id="instructions"
             rows={5}
             maxLength={4000}
-            className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
+            className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
             aria-invalid={Boolean(errors.instructions)}
             disabled={pending}
             {...register('instructions')}
           />
-          <p className="text-xs text-[var(--muted)]">
+          <p className="text-xs text-[var(--muted-foreground)]">
             {instructions.length}/4000
           </p>
           {errors.instructions ? (

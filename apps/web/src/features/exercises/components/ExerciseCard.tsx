@@ -1,8 +1,10 @@
 import type { ExerciseListItem } from '@gym-companion/shared';
-import { Link, useLocation } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 import { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
 import { getApiErrorMessage } from '@/lib/api/client';
+import { cn } from '@/lib/utils';
 
 import { useUpdateExercisePreferenceMutation } from '../hooks/use-exercise-preference-mutations';
 import { getMeasurementTypeLabel } from '../lib/exercise-labels';
@@ -54,21 +56,39 @@ export function ExerciseCard({ exercise, onFeedback }: ExerciseCardProps) {
   }
 
   return (
-    <article className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm">
-      <div className="flex items-start gap-2">
+    <article className={cn('border-b border-[var(--border)] py-3', isArchived && 'opacity-70')}>
+      <div className="flex min-h-11 items-start gap-1">
         <Link
           to={`/exercises/${exercise.id}`}
           state={{ from: `${location.pathname}${location.search}` }}
-          className="min-w-0 flex-1 rounded-[var(--radius)] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
+          className="min-w-0 flex-1 rounded-[var(--radius-control)] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
           aria-label={`Voir le détail de ${exercise.name}`}
         >
-          <h2 className="text-base font-semibold leading-snug">{exercise.name}</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            {exercise.primaryMuscleGroup.name} · {equipmentName}
-          </p>
-          <p className="mt-0.5 text-sm text-[var(--muted)]">
-            {getMeasurementTypeLabel(exercise.measurementType)}
-          </p>
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-sm font-semibold leading-snug text-[var(--foreground)]">
+                  {exercise.name}
+                </h2>
+                <ExerciseSourceBadge source={exercise.source} />
+                {isArchived ? (
+                  <span className="text-[0.6875rem] font-medium tracking-wide text-[var(--muted-foreground)] uppercase">
+                    Archivé
+                  </span>
+                ) : null}
+              </div>
+              <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
+                {exercise.primaryMuscleGroup.name} · {equipmentName}
+              </p>
+              <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
+                {getMeasurementTypeLabel(exercise.measurementType)}
+              </p>
+            </div>
+            <ChevronRight
+              className="mt-0.5 size-4 shrink-0 text-[var(--muted-foreground)]"
+              aria-hidden="true"
+            />
+          </div>
         </Link>
 
         <ExerciseFavoriteButton
@@ -80,22 +100,8 @@ export function ExerciseCard({ exercise, onFeedback }: ExerciseCardProps) {
         />
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <ExerciseSourceBadge source={exercise.source} />
-        {isArchived ? (
-          <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-            Archivé
-          </span>
-        ) : null}
-        {exercise.userPreference.restSecondsOverride != null ? (
-          <span className="text-xs text-[var(--muted)]">
-            Repos perso : {exercise.userPreference.restSecondsOverride}s
-          </span>
-        ) : null}
-      </div>
-
       {localError ? (
-        <p className="mt-2 text-sm text-[var(--danger)]" role="alert">
+        <p className="mt-1 text-sm text-[var(--danger)]" role="alert">
           {localError}
         </p>
       ) : null}

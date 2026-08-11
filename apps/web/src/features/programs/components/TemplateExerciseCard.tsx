@@ -3,12 +3,11 @@ import type {
   WorkoutTemplateExerciseDetail,
   WorkoutTemplateSetTarget,
 } from '@gym-companion/shared';
-import { MoreHorizontal, Plus, Trash2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
 
-import { Button } from '@/components/ui/button';
+import { LoadRecommendationCard } from '@/features/coaching/components/LoadRecommendationCard';
 import { getExercise } from '@/features/exercises/api/exercise-api';
-import { getMeasurementTypeLabel } from '@/features/exercises/lib/exercise-labels';
 import { getApiErrorMessage } from '@/lib/api/client';
 
 import { programQueryKeys } from '../api/program-query-keys';
@@ -17,14 +16,12 @@ import {
   reorderExercisesInDetail,
   reorderSetsInDetail,
 } from '../lib/program-cache';
-import { getWorkoutSetTypeLabel } from '../lib/program-labels';
 import { canMoveDown, canMoveUp } from '../lib/reorder';
 import {
   compatibleEquipmentOptions,
   detailToTemplateExerciseFormValues,
   duplicateSetFormValues,
   emptySetFormValues,
-  formatSetSummary,
   setDetailToFormValues,
   setFormToPayload,
   templateExerciseFormToUpdatePayload,
@@ -32,10 +29,10 @@ import {
   type TemplateSetFormValues,
 } from '../lib/template-forms';
 import { ConfirmDialog } from './ConfirmDialog';
-import { ReorderControls } from './ReorderControls';
+import { ContextMenu } from './ContextMenu';
+import { TargetSetRow } from './TargetSetRow';
 import { TemplateExerciseForm } from './TemplateExerciseForm';
 import { TemplateSetEditor } from './TemplateSetEditor';
-import { LoadRecommendationCard } from '@/features/coaching/components/LoadRecommendationCard';
 
 type TemplateExerciseCardProps = {
   programId: string;
@@ -49,6 +46,19 @@ type TemplateExerciseCardProps = {
   onBusyChange?: (busy: boolean) => void;
 };
 
+function formatExerciseMeta(exercise: WorkoutTemplateExerciseDetail): string {
+  const parts: string[] = [exercise.exercise.primaryMuscleGroup.name];
+  if (exercise.equipmentType?.name) {
+    parts.push(exercise.equipmentType.name);
+  }
+  const rest =
+    exercise.restSecondsOverride != null
+      ? `repos ${exercise.restSecondsOverride} s`
+      : null;
+  if (rest) parts.push(rest);
+  return parts.join(' · ');
+}
+
 export function TemplateExerciseCard({
   programId,
   workoutTemplateId,
@@ -61,7 +71,6 @@ export function TemplateExerciseCard({
   onBusyChange,
 }: TemplateExerciseCardProps) {
   const mutations = useProgramContentMutations();
-  const [menuOpen, setMenuOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [setEditorOpen, setSetEditorOpen] = useState(false);
@@ -85,10 +94,7 @@ export function TemplateExerciseCard({
   const [deleteSetId, setDeleteSetId] = useState<string | null>(null);
 
   const isArchivedSource = exercise.exercise.archivedAt != null;
-  const restLabel =
-    exercise.restSecondsOverride != null
-      ? `${exercise.restSecondsOverride} s`
-      : 'Valeur par défaut';
+  const reorderPending = busy || mutations.reorderExercises.isPending;
 
   async function openEdit() {
     setError(null);
@@ -104,7 +110,6 @@ export function TemplateExerciseCard({
       );
     }
     setEditOpen(true);
-    setMenuOpen(false);
   }
 
   async function handleUpdate(values: TemplateExerciseFormValues) {
@@ -195,7 +200,6 @@ export function TemplateExerciseCard({
       setSetFormValues(emptySetFormValues(exercise.exercise.measurementType));
     }
     setSetEditorOpen(true);
-    setMenuOpen(false);
   }
 
   async function handleSaveSet(values: TemplateSetFormValues) {
@@ -289,33 +293,39 @@ export function TemplateExerciseCard({
     }
   }
 
+  function openEditSet(set: WorkoutTemplateSetTarget) {
+    setEditingSet(set);
+    setSetFormValues(setDetailToFormValues(set));
+    setSetEditorOpen(true);
+  }
+
   return (
-    <article className="rounded-[var(--radius)] border border-[var(--border)] bg-white p-3">
-      <div className="flex items-start justify-between gap-2">
+    <section className="border-b border-[var(--border)] py-4 last:border-b-0">
+      <div className="flex items-start gap-2">
+        <span className="w-5 shrink-0 pt-0.5 text-sm font-semibold tabular-nums text-[var(--muted)]">
+          {index + 1}
+        </span>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium text-[var(--muted)]">
-            Exercice {index + 1}
+          <h3 className="text-base font-semibold tracking-tight uppercase sm:normal-case">
+            {exercise.exercise.name}
+          </h3>
+          <p className="mt-0.5 text-sm text-[var(--muted)]">
+            {formatExerciseMeta(exercise)}
           </p>
-          <h4 className="font-semibold">{exercise.exercise.name}</h4>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            {exercise.exercise.primaryMuscleGroup.name} ·{' '}
-            {getMeasurementTypeLabel(exercise.exercise.measurementType)}
-          </p>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            {exercise.equipmentType?.name ?? 'Sans équipement'} · Repos {restLabel}
+          <p className="mt-0.5 text-xs text-[var(--muted)]">
+            {exercise.sets.length} série
+            {exercise.sets.length === 1 ? '' : 's'}
           </p>
           {exercise.notes ? (
-            <p className="mt-1 text-sm">{exercise.notes}</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">{exercise.notes}</p>
           ) : null}
           {isArchivedSource ? (
             <p className="mt-1 text-xs font-medium text-amber-800">
               Exercice source archivé
             </p>
           ) : null}
-          <p className="mt-1 text-xs text-[var(--muted)]">
-            {exercise.sets.length} série{exercise.sets.length === 1 ? '' : 's'}
-          </p>
           <LoadRecommendationCard
+            variant="compact"
             programId={programId}
             workoutTemplateExerciseId={exercise.id}
             exerciseId={exercise.exercise.id}
@@ -325,67 +335,43 @@ export function TemplateExerciseCard({
             }
           />
         </div>
-
         {!readOnly ? (
-          <div className="flex flex-col items-end gap-2">
-            <ReorderControls
-              label={`l’exercice ${exercise.exercise.name}`}
-              canMoveUp={canMoveUp(index)}
-              canMoveDown={canMoveDown(index, total)}
-              disabled={busy || mutations.reorderExercises.isPending}
-              onMoveUp={() => void handleExerciseReorder('up')}
-              onMoveDown={() => void handleExerciseReorder('down')}
-            />
-            <div className="relative">
-              <Button
-                type="button"
-                variant="ghost"
-                className="min-h-10 px-2"
-                aria-expanded={menuOpen}
-                aria-label={`Actions pour ${exercise.exercise.name}`}
-                onClick={() => setMenuOpen((value) => !value)}
-              >
-                <MoreHorizontal className="size-5" aria-hidden="true" />
-              </Button>
-              {menuOpen ? (
-                <div className="absolute right-0 z-10 mt-1 w-48 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-1 shadow-lg">
-                  <button
-                    type="button"
-                    className="block w-full rounded px-3 py-2 text-left text-sm hover:bg-slate-50"
-                    onClick={() => void openEdit()}
-                  >
-                    Modifier la configuration
-                  </button>
-                  <button
-                    type="button"
-                    className="block w-full rounded px-3 py-2 text-left text-sm hover:bg-slate-50"
-                    onClick={() => openCreateSet(false)}
-                  >
-                    Ajouter une série
-                  </button>
-                  {exercise.sets.length > 0 ? (
-                    <button
-                      type="button"
-                      className="block w-full rounded px-3 py-2 text-left text-sm hover:bg-slate-50"
-                      onClick={() => openCreateSet(true)}
-                    >
-                      Dupliquer la dernière série
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="block w-full rounded px-3 py-2 text-left text-sm text-[var(--danger)] hover:bg-red-50"
-                    onClick={() => {
-                      setRemoveOpen(true);
-                      setMenuOpen(false);
-                    }}
-                  >
-                    Retirer
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          </div>
+          <ContextMenu
+            label={`Actions pour ${exercise.exercise.name}`}
+            items={[
+              {
+                label: 'Déplacer vers le haut',
+                disabled: !canMoveUp(index) || reorderPending,
+                onSelect: () => void handleExerciseReorder('up'),
+              },
+              {
+                label: 'Déplacer vers le bas',
+                disabled: !canMoveDown(index, total) || reorderPending,
+                onSelect: () => void handleExerciseReorder('down'),
+              },
+              {
+                label: 'Modifier',
+                onSelect: () => void openEdit(),
+              },
+              {
+                label: 'Ajouter une série',
+                onSelect: () => openCreateSet(false),
+              },
+              ...(exercise.sets.length > 0
+                ? [
+                    {
+                      label: 'Dupliquer la dernière série',
+                      onSelect: () => openCreateSet(true),
+                    },
+                  ]
+                : []),
+              {
+                label: 'Supprimer',
+                destructive: true,
+                onSelect: () => setRemoveOpen(true),
+              },
+            ]}
+          />
         ) : null}
       </div>
 
@@ -395,69 +381,58 @@ export function TemplateExerciseCard({
         </p>
       ) : null}
 
-      <ul className="mt-3 flex flex-col gap-2">
+      <ul className="mt-2">
         {exercise.sets.map((set, setIndex) => (
-          <li
+          <TargetSetRow
             key={set.id}
-            className="rounded-[var(--radius)] border border-dashed border-[var(--border)] px-3 py-2"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-sm font-medium">
-                  {setIndex + 1}. {getWorkoutSetTypeLabel(set.setType)}
-                </p>
-                <p className="mt-0.5 text-sm text-[var(--muted)]">
-                  {formatSetSummary(set) || 'Sans cible renseignée'}
-                </p>
-              </div>
-              {!readOnly ? (
-                <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
-                  <ReorderControls
-                    label={`la série ${setIndex + 1}`}
-                    canMoveUp={canMoveUp(setIndex)}
-                    canMoveDown={canMoveDown(setIndex, exercise.sets.length)}
-                    disabled={busy || mutations.reorderSets.isPending}
-                    onMoveUp={() => void handleSetReorder(setIndex, 'up')}
-                    onMoveDown={() => void handleSetReorder(setIndex, 'down')}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="min-h-10 px-2 text-xs"
-                    onClick={() => {
-                      setEditingSet(set);
-                      setSetFormValues(setDetailToFormValues(set));
-                      setSetEditorOpen(true);
-                    }}
-                  >
-                    Modifier
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="min-h-10 px-2"
-                    aria-label={`Supprimer la série ${setIndex + 1}`}
-                    onClick={() => setDeleteSetId(set.id)}
-                  >
-                    <Trash2 className="size-4" aria-hidden="true" />
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-          </li>
+            set={set}
+            index={setIndex}
+            readOnly={readOnly}
+            onActivate={readOnly ? undefined : () => openEditSet(set)}
+            menuItems={
+              readOnly
+                ? []
+                : [
+                    {
+                      label: 'Modifier',
+                      onSelect: () => openEditSet(set),
+                    },
+                    {
+                      label: 'Déplacer vers le haut',
+                      disabled:
+                        !canMoveUp(setIndex) ||
+                        busy ||
+                        mutations.reorderSets.isPending,
+                      onSelect: () => void handleSetReorder(setIndex, 'up'),
+                    },
+                    {
+                      label: 'Déplacer vers le bas',
+                      disabled:
+                        !canMoveDown(setIndex, exercise.sets.length) ||
+                        busy ||
+                        mutations.reorderSets.isPending,
+                      onSelect: () => void handleSetReorder(setIndex, 'down'),
+                    },
+                    {
+                      label: 'Supprimer',
+                      destructive: true,
+                      onSelect: () => setDeleteSetId(set.id),
+                    },
+                  ]
+            }
+          />
         ))}
       </ul>
 
       {!readOnly ? (
-        <Button
+        <button
           type="button"
-          variant="secondary"
-          className="mt-3 w-full gap-2"
+          className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)]"
           onClick={() => openCreateSet(false)}
         >
           <Plus className="size-4" aria-hidden="true" />
           Ajouter une série
-        </Button>
+        </button>
       ) : null}
 
       <TemplateExerciseForm
@@ -476,7 +451,7 @@ export function TemplateExerciseCard({
       <TemplateSetEditor
         open={setEditorOpen}
         title={editingSet ? 'Modifier la série' : 'Ajouter une série'}
-        submitLabel={editingSet ? 'Enregistrer' : 'Ajouter'}
+        submitLabel={editingSet ? 'Enregistrer' : 'Ajouter la série'}
         measurementType={exercise.exercise.measurementType}
         initialValues={setFormValues}
         pending={
@@ -510,6 +485,6 @@ export function TemplateExerciseCard({
         onConfirm={() => void handleDeleteSet()}
         onCancel={() => setDeleteSetId(null)}
       />
-    </article>
+    </section>
   );
 }

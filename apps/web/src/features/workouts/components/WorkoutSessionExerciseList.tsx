@@ -4,7 +4,7 @@ import type {
   WorkoutSessionExerciseDetail,
   WorkoutSessionSetDetail,
 } from '@gym-companion/shared';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useId, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -12,10 +12,12 @@ import { getMeasurementTypeLabel } from '@/features/exercises/lib/exercise-label
 import { cn } from '@/lib/utils';
 
 import {
+  formatWorkoutSetActualCompact,
   formatWorkoutSetActualSummary,
   formatWorkoutSetTargetSummary,
   getWorkoutSetStatusLabel,
 } from '../lib/workout-labels';
+import { WorkoutSetCard } from './WorkoutSetCard';
 import { WorkoutSetFormDialog } from './WorkoutSetFormDialog';
 
 type WorkoutSessionExerciseListProps = {
@@ -26,6 +28,49 @@ type WorkoutSessionExerciseListProps = {
   highlightedSetId?: string | null;
 };
 
+function exerciseHighlight(exercise: WorkoutSessionExerciseDetail): string {
+  const performed = exercise.sets.filter(
+    (set) =>
+      set.status === 'COMPLETED' ||
+      set.status === 'PARTIAL' ||
+      set.status === 'FAILED',
+  );
+  let maxWeight: number | null = null;
+  let maxReps: number | null = null;
+  for (const set of performed) {
+    if (set.actualWeightKg != null) {
+      maxWeight =
+        maxWeight == null
+          ? set.actualWeightKg
+          : Math.max(maxWeight, set.actualWeightKg);
+    }
+    if (set.actualReps != null) {
+      maxReps =
+        maxReps == null ? set.actualReps : Math.max(maxReps, set.actualReps);
+    }
+  }
+  const parts: string[] = [
+    `${exercise.sets.length} série${exercise.sets.length === 1 ? '' : 's'}`,
+  ];
+  if (maxWeight != null) {
+    parts.push(`${maxWeight} kg max`);
+  } else if (maxReps != null) {
+    parts.push(`${maxReps} reps max`);
+  } else {
+    const sample = performed[0] ?? exercise.sets[0];
+    if (sample) {
+      const compact =
+        formatWorkoutSetActualCompact(sample) ??
+        formatWorkoutSetTargetSummary(sample);
+      if (compact) {
+        const short = compact.split(' — ')[0];
+        if (short) parts.push(short);
+      }
+    }
+  }
+  return parts.join(' · ');
+}
+
 export function WorkoutSessionExerciseList({
   session,
   effortTrackingMode,
@@ -34,7 +79,7 @@ export function WorkoutSessionExerciseList({
   highlightedSetId = null,
 }: WorkoutSessionExerciseListProps) {
   return (
-    <ol className="flex flex-col gap-3">
+    <ol className="flex flex-col">
       {session.exercises.map((exercise) => (
         <WorkoutSessionExerciseItem
           key={exercise.id}
@@ -66,10 +111,64 @@ function WorkoutSessionExerciseItem({
   highlightedSetId: string | null;
 }) {
   const titleId = useId();
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(canRecordSets);
   const [editingSet, setEditingSet] = useState<WorkoutSessionSetDetail | null>(
     null,
   );
+  const readOnlyCompact = !canRecordSets;
+
+  if (readOnlyCompact) {
+    return (
+      <li className="border-b border-[var(--border)]">
+        <button
+          type="button"
+          className="flex w-full min-h-14 items-center justify-between gap-3 py-3 text-left outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+          aria-expanded={expanded}
+          aria-controls={`${titleId}-panel`}
+          onClick={() => setExpanded((value) => !value)}
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-[var(--foreground)]">
+              {exercise.exerciseName}
+            </p>
+            <p className="mt-0.5 text-sm text-[var(--muted)]">
+              {exerciseHighlight(exercise)}
+            </p>
+          </div>
+          {expanded ? (
+            <ChevronDown
+              className="size-4 shrink-0 text-[var(--muted)]"
+              aria-hidden="true"
+            />
+          ) : (
+            <ChevronRight
+              className="size-4 shrink-0 text-[var(--muted)]"
+              aria-hidden="true"
+            />
+          )}
+        </button>
+
+        {expanded ? (
+          <div id={`${titleId}-panel`} className="pb-3">
+            {exercise.notes ? (
+              <p className="mb-2 text-sm text-[var(--muted)]">{exercise.notes}</p>
+            ) : null}
+            <ul className="flex flex-col">
+              {exercise.sets.map((set) => (
+                <WorkoutSetCard
+                  key={set.id}
+                  set={set}
+                  canRecord={false}
+                  isNext={highlightedSetId === set.id}
+                  onEdit={() => undefined}
+                />
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </li>
+    );
+  }
 
   return (
     <li className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)]">
@@ -138,10 +237,7 @@ function WorkoutSessionExerciseItem({
                           .join(' — ') || '—'}
                       </p>
                       <p className="mt-1 text-xs">
-                        Statut :{' '}
-                        {!canRecordSets && set.status === 'PENDING'
-                          ? 'Non réalisée'
-                          : getWorkoutSetStatusLabel(set.status)}
+                        Statut : {getWorkoutSetStatusLabel(set.status)}
                       </p>
                       {set.reachedFailure ? (
                         <p className="mt-1 text-xs text-[var(--muted)]">
@@ -171,16 +267,14 @@ function WorkoutSessionExerciseItem({
                         <p className="mt-1 text-sm">Réalisé : {actual}</p>
                       ) : null}
                     </div>
-                    {canRecordSets ? (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        className="w-full shrink-0 sm:w-auto"
-                        onClick={() => setEditingSet(set)}
-                      >
-                        {set.status === 'PENDING' ? 'Saisir' : 'Modifier'}
-                      </Button>
-                    ) : null}
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="w-full shrink-0 sm:w-auto"
+                      onClick={() => setEditingSet(set)}
+                    >
+                      {set.status === 'PENDING' ? 'Saisir' : 'Modifier'}
+                    </Button>
                   </div>
                 </li>
               );

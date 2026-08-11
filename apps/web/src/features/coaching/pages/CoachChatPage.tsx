@@ -4,13 +4,18 @@ import type {
   AiCoachConversationMessage,
 } from '@gym-companion/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ChevronRight } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { LoadingState } from '@/components/common/LoadingState';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { getMe } from '@/features/profile/api/profile-api';
-import { getApiErrorMessage } from '@/lib/api/client';
+import {
+  getApiErrorMessage,
+  type ApiRequestError,
+} from '@/lib/api/client';
 
 import {
   createAiCoachConversation,
@@ -39,10 +44,30 @@ function createClientCommandId(): string {
   return `cmd-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function getErrorCode(error: unknown): string | null {
+  const apiError = error as ApiRequestError | undefined;
+  if (apiError && typeof apiError === 'object' && 'code' in apiError) {
+    return String(apiError.code ?? '') || null;
+  }
+  return null;
+}
+
+function chatErrorMessage(error: unknown): string {
+  const code = getErrorCode(error);
+  if (code === 'AI_COACH_RATE_LIMITED') {
+    return 'Trop de demandes en peu de temps. Réessaie dans un moment.';
+  }
+  if (code === 'AI_COACH_CONVERSATION_BUSY') {
+    return 'Le Coach traite déjà une réponse. Réessaie dans un instant.';
+  }
+  return getApiErrorMessage(error, 'Le Coach n’a pas pu répondre.');
+}
+
 const STARTER_PROMPTS = [
-  'Comment évoluent mes entraînements ?',
-  'Parle-moi de ma progression récente.',
-  'Quels exercices dois-je surveiller ?',
+  'Pourquoi ma progression aux tractions stagne ?',
+  'Comment évolue mon développé couché ?',
+  'Quels records ai-je battus récemment ?',
+  'Quelle était ma dernière séance Push ?',
 ];
 
 export function CoachChatPage() {
@@ -92,9 +117,7 @@ export function CoachChatPage() {
 
   const createMutation = useMutation({
     mutationFn: () =>
-      createAiCoachConversation(
-        exerciseId ? { exerciseId } : {},
-      ),
+      createAiCoachConversation(exerciseId ? { exerciseId } : {}),
     onSuccess: (data) => {
       void queryClient.invalidateQueries({
         queryKey: coachingQueryKeys.conversations(),
@@ -171,18 +194,36 @@ export function CoachChatPage() {
     });
   }
 
+  function startNewConversation() {
+    navigate(
+      exerciseId
+        ? `/coach/chat?exerciseId=${encodeURIComponent(exerciseId)}`
+        : '/coach/chat',
+      { replace: true },
+    );
+    setLocalMessages([]);
+    setDraft('');
+  }
+
   if (meQuery.isLoading) {
     return <LoadingState label="Chargement…" />;
   }
 
   if (!aiAvailable) {
     return (
-      <main className="space-y-4">
-        <h1 className="text-2xl font-bold">Chat Coach</h1>
-        <p className="text-sm text-[var(--muted)]">
-          Les explications IA ne sont pas activées.
+      <main className="flex flex-1 flex-col gap-[var(--space-4)]">
+        <PageHeader
+          title="Coach IA"
+          description="Explications et questions sur ton entraînement."
+          backTo="/coach"
+          backLabel="Coach"
+          className="mb-0"
+        />
+        <p className="text-sm text-[var(--muted-foreground)]">
+          Indisponible sur cet environnement. L’analyse Coach déterministe reste
+          disponible sans IA.
         </p>
-        <ButtonLink to="/coach" variant="secondary">
+        <ButtonLink to="/coach" variant="secondary" className="w-fit">
           Retour au Coach
         </ButtonLink>
       </main>
@@ -193,105 +234,101 @@ export function CoachChatPage() {
     | AiCoachConversationDetail
     | undefined;
   const messages = localMessages;
+  const conversations = conversationsQuery.data?.data ?? [];
 
   return (
-    <main className="flex min-h-[70vh] flex-col gap-4">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Chat Coach</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Pose des questions sur ta progression. Le Coach lit tes données via
-            des outils sécurisés, sans modifier ton programme.
-          </p>
-          {conversation?.contextExercise ? (
-            <p className="mt-2 text-sm">
-              Contexte :{' '}
-              <Link
-                className="font-semibold text-[var(--primary)] underline-offset-2 hover:underline"
-                to={`/progress/exercises/${conversation.contextExercise.id}`}
-              >
-                {conversation.contextExercise.name}
-              </Link>
-            </p>
-          ) : null}
-        </div>
-        <ButtonLink to="/coach" variant="secondary" className="min-h-10">
-          Vue Coach
-        </ButtonLink>
-      </header>
+    <main className="flex min-h-[70vh] flex-1 flex-col gap-[var(--space-4)]">
+      <PageHeader
+        title="Coach IA"
+        description="Pose une question sur ton entraînement"
+        backTo="/coach"
+        backLabel="Coach"
+        className="mb-0"
+        actions={
+          <button
+            type="button"
+            className="min-h-11 text-sm text-[var(--muted-foreground)] underline-offset-2 hover:underline"
+            onClick={startNewConversation}
+          >
+            Nouvelle conversation
+          </button>
+        }
+      />
+      <p className="text-xs text-[var(--muted-foreground)]">
+        Le Coach peut consulter certaines données de ton historique en lecture
+        seule. Il ne modifie pas ton programme ni tes séances.
+      </p>
+      {conversation?.contextExercise ? (
+        <p className="text-sm">
+          Contexte :{' '}
+          <Link
+            className="font-medium underline-offset-2 hover:underline"
+            to={`/progress/exercises/${conversation.contextExercise.id}`}
+          >
+            {conversation.contextExercise.name}
+          </Link>
+        </p>
+      ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <aside
-          className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-3"
-          aria-label="Conversations récentes"
-        >
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold">Conversations</p>
-            <Button
-              type="button"
-              variant="secondary"
-              className="min-h-9 px-3 text-xs"
-              disabled={createMutation.isPending || offline}
-              onClick={() => createMutation.mutate()}
-            >
-              Nouvelle
-            </Button>
-          </div>
-          {conversationsQuery.isLoading ? (
-            <p className="text-sm text-[var(--muted)]">Chargement…</p>
-          ) : null}
-          <ul className="space-y-2">
-            {(conversationsQuery.data?.data ?? []).map((item) => (
-              <li key={item.id}>
-                <Link
-                  to={`/coach/chat?c=${item.id}`}
-                  className={`block rounded-[var(--radius)] px-2 py-2 text-sm ${
-                    item.id === conversationId
-                      ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
-                      : 'hover:bg-[var(--muted)]/20'
-                  }`}
-                >
-                  <span className="font-medium">
-                    {item.title ?? 'Conversation'}
-                  </span>
-                  {item.lastMessagePreview ? (
-                    <span className="mt-0.5 block truncate opacity-80">
-                      {item.lastMessagePreview}
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+        {conversations.length > 0 ? (
+          <aside aria-label="Conversations récentes" className="hidden lg:block">
+            <p className="section-title mb-2">Conversations</p>
+            <ul className="flex flex-col">
+              {conversations.map((item) => (
+                <li key={item.id}>
+                  <Link
+                    to={`/coach/chat?c=${item.id}`}
+                    className={`flex min-h-11 items-center justify-between gap-2 border-b border-[var(--border)] py-2 text-sm ${
+                      item.id === conversationId
+                        ? 'font-semibold text-[var(--foreground)]'
+                        : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                    }`}
+                  >
+                    <span className="min-w-0 truncate">
+                      {item.title ?? 'Conversation'}
                     </span>
-                  ) : null}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </aside>
+                    <ChevronRight
+                      className="size-4 shrink-0"
+                      aria-hidden="true"
+                    />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </aside>
+        ) : null}
 
         <section
-          className="flex min-h-[28rem] flex-col rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)]"
+          className="flex min-h-[24rem] flex-1 flex-col border-t border-[var(--border)] lg:border-t-0"
           aria-label="Fil de discussion"
         >
           <div
             id={listId}
-            className="flex-1 space-y-3 overflow-y-auto p-3 sm:p-4"
+            className="flex-1 space-y-4 overflow-y-auto py-3"
             role="log"
             aria-live="polite"
             aria-relevant="additions"
           >
             {!conversationId && messages.length === 0 ? (
               <div className="space-y-3">
-                <p className="text-sm font-semibold">Nouvelle conversation</p>
-                <p className="text-sm text-[var(--muted)]">
+                <p className="text-sm text-[var(--muted-foreground)]">
                   Choisis une suggestion ou pose ta question.
                 </p>
-                <ul className="flex flex-wrap gap-2">
+                <ul className="flex flex-col gap-2">
                   {STARTER_PROMPTS.map((prompt) => (
                     <li key={prompt}>
                       <button
                         type="button"
-                        className="min-h-10 rounded-[var(--radius)] border border-[var(--border)] px-3 text-left text-sm"
+                        className="flex min-h-11 w-full items-center justify-between gap-2 border-b border-[var(--border)] py-2 text-left text-sm"
                         disabled={offline || sendMutation.isPending}
                         onClick={() => void ensureConversationThenSend(prompt)}
                       >
-                        {prompt}
+                        <span>{prompt}</span>
+                        <ChevronRight
+                          className="size-4 shrink-0 text-[var(--muted-foreground)]"
+                          aria-hidden="true"
+                        />
                       </button>
                     </li>
                   ))}
@@ -302,24 +339,28 @@ export function CoachChatPage() {
             {messages.map((message) => (
               <article
                 key={message.id}
-                className={`max-w-[95%] rounded-[var(--radius)] px-3 py-2 text-sm ${
+                className={
                   message.role === 'USER'
-                    ? 'ml-auto bg-[var(--primary)] text-[var(--primary-foreground)]'
-                    : 'mr-auto border border-[var(--border)] bg-[var(--background)]'
-                }`}
+                    ? 'ml-4 border-l-2 border-[var(--border)] pl-3 text-sm'
+                    : 'text-sm'
+                }
                 aria-label={
-                  message.role === 'USER' ? 'Message utilisateur' : 'Message Coach'
+                  message.role === 'USER'
+                    ? 'Message utilisateur'
+                    : 'Message Coach IA'
                 }
               >
-                <p className="text-xs font-semibold uppercase tracking-wide opacity-80">
-                  {message.role === 'USER' ? 'Toi' : 'Coach'}
+                <p className="text-xs font-semibold tracking-wide text-[var(--muted-foreground)] uppercase">
+                  {message.role === 'USER' ? 'Toi' : 'Coach IA'}
                 </p>
                 <p className="mt-1 whitespace-pre-wrap leading-relaxed">
                   {message.content}
                 </p>
                 {message.references.length > 0 ? (
-                  <div className="mt-3 border-t border-white/20 pt-2">
-                    <p className="text-xs font-semibold">Sources utilisées</p>
+                  <div className="mt-3">
+                    <p className="text-xs font-medium text-[var(--muted-foreground)]">
+                      Données consultées
+                    </p>
                     <ul className="mt-1 space-y-1">
                       {message.references.map((reference) => (
                         <li key={`${reference.type}-${reference.label}`}>
@@ -335,12 +376,12 @@ export function CoachChatPage() {
                   </div>
                 ) : null}
                 {message.suggestedFollowUps.length > 0 ? (
-                  <ul className="mt-3 flex flex-wrap gap-2">
+                  <ul className="mt-3 flex flex-col gap-1">
                     {message.suggestedFollowUps.map((followUp) => (
                       <li key={followUp}>
                         <button
                           type="button"
-                          className="min-h-9 rounded-[var(--radius)] border border-current/30 px-2 text-xs"
+                          className="min-h-10 text-left text-sm text-[var(--muted-foreground)] underline-offset-2 hover:underline"
                           disabled={offline || sendMutation.isPending}
                           onClick={() =>
                             void ensureConversationThenSend(followUp)
@@ -356,37 +397,37 @@ export function CoachChatPage() {
             ))}
 
             {sendMutation.isPending ? (
-              <p className="text-sm text-[var(--muted)]" role="status">
-                Le Coach prépare une réponse…
+              <p className="text-sm text-[var(--muted-foreground)]" role="status">
+                Coach réfléchit…
               </p>
             ) : null}
             <div ref={bottomRef} />
           </div>
 
-          <div className="border-t border-[var(--border)] p-3">
+          <div
+            className="sticky bottom-0 border-t border-[var(--border)] bg-[var(--background)] pt-3"
+            style={{
+              paddingBottom:
+                'calc(var(--space-3) + env(safe-area-inset-bottom, 0px))',
+            }}
+          >
             {offline ? (
-              <p className="mb-2 text-sm text-[var(--muted)]" role="status">
+              <p className="mb-2 text-sm text-[var(--muted-foreground)]" role="status">
                 Une connexion est nécessaire pour discuter avec le Coach.
               </p>
             ) : null}
             {sendMutation.isError ? (
               <p className="mb-2 text-sm text-[var(--danger)]" role="alert">
-                {getApiErrorMessage(
-                  sendMutation.error,
-                  'Le Coach n’a pas pu répondre.',
-                )}
+                {chatErrorMessage(sendMutation.error)}
               </p>
             ) : null}
             {createMutation.isError ? (
               <p className="mb-2 text-sm text-[var(--danger)]" role="alert">
-                {getApiErrorMessage(
-                  createMutation.error,
-                  'Impossible de créer la conversation.',
-                )}
+                {chatErrorMessage(createMutation.error)}
               </p>
             ) : null}
             <form
-              className="flex flex-col gap-2 sm:flex-row sm:items-end"
+              className="flex items-end gap-2"
               onSubmit={(event) => {
                 event.preventDefault();
                 void ensureConversationThenSend(draft);
@@ -398,17 +439,28 @@ export function CoachChatPage() {
               <textarea
                 ref={inputRef}
                 id="coach-chat-input"
-                className="min-h-11 w-full flex-1 resize-y rounded-[var(--radius)] border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
-                rows={2}
+                className="max-h-32 min-h-11 w-full flex-1 resize-none rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm"
+                rows={1}
                 maxLength={1500}
                 value={draft}
                 disabled={offline || sendMutation.isPending}
-                onChange={(event) => setDraft(event.target.value)}
-                placeholder="Écris ta question…"
+                onChange={(event) => {
+                  setDraft(event.target.value);
+                  const el = event.target;
+                  el.style.height = 'auto';
+                  el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    void ensureConversationThenSend(draft);
+                  }
+                }}
+                placeholder="Pose une question sur ton entraînement…"
               />
               <Button
                 type="submit"
-                className="min-h-11 sm:min-w-28"
+                className="min-h-11 shrink-0"
                 disabled={
                   offline ||
                   sendMutation.isPending ||

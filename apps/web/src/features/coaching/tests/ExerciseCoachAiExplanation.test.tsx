@@ -5,6 +5,7 @@ import type {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ExerciseCoachAiExplanation } from '../components/ExerciseCoachAiExplanation';
@@ -97,17 +98,19 @@ describe('ExerciseCoachAiExplanation (5.5)', () => {
 
   it('masque le bouton si IA désactivée', () => {
     render(
-      <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter>
+        <QueryClientProvider client={new QueryClient()}>
         <ExerciseCoachAiExplanation
           exerciseId="ex-1"
           summary={summary()}
           aiAvailable={false}
         />
-      </QueryClientProvider>,
+      </QueryClientProvider>
+      </MemoryRouter>,
     );
-    expect(screen.getByText(/Explications IA non activées/i)).toBeInTheDocument();
+    expect(screen.getByText(/Indisponible sur cet environnement/i)).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /Obtenir une explication/i }),
+      screen.queryByRole('button', { name: /Générer une explication/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -122,17 +125,19 @@ describe('ExerciseCoachAiExplanation (5.5)', () => {
           })
         }
       >
+        <MemoryRouter>
         <ExerciseCoachAiExplanation
           exerciseId="ex-1"
           summary={summary()}
           aiAvailable
         />
+        </MemoryRouter>
       </QueryClientProvider>,
     );
 
     expect(generateExerciseCoachExplanation).not.toHaveBeenCalled();
     await user.click(
-      screen.getByRole('button', { name: /Obtenir une explication/i }),
+      screen.getByRole('button', { name: /Générer une explication/i }),
     );
     await screen.findByText('Progression à surveiller');
     expect(screen.getByText(/Ta charge est restée à 80 kg/i)).toBeInTheDocument();
@@ -146,19 +151,21 @@ describe('ExerciseCoachAiExplanation (5.5)', () => {
       value: false,
     });
     render(
-      <QueryClientProvider client={new QueryClient()}>
-        <ExerciseCoachAiExplanation
-          exerciseId="ex-1"
-          summary={summary()}
-          aiAvailable
-        />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={new QueryClient()}>
+          <ExerciseCoachAiExplanation
+            exerciseId="ex-1"
+            summary={summary()}
+            aiAvailable
+          />
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
     expect(
       screen.getByText(/Une connexion est nécessaire/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /Obtenir une explication/i }),
+      screen.getByRole('button', { name: /Générer une explication/i }),
     ).toBeDisabled();
   });
 
@@ -169,28 +176,32 @@ describe('ExerciseCoachAiExplanation (5.5)', () => {
       defaultOptions: { mutations: { retry: false } },
     });
     const { rerender } = render(
-      <QueryClientProvider client={client}>
-        <ExerciseCoachAiExplanation
-          exerciseId="ex-1"
-          summary={summary({ coachSummaryFingerprint: 'fp-a' })}
-          aiAvailable
-        />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={client}>
+          <ExerciseCoachAiExplanation
+            exerciseId="ex-1"
+            summary={summary({ coachSummaryFingerprint: 'fp-a' })}
+            aiAvailable
+          />
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
     await user.click(
-      screen.getByRole('button', { name: /Obtenir une explication/i }),
+      screen.getByRole('button', { name: /Générer une explication/i }),
     );
     await screen.findByText(/Ta charge est restée/i);
     expect(generateExerciseCoachExplanation).toHaveBeenCalledTimes(1);
 
     rerender(
-      <QueryClientProvider client={client}>
-        <ExerciseCoachAiExplanation
-          exerciseId="ex-1"
-          summary={summary({ coachSummaryFingerprint: 'fp-b' })}
-          aiAvailable
-        />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={client}>
+          <ExerciseCoachAiExplanation
+            exerciseId="ex-1"
+            summary={summary({ coachSummaryFingerprint: 'fp-b' })}
+            aiAvailable
+          />
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
     expect(
       screen.getByText(/correspond à des données précédentes/i),
@@ -211,15 +222,17 @@ describe('ExerciseCoachAiExplanation (5.5)', () => {
           })
         }
       >
+        <MemoryRouter>
         <ExerciseCoachAiExplanation
           exerciseId="ex-1"
           summary={summary()}
           aiAvailable
         />
+        </MemoryRouter>
       </QueryClientProvider>,
     );
     await user.click(
-      screen.getByRole('button', { name: /Obtenir une explication/i }),
+      screen.getByRole('button', { name: /Générer une explication/i }),
     );
     await waitFor(() => {
       expect(screen.getByRole('alert')).toBeInTheDocument();

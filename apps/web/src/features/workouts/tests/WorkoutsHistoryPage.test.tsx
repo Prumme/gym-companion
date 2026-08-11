@@ -189,7 +189,7 @@ describe('WorkoutsHistoryPage', () => {
     });
     renderHistory();
     expect(
-      await screen.findByText('Aucune séance terminée ou annulée.'),
+      await screen.findByText('Aucune séance dans l’historique'),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /planning/i })).toBeInTheDocument();
     expect(
@@ -217,7 +217,7 @@ describe('WorkoutsHistoryPage', () => {
     expect(screen.getByText('Séance annulée')).toBeInTheDocument();
     expect(screen.getByText('Terminée')).toBeInTheDocument();
     expect(screen.getByText('Annulée')).toBeInTheDocument();
-    expect(screen.getByText(/2 séances chargées/)).toBeInTheDocument();
+    expect(screen.getByText(/2 séances/)).toBeInTheDocument();
   });
 
   it('synchronise les filtres dans l’URL', async () => {
@@ -227,10 +227,9 @@ describe('WorkoutsHistoryPage', () => {
       pagination: { nextCursor: null, hasMore: false },
     });
     renderHistory();
-    await screen.findByText('Aucune séance terminée ou annulée.');
+    await screen.findByText('Aucune séance dans l’historique');
 
-    const statusSelect = screen.getByLabelText('Filtrer par statut');
-    await user.selectOptions(statusSelect, 'COMPLETED');
+    await user.click(screen.getByRole('button', { name: 'Terminées' }));
 
     await waitFor(() => {
       expect(listWorkoutHistory).toHaveBeenCalledWith(
@@ -323,10 +322,7 @@ describe('WorkoutsHistoryPage', () => {
     await user.click(
       screen.getByRole('link', { name: /Ouvrir la séance Séance Push/i }),
     );
-    expect(await screen.findByText('Progression finale')).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Résumé de la séance' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Séance complétée|Progression/i)).toBeInTheDocument();
     expect(screen.getByText('10 répétitions')).toBeInTheDocument();
     await user.click(
       screen.getByRole('link', { name: /Retour à l’historique/i }),
@@ -370,6 +366,7 @@ describe('WorkoutSessionDetailPage historique', () => {
   }
 
   it('affiche une séance terminée en lecture seule', async () => {
+    const user = userEvent.setup();
     getWorkoutSessionDetail.mockResolvedValue(
       createWorkoutSessionDetail({
         id: 'hist-1',
@@ -421,18 +418,22 @@ describe('WorkoutSessionDetailPage historique', () => {
     );
     renderDetail('hist-1');
     expect(await screen.findByText('Séance Push')).toBeInTheDocument();
-    expect(
-      screen.getAllByText(/Statut : Terminée/).length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Terminée')).toBeInTheDocument();
+    expect(screen.getByText('Développé couché')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Développé couché/i }));
+    expect(await screen.findAllByText(/60 kg/)).not.toHaveLength(0);
+    expect(screen.getByLabelText(/Non réalisée/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Saisir/i })).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: /^Détails$/i }));
     expect(screen.getByText(/Notes :/)).toBeInTheDocument();
     expect(screen.getByText('Bonne séance')).toBeInTheDocument();
-    expect(screen.getByText('Durée écoulée :')).toBeInTheDocument();
-    expect(screen.getByText(/Non réalisée/)).toBeInTheDocument();
-    expect(screen.getByText(/Échec musculaire : Oui/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Saisir/i })).toBeNull();
+    expect(screen.getByText(/Durée écoulée :/)).toBeInTheDocument();
   });
 
   it('affiche une séance annulée avec motif', async () => {
+    const user = userEvent.setup();
     getWorkoutSessionDetail.mockResolvedValue(
       createWorkoutSessionDetail({
         status: 'CANCELLED',
@@ -449,7 +450,8 @@ describe('WorkoutSessionDetailPage historique', () => {
       }),
     );
     renderDetail('hist-1');
-    expect(await screen.findByText(/Statut : Annulée/)).toBeInTheDocument();
+    expect(await screen.findByText('Annulée')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^Détails$/i }));
     expect(screen.getByText('Douleur')).toBeInTheDocument();
   });
 

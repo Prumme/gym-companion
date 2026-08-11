@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Button, ButtonLink } from '@/components/ui/button';
 import { LoadingState } from '@/components/common/LoadingState';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { Button, ButtonLink } from '@/components/ui/button';
 import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
 
 import {
@@ -84,12 +84,9 @@ export function EditExercisePage() {
 
     return (
       <main className="flex flex-1 flex-col gap-4">
-        <ButtonLink to="/exercises" variant="ghost" className="w-fit gap-2 px-0">
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Retour au catalogue
-        </ButtonLink>
+        <PageHeader title="Exercice" backTo="/exercises" backLabel="Exercices" />
         <div
-          className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4"
+          className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] p-4"
           role="alert"
         >
           <p className="text-sm text-[var(--danger)]">{message}</p>
@@ -104,12 +101,12 @@ export function EditExercisePage() {
   if (exercise.archivedAt) {
     return (
       <main className="flex flex-1 flex-col gap-4">
-        <ButtonLink to={detailPath} variant="ghost" className="w-fit gap-2 px-0">
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Retour au détail
-        </ButtonLink>
-        <h1 className="text-2xl font-bold tracking-tight">Exercice archivé</h1>
-        <p className="text-sm text-[var(--muted)]">
+        <PageHeader
+          title="Exercice archivé"
+          backTo={detailPath}
+          backLabel="Détail"
+        />
+        <p className="text-sm text-[var(--muted-foreground)]">
           Cet exercice est archivé et ne peut pas être modifié. Restaure-le depuis
           sa fiche détail si tu veux le modifier.
         </p>
@@ -123,12 +120,12 @@ export function EditExercisePage() {
   if (!canEditExercise(exercise.permissions)) {
     return (
       <main className="flex flex-1 flex-col gap-4">
-        <ButtonLink to={detailPath} variant="ghost" className="w-fit gap-2 px-0">
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Retour au détail
-        </ButtonLink>
-        <h1 className="text-2xl font-bold tracking-tight">Modification indisponible</h1>
-        <p className="text-sm text-[var(--muted)]">
+        <PageHeader
+          title="Modification indisponible"
+          backTo={detailPath}
+          backLabel="Détail"
+        />
+        <p className="text-sm text-[var(--muted-foreground)]">
           Tu ne peux pas modifier cet exercice. Les exercices système restent en
           lecture seule.
         </p>
@@ -145,18 +142,17 @@ export function EditExercisePage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6">
-      <div>
-        <ButtonLink to={detailPath} variant="ghost" className="mb-3 w-fit gap-2 px-0">
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Retour au détail
-        </ButtonLink>
-        <h1 className="text-2xl font-bold tracking-tight">Modifier l’exercice</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">{exercise.name}</p>
-      </div>
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-[var(--space-6)]">
+      <PageHeader
+        title="Modifier l’exercice"
+        description={exercise.name}
+        backTo={detailPath}
+        backLabel="Détail"
+        className="mb-0"
+      />
 
       {statusMessage ? (
-        <p className="text-sm text-emerald-700" role="status">
+        <p className="text-sm text-[var(--foreground)]" role="status">
           {statusMessage}
         </p>
       ) : null}
@@ -167,7 +163,7 @@ export function EditExercisePage() {
 
       {referencesError ? (
         <div
-          className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4"
+          className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] p-4"
           role="alert"
         >
           <p className="text-sm text-[var(--danger)]">

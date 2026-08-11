@@ -283,10 +283,10 @@ export function WorkoutLifecycleActions({
               <span className="font-medium">Notes (facultatif)</span>
               <textarea
                 id={notesId}
-                rows={3}
+                rows={1}
                 value={completeNotes}
                 onChange={(event) => setCompleteNotes(event.target.value)}
-                className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--background)] px-3 py-2"
+                className="min-h-10 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--background)] px-3 py-2"
               />
             </label>
             {completeMutation.error &&

@@ -1,16 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 
+import { PageHeader } from '@/components/layout/PageHeader';
 import { ButtonLink } from '@/components/ui/button';
 import { getMe } from '@/features/profile/api/profile-api';
+import { cn } from '@/lib/utils';
 import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
 
 import { workoutDetailQueryOptions } from '../api/workout-query-options';
 import { workoutQueryKeys } from '../api/workout-query-keys';
-import { WorkoutMetricsSummary } from '../components/WorkoutMetricsSummary';
-import { WorkoutProgressBanner } from '../components/WorkoutProgressBanner';
 import { WorkoutSessionExerciseList } from '../components/WorkoutSessionExerciseList';
+import { WorkoutSessionSummary } from '../components/WorkoutSessionSummary';
 import {
   computeElapsedDurationMs,
   formatElapsedDuration,
@@ -18,6 +19,18 @@ import {
 import { resolveHistoryBackPath } from '../lib/workout-history-filters';
 import { getWorkoutStatusLabel } from '../lib/workout-labels';
 import { computeWorkoutProgress } from '../lib/workout-progress';
+
+function formatSessionDate(localDate: string): string {
+  const [year, month, day] = localDate.split('-').map(Number);
+  if (!year || !month || !day) return localDate;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
+}
 
 function formatDateTime(value: string, timeZone: string): string {
   try {
@@ -35,6 +48,7 @@ export function WorkoutSessionDetailPage() {
   const { workoutSessionId = '' } = useParams();
   const location = useLocation();
   const backPath = resolveHistoryBackPath(location.state);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const meQuery = useQuery({
     queryKey: ['me'],
     queryFn: getMe,
@@ -62,13 +76,15 @@ export function WorkoutSessionDetailPage() {
     () => (session ? computeElapsedDurationMs(session) : null),
     [session],
   );
+  const elapsedLabel =
+    elapsedMs != null ? formatElapsedDuration(elapsedMs) : null;
 
   if (query.isLoading) {
     return (
       <section className="flex flex-col gap-4" aria-busy="true">
-        <h1 className="text-2xl font-semibold">Séance</h1>
-        <div className="h-24 animate-pulse rounded-[var(--radius)] bg-slate-100" />
-        <div className="h-40 animate-pulse rounded-[var(--radius)] bg-slate-100" />
+        <PageHeader title="Séance" backTo={backPath} backLabel="Historique" />
+        <div className="h-24 animate-pulse rounded-[var(--radius)] bg-[var(--border)]/60" />
+        <div className="h-40 animate-pulse rounded-[var(--radius)] bg-[var(--border)]/60" />
       </section>
     );
   }
@@ -77,7 +93,7 @@ export function WorkoutSessionDetailPage() {
     const status = (query.error as ApiRequestError | undefined)?.status;
     return (
       <section className="flex flex-col gap-4">
-        <h1 className="text-2xl font-semibold">Séance</h1>
+        <PageHeader title="Séance" backTo={backPath} backLabel="Historique" />
         <p className="text-sm text-[var(--danger)]" role="alert">
           {status === 404
             ? 'Séance introuvable.'
@@ -101,142 +117,61 @@ export function WorkoutSessionDetailPage() {
     return <Navigate to="/workouts/active" replace />;
   }
 
+  const sourceBits = [
+    session.source.programName,
+    session.source.workoutTemplateName,
+  ].filter(Boolean);
+
   return (
     <section className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
-        <p className="text-sm text-[var(--muted)]" role="status">
-          Statut : {getWorkoutStatusLabel(session.status)}
-        </p>
+        <Link
+          to={backPath}
+          className="inline-flex min-h-11 w-fit items-center text-sm font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+        >
+          ← Historique
+        </Link>
+
         {fromLocal ? (
           <p className="text-xs font-medium text-amber-700" role="status">
             En attente de synchronisation
           </p>
         ) : null}
-        <h1 className="text-2xl font-semibold">{session.name}</h1>
-        <dl className="grid gap-1 text-sm text-[var(--muted)]">
-          {session.source.programName ? (
-            <div>
-              <dt className="inline font-medium text-[var(--foreground)]">
-                Programme :{' '}
-              </dt>
-              <dd className="inline">{session.source.programName}</dd>
-            </div>
-          ) : null}
-          {session.source.workoutTemplateName ? (
-            <div>
-              <dt className="inline font-medium text-[var(--foreground)]">
-                Modèle :{' '}
-              </dt>
-              <dd className="inline">{session.source.workoutTemplateName}</dd>
-            </div>
-          ) : null}
-          <div>
-            <dt className="inline font-medium text-[var(--foreground)]">
-              Date locale :{' '}
-            </dt>
-            <dd className="inline">{session.localDate}</dd>
-          </div>
-          <div>
-            <dt className="inline font-medium text-[var(--foreground)]">
-              Démarrée :{' '}
-            </dt>
-            <dd className="inline">
-              {formatDateTime(session.startedAt, session.timezone)}
-            </dd>
-          </div>
-          {session.completedAt ? (
-            <div>
-              <dt className="inline font-medium text-[var(--foreground)]">
-                Terminée :{' '}
-              </dt>
-              <dd className="inline">
-                {formatDateTime(session.completedAt, session.timezone)}
-              </dd>
-            </div>
-          ) : null}
-          {session.cancelledAt ? (
-            <div>
-              <dt className="inline font-medium text-[var(--foreground)]">
-                Annulée :{' '}
-              </dt>
-              <dd className="inline">
-                {formatDateTime(session.cancelledAt, session.timezone)}
-              </dd>
-            </div>
-          ) : null}
-          {elapsedMs != null ? (
-            <div>
-              <dt className="inline font-medium text-[var(--foreground)]">
-                Durée écoulée :{' '}
-              </dt>
-              <dd className="inline">{formatElapsedDuration(elapsedMs)}</dd>
-            </div>
-          ) : null}
-          {session.cancellationReason ? (
-            <div>
-              <dt className="inline font-medium text-[var(--foreground)]">
-                Motif :{' '}
-              </dt>
-              <dd className="inline">{session.cancellationReason}</dd>
-            </div>
-          ) : null}
-          {session.notes ? (
-            <div>
-              <dt className="inline font-medium text-[var(--foreground)]">
-                Notes :{' '}
-              </dt>
-              <dd className="inline">{session.notes}</dd>
-            </div>
-          ) : null}
-        </dl>
 
-        <div className="mt-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-3">
-          <h2 className="text-sm font-semibold">Progression finale</h2>
-          <ul className="mt-2 grid gap-1 text-sm text-[var(--muted)]">
-            <li>
-              {progress.totalExercises} exercice
-              {progress.totalExercises === 1 ? '' : 's'}
-            </li>
-            <li>
-              {progress.totalSets} série{progress.totalSets === 1 ? '' : 's'} au
-              total
-            </li>
-            <li>
-              {progress.recordedSets} traitée
-              {progress.recordedSets === 1 ? '' : 's'}
-            </li>
-            <li>{progress.completedSets} terminée{progress.completedSets === 1 ? '' : 's'}</li>
-            <li>{progress.partialSets} partielle{progress.partialSets === 1 ? '' : 's'}</li>
-            <li>{progress.failedSets} échouée{progress.failedSets === 1 ? '' : 's'}</li>
-            <li>{progress.skippedSets} ignorée{progress.skippedSets === 1 ? '' : 's'}</li>
-            <li>
-              {progress.pendingSets} non réalisée
-              {progress.pendingSets === 1 ? '' : 's'}
-            </li>
-          </ul>
-        </div>
-
-        <WorkoutProgressBanner progress={progress} />
+        <h1 className="page-title">{session.name}</h1>
+        <p className="text-sm text-[var(--muted)]">
+          {formatSessionDate(session.localDate)}
+          {elapsedLabel ? ` · ${elapsedLabel}` : ''}
+        </p>
+        {sourceBits.length > 0 ? (
+          <p className="text-sm text-[var(--muted)]">{sourceBits.join(' · ')}</p>
+        ) : null}
+        <p
+          className={cn(
+            'text-[0.6875rem] font-semibold tracking-[0.12em] uppercase',
+            session.status === 'CANCELLED'
+              ? 'text-[var(--danger)]'
+              : 'text-[var(--muted)]',
+          )}
+        >
+          {getWorkoutStatusLabel(session.status)}
+        </p>
       </header>
 
-      {session.status === 'COMPLETED' && session.metrics ? (
-        <WorkoutMetricsSummary metrics={session.metrics} />
-      ) : null}
-
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <ButtonLink to={backPath} variant="secondary">
-          Retour à l’historique
-        </ButtonLink>
-        <Link
-          to="/planning"
-          className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius)] border border-[var(--border)] px-4 text-sm font-medium"
-        >
-          Planning
-        </Link>
-      </div>
+      <WorkoutSessionSummary
+        progress={progress}
+        metrics={
+          session.status === 'COMPLETED' && session.metrics
+            ? session.metrics
+            : null
+        }
+        elapsedLabel={elapsedLabel}
+      />
 
       <div>
-        <h2 className="mb-3 text-lg font-semibold">Exercices</h2>
+        <h2 className="mb-1 text-xs font-semibold tracking-[0.12em] text-[var(--muted)] uppercase">
+          Exercices
+        </h2>
         <WorkoutSessionExerciseList
           session={session}
           effortTrackingMode="NONE"
@@ -244,6 +179,73 @@ export function WorkoutSessionDetailPage() {
           highlightedSetId={null}
           onVersionConflict={() => undefined}
         />
+      </div>
+
+      <div className="border-t border-[var(--border)] pt-4">
+        <button
+          type="button"
+          className="flex min-h-11 w-full items-center justify-between text-left text-sm font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+          aria-expanded={detailsOpen}
+          onClick={() => setDetailsOpen((value) => !value)}
+        >
+          Détails
+          <span className="text-[var(--muted)]" aria-hidden="true">
+            {detailsOpen ? '−' : '+'}
+          </span>
+        </button>
+        {detailsOpen ? (
+          <dl className="mt-2 flex flex-col gap-1.5 text-sm text-[var(--muted)]">
+            <div>
+              <dt className="inline">Démarrée : </dt>
+              <dd className="inline">
+                {formatDateTime(session.startedAt, session.timezone)}
+              </dd>
+            </div>
+            {session.completedAt ? (
+              <div>
+                <dt className="inline">Terminée : </dt>
+                <dd className="inline">
+                  {formatDateTime(session.completedAt, session.timezone)}
+                </dd>
+              </div>
+            ) : null}
+            {session.cancelledAt ? (
+              <div>
+                <dt className="inline">Annulée : </dt>
+                <dd className="inline">
+                  {formatDateTime(session.cancelledAt, session.timezone)}
+                </dd>
+              </div>
+            ) : null}
+            {elapsedLabel ? (
+              <div>
+                <dt className="inline">Durée écoulée : </dt>
+                <dd className="inline">{elapsedLabel}</dd>
+              </div>
+            ) : null}
+            {session.cancellationReason ? (
+              <div>
+                <dt className="inline">Motif : </dt>
+                <dd className="inline">{session.cancellationReason}</dd>
+              </div>
+            ) : null}
+            {session.notes ? (
+              <div>
+                <dt className="inline">Notes : </dt>
+                <dd className="inline">{session.notes}</dd>
+              </div>
+            ) : null}
+          </dl>
+        ) : null}
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <ButtonLink to={backPath} variant="secondary">
+          Retour à l’historique
+        </ButtonLink>
+        <ButtonLink to="/planning" variant="secondary">
+          Planning
+        </ButtonLink>
       </div>
     </section>
   );

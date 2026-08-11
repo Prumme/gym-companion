@@ -1,14 +1,24 @@
-import { useQuery } from '@tanstack/react-query';
-import { Plus, Users } from 'lucide-react';
+import { Plus, ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 
 import type { SharedWorkoutRoomStatus } from '@gym-companion/shared';
 
-import { ButtonLink } from '@/components/ui/button';
+import { EmptyState } from '@/components/common/EmptyState';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { Button, ButtonLink } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { getApiErrorMessage } from '@/lib/api/client';
 
-import { sharedWorkoutRoomsListQueryOptions } from '../api/shared-workout-query-options';
+import {
+  sharedWorkoutReceivedInvitationsQueryOptions,
+  sharedWorkoutRoomsListQueryOptions,
+} from '../api/shared-workout-query-options';
+import {
+  useAcceptInvitationMutation,
+  useDeclineInvitationMutation,
+} from '../hooks/use-shared-workout-mutations';
 import { getSharedWorkoutRoomStatusLabel } from '../lib/shared-workout-labels';
 
 const FILTERS: Array<{ value: '' | SharedWorkoutRoomStatus; label: string }> = [
@@ -20,9 +30,11 @@ const FILTERS: Array<{ value: '' | SharedWorkoutRoomStatus; label: string }> = [
 ];
 
 export function SharedWorkoutsPage() {
+  const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<'' | SharedWorkoutRoomStatus>(
     '',
   );
+  const [inviteError, setInviteError] = useState<string | null>(null);
   const filters = useMemo(
     () => ({
       status: statusFilter || undefined,
@@ -31,6 +43,11 @@ export function SharedWorkoutsPage() {
     [statusFilter],
   );
   const query = useQuery(sharedWorkoutRoomsListQueryOptions(filters));
+  const invitationsQuery = useQuery(
+    sharedWorkoutReceivedInvitationsQueryOptions({ status: 'PENDING' }),
+  );
+  const acceptMutation = useAcceptInvitationMutation();
+  const declineMutation = useDeclineInvitationMutation();
   const offline = typeof navigator !== 'undefined' && !navigator.onLine;
 
   const sorted = useMemo(() => {
@@ -48,112 +65,234 @@ export function SharedWorkoutsPage() {
     });
   }, [query.data?.data]);
 
+  const invitations = invitationsQuery.data?.data ?? [];
+  const isEmpty =
+    !query.isLoading && !query.isError && sorted.length === 0;
+  const showHeaderCreate = !isEmpty || invitations.length > 0;
+
+  async function handleAccept(invitationId: string, roomId: string) {
+    if (offline) {
+      setInviteError(
+        'Une connexion est nécessaire pour gérer les invitations.',
+      );
+      return;
+    }
+    setInviteError(null);
+    try {
+      await acceptMutation.mutateAsync(invitationId);
+      void navigate(`/shared-workouts/${roomId}`);
+    } catch (err) {
+      setInviteError(
+        getApiErrorMessage(err, 'Impossible d’accepter l’invitation.'),
+      );
+    }
+  }
+
+  async function handleDecline(invitationId: string) {
+    if (offline) {
+      setInviteError(
+        'Une connexion est nécessaire pour gérer les invitations.',
+      );
+      return;
+    }
+    setInviteError(null);
+    try {
+      await declineMutation.mutateAsync(invitationId);
+    } catch (err) {
+      setInviteError(
+        getApiErrorMessage(err, 'Impossible de refuser l’invitation.'),
+      );
+    }
+  }
+
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Séances partagées</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Prépare une salle privée pour t’entraîner à plusieurs.
-          </p>
-          <ButtonLink
-            to="/shared-workouts/invitations"
-            variant="ghost"
-            className="mt-2 px-0"
-          >
-            Invitations reçues
-          </ButtonLink>
-        </div>
-        <ButtonLink
-          to="/shared-workouts/new"
-          className="gap-2"
-          aria-disabled={offline || undefined}
-          onClick={(event) => {
-            if (offline) event.preventDefault();
-          }}
-        >
-          <Plus className="size-4" aria-hidden="true" />
-          Créer une salle
-        </ButtonLink>
-      </div>
+    <main className="flex w-full flex-1 flex-col gap-5">
+      <PageHeader
+        title="Séances partagées"
+        description="Entraîne-toi avec tes amis."
+        className="mb-0"
+        actions={
+          showHeaderCreate ? (
+            <ButtonLink
+              to="/shared-workouts/new"
+              className="gap-2"
+              aria-disabled={offline || undefined}
+              onClick={(event) => {
+                if (offline) event.preventDefault();
+              }}
+            >
+              <Plus className="size-4" aria-hidden="true" />
+              Créer une salle
+            </ButtonLink>
+          ) : undefined
+        }
+      />
 
       {offline ? (
         <p
           role="status"
-          className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-3 text-sm"
+          className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--muted)]"
         >
           Une connexion est nécessaire pour gérer les invitations et les
           membres.
         </p>
       ) : null}
 
+      {inviteError ? (
+        <p role="alert" className="text-sm text-[var(--danger)]">
+          {inviteError}
+        </p>
+      ) : null}
+
+      {invitations.length > 0 ? (
+        <section aria-labelledby="shared-invitations-heading">
+          <h2
+            id="shared-invitations-heading"
+            className="mb-2 text-xs font-semibold tracking-[0.12em] text-[var(--muted)] uppercase"
+          >
+            Invitations
+          </h2>
+          <ul className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
+            {invitations.map((invitation) => (
+              <li
+                key={invitation.id}
+                className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-[var(--foreground)]">
+                    {invitation.room.name}
+                  </p>
+                  <p className="text-sm text-[var(--muted)]">
+                    {invitation.inviter.displayName ?? 'Quelqu’un'} t’invite
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    disabled={
+                      offline ||
+                      acceptMutation.isPending ||
+                      declineMutation.isPending
+                    }
+                    onClick={() =>
+                      void handleAccept(invitation.id, invitation.room.id)
+                    }
+                  >
+                    Rejoindre
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={
+                      offline ||
+                      acceptMutation.isPending ||
+                      declineMutation.isPending
+                    }
+                    onClick={() => void handleDecline(invitation.id)}
+                  >
+                    Refuser
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <div
         role="group"
         aria-label="Filtrer par statut"
-        className="flex flex-wrap gap-2"
+        className="flex gap-1.5 overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {FILTERS.map((filter) => (
-          <button
-            key={filter.value || 'all'}
-            type="button"
-            onClick={() => setStatusFilter(filter.value)}
-            className={
-              statusFilter === filter.value
-                ? 'rounded-full border border-[var(--primary)] px-3 py-1 text-xs font-medium text-[var(--primary)]'
-                : 'rounded-full border border-[var(--border)] px-3 py-1 text-xs text-[var(--muted)]'
-            }
-          >
-            {filter.label}
-          </button>
-        ))}
+        {FILTERS.map((filter) => {
+          const selected = statusFilter === filter.value;
+          return (
+            <button
+              key={filter.value || 'all'}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => setStatusFilter(filter.value)}
+              className={cn(
+                'inline-flex min-h-11 shrink-0 items-center rounded-[var(--radius-control)] px-3 text-sm font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]',
+                selected
+                  ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
+                  : 'bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--foreground)]',
+              )}
+            >
+              {filter.label}
+            </button>
+          );
+        })}
       </div>
 
       {query.isLoading ? (
-        <p className="text-sm text-[var(--muted)]">Chargement des salles…</p>
+        <ul className="flex flex-col gap-2" aria-busy="true" aria-label="Chargement">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <li
+              key={index}
+              className="h-14 animate-pulse rounded-[var(--radius-control)] bg-[var(--border)]/60"
+            />
+          ))}
+        </ul>
       ) : null}
 
       {query.isError ? (
-        <p role="alert" className="text-sm text-[var(--destructive)]">
+        <p role="alert" className="text-sm text-[var(--danger)]">
           {getApiErrorMessage(query.error, 'Impossible de charger les salles.')}
         </p>
       ) : null}
 
-      {!query.isLoading && !query.isError && sorted.length === 0 ? (
-        <section className="flex flex-col items-start gap-3 rounded-[var(--radius)] border border-dashed border-[var(--border)] p-6">
-          <Users className="size-8 text-[var(--muted)]" aria-hidden="true" />
-          <h2 className="text-lg font-semibold">Aucune séance partagée</h2>
-          <p className="text-sm text-[var(--muted)]">
-            Crée une salle pour préparer une séance à plusieurs.
-          </p>
-          <ButtonLink to="/shared-workouts/new">Créer une salle</ButtonLink>
-        </section>
+      {isEmpty ? (
+        <EmptyState
+          title="Aucune séance partagée"
+          description="Crée une salle pour t’entraîner avec d’autres personnes."
+          action={
+            offline
+              ? undefined
+              : { label: 'Créer une salle', to: '/shared-workouts/new' }
+          }
+        />
       ) : null}
 
-      <ul className="flex flex-col gap-3">
-        {sorted.map((room) => (
-          <li key={room.id}>
-            <Link
-              to={`/shared-workouts/${room.id}`}
-              className="flex flex-col gap-1 rounded-[var(--radius)] border border-[var(--border)] p-4 hover:bg-[var(--card)]"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-semibold">{room.name}</span>
-                <span className="text-xs font-medium text-[var(--muted)]">
-                  {getSharedWorkoutRoomStatusLabel(room.status)}
-                </span>
-              </div>
-              <p className="text-sm text-[var(--muted)]">
-                {room.memberCount} membre{room.memberCount > 1 ? 's' : ''} ·{' '}
-                {room.owner.displayName ?? 'Propriétaire'}
-              </p>
-              <p className="text-xs text-[var(--muted)]">
-                Mise à jour{' '}
-                {new Date(room.updatedAt).toLocaleString('fr-FR')}
-              </p>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      {!isEmpty && sorted.length > 0 ? (
+        <section aria-labelledby="shared-rooms-heading">
+          <h2
+            id="shared-rooms-heading"
+            className="mb-2 text-xs font-semibold tracking-[0.12em] text-[var(--muted)] uppercase"
+          >
+            Mes salles
+          </h2>
+          <ul className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
+            {sorted.map((room) => (
+              <li key={room.id}>
+                <Link
+                  to={`/shared-workouts/${room.id}`}
+                  className="flex min-h-14 items-center justify-between gap-3 py-2.5 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+                  aria-label={`${room.name}, ${getSharedWorkoutRoomStatusLabel(room.status)}, ${room.memberCount} participant${room.memberCount > 1 ? 's' : ''}`}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-[var(--foreground)]">
+                      {room.name}
+                    </p>
+                    <p className="mt-0.5 text-sm text-[var(--muted)]">
+                      <span className="font-medium uppercase tracking-wide text-[0.6875rem]">
+                        {getSharedWorkoutRoomStatusLabel(room.status)}
+                      </span>
+                      {' · '}
+                      {room.memberCount} participant
+                      {room.memberCount > 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <ChevronRight
+                    className="size-4 shrink-0 text-[var(--muted)]"
+                    aria-hidden="true"
+                  />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </main>
   );
 }

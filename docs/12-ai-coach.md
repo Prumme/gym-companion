@@ -21,6 +21,10 @@ Il précise :
 
 Le coach IA est un module facultatif.
 
+**UX (UX-8)** : l’interface sépare clairement le Coach déterministe (recommandations /
+plateau / résumé) de l’explication et du chat IA. L’IA n’est jamais présentée comme
+la source d’une recommandation de charge. Voir `docs/07-ui-ux-guidelines.md` §28.
+
 Son indisponibilité ne doit jamais bloquer :
 
 - l’authentification ;

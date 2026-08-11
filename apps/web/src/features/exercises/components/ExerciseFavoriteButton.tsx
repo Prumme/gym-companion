@@ -25,10 +25,10 @@ export function ExerciseFavoriteButton({
     <button
       type="button"
       className={cn(
-        'inline-flex size-11 shrink-0 items-center justify-center rounded-full transition',
+        'inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-control)] transition',
         isFavorite
-          ? 'text-amber-600 hover:bg-amber-50'
-          : 'text-[var(--muted)] hover:bg-slate-100 hover:text-amber-600',
+          ? 'text-[var(--foreground)]'
+          : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]',
         (disabled || pending) && 'opacity-50',
         className,
       )}

@@ -67,6 +67,8 @@ function renderPage(entry = '/progress') {
       <MemoryRouter initialEntries={[entry]}>
         <Routes>
           <Route path="/progress" element={<ProgressOverviewPage />} />
+          <Route path="/progress/overview" element={<ProgressOverviewPage />} />
+          <Route path="/records" element={<div>Records</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -84,9 +86,10 @@ describe('ProgressOverviewPage', () => {
     getProgressOverview.mockResolvedValue(emptyOverview());
     renderPage();
     expect(
-      await screen.findByText(
-        'Pas encore assez de données pour afficher ta progression globale.',
-      ),
+      await screen.findByRole('heading', { name: 'Pas encore assez de données' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Voir mes programmes' }),
     ).toBeInTheDocument();
   });
 
@@ -153,6 +156,7 @@ describe('ProgressOverviewPage', () => {
       }),
     );
     renderPage();
+    expect(await screen.findByRole('heading', { name: 'Progression' })).toBeInTheDocument();
     expect(
       await screen.findByText(/3 séances sur 2 jours actifs/),
     ).toBeInTheDocument();
@@ -161,11 +165,11 @@ describe('ProgressOverviewPage', () => {
       screen.getByLabelText('Graphique de progression globale'),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: 'Voir la progression' }),
+      screen.getByRole('link', { name: /Développé couché/i }),
     ).toHaveAttribute('href', '/progress/exercises/ex-1');
-    expect(screen.getAllByText('Volume de travail').length).toBeGreaterThan(0);
+    expect(screen.getByText('Volume')).toBeInTheDocument();
 
-    await user.selectOptions(screen.getByLabelText('Période'), '30d');
+    await user.click(screen.getByRole('button', { name: '1 mois' }));
     expect(getProgressOverview).toHaveBeenCalledWith(
       expect.objectContaining({
         from: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
@@ -200,15 +204,21 @@ describe('ProgressOverviewPage', () => {
     renderPage('/progress?from=2026-05-10&to=2026-08-10');
     await screen.findByRole('heading', { name: 'Progression' });
 
-    await user.selectOptions(screen.getByLabelText('Période'), 'all');
+    await user.click(screen.getByRole('button', { name: 'Tout' }));
     expect(getProgressOverview).toHaveBeenCalledWith(
       expect.objectContaining({ from: undefined, to: undefined }),
     );
-    expect(screen.getByLabelText('Période')).toHaveValue('all');
+    expect(screen.getByRole('button', { name: 'Tout' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
 
     renderPage('/progress?period=all');
     await screen.findByRole('heading', { name: 'Progression' });
-    expect(screen.getByLabelText('Période')).toHaveValue('all');
+    expect(screen.getByRole('button', { name: 'Tout' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(getProgressOverview).toHaveBeenCalledWith(
       expect.objectContaining({ from: undefined, to: undefined }),
     );

@@ -25,7 +25,7 @@ type Props = {
 };
 
 /**
- * Shared 5.6 — section Équipements + actions sur mon équipement courant.
+ * Coordination matériel — labels humains (pas de jargon FIFO/SQL).
  */
 export function SharedWorkoutEquipmentSection({
   roomId,
@@ -103,145 +103,163 @@ export function SharedWorkoutEquipmentSection({
   const equipmentList = coordinationQuery.data?.equipment ?? [];
 
   return (
-    <section
-      aria-labelledby="equipment-heading"
-      className="rounded-[var(--radius)] border border-[var(--border)] p-4"
-    >
-      <h2 id="equipment-heading" className="text-lg font-semibold">
-        Équipements
+    <section aria-labelledby="equipment-heading" className="flex flex-col gap-3">
+      <h2
+        id="equipment-heading"
+        className="text-xs font-semibold tracking-[0.12em] text-[var(--muted)] uppercase"
+      >
+        Matériel
       </h2>
-      <p className="mt-1 text-xs text-[var(--muted)]">
-        Coordination logique (type d’équipement), pas un inventaire physique de
-        la salle.
-      </p>
 
       {offline ? (
-        <p className="mt-3 text-sm text-[var(--muted)]" role="status">
+        <p className="text-sm text-[var(--muted)]" role="status">
           Coordination indisponible hors connexion.
         </p>
       ) : null}
 
       {promotedNotice ? (
-        <p className="mt-3 text-sm text-[var(--foreground)]" role="status">
+        <p className="text-sm text-[var(--foreground)]" role="status">
           L’équipement est maintenant disponible pour toi.
         </p>
       ) : null}
 
       {localError ? (
-        <p className="mt-2 text-sm text-[var(--danger)]" role="alert">
+        <p className="text-sm text-[var(--danger)]" role="alert">
           {localError}
         </p>
       ) : null}
 
-      {my && my.state !== 'NONE' && my.equipment ? (
-        <div className="mt-3 rounded-[var(--radius)] border border-[var(--border)]/70 p-3 text-sm">
-          <p>
-            Équipement :{' '}
-            <span className="font-medium text-[var(--foreground)]">
-              {my.equipment.name}
-            </span>
+      {my && my.state === 'USING' && my.equipment ? (
+        <div className="flex flex-col gap-2 border-b border-[var(--border)] py-3">
+          <p className="text-sm font-semibold uppercase tracking-wide">
+            {my.equipment.name}
           </p>
-          {my.state === 'USING' ? (
+          <p className="text-sm text-[var(--muted)]">
+            Tu l’utilises actuellement
+          </p>
+          <Button
+            type="button"
+            className="w-fit"
+            disabled={offline || busy}
+            onClick={() => void onRelease()}
+          >
+            Libérer
+          </Button>
+        </div>
+      ) : null}
+
+      {my && my.state === 'WAITING' && my.equipment ? (
+        <div className="flex flex-col gap-2 border-b border-[var(--border)] py-3">
+          <p className="text-sm font-semibold uppercase tracking-wide">
+            {my.equipment.name}
+          </p>
+          {my.occupiedBy ? (
+            <p className="text-sm text-[var(--muted)]">
+              Utilisée par {my.occupiedBy.displayName ?? 'un membre'}
+            </p>
+          ) : null}
+          {my.queuePosition != null ? (
+            <p className="text-sm text-[var(--foreground)]">
+              Ta position : {my.queuePosition}
+            </p>
+          ) : (
+            <p className="text-sm text-[var(--muted)]">En attente</p>
+          )}
+          <Button
+            type="button"
+            variant="secondary"
+            className="w-fit"
+            disabled={offline || busy}
+            onClick={() => void onCancel()}
+          >
+            Quitter la file
+          </Button>
+        </div>
+      ) : null}
+
+      {my && my.state === 'AVAILABLE' && my.equipment ? (
+        <div className="flex flex-col gap-2 border-b border-[var(--border)] py-3">
+          <p className="text-sm font-semibold uppercase tracking-wide">
+            {my.equipment.name}
+          </p>
+          {!my.occupiedBy ? (
             <>
-              <p className="mt-1 text-[var(--muted)]">
-                Tu utilises cet équipement
-              </p>
+              <p className="text-sm text-[var(--muted)]">Disponible</p>
               <Button
                 type="button"
-                className="mt-2"
+                className="w-fit"
                 disabled={offline || busy}
-                onClick={() => void onRelease()}
+                onClick={() => void onRequest()}
               >
-                Libérer l’équipement
+                Utiliser
               </Button>
             </>
-          ) : null}
-          {my.state === 'WAITING' ? (
+          ) : (
             <>
-              <p className="mt-1 text-[var(--muted)]">
-                En attente
-                {my.queuePosition != null
-                  ? ` · position ${my.queuePosition}`
-                  : ''}
-                {my.occupiedBy
-                  ? ` · utilisé par ${my.occupiedBy.displayName ?? 'un membre'}`
-                  : ''}
+              <p className="text-sm text-[var(--muted)]">
+                Utilisée par {my.occupiedBy.displayName ?? 'un membre'}
               </p>
               <Button
                 type="button"
                 variant="secondary"
-                className="mt-2"
-                disabled={offline || busy}
-                onClick={() => void onCancel()}
-              >
-                Quitter la file
-              </Button>
-            </>
-          ) : null}
-          {my.state === 'AVAILABLE' && !my.occupiedBy ? (
-            <Button
-              type="button"
-              className="mt-2"
-              disabled={offline || busy}
-              onClick={() => void onRequest()}
-            >
-              Utiliser cet équipement
-            </Button>
-          ) : null}
-          {my.state === 'AVAILABLE' && my.occupiedBy ? (
-            <>
-              <p className="mt-1 text-[var(--muted)]">
-                Utilisé par {my.occupiedBy.displayName ?? 'un membre'}
-              </p>
-              <Button
-                type="button"
-                variant="secondary"
-                className="mt-2"
+                className="w-fit"
                 disabled={offline || busy}
                 onClick={() => void onRequest()}
               >
                 Rejoindre la file
               </Button>
             </>
-          ) : null}
+          )}
         </div>
-      ) : (
-        <p className="mt-3 text-sm text-[var(--muted)]">
+      ) : null}
+
+      {(!my || my.state === 'NONE') && !coordinationQuery.isLoading ? (
+        <p className="text-sm text-[var(--muted)]">
           Sélectionne un exercice avec équipement dans ta séance pour
           coordonner.
         </p>
-      )}
+      ) : null}
 
-      <div className="mt-4 flex flex-col gap-3">
-        {equipmentList.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">
-            Aucun équipement partagé utilisé pour le moment.
-          </p>
-        ) : (
-          equipmentList.map((item) => (
-            <article
-              key={item.equipment.id}
-              className="rounded-[var(--radius)] border border-[var(--border)]/60 p-3 text-sm"
-            >
-              <h3 className="font-medium">{item.equipment.name}</h3>
-              <p className="mt-1 text-[var(--muted)]">
-                {item.using
-                  ? `Utilisée par ${item.using.displayName ?? 'un membre'}`
-                  : 'Libre'}
-              </p>
-              {item.waiting.length > 0 ? (
-                <ol className="mt-2 list-decimal space-y-0.5 pl-5 text-[var(--muted)]">
-                  {item.waiting.map((waiter) => (
-                    <li key={`${waiter.userId}-${waiter.position}`}>
-                      {waiter.displayName ?? 'Participant'}
-                    </li>
-                  ))}
-                </ol>
-              ) : null}
-            </article>
-          ))
-        )}
-      </div>
+      {coordinationQuery.isLoading ? (
+        <div className="h-16 animate-pulse rounded-[var(--radius-control)] bg-[var(--border)]/60" />
+      ) : null}
+
+      {equipmentList.length > 0 ? (
+        <ul className="flex flex-col divide-y divide-[var(--border)] border-y border-[var(--border)]">
+          {equipmentList.map((item) => {
+            const isMyEquipment =
+              my?.equipment?.id === item.equipment.id &&
+              (my.state === 'USING' || my.state === 'WAITING');
+            if (isMyEquipment) return null;
+            return (
+              <li key={item.equipment.id} className="py-3 text-sm">
+                <p className="font-semibold uppercase tracking-wide">
+                  {item.equipment.name}
+                </p>
+                <p className="mt-1 text-[var(--muted)]">
+                  {item.using
+                    ? `Utilisée par ${item.using.displayName ?? 'un membre'}`
+                    : 'Disponible'}
+                </p>
+                {item.waiting.length > 0 ? (
+                  <div className="mt-2">
+                    <p className="text-xs font-medium tracking-wide text-[var(--muted)] uppercase">
+                      File d’attente
+                    </p>
+                    <ol className="mt-1 list-decimal space-y-0.5 pl-5 text-[var(--muted)]">
+                      {item.waiting.map((waiter) => (
+                        <li key={`${waiter.userId}-${waiter.position}`}>
+                          {waiter.displayName ?? 'Participant'}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
     </section>
   );
 }

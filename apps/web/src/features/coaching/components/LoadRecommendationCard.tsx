@@ -32,6 +32,8 @@ type LoadRecommendationCardProps = {
   exerciseId: string;
   measurementType: ExerciseMeasurementType;
   workingSetCount: number;
+  /** Compact line for Program Builder (UX-3). */
+  variant?: 'default' | 'compact';
 };
 
 function getErrorCode(error: unknown): string | null {
@@ -48,6 +50,7 @@ export function LoadRecommendationCard({
   exerciseId,
   measurementType,
   workingSetCount,
+  variant = 'default',
 }: LoadRecommendationCardProps) {
   const queryClient = useQueryClient();
   const [detailOpen, setDetailOpen] = useState(false);
@@ -144,7 +147,7 @@ export function LoadRecommendationCard({
       if (code === 'LOAD_RECOMMENDATION_STALE') {
         setDialogMode(null);
         setStaleNotice(
-          'La recommandation a changé car de nouvelles données sont disponibles. La nouvelle proposition a été chargée.',
+          'Cette recommandation a changé depuis son affichage.',
         );
         await query.refetch();
         return;
@@ -156,6 +159,9 @@ export function LoadRecommendationCard({
   }
 
   if (!enabled) {
+    if (variant === 'compact') {
+      return null;
+    }
     return (
       <p className="mt-3 text-xs text-[var(--muted)]">
         Aucune recommandation de charge pour ce type d’exercice.
@@ -164,6 +170,13 @@ export function LoadRecommendationCard({
   }
 
   if (query.isLoading) {
+    if (variant === 'compact') {
+      return (
+        <p className="mt-1 text-xs text-[var(--muted)]" aria-busy="true">
+          Suggestion…
+        </p>
+      );
+    }
     return (
       <div
         className="mt-3 rounded-[var(--radius)] border border-dashed border-[var(--border)] p-3"
@@ -179,6 +192,13 @@ export function LoadRecommendationCard({
   }
 
   if (query.isError) {
+    if (variant === 'compact') {
+      return (
+        <p className="mt-1 text-xs text-[var(--danger)]" role="alert">
+          Suggestion indisponible
+        </p>
+      );
+    }
     return (
       <div
         className="mt-3 rounded-[var(--radius)] border border-[var(--border)] p-3"
@@ -199,6 +219,9 @@ export function LoadRecommendationCard({
 
   const data = query.data;
   if (!data || !data.supported) {
+    if (variant === 'compact') {
+      return null;
+    }
     return (
       <p className="mt-3 text-xs text-[var(--muted)]">
         Aucune recommandation de charge pour ce type d’exercice.
@@ -213,6 +236,79 @@ export function LoadRecommendationCard({
   const evidence = formatEvidenceSummary(data);
   const actionable = isLoadRecommendationActionable(data.action);
   const decisions = decisionsQuery.data?.data ?? [];
+  const compactValue =
+    data.recommendation.suggestedWeightKg != null
+      ? formatLoadWeightKg(data.recommendation.suggestedWeightKg)
+      : getLoadRecommendationActionLabel(data.action);
+
+  if (variant === 'compact') {
+    return (
+      <>
+        <div className="mt-1.5 flex items-center justify-between gap-2 text-xs">
+          <p className="min-w-0 truncate text-[var(--muted)]">
+            Suggestion
+            <span className="ml-1.5 font-medium text-[var(--foreground)] tabular-nums">
+              {compactValue}
+            </span>
+          </p>
+          <button
+            type="button"
+            className="shrink-0 font-medium text-[var(--muted)] underline-offset-2 hover:text-[var(--foreground)] hover:underline"
+            onClick={() => setDetailOpen(true)}
+          >
+            Voir
+          </button>
+        </div>
+        {statusMessage ? (
+          <p className="mt-1 text-xs text-[var(--foreground)]" role="status">
+            {statusMessage}
+          </p>
+        ) : null}
+        {staleNotice ? (
+          <div className="mt-1 flex flex-wrap items-center gap-2" role="status">
+            <p className="text-xs text-[var(--muted-foreground)]">{staleNotice}</p>
+            <button
+              type="button"
+              className="min-h-8 text-xs font-medium underline-offset-2 hover:underline"
+              onClick={() => {
+                setStaleNotice(null);
+                void query.refetch();
+              }}
+            >
+              Actualiser
+            </button>
+          </div>
+        ) : null}
+
+        <LoadRecommendationDetailDialog
+          open={detailOpen}
+          recommendation={data}
+          onClose={() => setDetailOpen(false)}
+        />
+
+        <LoadRecommendationDecisionDialogs
+          recommendation={data}
+          workingSetCount={workingSetCount}
+          pending={decideMutation.isPending}
+          error={dialogError}
+          mode={dialogMode}
+          onClose={() => {
+            if (!decideMutation.isPending) {
+              setDialogMode(null);
+              setDialogError(null);
+            }
+          }}
+          onAccept={(userNote) =>
+            void submitDecision('ACCEPTED', { userNote })
+          }
+          onAdjust={(adjustedWeightKg, userNote) =>
+            void submitDecision('ADJUSTED', { adjustedWeightKg, userNote })
+          }
+          onIgnore={(userNote) => void submitDecision('IGNORED', { userNote })}
+        />
+      </>
+    );
+  }
 
   return (
     <>
@@ -242,9 +338,19 @@ export function LoadRecommendationCard({
         ) : null}
 
         {staleNotice ? (
-          <p className="mt-2 text-sm text-amber-800" role="status">
-            {staleNotice}
-          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2" role="status">
+            <p className="text-sm text-[var(--muted-foreground)]">{staleNotice}</p>
+            <button
+              type="button"
+              className="min-h-11 text-sm font-medium underline-offset-2 hover:underline"
+              onClick={() => {
+                setStaleNotice(null);
+                void query.refetch();
+              }}
+            >
+              Actualiser
+            </button>
+          </div>
         ) : null}
         {statusMessage ? (
           <p className="mt-2 text-sm text-[var(--foreground)]" role="status">

@@ -1,7 +1,7 @@
-import { ArrowLeft } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { getApiErrorMessage } from '@/lib/api/client';
 
@@ -36,26 +36,18 @@ export function CreateSharedWorkoutRoomPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6">
-      <div>
-        <ButtonLink
-          to="/shared-workouts"
-          variant="ghost"
-          className="mb-3 w-fit gap-2 px-0"
-        >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Retour
-        </ButtonLink>
-        <h1 className="text-2xl font-bold tracking-tight">Créer une salle</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Tu seras le propriétaire. Les invitations arriveront dans un prochain
-          jalon.
-        </p>
-      </div>
+    <main className="flex w-full flex-1 flex-col gap-6">
+      <PageHeader
+        title="Créer une salle"
+        description="Tu seras le propriétaire de la salle."
+        backTo="/shared-workouts"
+        backLabel="Partagées"
+        className="mb-0"
+      />
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Nom de la salle</span>
+      <form onSubmit={handleSubmit} className="flex max-w-md flex-col gap-4">
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className="font-medium">Nom</span>
           <input
             id="shared-workout-room-name"
             aria-label="Nom de la salle"
@@ -63,12 +55,12 @@ export function CreateSharedWorkoutRoomPage() {
             onChange={(event) => setName(event.target.value)}
             maxLength={80}
             placeholder="Séance partagée"
-            className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-transparent px-3"
+            className="min-h-11 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--background)] px-3 outline-none focus:border-[var(--foreground)]"
           />
         </label>
 
         {submitError ? (
-          <p role="alert" className="text-sm text-[var(--destructive)]">
+          <p role="alert" className="text-sm text-[var(--danger)]">
             {submitError}
           </p>
         ) : null}
@@ -77,7 +69,7 @@ export function CreateSharedWorkoutRoomPage() {
           <Button type="submit" disabled={createMutation.isPending || offline}>
             Créer la salle
           </Button>
-          <ButtonLink to="/shared-workouts" variant="ghost">
+          <ButtonLink to="/shared-workouts" variant="secondary">
             Annuler
           </ButtonLink>
         </div>

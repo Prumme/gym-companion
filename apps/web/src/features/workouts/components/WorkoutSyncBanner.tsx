@@ -10,6 +10,7 @@ type WorkoutSyncBannerProps = {
   fromLocalSnapshot?: boolean;
   onSyncNow?: () => void;
   syncDisabled?: boolean;
+  compact?: boolean;
 };
 
 export function WorkoutSyncBanner({
@@ -20,6 +21,7 @@ export function WorkoutSyncBanner({
   fromLocalSnapshot = false,
   onSyncNow,
   syncDisabled = false,
+  compact = false,
 }: WorkoutSyncBannerProps) {
   const showSync =
     pendingCount > 0 &&
@@ -27,6 +29,35 @@ export function WorkoutSyncBanner({
     status !== 'SYNCING' &&
     !browserOffline &&
     onSyncNow;
+
+  if (compact) {
+    return (
+      <div
+        className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--muted)]"
+        role="status"
+      >
+        <p>
+          {browserOffline
+            ? 'Hors ligne'
+            : status === 'SYNCING'
+              ? 'Synchronisation…'
+              : label}
+          {fromLocalSnapshot ? ' · Local' : ''}
+          {pendingCount > 0 ? ` · ${pendingCount} en attente` : ''}
+        </p>
+        {showSync ? (
+          <button
+            type="button"
+            className="min-h-9 font-medium text-[var(--foreground)] underline-offset-2 hover:underline disabled:opacity-50"
+            disabled={syncDisabled}
+            onClick={onSyncNow}
+          >
+            Synchroniser
+          </button>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div

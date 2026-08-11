@@ -1,17 +1,25 @@
+import type { Weekday } from '@gym-companion/shared';
 import { useQuery } from '@tanstack/react-query';
-import { CalendarDays } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
-import { Button, ButtonLink } from '@/components/ui/button';
+import { EmptyState } from '@/components/common/EmptyState';
 import { LoadingState } from '@/components/common/LoadingState';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { Button, ButtonLink } from '@/components/ui/button';
 import { getApiErrorMessage } from '@/lib/api/client';
 
 import { activeProgramQueryOptions } from '../api/program-query-options';
-import { useDeactivateProgramMutation } from '../hooks/use-program-mutations';
 import { DeactivateProgramDialog } from '../components/ProgramActivationDialog';
-import { WeeklyScheduleDisplay } from '../components/WeeklyScheduleDisplay';
-import { formatStartedOn } from '../lib/format';
-import { countScheduledSessions } from '../lib/schedule-utils';
+import { PlanningTodayCard } from '../components/PlanningTodayCard';
+import { PlanningWeekList } from '../components/PlanningWeekList';
+import { ScheduleDaySheet } from '../components/ScheduleDaySheet';
+import { useDeactivateProgramMutation } from '../hooks/use-program-mutations';
+import {
+  countScheduledSessions,
+  scheduleEntryToDraft,
+} from '../lib/schedule-utils';
+import { getTodayWeekday } from '../lib/weekdays';
 
 export function PlanningPage() {
   const activeQuery = useQuery(activeProgramQueryOptions());
@@ -19,6 +27,7 @@ export function PlanningPage() {
   const [deactivateOpen, setDeactivateOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [editWeekday, setEditWeekday] = useState<Weekday | null>(null);
 
   if (activeQuery.isLoading) {
     return <LoadingState label="Chargement du planning…" />;
@@ -26,8 +35,8 @@ export function PlanningPage() {
 
   if (activeQuery.isError) {
     return (
-      <main className="flex flex-1 flex-col gap-4">
-        <h1 className="text-2xl font-bold tracking-tight">Planning</h1>
+      <main className="flex flex-1 flex-col">
+        <PageHeader title="Planning" description="Ta semaine d’entraînement" />
         <div
           className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4"
           role="alert"
@@ -55,55 +64,36 @@ export function PlanningPage() {
 
   if (!active) {
     return (
-      <main className="flex flex-1 flex-col gap-5">
-        <header>
-          <h1 className="text-2xl font-bold tracking-tight">Planning</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Ta semaine d’entraînement basée sur ton programme courant.
-          </p>
-        </header>
-
+      <main className="flex flex-1 flex-col">
+        <PageHeader title="Planning" description="Ta semaine d’entraînement" />
         {status ? (
           <p
-            className="rounded-[var(--radius)] border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950"
+            className="mb-[var(--space-4)] rounded-[var(--radius)] border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950"
             role="status"
           >
             {status}
           </p>
         ) : null}
-
-        <div
-          className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-6 text-center"
-          role="status"
-        >
-          <CalendarDays
-            className="mx-auto mb-3 size-10 text-[var(--muted)]"
-            aria-hidden="true"
-          />
-          <p className="text-sm text-[var(--muted)]">Aucun programme courant.</p>
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
-            <ButtonLink to="/programs" variant="secondary">
-              Voir mes programmes
-            </ButtonLink>
-            <ButtonLink to="/programs/new">Créer un programme</ButtonLink>
-          </div>
-        </div>
+        <EmptyState
+          title="Aucun programme actif"
+          description="Active un programme pour construire ton planning."
+          action={{ label: 'Voir mes programmes', to: '/programs' }}
+          secondaryAction={{ label: 'Créer un programme', to: '/programs/new' }}
+        />
       </main>
     );
   }
 
-  const sessionCount = countScheduledSessions(
-    active.schedule.entries.map((entry) => ({
-      clientId: entry.id,
-      workoutTemplateId: entry.workoutTemplate.id,
-      weekday: entry.weekday,
-      position: entry.position,
-      workoutTemplate: entry.workoutTemplate,
-    })),
-  );
+  const draftEntries = active.schedule.entries.map(scheduleEntryToDraft);
+  const sessionCount = countScheduledSessions(draftEntries);
   const programId = active.program.id;
   const canEditSchedule = active.program.permissions.canEditSchedule;
   const canDeactivate = active.program.permissions.canDeactivate;
+  const todayWeekday = getTodayWeekday();
+  const todayEntries = active.schedule.entries
+    .filter((entry) => entry.weekday === todayWeekday)
+    .sort((a, b) => a.position - b.position);
+  const scheduleEmpty = active.schedule.entries.length === 0;
 
   async function handleDeactivate() {
     setError(null);
@@ -119,94 +109,110 @@ export function PlanningPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col gap-6">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight">Planning</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Programme courant et semaine type.
-        </p>
-      </header>
+    <main className="flex flex-1 flex-col">
+      <PageHeader title="Planning" description="Ta semaine d’entraînement" />
 
       {status ? (
         <p
-          className="rounded-[var(--radius)] border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950"
+          className="mb-[var(--space-4)] rounded-[var(--radius)] border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950"
           role="status"
         >
           {status}
         </p>
       ) : null}
 
-      <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold tracking-wide text-[var(--muted)] uppercase">
-              Programme courant
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="truncate text-base font-semibold text-[var(--foreground)]">
+              {active.program.name}
             </p>
-            <h2 className="mt-1 text-xl font-semibold">{active.program.name}</h2>
-            <p className="mt-2 text-sm text-[var(--muted)]">
-              Depuis le {formatStartedOn(active.startedOn)}
-            </p>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              {sessionCount} séance{sessionCount === 1 ? '' : 's'} planifiée
-              {sessionCount === 1 ? '' : 's'} par semaine
-            </p>
+            <span className="shrink-0 text-[0.6875rem] font-semibold tracking-[0.12em] text-[var(--muted)] uppercase">
+              Actif
+            </span>
           </div>
-          <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-900">
-            Actif
-          </span>
+          <p className="mt-0.5 text-sm text-[var(--muted)]">
+            {sessionCount} séance{sessionCount === 1 ? '' : 's'} / semaine
+          </p>
         </div>
+        <Link
+          to={`/programs/${active.program.id}`}
+          className="inline-flex min-h-11 shrink-0 items-center text-sm font-medium text-[var(--foreground)] underline-offset-2 hover:underline outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+        >
+          Voir →
+        </Link>
+      </div>
 
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-          <ButtonLink
-            to={`/programs/${active.program.id}`}
-            variant="secondary"
-            className="w-full sm:w-auto"
-          >
-            Voir le programme
-          </ButtonLink>
-          {canEditSchedule ? (
-            <ButtonLink
-              to={`/programs/${active.program.id}/schedule`}
-              className="w-full sm:w-auto"
-            >
-              Modifier le planning
-            </ButtonLink>
-          ) : null}
-          {canDeactivate ? (
-            <>
+      {scheduleEmpty ? (
+        <EmptyState
+          title="Planning non configuré"
+          description="Organise ta semaine pour savoir quelle séance effectuer chaque jour."
+          action={
+            canEditSchedule
+              ? {
+                  label: 'Configurer ma semaine',
+                  to: `/programs/${programId}/schedule`,
+                }
+              : undefined
+          }
+        />
+      ) : (
+        <div className="flex flex-col gap-6">
+          <PlanningTodayCard weekday={todayWeekday} entries={todayEntries} />
+
+          <PlanningWeekList
+            entries={active.schedule.entries}
+            todayWeekday={todayWeekday}
+            canEdit={canEditSchedule}
+            onSelectDay={setEditWeekday}
+          />
+
+          <div className="flex flex-wrap items-center gap-3">
+            {canEditSchedule ? (
+              <ButtonLink
+                to={`/programs/${programId}/schedule`}
+                variant="secondary"
+              >
+                Modifier le planning
+              </ButtonLink>
+            ) : null}
+            {canDeactivate ? (
               <Button
                 type="button"
-                variant="destructive"
-                className="w-full sm:w-auto"
+                variant="ghost"
+                className="text-[var(--muted)]"
                 onClick={() => {
                   setError(null);
                   setDeactivateOpen(true);
                 }}
               >
-                Désactiver
+                Désactiver le programme
               </Button>
-              <DeactivateProgramDialog
-                open={deactivateOpen}
-                programName={active.program.name}
-                pending={deactivateMutation.isPending}
-                error={error}
-                onConfirm={() => void handleDeactivate()}
-                onCancel={() => setDeactivateOpen(false)}
-              />
-            </>
-          ) : null}
+            ) : null}
+          </div>
         </div>
-      </section>
+      )}
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold tracking-wide text-[var(--muted)] uppercase">
-          Semaine type
-        </h2>
-        <WeeklyScheduleDisplay
-          entries={active.schedule.entries}
-          showStartActions
+      {canDeactivate ? (
+        <DeactivateProgramDialog
+          open={deactivateOpen}
+          programName={active.program.name}
+          pending={deactivateMutation.isPending}
+          error={error}
+          onConfirm={() => void handleDeactivate()}
+          onCancel={() => setDeactivateOpen(false)}
         />
-      </section>
+      ) : null}
+
+      {canEditSchedule ? (
+        <ScheduleDaySheet
+          open={editWeekday != null}
+          weekday={editWeekday}
+          programId={programId}
+          schedule={active.schedule}
+          onClose={() => setEditWeekday(null)}
+        />
+      ) : null}
     </main>
   );
 }

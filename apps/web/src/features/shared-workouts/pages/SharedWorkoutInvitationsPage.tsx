@@ -104,7 +104,14 @@ export function SharedWorkoutInvitationsPage() {
       ) : null}
 
       {query.isLoading ? (
-        <p className="text-sm text-[var(--muted)]">Chargement…</p>
+        <ul className="flex flex-col gap-2" aria-busy="true" aria-label="Chargement">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <li
+              key={index}
+              className="h-20 animate-pulse rounded-[var(--radius-control)] bg-[var(--border)]/60"
+            />
+          ))}
+        </ul>
       ) : null}
 
       {query.isError ? (

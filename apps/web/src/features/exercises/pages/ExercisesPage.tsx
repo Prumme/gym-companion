@@ -4,6 +4,8 @@ import { Filter, Plus, Search, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
+import { EmptyState } from '@/components/common/EmptyState';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { getApiErrorMessage } from '@/lib/api/client';
 
@@ -13,6 +15,7 @@ import {
   muscleGroupsQueryOptions,
   type ExerciseListFilters,
 } from '../api/exercise-query-options';
+import { ExerciseActiveFilterChips } from '../components/ExerciseActiveFilterChips';
 import { ExerciseFilters } from '../components/ExerciseFilters';
 import { ExerciseList } from '../components/ExerciseList';
 import { ExerciseListSkeleton } from '../components/ExerciseListSkeleton';
@@ -82,10 +85,11 @@ export function ExercisesPage() {
     [listQuery.data],
   );
 
-  const activeFilterCount = countActiveExerciseFilters({
-    ...filters,
-    search: undefined,
-  });
+  const nonSearchFilters = useMemo(
+    () => ({ ...filters, search: undefined }),
+    [filters],
+  );
+  const activeFilterCount = countActiveExerciseFilters(nonSearchFilters);
   const hasAnyFilter = countActiveExerciseFilters(filters) > 0;
   const showCreateInEmptyState =
     !hasAnyFilter || filters.source === 'USER';
@@ -101,6 +105,14 @@ export function ExercisesPage() {
     setFiltersOpen(false);
   }
 
+  function patchFilters(patch: Partial<ExerciseListFilters>) {
+    applyFiltersToUrl({
+      ...filters,
+      ...patch,
+      search: searchInput.trim() || undefined,
+    });
+  }
+
   function applyDesktopFilters(next: ExerciseListFilters) {
     applyFiltersToUrl({
       ...next,
@@ -109,87 +121,104 @@ export function ExercisesPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col gap-5">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Exercices</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Catalogue système et exercices personnels.
-          </p>
-        </div>
-        <ButtonLink
-          to="/exercises/new"
-          className="w-full gap-2 sm:w-auto"
-          aria-label="Créer un exercice"
-        >
-          <Plus className="size-4" aria-hidden="true" />
-          Créer un exercice
-        </ButtonLink>
-      </header>
+    <main className="flex flex-1 flex-col gap-[var(--space-4)]">
+      <PageHeader
+        title="Exercices"
+        description="Catalogue et exercices personnels"
+        className="mb-0"
+        actions={
+          <ButtonLink
+            to="/exercises/new"
+            variant="secondary"
+            className="gap-1.5 px-3"
+            aria-label="Créer un exercice"
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            Créer
+          </ButtonLink>
+        }
+      />
 
-      <div className="flex flex-col gap-3">
-        <label className="relative block" htmlFor="exercise-search">
-          <span className="sr-only">Rechercher un exercice</span>
-          <Search
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[var(--muted)]"
-            aria-hidden="true"
-          />
-          <input
-            id="exercise-search"
-            type="search"
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Rechercher un exercice"
-            className="min-h-11 w-full rounded-[var(--radius)] border border-[var(--border)] bg-white py-2 pr-10 pl-10 outline-none focus:border-[var(--primary)]"
-            autoComplete="off"
-          />
-          {searchInput ? (
-            <button
-              type="button"
-              className="absolute top-1/2 right-2 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-[var(--muted)] hover:bg-slate-100"
-              onClick={() => setSearchInput('')}
-              aria-label="Effacer la recherche"
-            >
-              <X className="size-4" aria-hidden="true" />
-            </button>
-          ) : null}
-        </label>
+      <div className="sticky top-0 z-10 -mx-1 bg-[var(--background)] px-1 pb-3 pt-1">
+        <div className="flex items-center gap-2">
+          <label className="relative block min-w-0 flex-1" htmlFor="exercise-search">
+            <span className="sr-only">Rechercher un exercice</span>
+            <Search
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[var(--muted-foreground)]"
+              aria-hidden="true"
+            />
+            <input
+              id="exercise-search"
+              type="search"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="Rechercher un exercice"
+              className="min-h-12 w-full rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] py-2 pr-10 pl-10 text-sm outline-none focus:border-[var(--primary)]"
+              autoComplete="off"
+            />
+            {searchInput ? (
+              <button
+                type="button"
+                className="absolute top-1/2 right-2 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-[var(--radius-control)] text-[var(--muted-foreground)] hover:bg-[var(--background)]"
+                onClick={() => setSearchInput('')}
+                aria-label="Effacer la recherche"
+              >
+                <X className="size-4" aria-hidden="true" />
+              </button>
+            ) : null}
+          </label>
 
-        <div className="flex items-center gap-2 md:hidden">
           <Button
             type="button"
             variant="secondary"
-            className="flex-1 gap-2"
+            className="relative shrink-0 gap-1.5 px-3 md:hidden"
             onClick={() => setFiltersOpen(true)}
             aria-expanded={filtersOpen}
             aria-controls="exercise-filters-panel"
+            aria-label={
+              activeFilterCount > 0
+                ? `Filtres, ${activeFilterCount} actifs`
+                : 'Filtres'
+            }
           >
             <Filter className="size-4" aria-hidden="true" />
             Filtres
             {activeFilterCount > 0 ? (
-              <span className="rounded-full bg-[var(--primary)] px-2 py-0.5 text-xs text-white">
+              <span className="flex size-5 items-center justify-center rounded-full bg-[var(--primary)] text-[0.625rem] font-semibold text-[var(--primary-foreground)]">
                 {activeFilterCount}
               </span>
             ) : null}
           </Button>
         </div>
-      </div>
 
-      <div className="hidden md:block">
-        <ExerciseFilters
-          value={{ ...filters, search: undefined }}
-          onChange={applyDesktopFilters}
-          muscleGroups={muscleGroupsQuery.data ?? []}
-          equipmentTypes={equipmentTypesQuery.data ?? []}
-          referencesLoading={
-            muscleGroupsQuery.isLoading || equipmentTypesQuery.isLoading
-          }
-        />
+        <div className="mt-3 hidden md:block">
+          <ExerciseFilters
+            value={nonSearchFilters}
+            onChange={applyDesktopFilters}
+            muscleGroups={muscleGroupsQuery.data ?? []}
+            equipmentTypes={equipmentTypesQuery.data ?? []}
+            referencesLoading={
+              muscleGroupsQuery.isLoading || equipmentTypesQuery.isLoading
+            }
+          />
+        </div>
+
+        {activeFilterCount > 0 ? (
+          <div className="mt-3">
+            <ExerciseActiveFilterChips
+              filters={nonSearchFilters}
+              muscleGroups={muscleGroupsQuery.data ?? []}
+              equipmentTypes={equipmentTypesQuery.data ?? []}
+              onClear={patchFilters}
+              onClearAll={resetFilters}
+            />
+          </div>
+        ) : null}
       </div>
 
       {filtersOpen ? (
         <div
-          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          className="fixed inset-0 z-40 bg-[var(--foreground)]/40 md:hidden"
           role="presentation"
           onClick={() => setFiltersOpen(false)}
         >
@@ -198,11 +227,15 @@ export function ExercisesPage() {
             role="dialog"
             aria-modal="true"
             aria-label="Filtres des exercices"
-            className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-[var(--card)] p-4 pb-8 shadow-xl"
+            className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-[var(--radius-surface)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-lg"
+            style={{
+              paddingBottom:
+                'calc(var(--space-6) + env(safe-area-inset-bottom, 0px))',
+            }}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Filtres</h2>
+              <h2 className="section-title">Filtres</h2>
               <Button
                 type="button"
                 variant="ghost"
@@ -234,31 +267,28 @@ export function ExercisesPage() {
         </div>
       ) : null}
 
-      <div className="flex items-center justify-between gap-3 text-sm text-[var(--muted)]">
+      <div className="flex items-center justify-between gap-3 text-sm text-[var(--muted-foreground)]">
         <p aria-live="polite">
           {isInitialLoading
             ? 'Chargement…'
             : `${exercises.length} exercice${exercises.length > 1 ? 's' : ''} chargé${exercises.length > 1 ? 's' : ''}`}
         </p>
-        {hasAnyFilter ? (
-          <button
-            type="button"
-            className="text-sm font-medium text-[var(--primary)] underline-offset-2 hover:underline"
-            onClick={resetFilters}
-          >
-            Réinitialiser les filtres
-          </button>
-        ) : null}
       </div>
 
       {feedback ? (
-        <div className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-3" role="alert">
+        <div
+          className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] p-3"
+          role="alert"
+        >
           <p className="text-sm text-[var(--danger)]">{feedback}</p>
         </div>
       ) : null}
 
       {listQuery.isError && !listQuery.data ? (
-        <div className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4" role="alert">
+        <div
+          className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] p-4"
+          role="alert"
+        >
           <p className="text-sm text-[var(--danger)]">
             {getApiErrorMessage(
               listQuery.error,
@@ -279,33 +309,29 @@ export function ExercisesPage() {
       {isInitialLoading ? <ExerciseListSkeleton /> : null}
 
       {!isInitialLoading && exercises.length === 0 && !listQuery.isError ? (
-        <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-6 text-center">
-          <p className="text-sm text-[var(--muted)]">
-            {hasAnyFilter
+        <EmptyState
+          title="Aucun résultat"
+          description={
+            hasAnyFilter
               ? filters.source === 'USER' &&
                 countActiveExerciseFilters({ ...filters, source: undefined }) === 0
                 ? 'Aucun exercice personnel pour le moment.'
-                : 'Aucun exercice ne correspond à tes filtres.'
-              : 'Aucun exercice disponible.'}
-          </p>
-          <div className="mt-4 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
-            {hasAnyFilter ? (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={resetFilters}
-              >
-                Réinitialiser les filtres
-              </Button>
-            ) : null}
-            {showCreateInEmptyState ? (
-              <ButtonLink to="/exercises/new" className="gap-2">
-                <Plus className="size-4" aria-hidden="true" />
-                Créer un exercice
-              </ButtonLink>
-            ) : null}
-          </div>
-        </div>
+                : 'Aucun exercice ne correspond à ces critères.'
+              : 'Aucun exercice disponible.'
+          }
+          action={
+            hasAnyFilter
+              ? { label: 'Effacer les filtres', onClick: resetFilters }
+              : showCreateInEmptyState
+                ? { label: 'Créer un exercice', to: '/exercises/new' }
+                : undefined
+          }
+          secondaryAction={
+            hasAnyFilter && showCreateInEmptyState
+              ? { label: 'Créer un exercice', to: '/exercises/new' }
+              : undefined
+          }
+        />
       ) : null}
 
       {exercises.length > 0 ? (
@@ -314,7 +340,7 @@ export function ExercisesPage() {
 
           {listQuery.isFetchNextPageError ? (
             <div
-              className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-3"
+              className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] p-3"
               role="alert"
             >
               <p className="text-sm text-[var(--danger)]">

@@ -130,11 +130,9 @@ export function ProgramsPage() {
         </div>
       ) : null}
 
-      <ul className="flex flex-col gap-3">
+      <ul className="flex flex-col">
         {programs.map((program) => (
-          <li key={program.id}>
-            <ProgramCard program={program} />
-          </li>
+          <ProgramCard key={program.id} program={program} />
         ))}
       </ul>
 

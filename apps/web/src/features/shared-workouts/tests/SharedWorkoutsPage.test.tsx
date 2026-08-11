@@ -6,10 +6,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SharedWorkoutsPage } from '../pages/SharedWorkoutsPage';
 
 const listSharedWorkoutRooms = vi.fn();
+const listReceivedInvitations = vi.fn();
 
 vi.mock('../api/shared-workouts-api', () => ({
   listSharedWorkoutRooms: (...args: unknown[]) =>
     listSharedWorkoutRooms(...args),
+  listReceivedInvitations: (...args: unknown[]) =>
+    listReceivedInvitations(...args),
+  acceptSharedWorkoutInvitation: vi.fn(),
+  declineSharedWorkoutInvitation: vi.fn(),
 }));
 
 function renderPage() {
@@ -28,6 +33,11 @@ function renderPage() {
 describe('SharedWorkoutsPage', () => {
   beforeEach(() => {
     listSharedWorkoutRooms.mockReset();
+    listReceivedInvitations.mockReset();
+    listReceivedInvitations.mockResolvedValue({
+      data: [],
+      pagination: { nextCursor: null, hasMore: false },
+    });
   });
 
   it('affiche l’état vide', async () => {
@@ -40,11 +50,11 @@ describe('SharedWorkoutsPage', () => {
       await screen.findByRole('heading', { name: /aucune séance partagée/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getAllByRole('link', { name: /créer une salle/i }).length,
-    ).toBeGreaterThan(0);
+      screen.getAllByRole('link', { name: /créer une salle/i }),
+    ).toHaveLength(1);
   });
 
-  it('liste les statuts avec labels textuels', async () => {
+  it('liste les salles compactes avec labels textuels', async () => {
     listSharedWorkoutRooms.mockResolvedValue({
       data: [
         {
@@ -96,5 +106,38 @@ describe('SharedWorkoutsPage', () => {
     expect(
       screen.getByRole('link', { name: /lobby a/i }),
     ).toHaveAttribute('href', '/shared-workouts/r1');
+  });
+
+  it('affiche les invitations prioritaires', async () => {
+    listSharedWorkoutRooms.mockResolvedValue({
+      data: [],
+      pagination: { nextCursor: null, hasMore: false },
+    });
+    listReceivedInvitations.mockResolvedValue({
+      data: [
+        {
+          id: 'inv-1',
+          room: { id: 'r9', name: 'Pull du mardi', status: 'LOBBY' },
+          inviter: { displayName: 'Aurélien' },
+          invitee: { displayName: 'Moi' },
+          status: 'PENDING',
+          createdAt: '2026-08-10T12:00:00.000Z',
+          respondedAt: null,
+          cancelledAt: null,
+        },
+      ],
+      pagination: { nextCursor: null, hasMore: false },
+    });
+    renderPage();
+
+    expect(await screen.findByText(/invitations/i)).toBeInTheDocument();
+    expect(screen.getByText('Pull du mardi')).toBeInTheDocument();
+    expect(screen.getByText(/aurélien t’invite/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /rejoindre/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /refuser/i }),
+    ).toBeInTheDocument();
   });
 });

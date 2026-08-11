@@ -3,7 +3,9 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { Button, ButtonLink } from '@/components/ui/button';
+import { EmptyState } from '@/components/common/EmptyState';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { Button } from '@/components/ui/button';
 import { getMe } from '@/features/profile/api/profile-api';
 import { getApiErrorMessage } from '@/lib/api/client';
 
@@ -11,13 +13,17 @@ import {
   pendingTerminalLocalQueryOptions,
   workoutHistoryInfiniteQueryOptions,
 } from '../api/workout-query-options';
-import { WorkoutHistoryCard } from '../components/WorkoutHistoryCard';
+import { WorkoutHistoryRow } from '../components/WorkoutHistoryCard';
 import { WorkoutHistoryFiltersBar } from '../components/WorkoutHistoryFilters';
 import {
+  formatHistoryDayHeading,
+  groupWorkoutHistoryItems,
+} from '../lib/workout-history-groups';
+import {
   buildWorkoutHistorySearchParamsFromFilters,
-  countActiveWorkoutHistoryFilters,
   parseWorkoutHistorySearchParams,
   toWorkoutHistoryApiFilters,
+  type WorkoutHistoryStatusFilterValue,
   type WorkoutHistoryUrlFilters,
 } from '../lib/workout-history-filters';
 import { computeWorkoutProgress } from '../lib/workout-progress';
@@ -69,13 +75,20 @@ function snapshotToHistoryItem(
   };
 }
 
+function countPeriodFilters(filters: WorkoutHistoryUrlFilters): number {
+  let count = 0;
+  if (filters.from) count += 1;
+  if (filters.to) count += 1;
+  return count;
+}
+
 function WorkoutHistoryListSkeleton() {
   return (
-    <ul className="flex flex-col gap-3" aria-busy="true" aria-label="Chargement">
+    <ul className="flex flex-col gap-2" aria-busy="true" aria-label="Chargement">
       {Array.from({ length: 4 }).map((_, index) => (
         <li
           key={index}
-          className="h-28 animate-pulse rounded-[var(--radius)] border border-[var(--border)] bg-slate-100"
+          className="h-14 animate-pulse rounded-[var(--radius-control)] bg-[var(--border)]/60"
         />
       ))}
     </ul>
@@ -90,8 +103,8 @@ export function WorkoutsHistoryPage() {
   const historySearch = searchParams.toString()
     ? `?${searchParams.toString()}`
     : '';
-  const activeFilterCount = countActiveWorkoutHistoryFilters(filters);
-  const hasAnyFilter = activeFilterCount > 0;
+  const periodFilterCount = countPeriodFilters(filters);
+  const hasAnyFilter = filters.status !== 'ALL' || periodFilterCount > 0;
 
   const meQuery = useQuery({
     queryKey: ['me'],
@@ -137,7 +150,16 @@ export function WorkoutsHistoryPage() {
       .map(snapshotToHistoryItem);
   }, [pendingLocalQuery.data, serverIds, filters]);
 
-  const totalLoaded = serverItems.length + pendingLocalItems.length;
+  const allItems = useMemo(
+    () => [...pendingLocalItems, ...serverItems],
+    [pendingLocalItems, serverItems],
+  );
+  const groups = useMemo(
+    () => groupWorkoutHistoryItems(allItems),
+    [allItems],
+  );
+
+  const totalLoaded = allItems.length;
   const isInitialLoading = listQuery.isLoading && !listQuery.data;
 
   function applyFiltersToUrl(next: WorkoutHistoryUrlFilters) {
@@ -145,43 +167,54 @@ export function WorkoutsHistoryPage() {
     setSearchParams(params, { replace: true });
   }
 
-  function resetFilters() {
+  function handleStatusChange(status: WorkoutHistoryStatusFilterValue) {
+    const next = { ...filters, status };
+    setDraft(next);
+    applyFiltersToUrl(next);
+  }
+
+  function resetPeriod() {
+    const next = { ...filters, from: undefined, to: undefined };
+    setDraft(next);
+    applyFiltersToUrl(next);
+  }
+
+  function resetAllFilters() {
     setDraft({ status: 'ALL' });
     setSearchParams(new URLSearchParams(), { replace: true });
   }
 
   return (
     <main className="flex flex-1 flex-col gap-5">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight">Historique</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Consulte tes séances terminées et annulées (lecture seule, snapshots).
-        </p>
-      </header>
+      <PageHeader
+        title="Historique"
+        description="Tes séances passées"
+        className="mb-0"
+      />
 
       <WorkoutHistoryFiltersBar
         filters={filters}
         draft={draft}
         onDraftChange={setDraft}
-        onApplyDesktop={applyFiltersToUrl}
-        onApplyMobile={() => applyFiltersToUrl(draft)}
-        onReset={resetFilters}
-        activeFilterCount={activeFilterCount}
+        onStatusChange={handleStatusChange}
+        onApplyPeriod={applyFiltersToUrl}
+        onResetPeriod={resetPeriod}
+        periodFilterCount={periodFilterCount}
       />
 
       <div className="flex items-center justify-between gap-3 text-sm text-[var(--muted)]">
         <p aria-live="polite">
           {isInitialLoading
             ? 'Chargement…'
-            : `${totalLoaded} séance${totalLoaded > 1 ? 's' : ''} chargée${totalLoaded > 1 ? 's' : ''}`}
+            : `${totalLoaded} séance${totalLoaded > 1 ? 's' : ''}`}
         </p>
         {hasAnyFilter ? (
           <button
             type="button"
-            className="text-sm font-medium text-[var(--primary)] underline-offset-2 hover:underline"
-            onClick={resetFilters}
+            className="text-sm font-medium text-[var(--foreground)] underline-offset-2 hover:underline"
+            onClick={resetAllFilters}
           >
-            Réinitialiser les filtres
+            Réinitialiser
           </button>
         ) : null}
       </div>
@@ -211,50 +244,71 @@ export function WorkoutsHistoryPage() {
       {isInitialLoading ? <WorkoutHistoryListSkeleton /> : null}
 
       {!isInitialLoading && totalLoaded === 0 && !listQuery.isError ? (
-        <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-6 text-center">
-          <p className="text-sm text-[var(--muted)]">
-            {hasAnyFilter
-              ? 'Aucune séance ne correspond à ces filtres.'
-              : 'Aucune séance terminée ou annulée.'}
-          </p>
-          <div className="mt-4 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
-            {hasAnyFilter ? (
-              <Button type="button" variant="secondary" onClick={resetFilters}>
-                Réinitialiser les filtres
-              </Button>
-            ) : (
-              <>
-                <ButtonLink to="/planning" variant="secondary">
-                  Consulter mon planning
-                </ButtonLink>
-                <ButtonLink to="/programs" variant="secondary">
-                  Voir mes programmes
-                </ButtonLink>
-              </>
-            )}
-          </div>
-        </div>
+        hasAnyFilter ? (
+          <EmptyState
+            title="Aucune séance trouvée"
+            description="Aucune séance ne correspond à ces filtres."
+            action={{
+              label: 'Réinitialiser les filtres',
+              onClick: resetAllFilters,
+            }}
+          />
+        ) : (
+          <EmptyState
+            title="Aucune séance dans l’historique"
+            description="Tes séances terminées apparaîtront ici."
+            action={{ label: 'Voir mon planning', to: '/planning' }}
+            secondaryAction={{
+              label: 'Voir mes programmes',
+              to: '/programs',
+            }}
+          />
+        )
       ) : null}
 
       {totalLoaded > 0 ? (
         <>
-          <ul className="flex flex-col gap-3">
-            {pendingLocalItems.map((item) => (
-              <WorkoutHistoryCard
-                key={`local-${item.id}`}
-                item={item}
-                historySearch={historySearch}
-                pendingSync
-              />
+          <div className="flex flex-col gap-6">
+            {groups.map((group) => (
+              <section key={group.key} aria-labelledby={`history-group-${group.key}`}>
+                <h2
+                  id={`history-group-${group.key}`}
+                  className="mb-1 text-xs font-semibold tracking-[0.12em] text-[var(--muted)] uppercase"
+                >
+                  {group.label}
+                </h2>
+                <ul className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
+                  {group.items.map((item, index) => {
+                    const prev = group.items[index - 1];
+                    const showDay =
+                      group.key !== 'Aujourd’hui' &&
+                      group.key !== 'Hier' &&
+                      prev?.localDate !== item.localDate;
+                    return (
+                      <WorkoutHistoryRow
+                        key={
+                          pendingLocalItems.some((p) => p.id === item.id)
+                            ? `local-${item.id}`
+                            : item.id
+                        }
+                        item={item}
+                        historySearch={historySearch}
+                        pendingSync={pendingLocalItems.some(
+                          (p) => p.id === item.id,
+                        )}
+                        showDayHeading={showDay}
+                        dayHeading={
+                          showDay
+                            ? formatHistoryDayHeading(item.localDate)
+                            : undefined
+                        }
+                      />
+                    );
+                  })}
+                </ul>
+              </section>
             ))}
-            {serverItems.map((item) => (
-              <WorkoutHistoryCard
-                key={item.id}
-                item={item}
-                historySearch={historySearch}
-              />
-            ))}
-          </ul>
+          </div>
 
           {listQuery.isFetchNextPageError ? (
             <div

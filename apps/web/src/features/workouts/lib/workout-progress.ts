@@ -156,3 +156,44 @@ export function resolveRestSeconds(
 export function shouldAutoStartRest(status: WorkoutSetStatus): boolean {
   return status === 'COMPLETED' || status === 'PARTIAL' || status === 'FAILED';
 }
+
+/** True si, après application du statut, toutes les séries de l’exercice sont traitées. */
+export function willExerciseBeTreatedAfterSet(
+  exercise: Pick<WorkoutSessionExerciseDetail, 'sets'>,
+  setId: string,
+  nextStatus: WorkoutSetStatus,
+): boolean {
+  if (exercise.sets.length === 0) {
+    return false;
+  }
+  return exercise.sets.every((set) =>
+    set.id === setId ? isSetTreated(nextStatus) : isSetTreated(set.status),
+  );
+}
+
+export function isLastExerciseInSession(
+  session: Pick<WorkoutSessionDetail, 'exercises'>,
+  exerciseId: string,
+): boolean {
+  const last = session.exercises[session.exercises.length - 1];
+  return last?.id === exerciseId;
+}
+
+/**
+ * Présentation UX : ne pas lancer / prioriser le repos après la dernière
+ * série du dernier exercice (le CTA « Terminer » doit primer).
+ */
+export function shouldSuppressRestAfterSet(args: {
+  session: Pick<WorkoutSessionDetail, 'exercises'>;
+  exercise: Pick<WorkoutSessionExerciseDetail, 'id' | 'sets'>;
+  setId: string;
+  status: WorkoutSetStatus;
+}): boolean {
+  if (!shouldAutoStartRest(args.status)) {
+    return true;
+  }
+  return (
+    willExerciseBeTreatedAfterSet(args.exercise, args.setId, args.status) &&
+    isLastExerciseInSession(args.session, args.exercise.id)
+  );
+}

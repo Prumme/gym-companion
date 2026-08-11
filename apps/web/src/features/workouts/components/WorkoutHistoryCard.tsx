@@ -1,127 +1,128 @@
 import type { WorkoutHistoryListItem } from '@gym-companion/shared';
+import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-import { formatWorkoutReps, formatWorkoutVolume } from '../lib/workout-metrics-format';
-import { getWorkoutStatusLabel } from '../lib/workout-labels';
+import { cn } from '@/lib/utils';
+
+import { formatElapsedDuration } from '../lib/workout-elapsed-duration';
 import type { WorkoutHistoryNavigationState } from '../lib/workout-history-filters';
+import { getWorkoutStatusLabel } from '../lib/workout-labels';
+import {
+  formatWorkoutReps,
+  formatWorkoutVolume,
+} from '../lib/workout-metrics-format';
 
-function formatStartTime(startedAt: string, timeZone: string): string {
-  try {
-    return new Intl.DateTimeFormat('fr-FR', {
-      timeZone,
-      timeStyle: 'short',
-    }).format(new Date(startedAt));
-  } catch {
-    return startedAt;
-  }
-}
-
-type WorkoutHistoryCardProps = {
+type WorkoutHistoryRowProps = {
   item: WorkoutHistoryListItem;
   historySearch: string;
   pendingSync?: boolean;
+  showDayHeading?: boolean;
+  dayHeading?: string;
 };
 
-export function WorkoutHistoryCard({
+function formatListDuration(item: WorkoutHistoryListItem): string | null {
+  const endIso = item.completedAt ?? item.cancelledAt;
+  if (!endIso) return null;
+  const start = Date.parse(item.startedAt);
+  const end = Date.parse(endIso);
+  if (Number.isNaN(start) || Number.isNaN(end) || end < start) return null;
+  return formatElapsedDuration(end - start);
+}
+
+function buildMetaLine(item: WorkoutHistoryListItem): string {
+  const parts: string[] = [];
+  const duration = formatListDuration(item);
+  if (duration) parts.push(duration);
+
+  const { summary } = item;
+  if (summary.exerciseCount > 0) {
+    parts.push(
+      `${summary.exerciseCount} exercice${summary.exerciseCount === 1 ? '' : 's'}`,
+    );
+  }
+  if (summary.processedSetCount > 0 || summary.totalSetCount > 0) {
+    parts.push(
+      `${summary.processedSetCount}/${summary.totalSetCount} séries`,
+    );
+  }
+  if (
+    item.status === 'COMPLETED' &&
+    summary.totalReps != null &&
+    summary.totalReps > 0
+  ) {
+    parts.push(formatWorkoutReps(summary.totalReps));
+  }
+  if (
+    item.status === 'COMPLETED' &&
+    summary.workingExternalVolumeKg != null &&
+    summary.workingExternalVolumeKg > 0
+  ) {
+    parts.push(formatWorkoutVolume(summary.workingExternalVolumeKg));
+  }
+  return parts.join(' · ');
+}
+
+export function WorkoutHistoryRow({
   item,
   historySearch,
   pendingSync = false,
-}: WorkoutHistoryCardProps) {
+  showDayHeading = false,
+  dayHeading,
+}: WorkoutHistoryRowProps) {
   const state: WorkoutHistoryNavigationState = {
     fromHistory: true,
     historySearch,
   };
-  const { summary } = item;
+  const meta = buildMetaLine(item);
 
   return (
     <li>
+      {showDayHeading && dayHeading ? (
+        <p className="mb-1 text-[0.6875rem] font-semibold tracking-[0.1em] text-[var(--muted)] uppercase">
+          {dayHeading}
+        </p>
+      ) : null}
       <Link
         to={`/workouts/${item.id}`}
         state={state}
-        className="block rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-4 transition-colors hover:border-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
-        aria-label={`Ouvrir la séance ${item.name} du ${item.localDate}`}
+        className={cn(
+          'flex min-h-14 items-center justify-between gap-3 py-2.5 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]',
+        )}
+        aria-label={`Ouvrir la séance ${item.name} du ${item.localDate}, ${getWorkoutStatusLabel(item.status)}`}
       >
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-base font-semibold text-[var(--foreground)]">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <p className="truncate text-sm font-semibold text-[var(--foreground)]">
               {item.name}
-            </h2>
-            <p
-              className={
+            </p>
+            <span
+              className={cn(
+                'shrink-0 text-[0.6875rem] font-semibold tracking-wide uppercase',
                 item.status === 'CANCELLED'
-                  ? 'text-sm font-medium text-[var(--danger)]'
-                  : 'text-sm font-medium text-[var(--muted)]'
-              }
+                  ? 'text-[var(--danger)]'
+                  : 'text-[var(--muted)]',
+              )}
             >
               {getWorkoutStatusLabel(item.status)}
-            </p>
+            </span>
           </div>
-
           {pendingSync ? (
-            <p className="text-xs font-medium text-amber-700" role="status">
+            <p className="mt-0.5 text-xs font-medium text-amber-700" role="status">
               En attente de synchronisation
             </p>
           ) : null}
-
-          <dl className="grid gap-1 text-sm text-[var(--muted)]">
-            <div>
-              <dt className="sr-only">Date</dt>
-              <dd>
-                {item.localDate}
-                {' · '}
-                {formatStartTime(item.startedAt, item.timezone)}
-              </dd>
-            </div>
-            {item.source.programName ? (
-              <div>
-                <dt className="inline">Programme : </dt>
-                <dd className="inline">{item.source.programName}</dd>
-              </div>
-            ) : null}
-            {item.source.workoutTemplateName ? (
-              <div>
-                <dt className="inline">Modèle : </dt>
-                <dd className="inline">{item.source.workoutTemplateName}</dd>
-              </div>
-            ) : null}
-            <div>
-              <dt className="sr-only">Progression</dt>
-              <dd>
-                {summary.exerciseCount} exercice
-                {summary.exerciseCount === 1 ? '' : 's'}
-                {' · '}
-                {summary.processedSetCount} série
-                {summary.processedSetCount === 1 ? '' : 's'} enregistrée
-                {summary.processedSetCount === 1 ? '' : 's'} sur{' '}
-                {summary.totalSetCount}
-              </dd>
-            </div>
-            {item.status === 'COMPLETED' &&
-            ((summary.totalReps != null && summary.totalReps > 0) ||
-              (summary.workingExternalVolumeKg != null &&
-                summary.workingExternalVolumeKg > 0)) ? (
-              <div>
-                <dt className="sr-only">Performances</dt>
-                <dd>
-                  {summary.totalReps != null && summary.totalReps > 0
-                    ? formatWorkoutReps(summary.totalReps)
-                    : null}
-                  {summary.totalReps != null &&
-                  summary.totalReps > 0 &&
-                  summary.workingExternalVolumeKg != null &&
-                  summary.workingExternalVolumeKg > 0
-                    ? ' · '
-                    : null}
-                  {summary.workingExternalVolumeKg != null &&
-                  summary.workingExternalVolumeKg > 0
-                    ? formatWorkoutVolume(summary.workingExternalVolumeKg)
-                    : null}
-                </dd>
-              </div>
-            ) : null}
-          </dl>
+          {meta ? (
+            <p className="mt-0.5 truncate text-sm text-[var(--muted)]">{meta}</p>
+          ) : null}
         </div>
+        <ChevronRight
+          className="size-4 shrink-0 text-[var(--muted)]"
+          aria-hidden="true"
+        />
       </Link>
     </li>
   );
 }
+
+/** @deprecated Prefer WorkoutHistoryRow — alias pour compat tests/imports. */
+export const WorkoutHistoryCard = WorkoutHistoryRow;

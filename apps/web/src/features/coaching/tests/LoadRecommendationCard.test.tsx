@@ -420,4 +420,76 @@ describe('LoadRecommendationCard (5.1 + 5.2)', () => {
     await screen.findByText('Décisions récentes');
     expect(screen.getByText(/Ajustée à 81,5 kg/)).toBeInTheDocument();
   });
+
+  it('variant compact: ligne courte avec Voir, sans grosse card', async () => {
+    getLoadRecommendation.mockResolvedValue(
+      baseRecommendation({
+        action: 'INCREASE',
+        recommendation: {
+          suggestedWeightKg: 82.5,
+          adjustmentKg: 2.5,
+          incrementKg: 2.5,
+          incrementSource: 'SYSTEM_DEFAULT',
+        },
+      }),
+    );
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <LoadRecommendationCard
+            programId="prog-1"
+            workoutTemplateExerciseId="wte-1"
+            exerciseId="ex-1"
+            measurementType="WEIGHT_REPS"
+            workingSetCount={3}
+            variant="compact"
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('82,5 kg')).toBeInTheDocument();
+    expect(screen.getByText(/Suggestion/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Voir$/i })).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Suggestion pour la prochaine séance/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Appliquer' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('variant compact: ne rend rien si non supporté', async () => {
+    getLoadRecommendation.mockResolvedValue({
+      ...baseRecommendation(),
+      supported: false,
+    });
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <LoadRecommendationCard
+            programId="prog-1"
+            workoutTemplateExerciseId="wte-1"
+            exerciseId="ex-1"
+            measurementType="WEIGHT_REPS"
+            workingSetCount={3}
+            variant="compact"
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => {
+      expect(getLoadRecommendation).toHaveBeenCalled();
+      expect(screen.queryByText(/Suggestion/i)).not.toBeInTheDocument();
+    });
+    expect(
+      screen.queryByText(/Suggestion pour la prochaine séance/i),
+    ).not.toBeInTheDocument();
+  });
 });

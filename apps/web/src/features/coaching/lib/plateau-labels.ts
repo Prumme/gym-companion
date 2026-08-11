@@ -8,7 +8,7 @@ import type {
 const STATUS_LABELS: Record<PlateauStatus, string> = {
   NONE: 'Progression régulière',
   WATCH: 'Progression à surveiller',
-  PLATEAU: 'Stagnation détectée',
+  PLATEAU: 'Stagnation possible',
   INSUFFICIENT_DATA: 'Pas encore assez de données',
   REVIEW: 'Analyse automatique limitée',
 };
@@ -56,12 +56,12 @@ export function getPlateauReasonMessage(reason: PlateauReason): string {
 
 export function getPlateauPrimaryMessage(analysis: PlateauAnalysis): string {
   switch (analysis.status) {
+    case 'PLATEAU':
+      return 'Tes dernières performances évoluent peu sur la période analysée.';
     case 'NONE':
-      return 'Aucun signe de stagnation détecté.';
+      return 'Pas de stagnation détectée.';
     case 'WATCH':
       return `Tes performances sont restées proches sur les ${analysis.range.analyzedWorkoutCount} dernières séances.`;
-    case 'PLATEAU':
-      return 'Tes performances sont restées stables sur plusieurs séances comparables.';
     case 'INSUFFICIENT_DATA':
       return 'Pas encore assez de séances comparables pour analyser une éventuelle stagnation.';
     case 'REVIEW':

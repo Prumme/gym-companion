@@ -1,5 +1,6 @@
 import type { PlateauAnalysis, PlateauReason, PlateauStatus } from '@gym-companion/shared';
 import { useQuery } from '@tanstack/react-query';
+import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { getApiErrorMessage } from '@/lib/api/client';
@@ -35,30 +36,18 @@ export function PlateauAnalysisSection({
 
   if (query.isLoading) {
     return (
-      <section
-        className="rounded-[var(--radius)] border border-dashed border-[var(--border)] p-3 sm:p-4"
-        aria-busy="true"
-        aria-label="Analyse de progression"
-      >
-        <h2 className="text-sm font-medium text-[var(--muted)]">
-          Analyse de progression
-        </h2>
-        <p className="mt-1 text-sm text-[var(--muted)]">Chargement…</p>
+      <section aria-busy="true" aria-label="Tendance">
+        <h2 className="section-title">Tendance</h2>
+        <p className="mt-2 text-sm text-[var(--muted-foreground)]">Chargement…</p>
       </section>
     );
   }
 
   if (query.isError) {
     return (
-      <section
-        className="rounded-[var(--radius)] border border-[var(--border)] p-3 sm:p-4"
-        role="alert"
-        aria-label="Analyse de progression"
-      >
-        <h2 className="text-sm font-medium text-[var(--muted)]">
-          Analyse de progression
-        </h2>
-        <p className="mt-1 text-sm text-[var(--danger)]">
+      <section role="alert" aria-label="Tendance">
+        <h2 className="section-title">Tendance</h2>
+        <p className="mt-2 text-sm text-[var(--danger)]">
           {getApiErrorMessage(
             query.error,
             'Impossible de charger l’analyse de progression.',
@@ -79,14 +68,9 @@ export function PlateauAnalysisSection({
 function PlateauAnalysisContent({ analysis }: { analysis: PlateauAnalysis }) {
   if (!analysis.supported) {
     return (
-      <section
-        className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-3 sm:p-4"
-        aria-label="Analyse de progression"
-      >
-        <h2 className="text-sm font-medium text-[var(--muted)]">
-          Analyse de progression
-        </h2>
-        <p className="mt-1 text-sm text-[var(--muted)]">
+      <section aria-label="Tendance">
+        <h2 className="section-title">Tendance</h2>
+        <p className="mt-2 text-sm text-[var(--muted-foreground)]">
           Aucune analyse de stagnation pour ce type d’exercice.
         </p>
       </section>
@@ -101,23 +85,20 @@ function PlateauAnalysisContent({ analysis }: { analysis: PlateauAnalysis }) {
     .filter(Boolean);
 
   return (
-    <section
-      className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-3 sm:p-4"
-      aria-label="Analyse de progression"
-    >
-      <h2 className="text-sm font-medium text-[var(--muted)]">
-        Analyse de progression
-      </h2>
-      <p className="mt-1 text-base font-semibold">{statusLabel}</p>
-      <p className="mt-1 text-sm text-[var(--muted)]">{primary}</p>
-      {trend ? (
-        <p className="mt-2 text-sm tabular-nums text-[var(--foreground)]">
-          {trend}
-        </p>
-      ) : null}
+    <section aria-label="Tendance" className="flex flex-col gap-3">
+      <div>
+        <h2 className="section-title">Tendance</h2>
+        <p className="mt-1 text-base font-semibold">{statusLabel}</p>
+        <p className="mt-1 text-sm text-[var(--muted-foreground)]">{primary}</p>
+        {trend ? (
+          <p className="mt-2 text-sm tabular-nums text-[var(--foreground)]">
+            {trend}
+          </p>
+        ) : null}
+      </div>
 
       {shouldShowReasons(analysis.status) && reasonMessages.length > 0 ? (
-        <ul className="mt-2 list-inside list-disc text-sm text-[var(--muted)]">
+        <ul className="list-inside list-disc text-sm text-[var(--muted-foreground)]">
           {reasonMessages.map((message) => (
             <li key={message}>{message}</li>
           ))}
@@ -125,14 +106,18 @@ function PlateauAnalysisContent({ analysis }: { analysis: PlateauAnalysis }) {
       ) : null}
 
       {analysis.evidence.length > 0 ? (
-        <ul className="mt-3 space-y-2">
+        <ul className="flex flex-col">
           {analysis.evidence.map((point) => (
-            <li key={point.workoutSessionId} className="text-sm">
+            <li key={point.workoutSessionId}>
               <Link
                 to={`/workouts/${point.workoutSessionId}`}
-                className="font-semibold text-[var(--primary)] underline-offset-2 hover:underline"
+                className="flex min-h-11 items-center justify-between gap-3 border-b border-[var(--border)] py-2 text-sm"
               >
-                {formatPlateauEvidenceLine(point)}
+                <span>{formatPlateauEvidenceLine(point)}</span>
+                <ChevronRight
+                  className="size-4 shrink-0 text-[var(--muted-foreground)]"
+                  aria-hidden="true"
+                />
               </Link>
             </li>
           ))}

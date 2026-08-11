@@ -1,8 +1,7 @@
 import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
-import { ButtonLink } from '@/components/ui/button';
 import { getApiErrorMessage } from '@/lib/api/client';
 
 import { ProgramForm } from '../components/ProgramForm';
@@ -39,18 +38,21 @@ export function CreateProgramPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6">
-      <div>
-        <ButtonLink to="/programs" variant="ghost" className="mb-3 w-fit gap-2 px-0">
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Retour aux programmes
-        </ButtonLink>
-        <h1 className="text-2xl font-bold tracking-tight">Créer un programme</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Commence par les informations générales. Tu pourras ajouter des séances
-          ensuite.
-        </p>
-      </div>
+    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-5">
+      <header className="flex items-start gap-2">
+        <Link
+          to="/programs"
+          className="inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-control)] hover:bg-[var(--surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+          aria-label="Retour aux programmes"
+        >
+          <ArrowLeft className="size-5" aria-hidden="true" />
+        </Link>
+        <div className="min-w-0 flex-1 pt-2">
+          <h1 className="text-xl font-semibold tracking-tight">
+            Créer un programme
+          </h1>
+        </div>
+      </header>
 
       <ProgramForm
         mode="create"

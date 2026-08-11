@@ -12,10 +12,37 @@ import { ExerciseProgressPage } from '../pages/ExerciseProgressPage';
 
 const getExerciseProgress = vi.fn();
 const getExerciseStrength = vi.fn();
+const getExercise = vi.fn();
 
 vi.mock('../api/progress-api', () => ({
   getExerciseProgress: (...args: unknown[]) => getExerciseProgress(...args),
   getExerciseStrength: (...args: unknown[]) => getExerciseStrength(...args),
+}));
+
+vi.mock('@/features/exercises/api/exercise-api', async () => {
+  const actual = await vi.importActual<
+    typeof import('@/features/exercises/api/exercise-api')
+  >('@/features/exercises/api/exercise-api');
+  return {
+    ...actual,
+    getExercise: (...args: unknown[]) => getExercise(...args),
+  };
+});
+
+vi.mock('@/features/personal-records/api/personal-records-api', () => ({
+  listExercisePersonalRecords: async () => [],
+  listPersonalRecords: async () => ({
+    data: [],
+    pagination: { nextCursor: null, hasMore: false },
+  }),
+}));
+
+vi.mock('@/features/coaching/components/ExerciseCoachSummarySection', () => ({
+  ExerciseCoachSummarySection: () => null,
+}));
+
+vi.mock('@/features/coaching/components/PlateauAnalysisSection', () => ({
+  PlateauAnalysisSection: () => null,
 }));
 
 function emptyProgress(
@@ -105,6 +132,33 @@ describe('ExerciseProgressPage — force estimée (4.5)', () => {
   beforeEach(() => {
     getExerciseProgress.mockReset();
     getExerciseStrength.mockReset();
+    getExercise.mockReset();
+    getExercise.mockResolvedValue({
+      id: 'exercise-1',
+      source: 'SYSTEM',
+      name: 'Développé couché',
+      measurementType: 'WEIGHT_REPS',
+      primaryMuscleGroup: {
+        id: 'mg-1',
+        code: 'chest',
+        name: 'Pectoraux',
+        parentId: null,
+      },
+      defaultEquipmentType: {
+        id: 'eq-1',
+        code: 'barbell',
+        name: 'Barre',
+      },
+      defaultRestSeconds: 90,
+      archivedAt: null,
+      permissions: { canEdit: false, canArchive: false, canRestore: false },
+      userPreference: null,
+      secondaryMuscleGroups: [],
+      compatibleEquipmentTypes: [],
+      instructions: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    });
   });
 
   it('section absente pour exercice incompatible', async () => {
@@ -118,7 +172,7 @@ describe('ExerciseProgressPage — force estimée (4.5)', () => {
       emptyStrength({ supported: false, summary: null, points: [] }),
     );
     renderPage();
-    await screen.findByText('Progression — Développé couché');
+    await screen.findByRole('heading', { name: 'Développé couché' });
     expect(screen.queryByRole('heading', { name: 'Force estimée' })).not.toBeInTheDocument();
   });
 
@@ -283,7 +337,7 @@ describe('ExerciseProgressPage — force estimée (4.5)', () => {
     });
 
     const user = userEvent.setup();
-    await user.selectOptions(screen.getByLabelText('Période'), '30d');
+    await user.click(screen.getByRole('button', { name: '1 mois' }));
     expect(getExerciseStrength).toHaveBeenCalledWith(
       'exercise-1',
       expect.objectContaining({
@@ -302,7 +356,10 @@ describe('ExerciseProgressPage — force estimée (4.5)', () => {
       from: undefined,
       to: undefined,
     });
-    expect(screen.getByLabelText('Période')).toHaveValue('all');
+    expect(screen.getByRole('button', { name: 'Tout' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
   it('reste lisible à 320 px', async () => {
@@ -314,6 +371,6 @@ describe('ExerciseProgressPage — force estimée (4.5)', () => {
     getExerciseStrength.mockResolvedValue(emptyStrength());
     const { container } = renderPage();
     await screen.findByRole('heading', { name: 'Force estimée' });
-    expect(container.querySelector('main')?.className).toContain('max-w-3xl');
+    expect(container.querySelector('main')?.className).toContain('max-w-2xl');
   });
 });

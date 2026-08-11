@@ -162,7 +162,7 @@ export function ExercisePicker({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto px-4 py-2">
           {listQuery.isLoading ? (
             <p className="text-sm text-[var(--muted)]">Chargement…</p>
           ) : null}
@@ -191,7 +191,7 @@ export function ExercisePicker({
             </p>
           ) : null}
 
-          <ul className="flex flex-col gap-2">
+          <ul className="divide-y divide-[var(--border)]">
             {exercises.map((exercise) => {
               const alreadyAdded = existingExerciseIds.has(exercise.id);
               const archived = exercise.archivedAt != null;
@@ -202,21 +202,25 @@ export function ExercisePicker({
                     type="button"
                     disabled={disabled}
                     onClick={() => onSelect(exercise)}
-                    className="flex w-full flex-col rounded-[var(--radius)] border border-[var(--border)] bg-white p-3 text-left transition hover:border-[var(--primary)] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="flex w-full min-h-11 items-center gap-2 py-2.5 text-left transition hover:bg-[var(--surface)] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
                   >
-                    <span className="font-medium">{exercise.name}</span>
-                    <span className="mt-1 text-sm text-[var(--muted)]">
-                      {exercise.primaryMuscleGroup.name} ·{' '}
-                      {getMeasurementTypeLabel(exercise.measurementType)}
-                    </span>
-                    {alreadyAdded ? (
-                      <span className="mt-1 text-xs font-medium text-[var(--muted)]">
-                        Déjà ajouté
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">
+                        {exercise.name}
                       </span>
-                    ) : null}
-                    {archived ? (
-                      <span className="mt-1 text-xs font-medium text-amber-800">
-                        Archivé
+                      <span className="mt-0.5 block truncate text-xs text-[var(--muted)]">
+                        {exercise.primaryMuscleGroup.name} ·{' '}
+                        {getMeasurementTypeLabel(exercise.measurementType)}
+                        {alreadyAdded ? ' · Déjà ajouté' : ''}
+                        {archived ? ' · Archivé' : ''}
+                      </span>
+                    </span>
+                    {!disabled ? (
+                      <span
+                        className="shrink-0 text-[var(--muted)]"
+                        aria-hidden="true"
+                      >
+                        ›
                       </span>
                     ) : null}
                   </button>

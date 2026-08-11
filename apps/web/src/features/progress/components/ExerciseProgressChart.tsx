@@ -13,6 +13,8 @@ import {
 } from 'recharts';
 
 import {
+  buildProgressChartAxisLabels,
+  createDedupedAxisTickFormatter,
   formatProgressAxisTick,
   formatProgressChartDate,
   formatProgressMetricValue,
@@ -86,16 +88,16 @@ export function ExerciseProgressChart({
   metric,
   longRange,
 }: ProgressChartProps) {
+  const mode = longRange ? 'month' : 'short';
+  const axisLabels = buildProgressChartAxisLabels(points, mode);
+  const tickFormatter = createDedupedAxisTickFormatter();
   const data: ChartRow[] = points.map((point, index) => ({
     index,
     localDate: point.localDate,
     startedAt: point.startedAt,
     value: point.value,
     workoutSessionId: point.workoutSessionId,
-    label: formatProgressChartDate(
-      point.localDate,
-      longRange ? 'month' : 'short',
-    ),
+    label: axisLabels[index] ?? formatProgressChartDate(point.localDate, mode),
     point,
   }));
 
@@ -123,6 +125,7 @@ export function ExerciseProgressChart({
             axisLine={{ stroke: 'var(--border)' }}
             interval="preserveStartEnd"
             minTickGap={28}
+            tickFormatter={tickFormatter}
           />
           <YAxis
             tick={{ fontSize: 12, fill: 'var(--muted)' }}

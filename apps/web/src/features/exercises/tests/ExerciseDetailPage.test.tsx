@@ -124,11 +124,14 @@ describe('ExerciseDetailPage preferences', () => {
     expect(
       await screen.findByRole('heading', { name: 'Développé couché à la barre' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Mes préférences')).toBeInTheDocument();
-    expect(screen.getByText('Autorisé')).toBeInTheDocument();
+    expect(screen.getByText('Préférences')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /Voir ma progression/i }),
+    ).toHaveAttribute('href', '/progress/exercises/exercise-1');
+    expect(screen.getByText('Autorisées')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /modifier l’exercice/i })).not.toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /retour au catalogue/i }),
+      screen.getByRole('link', { name: '← Exercices' }),
     ).toHaveAttribute('href', '/exercises?favoriteOnly=true');
   });
 
@@ -247,7 +250,7 @@ describe('ExerciseDetailPage preferences', () => {
     renderDetail();
     await screen.findByRole('heading', { name: 'Développé couché à la barre' });
     await user.click(
-      screen.getByRole('button', { name: 'Réinitialiser mes préférences' }),
+      screen.getByRole('button', { name: 'Réinitialiser les préférences' }),
     );
     expect(
       screen.getByRole('alertdialog'),
@@ -347,7 +350,7 @@ describe('ExerciseDetailPage management', () => {
     });
     expect(await screen.findByText('Archivé')).toBeInTheDocument();
     expect(await screen.findByText('Exercice archivé.')).toBeInTheDocument();
-    expect(screen.getByText('Favori')).toBeInTheDocument();
+    expect(screen.getByText('Préférences')).toBeInTheDocument();
   });
 
   it('restores an archived personal exercise', async () => {

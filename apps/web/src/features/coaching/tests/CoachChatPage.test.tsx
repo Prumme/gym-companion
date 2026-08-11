@@ -153,7 +153,7 @@ describe('CoachChatPage (5.6)', () => {
       </QueryClientProvider>,
     );
 
-    await screen.findByText(/Nouvelle conversation/i);
+    await screen.findByText(/Choisis une suggestion/i);
     await user.type(
       screen.getByLabelText(/Message pour le Coach/i),
       'À quoi sert le RIR ?',
@@ -199,6 +199,67 @@ describe('CoachChatPage (5.6)', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    await screen.findByText(/Les explications IA ne sont pas activées/i);
+    await screen.findByText(/Indisponible sur cet environnement/i);
+    expect(screen.getByRole('link', { name: /Retour au Coach/i })).toBeInTheDocument();
+  });
+
+  it('traduit le rate limit en message humain', async () => {
+    const user = userEvent.setup();
+    createAiCoachConversation.mockResolvedValue({
+      id: 'conv-1',
+      title: null,
+      contextExercise: null,
+      archivedAt: null,
+      createdAt: '2026-08-10T10:00:00.000Z',
+      updatedAt: '2026-08-10T10:00:00.000Z',
+      messages: [],
+      pagination: { nextCursor: null, hasMore: false },
+    });
+    const rateError = Object.assign(new Error('rate'), {
+      code: 'AI_COACH_RATE_LIMITED',
+      status: 429,
+    });
+    sendAiCoachMessage.mockRejectedValue(rateError);
+    getAiCoachConversation.mockResolvedValue({
+      id: 'conv-1',
+      title: null,
+      contextExercise: null,
+      archivedAt: null,
+      createdAt: '2026-08-10T10:00:00.000Z',
+      updatedAt: '2026-08-10T10:00:00.000Z',
+      messages: [],
+      pagination: { nextCursor: null, hasMore: false },
+    });
+
+    render(
+      <QueryClientProvider
+        client={
+          new QueryClient({
+            defaultOptions: {
+              queries: { retry: false },
+              mutations: { retry: false },
+            },
+          })
+        }
+      >
+        <MemoryRouter initialEntries={['/coach/chat']}>
+          <Routes>
+            <Route path="/coach/chat" element={<CoachChatPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await screen.findByText(/Choisis une suggestion/i);
+    await user.type(
+      screen.getByLabelText(/Message pour le Coach/i),
+      'Question test',
+    );
+    await user.click(screen.getByRole('button', { name: /Envoyer/i }));
+
+    expect(
+      await screen.findByText(/Trop de demandes en peu de temps/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/429/i)).not.toBeInTheDocument();
   });
 });

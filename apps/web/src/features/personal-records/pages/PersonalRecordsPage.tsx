@@ -1,6 +1,7 @@
 import type { PersonalRecord } from '@gym-companion/shared';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 
 import { Button, ButtonLink } from '@/components/ui/button';
 import { getMe } from '@/features/profile/api/profile-api';
@@ -8,7 +9,12 @@ import { pendingTerminalLocalQueryOptions } from '@/features/workouts/api/workou
 import { getApiErrorMessage } from '@/lib/api/client';
 
 import { personalRecordsInfiniteQueryOptions } from '../api/personal-record-query-options';
-import { PersonalRecordCard } from '../components/PersonalRecordCard';
+import { PersonalRecordRow } from '../components/PersonalRecordRow';
+import {
+  formatPersonalRecordDate,
+  formatPersonalRecordValue,
+  getPersonalRecordTypeLabel,
+} from '../lib/personal-record-labels';
 
 function groupRecordsByExercise(
   records: PersonalRecord[],
@@ -36,14 +42,40 @@ function groupRecordsByExercise(
 
 function PersonalRecordsSkeleton() {
   return (
-    <ul className="flex flex-col gap-3" aria-busy="true" aria-label="Chargement">
-      {Array.from({ length: 3 }).map((_, index) => (
+    <ul className="flex flex-col gap-2" aria-busy="true" aria-label="Chargement">
+      {Array.from({ length: 4 }).map((_, index) => (
         <li
           key={index}
-          className="h-32 animate-pulse rounded-[var(--radius)] border border-[var(--border)] bg-slate-100"
+          className="h-14 animate-pulse rounded-[var(--radius-control)] bg-[var(--surface)]"
         />
       ))}
     </ul>
+  );
+}
+
+function LatestRecordHero({ record }: { record: PersonalRecord }) {
+  return (
+    <section
+      className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] px-4 py-3"
+      aria-labelledby="latest-record-heading"
+    >
+      <h2
+        id="latest-record-heading"
+        className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]"
+      >
+        Dernier record battu
+      </h2>
+      <p className="mt-1 font-semibold tracking-tight">{record.exercise.name}</p>
+      <p className="mt-0.5 text-lg font-semibold tabular-nums">
+        {formatPersonalRecordValue(record)}
+        <span className="ml-2 text-sm font-normal text-[var(--muted)]">
+          {getPersonalRecordTypeLabel(record.recordType)}
+        </span>
+      </p>
+      <p className="mt-0.5 text-xs text-[var(--muted)]">
+        {formatPersonalRecordDate(record.achievedOn)}
+      </p>
+    </section>
   );
 }
 
@@ -63,6 +95,14 @@ export function PersonalRecordsPage() {
     [listQuery.data],
   );
   const groups = useMemo(() => groupRecordsByExercise(records), [records]);
+  const latestRecord = useMemo(() => {
+    if (records.length === 0) return null;
+    return [...records].sort((a, b) => {
+      const byDate = b.achievedOn.localeCompare(a.achievedOn);
+      if (byDate !== 0) return byDate;
+      return (b.achievedAt ?? '').localeCompare(a.achievedAt ?? '');
+    })[0]!;
+  }, [records]);
 
   const hasPendingCompletedSync = useMemo(() => {
     const snapshots = pendingLocalQuery.data ?? [];
@@ -72,11 +112,17 @@ export function PersonalRecordsPage() {
   const isInitialLoading = listQuery.isLoading && !listQuery.data;
 
   return (
-    <main className="flex flex-1 flex-col gap-5">
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5">
       <header>
+        <Link
+          to="/progress"
+          className="mb-2 inline-flex min-h-11 items-center text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
+        >
+          ← Progression
+        </Link>
         <h1 className="text-2xl font-bold tracking-tight">Records personnels</h1>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Meilleures performances calculées depuis tes séances terminées.
+          Tes meilleures performances validées.
         </p>
       </header>
 
@@ -113,23 +159,33 @@ export function PersonalRecordsPage() {
       ) : null}
 
       {!isInitialLoading && !listQuery.isError && records.length === 0 ? (
-        <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-5">
+        <section
+          className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] px-4 py-8 text-center"
+          role="status"
+        >
           <h2 className="text-lg font-semibold">Aucun record pour le moment.</h2>
-          <p className="mt-2 text-sm text-[var(--muted)]">
-            Les records apparaîtront après tes premières séries terminées dans
-            une séance complétée.
+          <p className="mx-auto mt-2 max-w-sm text-sm text-[var(--muted)]">
+            Tes records apparaîtront après tes premières séries validées dans des
+            séances terminées.
           </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <ButtonLink to="/programs">Voir mes programmes</ButtonLink>
-            <ButtonLink to="/workouts" variant="secondary">
-              Voir mon historique
+          <div className="mt-5 flex flex-col items-center gap-2">
+            <ButtonLink to="/programs" className="w-full max-w-xs">
+              Voir mes programmes
             </ButtonLink>
+            <Link
+              to="/workouts"
+              className="inline-flex min-h-11 items-center text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
+            >
+              Voir mon historique
+            </Link>
           </div>
         </section>
       ) : null}
 
+      {latestRecord ? <LatestRecordHero record={latestRecord} /> : null}
+
       {groups.length > 0 ? (
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-6">
           {groups.map((group) => (
             <section
               key={group.exerciseId}
@@ -137,17 +193,17 @@ export function PersonalRecordsPage() {
             >
               <h2
                 id={`records-exercise-${group.exerciseId}`}
-                className="mb-3 text-lg font-semibold tracking-tight"
+                className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]"
               >
                 {group.name}
               </h2>
-              <ul className="flex flex-col gap-3">
+              <ul className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                 {group.records.map((record) => (
-                  <li
+                  <PersonalRecordRow
                     key={`${record.recordType}-${record.equipment.id ?? 'none'}-${record.source.workoutSetId}`}
-                  >
-                    <PersonalRecordCard record={record} />
-                  </li>
+                    record={record}
+                    showExerciseName={false}
+                  />
                 ))}
               </ul>
             </section>

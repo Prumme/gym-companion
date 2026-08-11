@@ -1,11 +1,10 @@
 import type { WorkoutSessionSetDetail } from '@gym-companion/shared';
 
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 import {
-  formatWorkoutSetActualSummary,
-  formatWorkoutSetTargetSummary,
+  formatWorkoutSetActualCompact,
+  formatWorkoutSetTargetCompact,
   getWorkoutSetStatusLabel,
   getWorkoutSetTypeLabelSafe,
 } from '../lib/workout-labels';
@@ -19,101 +18,86 @@ type WorkoutSetCardProps = {
   onMarkFailed?: () => void;
 };
 
+function statusGlyph(set: WorkoutSessionSetDetail, isNext: boolean): string {
+  if (set.status === 'SKIPPED' || set.status === 'CANCELLED') return '—';
+  if (
+    set.status === 'COMPLETED' ||
+    set.status === 'PARTIAL' ||
+    set.status === 'FAILED'
+  ) {
+    return '✓';
+  }
+  if (isNext) return '●';
+  return '○';
+}
+
 export function WorkoutSetCard({
   set,
   canRecord,
   isNext,
   onEdit,
-  onSkip,
-  onMarkFailed,
 }: WorkoutSetCardProps) {
-  const targetParts = formatWorkoutSetTargetSummary(set).split(' — ').slice(1);
-  const actual = formatWorkoutSetActualSummary(set);
+  const actual = formatWorkoutSetActualCompact(set);
+  const target = formatWorkoutSetTargetCompact(set);
+  const glyph = statusGlyph(set, isNext);
+  const statusLabel =
+    !canRecord && set.status === 'PENDING'
+      ? 'Non réalisée'
+      : getWorkoutSetStatusLabel(set.status);
+  const detail =
+    set.status === 'PENDING' || set.status === 'SKIPPED'
+      ? target || '—'
+      : actual || target || statusLabel;
+
+  const interactive = canRecord;
 
   return (
-    <li
-      id={`set-${set.id}`}
-      className={cn(
-        'rounded-[var(--radius)] border border-[var(--border)] bg-[var(--background)] px-3 py-3',
-        isNext ? 'ring-2 ring-[var(--primary)] ring-offset-2' : '',
-      )}
-    >
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm font-medium">
-            Série {set.position + 1} · {getWorkoutSetTypeLabelSafe(set.setType)}
-          </p>
-          {isNext ? (
-            <span className="text-xs font-medium text-[var(--primary)]">
-              Prochaine série
-            </span>
-          ) : null}
-        </div>
-        <p className="text-xs text-[var(--muted)]">
-          Cible : {targetParts.join(' — ') || '—'}
-        </p>
-        <p className="text-xs">
-          Statut :{' '}
-          {!canRecord && set.status === 'PENDING'
-            ? 'Non réalisée'
-            : getWorkoutSetStatusLabel(set.status)}
-        </p>
-        {set.reachedFailure ? (
-          <p className="text-xs text-[var(--muted)]">Échec musculaire : Oui</p>
-        ) : set.status !== 'PENDING' && set.status !== 'SKIPPED' ? (
-          <p className="text-xs text-[var(--muted)]">Échec musculaire : Non</p>
+    <li id={`set-${set.id}`}>
+      <button
+        type="button"
+        disabled={!interactive}
+        onClick={onEdit}
+        aria-current={isNext ? 'step' : undefined}
+        aria-label={`Série ${set.position + 1}, ${getWorkoutSetTypeLabelSafe(set.setType)}, ${statusLabel}${isNext ? ', série courante' : ''}`}
+        className={cn(
+          'flex w-full min-h-11 items-center gap-3 rounded-[var(--radius-control)] px-2 py-2 text-left transition-colors',
+          interactive
+            ? 'hover:bg-[var(--surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]'
+            : 'cursor-default opacity-90',
+          isNext
+            ? 'bg-[var(--primary)]/10 ring-1 ring-[var(--primary)]/50'
+            : '',
+        )}
+      >
+        <span
+          className={cn(
+            'w-4 shrink-0 text-center text-sm font-semibold',
+            isNext
+              ? 'text-[var(--primary-foreground)]'
+              : set.status === 'PENDING'
+                ? 'text-[var(--muted)]'
+                : set.status === 'SKIPPED' || set.status === 'CANCELLED'
+                  ? 'text-[var(--muted)]'
+                  : 'text-[var(--foreground)]',
+          )}
+          aria-hidden="true"
+        >
+          {glyph}
+        </span>
+        <span className="w-5 shrink-0 text-sm font-medium tabular-nums text-[var(--muted)]">
+          {set.position + 1}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-sm tabular-nums">
+          {detail}
+        </span>
+        {isNext ? (
+          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-[var(--primary-foreground)]">
+            Courante
+          </span>
+        ) : set.status !== 'PENDING' ? (
+          <span className="sr-only">{statusLabel}</span>
         ) : null}
-        {set.notes ? (
-          <p className="text-xs text-[var(--muted)]">Notes : {set.notes}</p>
-        ) : null}
-        {set.completedAt ? (
-          <p className="text-xs text-[var(--muted)]">
-            Validée :{' '}
-            {new Intl.DateTimeFormat('fr-FR', {
-              dateStyle: 'short',
-              timeStyle: 'short',
-            }).format(new Date(set.completedAt))}
-          </p>
-        ) : null}
-        {actual ? <p className="text-sm">Réalisé : {actual}</p> : null}
-        {set.targetRestSeconds != null && set.targetRestSeconds > 0 ? (
-          <p className="text-xs text-[var(--muted)]">
-            Repos après : {set.targetRestSeconds} s
-          </p>
-        ) : null}
-
-        {canRecord ? (
-          <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            <Button
-              type="button"
-              className="w-full sm:w-auto"
-              onClick={onEdit}
-            >
-              {set.status === 'PENDING' ? 'Saisir la série' : 'Modifier'}
-            </Button>
-            {set.status === 'PENDING' && onSkip ? (
-              <Button
-                type="button"
-                variant="secondary"
-                className="w-full sm:w-auto"
-                onClick={onSkip}
-              >
-                Ignorer
-              </Button>
-            ) : null}
-            {set.status === 'PENDING' && onMarkFailed ? (
-              <Button
-                type="button"
-                variant="secondary"
-                className="w-full sm:w-auto"
-                onClick={onMarkFailed}
-              >
-                Marquer comme échouée
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
+      </button>
     </li>
   );
 }

@@ -76,6 +76,79 @@ export function formatWorkoutSetTargetSummary(
   return parts.join(' — ');
 }
 
+/** Cible compacte pour UI focus (sans type de série ni repos). */
+export function formatWorkoutSetTargetCompact(
+  set: Pick<
+    WorkoutSessionSetDetail,
+    | 'targetWeightKg'
+    | 'targetRepMin'
+    | 'targetRepMax'
+    | 'targetDurationSeconds'
+    | 'targetDistanceMeters'
+    | 'targetRir'
+    | 'targetRpe'
+  >,
+): string {
+  const parts: string[] = [];
+
+  if (set.targetRepMin != null && set.targetRepMax != null) {
+    parts.push(
+      set.targetRepMin === set.targetRepMax
+        ? `${set.targetRepMin} reps`
+        : `${set.targetRepMin}–${set.targetRepMax} reps`,
+    );
+  } else if (set.targetRepMin != null) {
+    parts.push(`${set.targetRepMin} reps`);
+  }
+
+  if (set.targetWeightKg != null) {
+    parts.push(`${set.targetWeightKg} kg`);
+  }
+
+  if (set.targetDistanceMeters != null) {
+    parts.push(
+      `${new Intl.NumberFormat('fr-FR').format(set.targetDistanceMeters)} m`,
+    );
+  }
+
+  if (set.targetDurationSeconds != null) {
+    parts.push(`${set.targetDurationSeconds} s`);
+  }
+
+  if (set.targetRir != null) {
+    parts.push(`RIR ${set.targetRir}`);
+  }
+
+  if (set.targetRpe != null) {
+    parts.push(`RPE ${set.targetRpe}`);
+  }
+
+  return parts.join(' · ');
+}
+
+/** Résumé réalisé compact (ligne de série). */
+export function formatWorkoutSetActualCompact(
+  set: WorkoutSessionSetDetail,
+): string | null {
+  if (set.status === 'PENDING') return null;
+  if (set.status === 'SKIPPED') return 'Ignorée';
+
+  const parts: string[] = [];
+  if (set.actualReps != null) parts.push(`${set.actualReps} reps`);
+  if (set.actualWeightKg != null) parts.push(`${set.actualWeightKg} kg`);
+  if (set.actualDistanceMeters != null) {
+    parts.push(
+      `${new Intl.NumberFormat('fr-FR').format(set.actualDistanceMeters)} m`,
+    );
+  }
+  if (set.actualDurationSeconds != null) {
+    parts.push(`${set.actualDurationSeconds} s`);
+  }
+  if (set.actualRir != null) parts.push(`RIR ${set.actualRir}`);
+  if (set.actualRpe != null) parts.push(`RPE ${set.actualRpe}`);
+  return parts.length > 0 ? parts.join(' · ') : getWorkoutSetStatusLabel(set.status);
+}
+
 export function formatWorkoutSetActualSummary(
   set: WorkoutSessionSetDetail,
 ): string | null {

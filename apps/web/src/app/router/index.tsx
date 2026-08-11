@@ -4,6 +4,7 @@ import { AppLayout } from '@/app/layouts/AppLayout';
 import { ErrorPage } from '@/app/pages/ErrorPage';
 import { HomePage } from '@/app/pages/HomePage';
 import { NotFoundPage } from '@/app/pages/NotFoundPage';
+import { TrainingHubPage } from '@/app/pages/TrainingHubPage';
 import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { RegisterPage } from '@/features/auth/pages/RegisterPage';
 import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage';
@@ -48,6 +49,7 @@ export const router = createBrowserRouter([
         element: <ProtectedRoute />,
         children: [
           { path: 'profile', element: <ProfilePage /> },
+          { path: 'training', element: <TrainingHubPage /> },
           { path: 'planning', element: <PlanningPage /> },
           { path: 'workouts', element: <WorkoutsHistoryPage /> },
           { path: 'shared-workouts', element: <SharedWorkoutsPage /> },
@@ -62,6 +64,7 @@ export const router = createBrowserRouter([
           },
           { path: 'records', element: <PersonalRecordsPage /> },
           { path: 'progress', element: <ProgressOverviewPage /> },
+          { path: 'progress/overview', element: <ProgressOverviewPage /> },
           {
             path: 'progress/exercises/:exerciseId',
             element: <ExerciseProgressPage />,

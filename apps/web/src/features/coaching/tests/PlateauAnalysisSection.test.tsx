@@ -97,7 +97,7 @@ describe('PlateauAnalysisSection (5.3)', () => {
     resolveFn?.(baseAnalysis());
     await screen.findByText('Progression régulière');
     expect(
-      screen.getByText(/Aucun signe de stagnation/i),
+      screen.getByText(/Pas de stagnation détectée/i),
     ).toBeInTheDocument();
   });
 
@@ -120,9 +120,9 @@ describe('PlateauAnalysisSection (5.3)', () => {
       }),
     );
     renderSection();
-    await screen.findByText('Stagnation détectée');
+    await screen.findByText('Stagnation possible');
     expect(
-      screen.getByText(/restées stables sur plusieurs séances/i),
+      screen.getByText(/évoluent peu sur la période analysée/i),
     ).toBeInTheDocument();
   });
 

@@ -33,6 +33,7 @@ import {
   draftEntriesEqual,
   moveDraftEntryWithinDay,
   reindexDraftEntries,
+  setDraftDaySingleTemplate,
 } from '../lib/schedule-utils';
 
 describe('program form transforms', () => {
@@ -280,5 +281,28 @@ describe('planning utils', () => {
     expect(moved[0]?.workoutTemplate.name).toBe('B');
     expect(reindexDraftEntries(moved)[0]?.position).toBe(0);
     expect(draftEntriesEqual(entries, entries)).toBe(true);
+  });
+
+  it('setDraftDaySingleTemplate replaces a day with one session or clears it', () => {
+    const detail = createProgramDetail({
+      workoutTemplates: [
+        createTemplate({ id: 't1', name: 'A' }),
+        createTemplate({ id: 't2', name: 'B' }),
+      ],
+    });
+    let entries = addDraftEntry([], 'MONDAY', detail.workoutTemplates[0]!);
+    entries = addDraftEntry(entries, 'TUESDAY', detail.workoutTemplates[0]!);
+    entries = setDraftDaySingleTemplate(
+      entries,
+      'TUESDAY',
+      detail.workoutTemplates[1]!,
+    );
+    expect(entries.filter((e) => e.weekday === 'TUESDAY')).toHaveLength(1);
+    expect(entries.find((e) => e.weekday === 'TUESDAY')?.workoutTemplateId).toBe(
+      't2',
+    );
+    entries = setDraftDaySingleTemplate(entries, 'TUESDAY', null);
+    expect(entries.filter((e) => e.weekday === 'TUESDAY')).toHaveLength(0);
+    expect(entries.filter((e) => e.weekday === 'MONDAY')).toHaveLength(1);
   });
 });

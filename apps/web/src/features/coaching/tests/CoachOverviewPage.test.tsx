@@ -123,7 +123,7 @@ describe('Coach frontend (5.4)', () => {
     });
   });
 
-  it('page /coach : empty puis cartes', async () => {
+  it('page /coach : empty puis lignes denses', async () => {
     getCoachingOverview.mockResolvedValue({ items: [] } satisfies CoachingOverview);
     const emptyClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -146,16 +146,16 @@ describe('Coach frontend (5.4)', () => {
           exerciseId: 'ex-1',
           exerciseName: 'Développé couché',
           status: 'PLATEAU',
-          headline: 'Stagnation détectée',
+          headline: 'Stagnation possible',
           latestWorkoutDate: '2026-08-04',
         },
       ],
     });
-    const cardsClient = new QueryClient({
+    const listClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
     render(
-      <QueryClientProvider client={cardsClient}>
+      <QueryClientProvider client={listClient}>
         <MemoryRouter initialEntries={['/coach']}>
           <Routes>
             <Route path="/coach" element={<CoachOverviewPage />} />
@@ -164,11 +164,15 @@ describe('Coach frontend (5.4)', () => {
       </QueryClientProvider>,
     );
     await screen.findByText('Développé couché');
-    expect(screen.getByText('Stagnation détectée')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Voir l’analyse/i })).toHaveAttribute(
-      'href',
-      '/progress/exercises/ex-1',
-    );
+    expect(screen.getByText('Stagnation possible')).toBeInTheDocument();
+    expect(screen.getByText(/À surveiller/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {
+        name: /Développé couché — Stagnation possible/i,
+      }),
+    ).toHaveAttribute('href', '/progress/exercises/ex-1');
+    expect(screen.queryByText(/Discuter avec le Coach/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Indisponible sur cet environnement/i)).toBeInTheDocument();
   });
 
   it('section détail exercice', async () => {
@@ -183,11 +187,13 @@ describe('Coach frontend (5.4)', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    await screen.findByText('Progression à surveiller');
-    expect(screen.getByText(/Recommandation actuelle/i)).toBeInTheDocument();
+    await screen.findByText('80 kg');
+    expect(screen.getAllByText('Progression à surveiller').length).toBeGreaterThan(0);
+    expect(screen.getByText(/Prochaine séance/i)).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Voir la recommandation' }),
     ).toHaveAttribute('href', '/programs/prog-1');
+    expect(screen.getByText(/Explication IA/i)).toBeInTheDocument();
   });
 
   it('erreur réseau overview', async () => {

@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ExerciseNavigator } from '../components/ExerciseNavigator';
@@ -10,23 +11,39 @@ import { RestTimer } from '../components/RestTimer';
 import { computeWorkoutProgress } from '../lib/workout-progress';
 import { createWorkoutSessionDetail, createWorkoutSet } from './fixtures';
 
-describe('composants séance (3.4)', () => {
-  it('affiche l’en-tête actif avec pause', () => {
+describe('composants séance (UX-2)', () => {
+  it('affiche l’en-tête focus avec menu pause', async () => {
+    const user = userEvent.setup();
     const session = createWorkoutSessionDetail();
     render(
-      <ActiveWorkoutHeader
-        session={session}
-        progress={computeWorkoutProgress(session)}
-        onPause={() => undefined}
-        onOpenComplete={() => undefined}
-        onOpenCancel={() => undefined}
-      />,
+      <MemoryRouter>
+        <ActiveWorkoutHeader
+          session={session}
+          progress={computeWorkoutProgress(session)}
+          currentExerciseIndex={0}
+          totalExercises={1}
+          onPause={() => undefined}
+          onOpenComplete={() => undefined}
+          onOpenCancel={() => undefined}
+        />
+      </MemoryRouter>,
     );
-    expect(screen.getByText(/Statut : En cours/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Mettre en pause/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Séance Push' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /Quitter la séance sans la terminer/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Statut : En cours/i)).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Actions de séance/i }));
+    expect(
+      screen.getByRole('menuitem', { name: /Mettre en pause/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: /Détails de la séance/i }),
+    ).toBeInTheDocument();
   });
 
-  it('affiche l’en-tête en pause avec reprise', () => {
+  it('affiche la reprise en pause via le menu', async () => {
+    const user = userEvent.setup();
     const session = createWorkoutSessionDetail({
       status: 'PAUSED',
       pausedAt: '2026-08-04T10:10:00.000Z',
@@ -39,21 +56,25 @@ describe('composants séance (3.4)', () => {
       },
     });
     render(
-      <ActiveWorkoutHeader
-        session={session}
-        progress={computeWorkoutProgress(session)}
-        onResume={() => undefined}
-        onOpenComplete={() => undefined}
-        onOpenCancel={() => undefined}
-      />,
+      <MemoryRouter>
+        <ActiveWorkoutHeader
+          session={session}
+          progress={computeWorkoutProgress(session)}
+          currentExerciseIndex={0}
+          totalExercises={1}
+          onResume={() => undefined}
+          onOpenComplete={() => undefined}
+          onOpenCancel={() => undefined}
+        />
+      </MemoryRouter>,
     );
-    expect(screen.getByText(/Statut : En pause/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Actions de séance/i }));
     expect(
-      screen.getByRole('button', { name: /Reprendre la séance/i }),
+      screen.getByRole('menuitem', { name: /Reprendre la séance/i }),
     ).toBeInTheDocument();
   });
 
-  it('affiche la progression', () => {
+  it('affiche la progression compacte', () => {
     render(
       <WorkoutProgressBanner
         progress={{
@@ -69,8 +90,9 @@ describe('composants séance (3.4)', () => {
         }}
       />,
     );
-    expect(screen.getByText(/5 séries enregistrées sur 12/i)).toBeInTheDocument();
-    expect(screen.getByText(/2 exercices traités sur 4/i)).toBeInTheDocument();
+    expect(screen.getByText(/5 \/ 12 séries/i)).toBeInTheDocument();
+    expect(screen.getByText(/42 %/i)).toBeInTheDocument();
+    expect(screen.getByText(/Exercice 2 \/ 4/i)).toBeInTheDocument();
   });
 
   it('navigue entre exercices', async () => {
@@ -121,14 +143,19 @@ describe('composants séance (3.4)', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: /Exercice précédent/i })).toBeDisabled();
-    await user.click(screen.getByRole('button', { name: /Exercice suivant/i }));
+    expect(
+      screen.getByRole('button', { name: /Aller à l'exercice précédent/i }),
+    ).toBeDisabled();
+    expect(screen.getByText(/Exercice 1 \/ 2/i)).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: /Aller à l'exercice suivant/i }),
+    );
     expect(onNext).toHaveBeenCalled();
     await user.click(screen.getByRole('tab', { name: /Élévations/i }));
     expect(onSelect).toHaveBeenCalledWith('wse-2');
   });
 
-  it('met en évidence la prochaine série et affiche les statuts', () => {
+  it('met en évidence la série courante et les statuts compactés', () => {
     const pending = createWorkoutSet({ status: 'PENDING' });
     const completed = createWorkoutSet({
       id: 'ws-2',
@@ -137,8 +164,16 @@ describe('composants séance (3.4)', () => {
       actualReps: 9,
       actualRir: 1,
     });
-    const partial = createWorkoutSet({ id: 'ws-3', status: 'PARTIAL', actualReps: 5 });
-    const failed = createWorkoutSet({ id: 'ws-4', status: 'FAILED', actualReps: 2 });
+    const partial = createWorkoutSet({
+      id: 'ws-3',
+      status: 'PARTIAL',
+      actualReps: 5,
+    });
+    const failed = createWorkoutSet({
+      id: 'ws-4',
+      status: 'FAILED',
+      actualReps: 2,
+    });
     const skipped = createWorkoutSet({ id: 'ws-5', status: 'SKIPPED' });
 
     const { rerender } = render(
@@ -153,45 +188,68 @@ describe('composants séance (3.4)', () => {
         />
       </ul>,
     );
-    expect(screen.getByText('Prochaine série')).toBeInTheDocument();
-    expect(screen.getByText(/Statut : À faire/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Saisir la série/i })).toBeInTheDocument();
+    expect(screen.getByText('Courante')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /série courante/i }),
+    ).toBeInTheDocument();
 
     rerender(
       <ul>
-        <WorkoutSetCard set={completed} canRecord isNext={false} onEdit={() => undefined} />
+        <WorkoutSetCard
+          set={completed}
+          canRecord
+          isNext={false}
+          onEdit={() => undefined}
+        />
       </ul>,
     );
-    expect(screen.getByText(/Statut : Terminée/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Modifier$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Terminée/i })).toBeInTheDocument();
+    expect(screen.getByText(/9 reps/i)).toBeInTheDocument();
 
     rerender(
       <ul>
-        <WorkoutSetCard set={partial} canRecord={false} isNext={false} onEdit={() => undefined} />
+        <WorkoutSetCard
+          set={partial}
+          canRecord={false}
+          isNext={false}
+          onEdit={() => undefined}
+        />
       </ul>,
     );
-    expect(screen.getByText(/Statut : Partielle/i)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Saisir|Modifier/i })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Partielle/i }),
+    ).toBeDisabled();
 
     rerender(
       <ul>
-        <WorkoutSetCard set={failed} canRecord={false} isNext={false} onEdit={() => undefined} />
+        <WorkoutSetCard
+          set={failed}
+          canRecord={false}
+          isNext={false}
+          onEdit={() => undefined}
+        />
       </ul>,
     );
-    expect(screen.getByText(/Statut : Échouée/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Échouée/i })).toBeDisabled();
 
     rerender(
       <ul>
-        <WorkoutSetCard set={skipped} canRecord={false} isNext={false} onEdit={() => undefined} />
+        <WorkoutSetCard
+          set={skipped}
+          canRecord={false}
+          isNext={false}
+          onEdit={() => undefined}
+        />
       </ul>,
     );
-    expect(screen.getByText(/Statut : Ignorée/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Ignorée/i })).toBeDisabled();
   });
 
-  it('affiche les commandes de minuterie', async () => {
+  it('affiche les commandes de minuterie compactes', async () => {
     const user = userEvent.setup();
     const onPause = vi.fn();
     const onAdd = vi.fn();
+    const onStop = vi.fn();
     render(
       <RestTimer
         remainingSeconds={90}
@@ -200,16 +258,26 @@ describe('composants séance (3.4)', () => {
         justExpired={false}
         onPause={onPause}
         onResume={() => undefined}
-        onStop={() => undefined}
+        onStop={onStop}
         onAdd={onAdd}
         onDismissExpired={() => undefined}
       />,
     );
     expect(screen.getByRole('timer')).toHaveTextContent('01:30');
-    await user.click(screen.getByRole('button', { name: /Mettre le repos en pause/i }));
+    await user.click(
+      screen.getByRole('button', { name: /Mettre le repos en pause/i }),
+    );
     expect(onPause).toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: /Ajouter 15 secondes/i }));
+    await user.click(
+      screen.getByRole('button', { name: /Ajouter 15 secondes/i }),
+    );
     expect(onAdd).toHaveBeenCalledWith(15);
+    await user.click(
+      screen.getByRole('button', { name: /Retirer 15 secondes/i }),
+    );
+    expect(onAdd).toHaveBeenCalledWith(-15);
+    await user.click(screen.getByRole('button', { name: /Passer le repos/i }));
+    expect(onStop).toHaveBeenCalled();
   });
 
   it('affiche Repos terminé', () => {
@@ -226,6 +294,31 @@ describe('composants séance (3.4)', () => {
         onDismissExpired={() => undefined}
       />,
     );
-    expect(screen.getByText('Repos terminé')).toBeInTheDocument();
+    expect(screen.getByText('Repos')).toBeInTheDocument();
+    expect(screen.getByText('Terminé')).toBeInTheDocument();
+  });
+
+  it('expose Exercice suivant comme action principale pendant le repos', async () => {
+    const user = userEvent.setup();
+    const onPrimary = vi.fn();
+    render(
+      <RestTimer
+        remainingSeconds={60}
+        isRunning
+        isPaused={false}
+        justExpired={false}
+        onPause={() => undefined}
+        onResume={() => undefined}
+        onStop={() => undefined}
+        onAdd={() => undefined}
+        onDismissExpired={() => undefined}
+        primaryActionLabel="Exercice suivant"
+        onPrimaryAction={onPrimary}
+      />,
+    );
+    await user.click(
+      screen.getByRole('button', { name: /^Exercice suivant$/i }),
+    );
+    expect(onPrimary).toHaveBeenCalled();
   });
 });

@@ -1,78 +1,61 @@
-import {
-  CalendarDays,
-  ChartColumn,
-  ClipboardList,
-  Dumbbell,
-  History,
-  Home,
-  Sparkles,
-  Trophy,
-  UserRound,
-  Users,
-} from 'lucide-react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 
+import { isFocusModePath } from '@/app/navigation/nav-config';
+import { AppSidebar } from '@/components/layout/AppSidebar';
+import { BottomNavigation } from '@/components/layout/BottomNavigation';
+import { MoreMenuSheet } from '@/components/layout/MoreMenuSheet';
 import { PwaUpdateBanner } from '@/lib/pwa/PwaUpdateBanner';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 
-const navItems = [
-  { to: '/', label: 'Accueil', icon: Home, end: true },
-  { to: '/planning', label: 'Planning', icon: CalendarDays, end: false },
-  { to: '/workouts', label: 'Historique', icon: History, end: true },
-  { to: '/shared-workouts', label: 'Partagées', icon: Users, end: false },
-  { to: '/records', label: 'Records', icon: Trophy, end: true },
-  { to: '/progress', label: 'Progression', icon: ChartColumn, end: true },
-  { to: '/coach', label: 'Coach', icon: Sparkles, end: true },
-  { to: '/programs', label: 'Programmes', icon: ClipboardList, end: false },
-  { to: '/exercises', label: 'Exercices', icon: Dumbbell, end: false },
-  { to: '/profile', label: 'Profil', icon: UserRound, end: false },
-] as const;
-
 export function AppLayout() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const location = useLocation();
+  const focusMode = isFocusModePath(location.pathname);
+  const showChrome = isAuthenticated && !focusMode;
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  const closeMore = useCallback(() => setMoreOpen(false), []);
+
+  useEffect(() => {
+    setMoreOpen(false);
+  }, [location.pathname]);
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-4 pt-6 pb-24 md:pb-8">
-      <header className="mb-6">
-        <p className="text-sm font-semibold tracking-[0.18em] text-[var(--muted)] uppercase">
-          Gym Companion
-        </p>
-      </header>
-      <PwaUpdateBanner />
-      <Outlet />
+    <div className="flex min-h-dvh w-full bg-[var(--background)]">
+      {showChrome ? <AppSidebar pathname={location.pathname} /> : null}
 
-      {isAuthenticated ? (
-        <nav
-          aria-label="Navigation principale"
-          className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--border)] bg-[var(--card)]/95 backdrop-blur md:static md:mt-8 md:rounded-[var(--radius)] md:border md:backdrop-blur-none"
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div
+          className={cn(
+            'mx-auto flex w-full max-w-3xl flex-1 flex-col px-[var(--page-padding-inline)] pt-[var(--space-4)]',
+            focusMode
+              ? 'max-w-none px-[var(--page-padding-inline)] pt-[var(--space-3)] pb-0'
+              : showChrome
+                ? 'pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom,0px)+var(--space-4))] md:pb-[var(--space-8)]'
+                : 'pb-[var(--space-6)]',
+          )}
         >
-          <ul className="mx-auto flex max-w-3xl items-stretch justify-around px-2 py-2">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <li key={item.to} className="flex-1">
-                  <NavLink
-                    to={item.to}
-                    end={item.end}
-                    className={({ isActive }) =>
-                      cn(
-                        'flex min-h-12 flex-col items-center justify-center gap-1 rounded-[var(--radius)] px-2 text-xs font-medium',
-                        isActive
-                          ? 'text-[var(--primary)]'
-                          : 'text-[var(--muted)] hover:text-[var(--foreground)]',
-                      )
-                    }
-                  >
-                    <Icon className="size-5" aria-hidden="true" />
-                    {item.label}
-                  </NavLink>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-      ) : null}
+          <PwaUpdateBanner />
+          <Outlet />
+        </div>
+
+        {showChrome ? (
+          <>
+            <BottomNavigation
+              pathname={location.pathname}
+              moreOpen={moreOpen}
+              onOpenMore={() => setMoreOpen(true)}
+            />
+            <MoreMenuSheet
+              open={moreOpen}
+              onClose={closeMore}
+              pathname={location.pathname}
+            />
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }

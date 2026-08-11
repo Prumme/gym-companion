@@ -1,10 +1,11 @@
 import type { ExerciseMeasurementType } from '@gym-companion/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 import { WORKOUT_SET_TYPE_OPTIONS } from '../lib/program-labels';
 import {
@@ -58,6 +59,9 @@ type TemplateSetEditorProps = {
   onCancel: () => void;
 };
 
+const fieldClass =
+  'min-h-12 w-full rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--background)] px-3 text-base tabular-nums outline-none focus:border-[var(--primary)]';
+
 export function TemplateSetEditor({
   open,
   title,
@@ -71,6 +75,7 @@ export function TemplateSetEditor({
 }: TemplateSetEditorProps) {
   const titleId = useId();
   const baselineRef = useRef(initialValues);
+  const [moreOpen, setMoreOpen] = useState(false);
   const needsReps = measurementNeedsReps(measurementType);
   const needsDuration = measurementNeedsDuration(measurementType);
   const needsDistance = measurementNeedsDistance(measurementType);
@@ -98,6 +103,7 @@ export function TemplateSetEditor({
     }
     reset(initialValues);
     baselineRef.current = initialValues;
+    setMoreOpen(false);
   }, [open, initialValues, reset]);
 
   const current = watch();
@@ -124,7 +130,7 @@ export function TemplateSetEditor({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
       role="presentation"
       onClick={requestClose}
     >
@@ -132,209 +138,223 @@ export function TemplateSetEditor({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-lg"
+        className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[1rem] border border-[var(--border)] bg-[var(--card)] shadow-lg sm:rounded-[var(--radius)]"
         onClick={(event) => event.stopPropagation()}
       >
-        <h3 id={titleId} className="text-lg font-semibold">
-          {title}
-        </h3>
+        <div className="shrink-0 border-b border-[var(--border)] px-4 pb-3 pt-3">
+          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[var(--border)] sm:hidden" />
+          <h3 id={titleId} className="text-lg font-semibold">
+            {title}
+          </h3>
+        </div>
+
         <form
-          className="mt-4 flex flex-col gap-4"
+          className="flex min-h-0 flex-1 flex-col"
           noValidate
           onSubmit={handleSubmit(async (values) => {
             await onSubmit(values);
             baselineRef.current = getValues();
           })}
         >
-          <label className="flex flex-col gap-1.5 text-sm" htmlFor="set-type">
-            <span className="font-medium">Type de série</span>
-            <select
-              id="set-type"
-              className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 outline-none focus:border-[var(--primary)]"
-              {...register('setType')}
-            >
-              {WORKOUT_SET_TYPE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <span className="text-xs text-[var(--muted)]">
-              AMRAP = maximum de répétitions ; Allégée = charge réduite après le
-              travail.
-            </span>
-          </label>
+          <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+            <label className="flex flex-col gap-1 text-sm" htmlFor="set-type">
+              <span className="font-medium">Type</span>
+              <select
+                id="set-type"
+                className={cn(fieldClass, 'text-sm')}
+                {...register('setType')}
+              >
+                {WORKOUT_SET_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          {needsReps ? (
-            <div className="grid grid-cols-2 gap-3">
-              <label className="flex flex-col gap-1.5 text-sm" htmlFor="set-rep-min">
-                <span className="font-medium">Répétitions min.</span>
+            {needsReps ? (
+              <div>
+                <p className="mb-1 text-sm font-medium">Répétitions</p>
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                  <input
+                    id="set-rep-min"
+                    type="text"
+                    inputMode="numeric"
+                    aria-label="Répétitions min."
+                    className={fieldClass}
+                    {...register('targetRepMin')}
+                  />
+                  <span className="text-sm text-[var(--muted)]">à</span>
+                  <input
+                    id="set-rep-max"
+                    type="text"
+                    inputMode="numeric"
+                    aria-label="Répétitions max."
+                    className={fieldClass}
+                    {...register('targetRepMax')}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {needsWeight ? (
+              <label className="flex flex-col gap-1 text-sm" htmlFor="set-weight">
+                <span className="font-medium">Charge cible (kg)</span>
                 <input
-                  id="set-rep-min"
+                  id="set-weight"
                   type="text"
-                  inputMode="numeric"
-                  className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 outline-none focus:border-[var(--primary)]"
-                  {...register('targetRepMin')}
+                  inputMode="decimal"
+                  placeholder="Facultatif"
+                  className={fieldClass}
+                  {...register('targetWeightKg')}
                 />
               </label>
-              <label className="flex flex-col gap-1.5 text-sm" htmlFor="set-rep-max">
-                <span className="font-medium">Répétitions max.</span>
+            ) : null}
+
+            {needsDuration ? (
+              <div className="grid grid-cols-2 gap-3">
+                <label
+                  className="flex flex-col gap-1 text-sm"
+                  htmlFor="set-duration-min"
+                >
+                  <span className="font-medium">Minutes</span>
+                  <input
+                    id="set-duration-min"
+                    type="text"
+                    inputMode="numeric"
+                    className={fieldClass}
+                    {...register('targetDurationMinutes')}
+                  />
+                </label>
+                <label
+                  className="flex flex-col gap-1 text-sm"
+                  htmlFor="set-duration-sec"
+                >
+                  <span className="font-medium">Secondes</span>
+                  <input
+                    id="set-duration-sec"
+                    type="text"
+                    inputMode="numeric"
+                    className={fieldClass}
+                    {...register('targetDurationSeconds')}
+                  />
+                </label>
+              </div>
+            ) : null}
+
+            {needsDistance ? (
+              <label
+                className="flex flex-col gap-1 text-sm"
+                htmlFor="set-distance"
+              >
+                <span className="font-medium">Distance (mètres)</span>
                 <input
-                  id="set-rep-max"
+                  id="set-distance"
+                  type="text"
+                  inputMode="decimal"
+                  className={fieldClass}
+                  {...register('targetDistanceMeters')}
+                />
+              </label>
+            ) : null}
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex flex-col gap-1 text-sm" htmlFor="set-rir">
+                <span className="font-medium">RIR</span>
+                <input
+                  id="set-rir"
                   type="text"
                   inputMode="numeric"
-                  className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 outline-none focus:border-[var(--primary)]"
-                  {...register('targetRepMax')}
+                  className={fieldClass}
+                  {...register('targetRir', {
+                    onChange: (event) => {
+                      if (event.target.value.trim()) {
+                        setValue('targetRpe', '', { shouldDirty: true });
+                      }
+                    },
+                  })}
+                />
+                {errors.targetRir ? (
+                  <span className="text-[var(--danger)]" role="alert">
+                    {errors.targetRir.message}
+                  </span>
+                ) : null}
+              </label>
+              <label className="flex flex-col gap-1 text-sm" htmlFor="set-rest">
+                <span className="font-medium">Repos (s)</span>
+                <input
+                  id="set-rest"
+                  type="text"
+                  inputMode="numeric"
+                  className={fieldClass}
+                  {...register('restSeconds')}
                 />
               </label>
             </div>
-          ) : null}
 
-          {needsDuration ? (
-            <div className="grid grid-cols-2 gap-3">
-              <label
-                className="flex flex-col gap-1.5 text-sm"
-                htmlFor="set-duration-min"
-              >
-                <span className="font-medium">Minutes</span>
-                <input
-                  id="set-duration-min"
-                  type="text"
-                  inputMode="numeric"
-                  className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 outline-none focus:border-[var(--primary)]"
-                  {...register('targetDurationMinutes')}
-                />
-              </label>
-              <label
-                className="flex flex-col gap-1.5 text-sm"
-                htmlFor="set-duration-sec"
-              >
-                <span className="font-medium">Secondes</span>
-                <input
-                  id="set-duration-sec"
-                  type="text"
-                  inputMode="numeric"
-                  className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 outline-none focus:border-[var(--primary)]"
-                  {...register('targetDurationSeconds')}
-                />
-              </label>
-            </div>
-          ) : null}
-
-          {needsDistance ? (
-            <label
-              className="flex flex-col gap-1.5 text-sm"
-              htmlFor="set-distance"
+            <button
+              type="button"
+              className="text-sm text-[var(--muted)] underline-offset-4 hover:text-[var(--foreground)] hover:underline"
+              aria-expanded={moreOpen}
+              onClick={() => setMoreOpen((value) => !value)}
             >
-              <span className="font-medium">Distance (mètres)</span>
-              <input
-                id="set-distance"
-                type="text"
-                inputMode="decimal"
-                className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 outline-none focus:border-[var(--primary)]"
-                {...register('targetDistanceMeters')}
-              />
-            </label>
-          ) : null}
+              {moreOpen ? 'Masquer les options' : 'Plus d’options'}
+            </button>
 
-          {needsWeight ? (
-            <label className="flex flex-col gap-1.5 text-sm" htmlFor="set-weight">
-              <span className="font-medium">Charge cible (kg)</span>
-              <input
-                id="set-weight"
-                type="text"
-                inputMode="decimal"
-                placeholder="Facultatif"
-                className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 outline-none focus:border-[var(--primary)]"
-                {...register('targetWeightKg')}
-              />
-            </label>
-          ) : null}
+            {moreOpen ? (
+              <div className="space-y-3 border-t border-[var(--border)] pt-3">
+                <label
+                  className="flex flex-col gap-1 text-sm"
+                  htmlFor="set-intensity"
+                >
+                  <span className="font-medium">Intensité (%)</span>
+                  <input
+                    id="set-intensity"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Facultatif"
+                    className={fieldClass}
+                    {...register('targetIntensityPercent')}
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm" htmlFor="set-rpe">
+                  <span className="font-medium">RPE</span>
+                  <input
+                    id="set-rpe"
+                    type="text"
+                    inputMode="decimal"
+                    className={fieldClass}
+                    {...register('targetRpe', {
+                      onChange: (event) => {
+                        if (event.target.value.trim()) {
+                          setValue('targetRir', '', { shouldDirty: true });
+                        }
+                      },
+                    })}
+                  />
+                </label>
+              </div>
+            ) : null}
 
-          <label
-            className="flex flex-col gap-1.5 text-sm"
-            htmlFor="set-intensity"
-          >
-            <span className="font-medium">Intensité (%)</span>
-            <input
-              id="set-intensity"
-              type="text"
-              inputMode="decimal"
-              placeholder="Facultatif"
-              className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 outline-none focus:border-[var(--primary)]"
-              {...register('targetIntensityPercent')}
-            />
-          </label>
-
-          <div className="grid grid-cols-2 gap-3">
-            <label className="flex flex-col gap-1.5 text-sm" htmlFor="set-rir">
-              <span className="font-medium">RIR — Répétitions en réserve</span>
-              <input
-                id="set-rir"
-                type="text"
-                inputMode="numeric"
-                className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 outline-none focus:border-[var(--primary)]"
-                {...register('targetRir', {
-                  onChange: (event) => {
-                    if (event.target.value.trim()) {
-                      setValue('targetRpe', '', { shouldDirty: true });
-                    }
-                  },
-                })}
-              />
-              {errors.targetRir ? (
-                <span className="text-[var(--danger)]" role="alert">
-                  {errors.targetRir.message}
-                </span>
-              ) : null}
-            </label>
-            <label className="flex flex-col gap-1.5 text-sm" htmlFor="set-rpe">
-              <span className="font-medium">RPE — Effort perçu</span>
-              <input
-                id="set-rpe"
-                type="text"
-                inputMode="decimal"
-                className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 outline-none focus:border-[var(--primary)]"
-                {...register('targetRpe', {
-                  onChange: (event) => {
-                    if (event.target.value.trim()) {
-                      setValue('targetRir', '', { shouldDirty: true });
-                    }
-                  },
-                })}
-              />
-            </label>
+            {submitError ? (
+              <p className="text-sm text-[var(--danger)]" role="alert">
+                {submitError}
+              </p>
+            ) : null}
           </div>
 
-          <label className="flex flex-col gap-1.5 text-sm" htmlFor="set-rest">
-            <span className="font-medium">Repos après la série (secondes)</span>
-            <input
-              id="set-rest"
-              type="text"
-              inputMode="numeric"
-              className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 outline-none focus:border-[var(--primary)]"
-              {...register('restSeconds')}
-            />
-          </label>
-
-          {submitError ? (
-            <p className="text-sm text-[var(--danger)]" role="alert">
-              {submitError}
-            </p>
-          ) : null}
-
-          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-            <Button
+          <div className="shrink-0 border-t border-[var(--border)] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
+            <Button type="submit" className="w-full" disabled={pending}>
+              {pending ? 'Enregistrement…' : submitLabel}
+            </Button>
+            <button
               type="button"
-              variant="secondary"
+              className="mt-2 min-h-11 w-full text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
               disabled={pending}
               onClick={requestClose}
             >
               Annuler
-            </Button>
-            <Button type="submit" disabled={pending}>
-              {pending ? 'Enregistrement…' : submitLabel}
-            </Button>
+            </button>
           </div>
         </form>
       </div>

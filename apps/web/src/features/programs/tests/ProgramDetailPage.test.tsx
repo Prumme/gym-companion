@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -24,6 +24,8 @@ const deleteWorkoutTemplate = vi.fn();
 const reorderWorkoutTemplates = vi.fn();
 const getActiveWorkoutSession = vi.fn();
 const getMe = vi.fn();
+const getLoadRecommendation = vi.fn();
+const listLoadRecommendationDecisions = vi.fn();
 
 vi.mock('../api/program-api', async () => {
   const actual = await vi.importActual<typeof import('../api/program-api')>(
@@ -55,24 +57,58 @@ vi.mock('@/features/profile/api/profile-api', () => ({
   getMe: (...args: unknown[]) => getMe(...args),
 }));
 
+vi.mock('@/features/coaching/api/coaching-api', () => ({
+  getLoadRecommendation: (...args: unknown[]) => getLoadRecommendation(...args),
+  listLoadRecommendationDecisions: (...args: unknown[]) =>
+    listLoadRecommendationDecisions(...args),
+  decideLoadRecommendation: vi.fn(),
+}));
+
 const PROGRAM_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 
-function renderDetail(detail = createProgramDetail()) {
+async function openTemplate(
+  user: ReturnType<typeof userEvent.setup>,
+  name: string,
+) {
+  const row = await screen.findByRole('button', {
+    name: new RegExp(`^${name}\\b`, 'i'),
+  });
+  await user.click(row);
+  expect(await screen.findByRole('heading', { name })).toBeInTheDocument();
+}
+
+function renderDetail(
+  detail = createProgramDetail(),
+  entry = `/programs/${PROGRAM_ID}`,
+) {
   getProgram.mockResolvedValue(detail);
   getActiveProgram.mockResolvedValue(null);
   getActiveWorkoutSession.mockResolvedValue(null);
   getMe.mockResolvedValue({
     data: { profile: { timezone: 'Europe/Paris' } },
   });
+  getLoadRecommendation.mockResolvedValue({
+    supported: false,
+    workoutTemplateExerciseId: 'tex-1',
+    exerciseId: 'ex-1',
+  });
+  listLoadRecommendationDecisions.mockResolvedValue({
+    data: [],
+    pagination: { nextCursor: null, hasMore: false },
+  });
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[`/programs/${PROGRAM_ID}`]}>
+      <MemoryRouter initialEntries={[entry]}>
         <Routes>
           <Route path="/programs/:programId" element={children} />
           <Route path="/programs/:programId/edit" element={<div>Édition</div>} />
+          <Route
+            path="/programs/:programId/schedule"
+            element={<div>Planning</div>}
+          />
           <Route path="/programs" element={<div>Liste</div>} />
         </Routes>
       </MemoryRouter>
@@ -94,18 +130,39 @@ describe('ProgramDetailPage', () => {
     reorderWorkoutTemplates.mockReset();
     getActiveWorkoutSession.mockReset();
     getMe.mockReset();
+    getLoadRecommendation.mockReset();
+    listLoadRecommendationDecisions.mockReset();
   });
 
-  it('shows program detail and templates', async () => {
+  it('shows program detail and session list', async () => {
+    const user = userEvent.setup();
     renderDetail();
-    expect(await screen.findByRole('heading', { name: 'Push Pull Legs' })).toBeInTheDocument();
-    expect(screen.getByText('Push A')).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /Modifier les informations/i }),
+      await screen.findByRole('heading', { name: 'Push Pull Legs' }),
     ).toBeInTheDocument();
+    expect(screen.getByText('Push A')).toBeInTheDocument();
+    expect(screen.getByText(/Séances/i)).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /Ajouter une séance/i }),
     ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: /Actions du programme/i }),
+    );
+    expect(
+      screen.getByRole('menuitem', { name: /Modifier les informations/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('opens focused session editor from the list', async () => {
+    const user = userEvent.setup();
+    renderDetail();
+    await screen.findByText('Push A');
+    await openTemplate(user, 'Push A');
+    expect(
+      screen.getByRole('button', { name: /Ajouter un exercice/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Développé couché')).toBeInTheDocument();
   });
 
   it('shows inaccessible message on 404', async () => {
@@ -162,11 +219,13 @@ describe('ProgramDetailPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('creates a workout template', async () => {
+  it('creates a workout template and opens the editor', async () => {
     const user = userEvent.setup();
     const initial = createProgramDetail({ workoutTemplates: [] });
     const withTemplate = createProgramDetail({
-      workoutTemplates: [createTemplate({ id: 'wt-new', name: 'Legs' })],
+      workoutTemplates: [
+        createTemplate({ id: 'wt-new', name: 'Legs', exercises: [] }),
+      ],
     });
     createWorkoutTemplate.mockResolvedValue(withTemplate);
 
@@ -177,10 +236,11 @@ describe('ProgramDetailPage', () => {
     await user.click(screen.getByRole('button', { name: /Créer la séance/i }));
 
     await waitFor(() => expect(createWorkoutTemplate).toHaveBeenCalled());
-    expect(await screen.findByText('Legs')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Legs' })).toBeInTheDocument();
+    expect(screen.getByText(/Aucun exercice/i)).toBeInTheDocument();
   });
 
-  it('confirms template deletion', async () => {
+  it('confirms template deletion from focused editor', async () => {
     const user = userEvent.setup();
     const initial = createProgramDetail({
       workoutTemplates: [
@@ -194,17 +254,18 @@ describe('ProgramDetailPage', () => {
     );
 
     renderDetail(initial);
-    await screen.findByText('Push A');
+    await openTemplate(user, 'Push A');
     await user.click(screen.getByRole('button', { name: /Actions pour Push A/i }));
-    await user.click(screen.getByRole('button', { name: /^Supprimer$/i }));
+    await user.click(screen.getByRole('menuitem', { name: /^Supprimer$/i }));
     expect(
       await screen.findByText(/exercices et séries cibles/i),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /^Supprimer$/i }));
+    const dialog = screen.getByRole('alertdialog');
+    await user.click(within(dialog).getByRole('button', { name: /^Supprimer$/i }));
     await waitFor(() => expect(deleteWorkoutTemplate).toHaveBeenCalled());
   });
 
-  it('reorders templates optimistically and rolls back on error', async () => {
+  it('reorders templates from focused editor and rolls back on error', async () => {
     const user = userEvent.setup();
     const detail = createProgramDetail({
       workoutTemplates: [
@@ -215,13 +276,24 @@ describe('ProgramDetailPage', () => {
     reorderWorkoutTemplates.mockRejectedValue(new Error('Ordre invalide'));
 
     renderDetail(detail);
-    await screen.findByText('Séance A');
-    await user.click(screen.getByRole('button', { name: /Descendre la séance Séance A/i }));
+    await openTemplate(user, 'Séance A');
+    await user.click(
+      screen.getByRole('button', { name: /Actions pour Séance A/i }),
+    );
+    await user.click(
+      screen.getByRole('menuitem', { name: /Déplacer vers le bas/i }),
+    );
 
     await waitFor(() => expect(reorderWorkoutTemplates).toHaveBeenCalled());
     expect(await screen.findByText(/Ordre invalide|réordonner/i)).toBeInTheDocument();
-    const headings = screen.getAllByRole('heading', { level: 3 });
-    expect(headings[0]).toHaveTextContent('Séance A');
+
+    await user.click(
+      screen.getByRole('button', { name: /Retour à Push Pull Legs|Retour au programme/i }),
+    );
+    const sessionButtons = screen.getAllByRole('button', {
+      name: /Séance (A|B)/i,
+    });
+    expect(sessionButtons[0]).toHaveTextContent('Séance A');
   });
 
   it('activates a program from the detail page', async () => {
@@ -242,6 +314,7 @@ describe('ProgramDetailPage', () => {
 
     renderDetail(detail);
     await screen.findByRole('heading', { name: 'Push Pull Legs' });
+    expect(screen.queryByText(/Programme courant/i)).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Utiliser ce programme/i }));
 
     const dateInput = screen.getByLabelText(/Date de début/i);
@@ -260,7 +333,42 @@ describe('ProgramDetailPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('deactivates current program from the overflow menu', async () => {
+    const user = userEvent.setup();
+    const detail = createProgramDetail({
+      isCurrent: true,
+      permissions: {
+        canEdit: true,
+        canArchive: false,
+        canRestore: false,
+        canActivate: false,
+        canDeactivate: true,
+        canEditSchedule: true,
+      },
+    });
+    deactivateProgram.mockResolvedValue(null);
+
+    renderDetail(detail);
+    expect(await screen.findByText('Actif')).toBeInTheDocument();
+    expect(screen.queryByText(/Programme courant/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /^Désactiver$/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Voir le planning/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Actions du programme/i }));
+    await user.click(screen.getByRole('menuitem', { name: /^Désactiver$/i }));
+    const dialog = await screen.findByRole('alertdialog');
+    await user.click(within(dialog).getByRole('button', { name: /^Désactiver$/i }));
+
+    await waitFor(() => expect(deactivateProgram).toHaveBeenCalledWith(PROGRAM_ID));
+    expect(
+      await screen.findByText(/Programme courant désactivé/i),
+    ).toBeInTheDocument();
+  });
+
   it('keeps archived program read-only', async () => {
+    const user = userEvent.setup();
     renderDetail(
       createProgramDetail({
         status: 'ARCHIVED',
@@ -276,8 +384,11 @@ describe('ProgramDetailPage', () => {
       }),
     );
     expect(await screen.findByText('Archivé')).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: /Actions du programme/i }),
+    );
     expect(
-      screen.queryByRole('link', { name: /Modifier les informations/i }),
+      screen.queryByRole('menuitem', { name: /Modifier les informations/i }),
     ).not.toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /Restaurer le programme/i }),

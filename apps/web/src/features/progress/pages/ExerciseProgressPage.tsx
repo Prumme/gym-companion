@@ -1,13 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft } from 'lucide-react';
 import { useMemo } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 
 import { ButtonLink } from '@/components/ui/button';
 import { LoadingState } from '@/components/common/LoadingState';
 import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
 import { PlateauAnalysisSection } from '@/features/coaching/components/PlateauAnalysisSection';
 import { ExerciseCoachSummarySection } from '@/features/coaching/components/ExerciseCoachSummarySection';
+import { ExercisePersonalRecordsSection } from '@/features/personal-records/components/ExercisePersonalRecordsSection';
+import { getMeasurementTypeLabel } from '@/features/exercises/lib/exercise-labels';
+import { exerciseDetailQueryOptions } from '@/features/exercises/api/exercise-query-options';
 
 import {
   exerciseProgressQueryOptions,
@@ -21,6 +24,7 @@ import {
   ProgressPointsList,
   ProgressSummaryCards,
 } from '../components/ProgressSummary';
+import { getExerciseProgressMetricLabel } from '../lib/progress-labels';
 import {
   buildProgressSearchParams,
   parseProgressSearchParams,
@@ -58,6 +62,11 @@ export function ExerciseProgressPage() {
 
   const progressQuery = useQuery({
     ...exerciseProgressQueryOptions(exerciseId, apiFilters),
+    enabled: Boolean(exerciseId),
+  });
+
+  const exerciseQuery = useQuery({
+    ...exerciseDetailQueryOptions(exerciseId),
     enabled: Boolean(exerciseId),
   });
 
@@ -120,12 +129,12 @@ export function ExerciseProgressPage() {
     return (
       <main className="flex flex-1 flex-col gap-4">
         <ButtonLink
-          to={exerciseId ? `/exercises/${exerciseId}` : '/exercises'}
+          to="/progress"
           variant="ghost"
           className="w-fit gap-2 px-0"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
-          Retour à l’exercice
+          Progression
         </ButtonLink>
         <div
           className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4"
@@ -171,24 +180,39 @@ export function ExerciseProgressPage() {
     (likelySupportsStrength &&
       (strengthQuery.isLoading || strengthQuery.isError));
 
+  const detail = exerciseQuery.data;
+  const metaParts: string[] = [];
+  if (detail?.primaryMuscleGroup?.name) {
+    metaParts.push(detail.primaryMuscleGroup.name);
+  }
+  if (detail?.defaultEquipmentType?.name) {
+    metaParts.push(detail.defaultEquipmentType.name);
+  } else if (detail?.measurementType) {
+    metaParts.push(getMeasurementTypeLabel(detail.measurementType));
+  }
+
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-0">
-      <div>
-        <ButtonLink
-          to={`/exercises/${exerciseId}`}
-          variant="ghost"
-          className="mb-3 w-fit gap-2 px-0"
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5">
+      <header>
+        <Link
+          to="/progress"
+          className="mb-2 inline-flex min-h-11 items-center gap-1 text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
-          Retour à l’exercice
-        </ButtonLink>
-        <h1 className="text-2xl font-bold tracking-tight">
-          Progression — {data.exercise.name}
+          Progression
+        </Link>
+        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+          {data.exercise.name}
         </h1>
-        {data.exercise.archived ? (
-          <p className="mt-1 text-sm text-[var(--muted)]">Exercice archivé</p>
+        {metaParts.length > 0 ? (
+          <p className="mt-0.5 text-sm text-[var(--muted)]">
+            {metaParts.join(' · ')}
+          </p>
         ) : null}
-      </div>
+        {data.exercise.archived ? (
+          <p className="mt-1 text-sm text-amber-800">Exercice archivé</p>
+        ) : null}
+      </header>
 
       <ProgressControls
         availableMetrics={data.availableMetrics}
@@ -236,7 +260,9 @@ export function ExerciseProgressPage() {
             </p>
           ) : null}
 
-          {data.points.length >= 2 && data.summary && data.summary.pointCount < 2 ? (
+          {data.points.length >= 2 &&
+          data.summary &&
+          data.summary.pointCount < 2 ? (
             <p className="text-sm text-[var(--muted)]">
               Pas encore assez de données pour calculer une évolution.
             </p>
@@ -246,6 +272,9 @@ export function ExerciseProgressPage() {
             className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-3 sm:p-4"
             aria-label="Graphique de progression"
           >
+            <h2 className="mb-3 text-sm font-semibold">
+              {getExerciseProgressMetricLabel(selectedMetric)}
+            </h2>
             <ExerciseProgressChart
               points={data.points}
               metric={selectedMetric}
@@ -255,6 +284,13 @@ export function ExerciseProgressPage() {
 
           <ProgressPointsList points={data.points} metric={selectedMetric} />
         </>
+      ) : null}
+
+      {exerciseId ? (
+        <ExercisePersonalRecordsSection
+          exerciseId={exerciseId}
+          hideProgressCta
+        />
       ) : null}
 
       {showStrengthSection ? (

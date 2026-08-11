@@ -151,7 +151,9 @@ describe('Exercise detail personal records section', () => {
   it('gère une erreur API des records sans bloquer le détail', async () => {
     listExercisePersonalRecords.mockRejectedValue(new Error('records down'));
     renderDetail();
-    expect(await screen.findByText(/Contrôler/)).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Développé couché à la barre' }),
+    ).toBeInTheDocument();
     expect(await screen.findByRole('alert')).toBeInTheDocument();
   });
 

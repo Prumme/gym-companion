@@ -9,10 +9,37 @@ import { ExerciseProgressPage } from '../pages/ExerciseProgressPage';
 
 const getExerciseProgress = vi.fn();
 const getExerciseStrength = vi.fn();
+const getExercise = vi.fn();
 
 vi.mock('../api/progress-api', () => ({
   getExerciseProgress: (...args: unknown[]) => getExerciseProgress(...args),
   getExerciseStrength: (...args: unknown[]) => getExerciseStrength(...args),
+}));
+
+vi.mock('@/features/exercises/api/exercise-api', async () => {
+  const actual = await vi.importActual<
+    typeof import('@/features/exercises/api/exercise-api')
+  >('@/features/exercises/api/exercise-api');
+  return {
+    ...actual,
+    getExercise: (...args: unknown[]) => getExercise(...args),
+  };
+});
+
+vi.mock('@/features/personal-records/api/personal-records-api', () => ({
+  listExercisePersonalRecords: async () => [],
+  listPersonalRecords: async () => ({
+    data: [],
+    pagination: { nextCursor: null, hasMore: false },
+  }),
+}));
+
+vi.mock('@/features/coaching/components/ExerciseCoachSummarySection', () => ({
+  ExerciseCoachSummarySection: () => null,
+}));
+
+vi.mock('@/features/coaching/components/PlateauAnalysisSection', () => ({
+  PlateauAnalysisSection: () => null,
 }));
 
 function emptyResponse(
@@ -87,6 +114,33 @@ describe('ExerciseProgressPage', () => {
   beforeEach(() => {
     getExerciseProgress.mockReset();
     getExerciseStrength.mockReset();
+    getExercise.mockReset();
+    getExercise.mockResolvedValue({
+      id: 'exercise-1',
+      source: 'SYSTEM',
+      name: 'Développé couché',
+      measurementType: 'WEIGHT_REPS',
+      primaryMuscleGroup: {
+        id: 'mg-1',
+        code: 'chest',
+        name: 'Pectoraux',
+        parentId: null,
+      },
+      defaultEquipmentType: {
+        id: 'eq-1',
+        code: 'barbell',
+        name: 'Barre',
+      },
+      defaultRestSeconds: 90,
+      archivedAt: null,
+      permissions: { canEdit: false, canArchive: false, canRestore: false },
+      userPreference: null,
+      secondaryMuscleGroups: [],
+      compatibleEquipmentTypes: [],
+      instructions: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    });
     getExerciseStrength.mockResolvedValue({
       exercise: {
         id: 'exercise-1',
@@ -106,9 +160,7 @@ describe('ExerciseProgressPage', () => {
     getExerciseProgress.mockResolvedValue(emptyResponse());
     renderPage();
     expect(
-      await screen.findByText(
-        'Pas encore de données de progression pour cet exercice.',
-      ),
+      await screen.findByRole('heading', { name: 'Pas encore de données' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Voir mes programmes' })).toHaveAttribute(
       'href',
@@ -144,9 +196,9 @@ describe('ExerciseProgressPage', () => {
         'Une deuxième séance permettra de comparer ton évolution.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText('100 kg')).toBeInTheDocument();
+    expect(screen.getAllByText('100 kg').length).toBeGreaterThan(0);
     expect(
-      screen.getByRole('link', { name: 'Voir la séance' }),
+      screen.getByRole('link', { name: /1 août 2026/i }),
     ).toHaveAttribute('href', '/workouts/ws-1');
   });
 
@@ -196,12 +248,12 @@ describe('ExerciseProgressPage', () => {
       }),
     );
     renderPage();
-    expect(await screen.findByText('Dernière valeur')).toBeInTheDocument();
-    expect(screen.getByText('Meilleure valeur')).toBeInTheDocument();
-    expect(screen.getByText(/Variation sur la période/)).toBeInTheDocument();
+    expect(await screen.findByText('Dernière')).toBeInTheDocument();
+    expect(screen.getByText('Meilleure perf')).toBeInTheDocument();
+    expect(screen.getByText('Variation')).toBeInTheDocument();
     expect(screen.getByLabelText('Graphique de progression')).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: 'Séances contributives' }),
+      screen.getByRole('heading', { name: 'Dernières séances' }),
     ).toBeInTheDocument();
   });
 
@@ -209,9 +261,7 @@ describe('ExerciseProgressPage', () => {
     const user = userEvent.setup();
     getExerciseProgress.mockResolvedValue(emptyResponse());
     renderPage('/progress/exercises/exercise-1?metric=MAX_WEIGHT&from=2026-05-10&to=2026-08-10');
-    await screen.findByText(
-      'Pas encore de données de progression pour cet exercice.',
-    );
+    await screen.findByRole('heading', { name: 'Pas encore de données' });
     const metricSelect = screen.getByLabelText('Métrique');
     await user.selectOptions(metricSelect, 'MAX_REPS');
     expect(getExerciseProgress).toHaveBeenCalledWith(
@@ -224,10 +274,8 @@ describe('ExerciseProgressPage', () => {
     const user = userEvent.setup();
     getExerciseProgress.mockResolvedValue(emptyResponse());
     renderPage();
-    await screen.findByText(
-      'Pas encore de données de progression pour cet exercice.',
-    );
-    await user.selectOptions(screen.getByLabelText('Période'), '30d');
+    await screen.findByRole('heading', { name: 'Pas encore de données' });
+    await user.click(screen.getByRole('button', { name: '1 mois' }));
     expect(getExerciseProgress).toHaveBeenCalledWith(
       'exercise-1',
       expect.objectContaining({
@@ -254,24 +302,25 @@ describe('ExerciseProgressPage', () => {
       points: [],
     });
     renderPage('/progress/exercises/exercise-1?from=2026-05-10&to=2026-08-10');
-    await screen.findByText(
-      'Pas encore de données de progression pour cet exercice.',
-    );
+    await screen.findByRole('heading', { name: 'Pas encore de données' });
 
-    await user.selectOptions(screen.getByLabelText('Période'), 'all');
+    await user.click(screen.getByRole('button', { name: 'Tout' }));
     expect(getExerciseProgress).toHaveBeenCalledWith('exercise-1', {
       metric: undefined,
       from: undefined,
       to: undefined,
     });
-    expect(screen.getByLabelText('Période')).toHaveValue('all');
-
-    // Refresh simulé : même URL period=all
-    renderPage('/progress/exercises/exercise-1?period=all');
-    await screen.findByText(
-      'Pas encore de données de progression pour cet exercice.',
+    expect(screen.getByRole('button', { name: 'Tout' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
     );
-    expect(screen.getByLabelText('Période')).toHaveValue('all');
+
+    renderPage('/progress/exercises/exercise-1?period=all');
+    await screen.findByRole('heading', { name: 'Pas encore de données' });
+    expect(screen.getByRole('button', { name: 'Tout' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(getExerciseProgress).toHaveBeenCalledWith(
       'exercise-1',
       expect.objectContaining({ from: undefined, to: undefined }),
@@ -324,7 +373,7 @@ describe('ExerciseProgressPage', () => {
       }),
     );
     const { container } = renderPage();
-    await screen.findByText('Dernière valeur');
+    await screen.findByText('Dernière');
     Object.defineProperty(container.firstChild, 'clientWidth', {
       configurable: true,
       value: 320,

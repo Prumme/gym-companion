@@ -83,6 +83,9 @@ describe('ProfilePage', () => {
 
     renderProfile();
 
+    expect(await screen.findByText('Aurélien')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Modifier' }));
+
     expect(await screen.findByDisplayValue('Aurélien')).toBeInTheDocument();
 
     const nameInput = screen.getByLabelText('Nom affiché');
@@ -101,7 +104,7 @@ describe('ProfilePage', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Profil enregistré avec succès.',
     );
-    expect(screen.getByDisplayValue('Nouveau nom')).toBeInTheDocument();
+    expect(screen.getByText('Nouveau nom')).toBeInTheDocument();
   });
 
   it('shows an API error and keeps the typed values', async () => {
@@ -109,7 +112,8 @@ describe('ProfilePage', () => {
     updateProfile.mockRejectedValue(new Error('Service temporairement indisponible.'));
 
     renderProfile();
-    expect(await screen.findByDisplayValue('Aurélien')).toBeInTheDocument();
+    expect(await screen.findByText('Aurélien')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Modifier' }));
 
     const nameInput = screen.getByLabelText('Nom affiché');
     await user.clear(nameInput);
@@ -126,7 +130,8 @@ describe('ProfilePage', () => {
   it('shows field validation errors without calling the API', async () => {
     const user = userEvent.setup();
     renderProfile();
-    expect(await screen.findByDisplayValue('Aurélien')).toBeInTheDocument();
+    expect(await screen.findByText('Aurélien')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Modifier' }));
 
     const nameInput = screen.getByLabelText('Nom affiché');
     await user.clear(nameInput);

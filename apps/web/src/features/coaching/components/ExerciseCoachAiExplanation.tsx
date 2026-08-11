@@ -7,7 +7,7 @@ import { resolveAvailableAiCoachFocuses } from '@gym-companion/validation';
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
-import { Button } from '@/components/ui/button';
+import { Button, ButtonLink } from '@/components/ui/button';
 import { getApiErrorMessage } from '@/lib/api/client';
 
 import { generateExerciseCoachExplanation } from '../api/coaching-api';
@@ -76,101 +76,126 @@ export function ExerciseCoachAiExplanation({
     result != null &&
     result.meta.coachSummaryFingerprint !== summary.coachSummaryFingerprint;
 
-  if (!aiAvailable) {
-    return (
-      <div className="mt-4 border-t border-[var(--border)] pt-3">
-        <p className="text-sm text-[var(--muted)]">
-          Explications IA non activées.
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div
-      className="mt-4 border-t border-dashed border-[var(--border)] pt-3"
-      aria-label="Explication IA du Coach"
+    <section
+      className="border-t border-[var(--border)] pt-[var(--space-5)]"
+      aria-labelledby="ai-explanation-heading"
     >
-      <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
-        Explication générée par IA
+      <h3
+        id="ai-explanation-heading"
+        className="text-xs font-semibold tracking-wide text-[var(--muted-foreground)] uppercase"
+      >
+        Explication IA
+      </h3>
+      <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+        Optionnelle — n’est pas la source de la recommandation ci-dessus.
       </p>
 
-      <fieldset className="mt-3">
-        <legend className="sr-only">Focus de l’explication</legend>
-        <div className="flex flex-wrap gap-2">
-          {availableFocuses.map((value) => (
-            <button
-              key={value}
-              type="button"
-              className={`min-h-10 rounded-[var(--radius)] border px-3 text-sm ${
-                focus === value
-                  ? 'border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]'
-                  : 'border-[var(--border)] bg-[var(--card)] text-[var(--foreground)]'
-              }`}
-              aria-pressed={focus === value}
-              onClick={() => setFocus(value)}
-              disabled={mutation.isPending}
-            >
-              {FOCUS_LABELS[value]}
-            </button>
-          ))}
-        </div>
-      </fieldset>
-
-      {offline ? (
-        <p className="mt-3 text-sm text-[var(--muted)]" role="status">
-          Une connexion est nécessaire pour générer une explication.
+      {!aiAvailable ? (
+        <p className="mt-3 text-sm text-[var(--muted-foreground)]">
+          Indisponible sur cet environnement. L’analyse Coach ci-dessus reste
+          disponible sans IA.
         </p>
-      ) : null}
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Button
-          type="button"
-          className="min-h-11"
-          disabled={offline || mutation.isPending}
-          aria-busy={mutation.isPending}
-          onClick={() => mutation.mutate()}
-        >
-          {mutation.isPending
-            ? 'Le Coach prépare une explication…'
-            : result
-              ? 'Actualiser l’explication'
-              : 'Obtenir une explication'}
-        </Button>
-      </div>
-
-      {mutation.isError ? (
-        <p className="mt-3 text-sm text-[var(--danger)]" role="alert">
-          {getApiErrorMessage(
-            mutation.error,
-            'L’explication IA n’est pas disponible pour le moment.',
-          )}
-        </p>
-      ) : null}
-
-      {result ? (
-        <div className="mt-4 space-y-2">
-          {isStale ? (
-            <p className="text-sm text-[var(--muted)]" role="status">
-              Cette explication correspond à des données précédentes.
-            </p>
-          ) : null}
-          <h3 className="text-base font-semibold">{result.explanation.title}</h3>
-          <p className="text-sm leading-relaxed">{result.explanation.summary}</p>
-          {result.explanation.keyPoints.length > 0 ? (
-            <ul className="list-disc space-y-1 pl-5 text-sm">
-              {result.explanation.keyPoints.map((point) => (
-                <li key={point}>{point}</li>
+      ) : (
+        <>
+          <fieldset className="mt-3">
+            <legend className="sr-only">Focus de l’explication</legend>
+            <div className="flex flex-wrap gap-2">
+              {availableFocuses.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`min-h-10 rounded-[var(--radius-control)] border px-3 text-sm ${
+                    focus === value
+                      ? 'border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]'
+                      : 'border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]'
+                  }`}
+                  aria-pressed={focus === value}
+                  onClick={() => setFocus(value)}
+                  disabled={mutation.isPending}
+                >
+                  {FOCUS_LABELS[value]}
+                </button>
               ))}
-            </ul>
-          ) : null}
-          {result.explanation.caution ? (
-            <p className="text-sm text-[var(--muted)]" role="note">
-              {result.explanation.caution}
+            </div>
+          </fieldset>
+
+          {offline ? (
+            <p className="mt-3 text-sm text-[var(--muted-foreground)]" role="status">
+              Une connexion est nécessaire pour générer une explication.
             </p>
           ) : null}
-        </div>
-      ) : null}
-    </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              className="min-h-11"
+              disabled={offline || mutation.isPending}
+              aria-busy={mutation.isPending}
+              onClick={() => mutation.mutate()}
+            >
+              {mutation.isPending
+                ? 'Génération de l’explication…'
+                : result
+                  ? 'Régénérer'
+                  : 'Générer une explication'}
+            </Button>
+            <ButtonLink
+              to={`/coach/chat?exerciseId=${encodeURIComponent(exerciseId)}`}
+              variant="ghost"
+              className="min-h-11"
+            >
+              Poser une question
+            </ButtonLink>
+          </div>
+
+          {mutation.isError ? (
+            <div className="mt-3" role="alert">
+              <p className="text-sm text-[var(--danger)]">
+                {getApiErrorMessage(
+                  mutation.error,
+                  'L’explication IA est momentanément indisponible.',
+                )}
+              </p>
+              <button
+                type="button"
+                className="mt-2 min-h-11 text-sm font-medium underline-offset-2 hover:underline"
+                onClick={() => mutation.mutate()}
+              >
+                Réessayer
+              </button>
+            </div>
+          ) : null}
+
+          {result ? (
+            <div className="mt-4 space-y-2" aria-live="polite">
+              {isStale ? (
+                <p className="text-sm text-[var(--muted-foreground)]" role="status">
+                  Cette explication correspond à des données précédentes.
+                </p>
+              ) : null}
+              <h4 className="text-base font-semibold">{result.explanation.title}</h4>
+              <p className="text-sm leading-relaxed">{result.explanation.summary}</p>
+              {result.explanation.keyPoints.length > 0 ? (
+                <ul className="list-disc space-y-1 pl-5 text-sm">
+                  {result.explanation.keyPoints.map((point) => (
+                    <li key={point}>{point}</li>
+                  ))}
+                </ul>
+              ) : null}
+              {result.explanation.caution ? (
+                <p className="text-sm text-[var(--muted-foreground)]" role="note">
+                  {result.explanation.caution}
+                </p>
+              ) : null}
+              <p className="text-xs text-[var(--muted-foreground)]">
+                Généré à partir de tes données d’entraînement.
+              </p>
+            </div>
+          ) : null}
+        </>
+      )}
+    </section>
   );
 }

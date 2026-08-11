@@ -11,9 +11,7 @@ import {
 } from '../hooks/use-exercise-preference-mutations';
 import {
   hasCustomExercisePreference,
-  preferenceToUpdateInput,
 } from '../lib/exercise-preference';
-import { ExerciseFavoriteButton } from './ExerciseFavoriteButton';
 import { ExercisePreferenceForm } from './ExercisePreferenceForm';
 
 type ExercisePreferenceSectionProps = {
@@ -60,23 +58,6 @@ export function ExercisePreferenceSection({ exercise }: ExercisePreferenceSectio
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [editorOpen]);
-
-  async function handleToggleFavorite() {
-    setStatusMessage(null);
-    setSubmitError(null);
-    const nextFavorite = !preference.isFavorite;
-    try {
-      await updateMutation.mutateAsync({
-        exerciseId: exercise.id,
-        input: preferenceToUpdateInput(preference, { isFavorite: nextFavorite }),
-        optimisticPreference: { ...preference, isFavorite: nextFavorite },
-      });
-    } catch (error) {
-      setSubmitError(
-        getApiErrorMessage(error, 'Impossible de modifier ce favori. Réessaie.'),
-      );
-    }
-  }
 
   async function handleSave(payload: UpdateExercisePreferenceInput) {
     setSubmitError(null);
@@ -130,52 +111,13 @@ export function ExercisePreferenceSection({ exercise }: ExercisePreferenceSectio
   }
 
   return (
-    <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-4">
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <h2 className="text-sm font-semibold tracking-wide text-[var(--muted)] uppercase">
-          Mes préférences
-        </h2>
-        <ExerciseFavoriteButton
-          preference={preference}
-          pending={preferenceBusy}
-          onToggle={() => {
-            void handleToggleFavorite();
-          }}
-        />
-      </div>
-
-      <dl className="grid gap-3 text-sm">
-        <div>
-          <dt className="text-[var(--muted)]">Favori</dt>
-          <dd className="font-medium">{preference.isFavorite ? 'Oui' : 'Non'}</dd>
-        </div>
-        <div>
-          <dt className="text-[var(--muted)]">Suggestions automatiques</dt>
-          <dd className="font-medium">
-            {preference.isExcludedFromSuggestions ? 'Exclu' : 'Autorisé'}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-[var(--muted)]">Équipement préféré</dt>
-          <dd className="font-medium">
-            {preference.preferredEquipmentType?.name ?? 'Aucun'}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-[var(--muted)]">Repos personnel</dt>
-          <dd className="font-medium">
-            {preference.restSecondsOverride != null
-              ? `${preference.restSecondsOverride} secondes`
-              : 'Valeur par défaut'}
-          </dd>
-        </div>
-      </dl>
-
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+    <section>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <h2 className="section-title">Préférences</h2>
         <Button
           type="button"
           variant="secondary"
-          className="flex-1"
+          className="px-3"
           disabled={preferenceBusy}
           onClick={() => {
             setSubmitError(null);
@@ -184,33 +126,56 @@ export function ExercisePreferenceSection({ exercise }: ExercisePreferenceSectio
         >
           Modifier mes préférences
         </Button>
-        {custom ? (
-          <Button
-            type="button"
-            variant="ghost"
-            className="flex-1"
-            disabled={preferenceBusy}
-            onClick={() => setConfirmReset(true)}
-          >
-            Réinitialiser mes préférences
-          </Button>
-        ) : null}
       </div>
 
+      <ul className="flex flex-col text-sm">
+        <li className="flex min-h-11 items-center justify-between gap-3 border-b border-[var(--border)] py-2">
+          <span className="text-[var(--muted-foreground)]">Suggestions</span>
+          <span className="font-medium">
+            {preference.isExcludedFromSuggestions ? 'Exclues' : 'Autorisées'}
+          </span>
+        </li>
+        <li className="flex min-h-11 items-center justify-between gap-3 border-b border-[var(--border)] py-2">
+          <span className="text-[var(--muted-foreground)]">Équipement préféré</span>
+          <span className="max-w-[55%] truncate text-right font-medium">
+            {preference.preferredEquipmentType?.name ?? 'Aucun'}
+          </span>
+        </li>
+        <li className="flex min-h-11 items-center justify-between gap-3 border-b border-[var(--border)] py-2">
+          <span className="text-[var(--muted-foreground)]">Repos personnel</span>
+          <span className="font-medium">
+            {preference.restSecondsOverride != null
+              ? `${preference.restSecondsOverride} s`
+              : 'Par défaut'}
+          </span>
+        </li>
+      </ul>
+
+      {custom ? (
+        <button
+          type="button"
+          className="mt-3 min-h-11 text-sm text-[var(--muted-foreground)] underline-offset-2 hover:underline disabled:opacity-50"
+          disabled={preferenceBusy}
+          onClick={() => setConfirmReset(true)}
+        >
+          Réinitialiser les préférences
+        </button>
+      ) : null}
+
       {statusMessage ? (
-        <p className="mt-3 text-sm text-emerald-800" role="status">
+        <p className="mt-2 text-sm text-[var(--foreground)]" role="status">
           {statusMessage}
         </p>
       ) : null}
       {submitError && !editorOpen ? (
-        <p className="mt-3 text-sm text-[var(--danger)]" role="alert">
+        <p className="mt-2 text-sm text-[var(--danger)]" role="alert">
           {submitError}
         </p>
       ) : null}
 
       {editorOpen ? (
         <div
-          className="fixed inset-0 z-40 bg-black/40 md:bg-black/30"
+          className="fixed inset-0 z-40 bg-[var(--foreground)]/40"
           role="presentation"
           onClick={() => {
             if (!preferenceBusy) {
@@ -224,12 +189,19 @@ export function ExercisePreferenceSection({ exercise }: ExercisePreferenceSectio
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
-            className="absolute inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto rounded-t-2xl bg-[var(--card)] p-4 pb-8 shadow-xl md:inset-auto md:top-1/2 md:left-1/2 md:w-full md:max-w-lg md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-[var(--radius)] md:pb-4"
+            className="absolute inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto rounded-t-[var(--radius-surface)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-lg md:inset-auto md:top-1/2 md:left-1/2 md:w-full md:max-w-lg md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-[var(--radius-surface)]"
+            style={{
+              paddingBottom:
+                'calc(var(--space-6) + env(safe-area-inset-bottom, 0px))',
+            }}
             onClick={(event) => event.stopPropagation()}
           >
-            <h3 id={titleId} className="mb-4 text-lg font-semibold">
-              Modifier mes préférences
+            <h3 id={titleId} className="mb-1 text-lg font-semibold">
+              Préférences
             </h3>
+            <p className="mb-4 text-sm text-[var(--muted-foreground)]">
+              {exercise.name}
+            </p>
             <ExercisePreferenceForm
               preference={preference}
               compatibleEquipment={exercise.compatibleEquipmentTypes}
@@ -247,7 +219,7 @@ export function ExercisePreferenceSection({ exercise }: ExercisePreferenceSectio
 
       {confirmReset ? (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 md:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--foreground)]/40 p-4 md:items-center"
           role="presentation"
           onClick={() => {
             if (!preferenceBusy) {
@@ -259,13 +231,13 @@ export function ExercisePreferenceSection({ exercise }: ExercisePreferenceSectio
             role="alertdialog"
             aria-labelledby="reset-pref-title"
             aria-describedby="reset-pref-desc"
-            className="w-full max-w-md rounded-[var(--radius)] bg-[var(--card)] p-4 shadow-xl"
+            className="w-full max-w-md rounded-[var(--radius-surface)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-lg"
             onClick={(event) => event.stopPropagation()}
           >
             <h3 id="reset-pref-title" className="text-lg font-semibold">
               Réinitialiser tes préférences pour cet exercice ?
             </h3>
-            <p id="reset-pref-desc" className="mt-2 text-sm text-[var(--muted)]">
+            <p id="reset-pref-desc" className="mt-2 text-sm text-[var(--muted-foreground)]">
               Le favori sera retiré, l’équipement préféré et le repos personnel seront
               supprimés. L’exercice ne sera pas supprimé.
             </p>

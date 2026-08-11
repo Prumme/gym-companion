@@ -1,6 +1,5 @@
 import type { ExerciseSource } from '@gym-companion/shared';
 
-import { getSourceLabel } from '../lib/exercise-labels';
 import { cn } from '@/lib/utils';
 
 type ExerciseSourceBadgeProps = {
@@ -8,18 +7,23 @@ type ExerciseSourceBadgeProps = {
   className?: string;
 };
 
-export function ExerciseSourceBadge({ source, className }: ExerciseSourceBadgeProps) {
+/** Badge discret pour les exercices personnels uniquement (pas de badge SYSTEM). */
+export function ExerciseSourceBadge({
+  source,
+  className,
+}: ExerciseSourceBadgeProps) {
+  if (source !== 'USER') {
+    return null;
+  }
+
   return (
     <span
       className={cn(
-        'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
-        source === 'SYSTEM'
-          ? 'bg-sky-50 text-sky-800'
-          : 'bg-amber-50 text-amber-900',
+        'inline-flex text-[0.625rem] font-semibold tracking-wide text-[var(--muted-foreground)] uppercase',
         className,
       )}
     >
-      {getSourceLabel(source)}
+      Personnel
     </span>
   );
 }

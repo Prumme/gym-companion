@@ -4,17 +4,19 @@ import { Link, type LinkProps } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 const variants = {
-  primary: 'bg-[var(--primary)] text-[var(--primary-foreground)]',
-  secondary: 'border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)]',
-  ghost: 'bg-transparent text-[var(--muted)]',
+  primary:
+    'bg-[var(--primary)] text-[var(--primary-foreground)] hover:brightness-95',
+  secondary:
+    'border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--background)]',
+  ghost: 'bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--background)]',
   destructive:
-    'border border-red-300 bg-red-50 text-[var(--danger)] hover:bg-red-100',
+    'border border-[var(--danger)]/30 bg-[var(--danger)]/5 text-[var(--danger)] hover:bg-[var(--danger)]/10',
 } as const;
 
 type Variant = keyof typeof variants;
 
 const baseClass =
-  'inline-flex min-h-11 items-center justify-center rounded-[var(--radius)] px-4 text-sm font-semibold transition disabled:opacity-50';
+  'inline-flex min-h-12 items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 text-sm font-semibold transition disabled:pointer-events-none disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]';
 
 type ButtonProps = PropsWithChildren<
   ButtonHTMLAttributes<HTMLButtonElement> & {

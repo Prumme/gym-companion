@@ -175,7 +175,7 @@ export function ExerciseFilters({
             Appliquer
           </Button>
           <Button type="button" variant="secondary" className="flex-1" onClick={onReset}>
-            Réinitialiser
+            Effacer
           </Button>
         </div>
       ) : null}

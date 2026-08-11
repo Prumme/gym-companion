@@ -9,7 +9,7 @@ type ExerciseListProps = {
 
 export function ExerciseList({ exercises, onFeedback }: ExerciseListProps) {
   return (
-    <ul className="flex flex-col gap-3">
+    <ul className="flex flex-col">
       {exercises.map((exercise) => (
         <li key={exercise.id}>
           <ExerciseCard exercise={exercise} onFeedback={onFeedback} />

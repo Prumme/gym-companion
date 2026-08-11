@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { Button, ButtonLink } from '@/components/ui/button';
 import { LoadingState } from '@/components/common/LoadingState';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { Button } from '@/components/ui/button';
 import { getApiErrorMessage } from '@/lib/api/client';
 
 import {
@@ -55,17 +55,14 @@ export function CreateExercisePage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6">
-      <div>
-        <ButtonLink to="/exercises" variant="ghost" className="mb-3 w-fit gap-2 px-0">
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Retour au catalogue
-        </ButtonLink>
-        <h1 className="text-2xl font-bold tracking-tight">Créer un exercice</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Ajoute un exercice personnel à ton catalogue.
-        </p>
-      </div>
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-[var(--space-6)]">
+      <PageHeader
+        title="Créer un exercice"
+        description="Ajoute un exercice personnel à ton catalogue."
+        backTo="/exercises"
+        backLabel="Exercices"
+        className="mb-0"
+      />
 
       {referencesLoading ? (
         <LoadingState label="Chargement des références…" />
@@ -73,7 +70,7 @@ export function CreateExercisePage() {
 
       {referencesError ? (
         <div
-          className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4"
+          className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] p-4"
           role="alert"
         >
           <p className="text-sm text-[var(--danger)]">
@@ -100,10 +97,10 @@ export function CreateExercisePage() {
       !referencesError &&
       muscleGroups.length === 0 ? (
         <div
-          className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-4"
+          className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] p-4"
           role="status"
         >
-          <p className="text-sm text-[var(--muted)]">
+          <p className="text-sm text-[var(--muted-foreground)]">
             Les groupes musculaires sont indisponibles. Impossible de créer un
             exercice pour le moment.
           </p>

@@ -8,6 +8,8 @@ import {
   resolveInitialExerciseId,
   resolveRestSeconds,
   shouldAutoStartRest,
+  shouldSuppressRestAfterSet,
+  willExerciseBeTreatedAfterSet,
 } from '../lib/workout-progress';
 import {
   createWorkoutSessionDetail,
@@ -157,5 +159,49 @@ describe('workout-progress', () => {
     expect(shouldAutoStartRest('FAILED')).toBe(true);
     expect(shouldAutoStartRest('SKIPPED')).toBe(false);
     expect(shouldAutoStartRest('PENDING')).toBe(false);
+  });
+
+  it('supprime le repos après la dernière série du dernier exercice', () => {
+    const session = createWorkoutSessionDetail();
+    const exercise = session.exercises[0]!;
+    expect(
+      shouldSuppressRestAfterSet({
+        session,
+        exercise,
+        setId: exercise.sets[0]!.id,
+        status: 'COMPLETED',
+      }),
+    ).toBe(true);
+
+    const multi = createWorkoutSessionDetail({
+      exercises: [
+        {
+          ...exercise,
+          id: 'wse-1',
+          sets: [
+            createWorkoutSet({ id: 'ws-1', status: 'PENDING' }),
+            createWorkoutSet({ id: 'ws-2', position: 1, status: 'PENDING' }),
+          ],
+        },
+        {
+          ...exercise,
+          id: 'wse-2',
+          position: 1,
+          exerciseName: 'Row',
+          sets: [createWorkoutSet({ id: 'ws-3', status: 'PENDING' })],
+        },
+      ],
+    });
+    expect(
+      shouldSuppressRestAfterSet({
+        session: multi,
+        exercise: multi.exercises[0]!,
+        setId: 'ws-1',
+        status: 'COMPLETED',
+      }),
+    ).toBe(false);
+    expect(
+      willExerciseBeTreatedAfterSet(multi.exercises[0]!, 'ws-1', 'COMPLETED'),
+    ).toBe(false);
   });
 });

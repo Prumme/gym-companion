@@ -186,10 +186,10 @@ describe('ExercisesPage', () => {
 
     renderPage('/exercises?search=zzz');
     expect(
-      await screen.findByText('Aucun exercice ne correspond à tes filtres.'),
+      await screen.findByText('Aucun exercice ne correspond à ces critères.'),
     ).toBeInTheDocument();
 
-    await user.click(screen.getAllByRole('button', { name: 'Réinitialiser les filtres' })[0]!);
+    await user.click(screen.getByRole('button', { name: 'Effacer les filtres' }));
     await waitFor(() => {
       expect(listExercises).toHaveBeenCalledWith(
         expect.objectContaining({ search: undefined }),

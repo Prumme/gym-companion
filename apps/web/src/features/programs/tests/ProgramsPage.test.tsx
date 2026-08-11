@@ -31,6 +31,7 @@ function renderList(entry = '/programs') {
           <Route path="/programs" element={children} />
           <Route path="/programs/new" element={<div>Création</div>} />
           <Route path="/programs/:programId" element={<div>Détail</div>} />
+          <Route path="/programs/:programId/edit" element={<div>Édition</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
@@ -52,11 +53,35 @@ describe('ProgramsPage', () => {
 
     renderList();
     expect(await screen.findByText('Push Pull Legs')).toBeInTheDocument();
-    expect(screen.getByText('Disponible')).toBeInTheDocument();
+    expect(screen.getByText(/2 séances/i)).toBeInTheDocument();
     expect(screen.getByText(/Hypertrophie/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('link', { name: /Créer un programme/i }));
     expect(await screen.findByText('Création')).toBeInTheDocument();
+  });
+
+  it('opens detail on row tap and exposes secondary menu', async () => {
+    const user = userEvent.setup();
+    listPrograms.mockResolvedValue({
+      data: [
+        createProgramListItem({
+          isCurrent: true,
+          name: 'Programme actif',
+        }),
+      ],
+      pagination: { nextCursor: null, hasMore: false },
+    });
+
+    renderList();
+    expect(await screen.findByText('Actif')).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: /Actions pour Programme actif/i }),
+    );
+    expect(screen.getByRole('menuitem', { name: /Modifier/i })).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('link', { name: /Ouvrir le programme Programme actif/i }),
+    );
+    expect(await screen.findByText('Détail')).toBeInTheDocument();
   });
 
   it('paginates with Charger plus', async () => {

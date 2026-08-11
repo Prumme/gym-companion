@@ -97,8 +97,11 @@ function renderPage() {
       <MemoryRouter initialEntries={['/records']}>
         <Routes>
           <Route path="/records" element={<PersonalRecordsPage />} />
-          <Route path="/workouts/:id" element={<div>Séance détail</div>} />
-          <Route path="/exercises/:id" element={<div>Exercice détail</div>} />
+          <Route path="/progress" element={<div>Progression</div>} />
+          <Route
+            path="/progress/exercises/:id"
+            element={<div>Progression exercice</div>}
+          />
           <Route path="/programs" element={<div>Programmes</div>} />
           <Route path="/workouts" element={<div>Historique</div>} />
         </Routes>
@@ -134,22 +137,12 @@ describe('PersonalRecordsPage', () => {
     ).toHaveAttribute('href', '/workouts');
   });
 
-  it('affiche les types de records avec contexte, date et liens', async () => {
+  it('affiche hero, types de records et navigation compacte', async () => {
     listPersonalRecords.mockResolvedValue({
       data: [
         record({
           recordType: 'MAX_WEIGHT',
           value: 100,
-          context: {
-            weightKg: 100,
-            reps: 8,
-            durationSeconds: null,
-            distanceMeters: null,
-            rir: 2,
-            rpe: null,
-            reachedFailure: false,
-            setType: 'WORKING',
-          },
         }),
         record({
           recordType: 'MAX_REPS',
@@ -231,11 +224,14 @@ describe('PersonalRecordsPage', () => {
 
     renderPage();
 
-    expect(await screen.findByText('Développé couché')).toBeInTheDocument();
-    expect(screen.getByText('Charge maximale')).toBeInTheDocument();
-    expect(screen.getByText('100 kg')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Dernier record battu' }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('Développé couché').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Charge maximale').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('100 kg').length).toBeGreaterThan(0);
     expect(screen.getByText(/8 répétitions/)).toBeInTheDocument();
-    expect(screen.getByText(/Équipement : Barre/)).toBeInTheDocument();
+    expect(screen.getByText(/Barre/)).toBeInTheDocument();
     expect(screen.getByText('Répétitions maximales')).toBeInTheDocument();
     expect(screen.getByText('15 répétitions')).toBeInTheDocument();
     expect(screen.getByText('Durée maximale')).toBeInTheDocument();
@@ -244,12 +240,9 @@ describe('PersonalRecordsPage', () => {
     expect(screen.getByText(/1[\s\u202f]?500 m/)).toBeInTheDocument();
     expect(screen.getAllByText(/12 août 2026/).length).toBeGreaterThan(0);
 
-    const sessionLinks = screen.getAllByRole('link', { name: 'Voir la séance' });
-    expect(sessionLinks[0]).toHaveAttribute('href', '/workouts/ws-1');
-    const exerciseLinks = screen.getAllByRole('link', {
-      name: 'Voir l’exercice',
-    });
-    expect(exerciseLinks[0]).toHaveAttribute('href', '/exercises/ex-1');
+    expect(
+      screen.getByRole('link', { name: /Charge maximale : 100 kg/i }),
+    ).toHaveAttribute('href', '/progress/exercises/ex-1');
   });
 
   it('gère erreur initiale et pagination', async () => {
@@ -295,10 +288,10 @@ describe('PersonalRecordsPage', () => {
     renderPage();
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Réessayer' }));
-    expect(await screen.findByText('90 kg')).toBeInTheDocument();
+    expect((await screen.findAllByText('90 kg')).length).toBeGreaterThan(0);
     await user.click(screen.getByRole('button', { name: 'Charger plus' }));
     expect(await screen.findByText('Squat')).toBeInTheDocument();
-    expect(screen.getByText('140 kg')).toBeInTheDocument();
+    expect(screen.getAllByText('140 kg').length).toBeGreaterThan(0);
   });
 
   it('reste lisible en largeur mobile', async () => {
@@ -307,12 +300,12 @@ describe('PersonalRecordsPage', () => {
       pagination: { nextCursor: null, hasMore: false },
     });
     const { container } = renderPage();
-    await screen.findByText('Charge maximale');
+    expect((await screen.findAllByText('100 kg')).length).toBeGreaterThan(0);
     Object.defineProperty(container.firstChild, 'clientWidth', {
       configurable: true,
       value: 320,
     });
-    expect(screen.getByText('100 kg')).toBeInTheDocument();
+    expect(screen.getAllByText('Charge maximale').length).toBeGreaterThan(0);
     expect(container.querySelector('table')).toBeNull();
   });
 });

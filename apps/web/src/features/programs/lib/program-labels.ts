@@ -24,10 +24,24 @@ export const WORKOUT_SET_TYPE_LABELS: Record<WorkoutSetType, string> = {
   FAILURE_OPTIONAL: 'Échec facultatif',
 };
 
+/** Libellés courts pour TargetSetRow (Program Builder). */
+export const WORKOUT_SET_TYPE_SHORT_LABELS: Record<WorkoutSetType, string> = {
+  WARMUP: 'Échauff.',
+  WORKING: 'Travail',
+  BACKOFF: 'Allégée',
+  DROP_SET: 'Dégressive',
+  AMRAP: 'AMRAP',
+  FAILURE_OPTIONAL: 'Échec opt.',
+};
+
 export const WORKOUT_SET_TYPE_OPTIONS = (
   Object.entries(WORKOUT_SET_TYPE_LABELS) as Array<[WorkoutSetType, string]>
 ).map(([value, label]) => ({ value, label }));
 
 export function getWorkoutSetTypeLabel(type: WorkoutSetType): string {
   return WORKOUT_SET_TYPE_LABELS[type];
+}
+
+export function getWorkoutSetTypeShortLabel(type: WorkoutSetType): string {
+  return WORKOUT_SET_TYPE_SHORT_LABELS[type];
 }

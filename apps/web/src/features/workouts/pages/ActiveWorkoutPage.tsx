@@ -2,7 +2,7 @@ import type { WorkoutSessionDetail } from '@gym-companion/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 
-import { ButtonLink } from '@/components/ui/button';
+import { Button, ButtonLink } from '@/components/ui/button';
 import { getMe } from '@/features/profile/api/profile-api';
 import { useSyncSharedCurrentExercise } from '@/features/shared-workouts/hooks/use-sync-shared-current-exercise';
 import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
@@ -20,12 +20,17 @@ import { useRestTimer } from '../hooks/use-rest-timer';
 import { useWorkoutLifecycleControls } from '../hooks/use-workout-lifecycle-controls';
 import { useWorkoutOfflineSync } from '../hooks/use-workout-offline-sync';
 import { useWorkoutExerciseNavigation } from '../hooks/use-workout-exercise-navigation';
+import { formatWorkoutSetTargetCompact } from '../lib/workout-labels';
 import {
   computeWorkoutProgress,
   findNextPendingSet,
+  findNextPendingSetInExercise,
+  isExerciseTreated,
   resolveRestSeconds,
   shouldAutoStartRest,
+  shouldSuppressRestAfterSet,
 } from '../lib/workout-progress';
+import { cn } from '@/lib/utils';
 
 export function ActiveWorkoutPage() {
   const meQuery = useQuery({
@@ -50,7 +55,7 @@ export function ActiveWorkoutPage() {
 
   if (meQuery.isLoading || query.isLoading) {
     return (
-      <section className="flex flex-col gap-4">
+      <section className="mx-auto flex w-full max-w-xl flex-col gap-4">
         <h1 className="text-2xl font-semibold">Séance en cours</h1>
         <p className="text-sm text-[var(--muted)]">Chargement…</p>
       </section>
@@ -59,7 +64,7 @@ export function ActiveWorkoutPage() {
 
   if (query.isError) {
     return (
-      <section className="flex flex-col gap-4">
+      <section className="mx-auto flex w-full max-w-xl flex-col gap-4">
         <h1 className="text-2xl font-semibold">Séance en cours</h1>
         <p className="text-sm text-[var(--danger)]" role="alert">
           {getApiErrorMessage(
@@ -73,7 +78,7 @@ export function ActiveWorkoutPage() {
 
   if (!query.data) {
     return (
-      <section className="flex flex-col gap-4">
+      <section className="mx-auto flex w-full max-w-xl flex-col gap-4">
         <h1 className="text-2xl font-semibold">Séance en cours</h1>
         <p className="text-sm text-[var(--muted)]">Aucune séance en cours.</p>
         <div className="flex flex-col gap-2 sm:flex-row">
@@ -148,6 +153,28 @@ function ActiveWorkoutSessionView({
   const effortTrackingMode =
     meQuery.data?.data.profile.effortTrackingMode ?? 'NONE';
   const selectedExercise = navigation.selectedExercise;
+  const workoutFullyTreated =
+    progress.totalExercises > 0 &&
+    progress.treatedExercises === progress.totalExercises &&
+    progress.pendingSets === 0;
+  const restTimerActive =
+    !workoutFullyTreated &&
+    (restTimer.isRunning || restTimer.isPaused || restTimer.justExpired);
+
+  const exerciseCompleteWithNext =
+    Boolean(selectedExercise) &&
+    isExerciseTreated(selectedExercise!) &&
+    navigation.hasNext;
+
+  const nextSetHint = useMemo(() => {
+    if (!selectedExercise || exerciseCompleteWithNext) return null;
+    const next =
+      findNextPendingSetInExercise(selectedExercise) ??
+      (nextPending?.exerciseId === selectedExercise.id
+        ? nextPending.set
+        : null);
+    return next ? formatWorkoutSetTargetCompact(next) : null;
+  }, [selectedExercise, nextPending, exerciseCompleteWithNext]);
 
   const manualRestSeconds =
     selectedExercise != null
@@ -157,19 +184,40 @@ function ActiveWorkoutSessionView({
             ?.targetRestSeconds ?? null
       : null;
 
+  const showDiscreteSync =
+    offlineSync.browserOffline ||
+    offlineSync.status === 'SYNCING' ||
+    offlineSync.status === 'PENDING' ||
+    offlineSync.status === 'OFFLINE' ||
+    fromLocalSnapshot ||
+    offlineSync.pendingCount > 0;
+
   return (
-    <section className="flex flex-col gap-4 pb-28">
-      <WorkoutSyncBanner
-        label={offlineSync.label}
-        status={offlineSync.status}
-        pendingCount={offlineSync.pendingCount}
-        browserOffline={offlineSync.browserOffline}
-        fromLocalSnapshot={fromLocalSnapshot}
-        onSyncNow={() => {
-          void offlineSync.syncNow();
-        }}
-        syncDisabled={offlineSync.status === 'CONFLICT'}
-      />
+    <section
+      className={cn(
+        'mx-auto flex w-full max-w-xl flex-col gap-4',
+        /* Pas de gros pb sous le sticky RestTimer (crée du scroll vide). */
+        !restTimerActive && 'pb-4',
+      )}
+      data-rest-timer-active={restTimerActive ? 'true' : 'false'}
+    >
+      <div className="flex flex-col gap-4" data-active-workout-scroll>
+      {showDiscreteSync ||
+      offlineSync.status === 'CONFLICT' ||
+      offlineSync.status === 'ERROR' ? (
+        <WorkoutSyncBanner
+          label={offlineSync.label}
+          status={offlineSync.status}
+          pendingCount={offlineSync.pendingCount}
+          browserOffline={offlineSync.browserOffline}
+          fromLocalSnapshot={fromLocalSnapshot}
+          onSyncNow={() => {
+            void offlineSync.syncNow();
+          }}
+          syncDisabled={offlineSync.status === 'CONFLICT'}
+          compact
+        />
+      ) : null}
 
       {sharedSync.syncError ? (
         <p className="text-sm text-[var(--danger)]" role="alert">
@@ -190,6 +238,8 @@ function ActiveWorkoutSessionView({
       <ActiveWorkoutHeader
         session={session}
         progress={progress}
+        currentExerciseIndex={Math.max(0, navigation.selectedIndex)}
+        totalExercises={session.exercises.length}
         offline={false}
         pausePending={lifecycle.pausePending}
         resumePending={lifecycle.resumePending}
@@ -229,35 +279,53 @@ function ActiveWorkoutSessionView({
       ) : null}
 
       {session.status === 'PAUSED' ? (
-        <p className="text-sm text-[var(--muted)]" role="status">
-          Saisie des séries désactivée pendant la pause.
-        </p>
+        <div
+          className="flex flex-col gap-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-3 py-3"
+          role="status"
+        >
+          <p className="text-sm font-medium">Séance en pause</p>
+          <p className="text-sm text-[var(--muted)]">
+            Saisie des séries désactivée pendant la pause.
+          </p>
+          {session.permissions.canResume ? (
+            <Button
+              type="button"
+              disabled={lifecycle.resumePending}
+              onClick={() => {
+                void lifecycle.resume();
+              }}
+            >
+              {lifecycle.resumePending ? 'Reprise…' : 'Reprendre la séance'}
+            </Button>
+          ) : null}
+        </div>
       ) : null}
 
       {resumeTimerPrompt && restTimer.isPaused ? (
         <div
-          className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-3"
+          className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-3 py-3"
           role="status"
         >
           <p className="text-sm">Reprendre la minuterie de repos locale ?</p>
           <div className="mt-2 flex gap-2">
-            <button
+            <Button
               type="button"
-              className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] px-3 py-2 text-sm"
+              className="flex-1"
               onClick={() => {
                 restTimer.resume();
                 setResumeTimerPrompt(false);
               }}
             >
               Reprendre le repos
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="min-h-11 rounded-[var(--radius)] border border-[var(--border)] px-3 py-2 text-sm"
+              variant="secondary"
+              className="flex-1"
               onClick={() => setResumeTimerPrompt(false)}
             >
               Plus tard
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}
@@ -279,16 +347,37 @@ function ActiveWorkoutSessionView({
           effortTrackingMode={effortTrackingMode}
           canRecordSets={session.permissions.canRecordSets}
           nextPendingSetId={nextPending?.setId ?? null}
+          exerciseIndex={Math.max(0, navigation.selectedIndex)}
+          totalExercises={session.exercises.length}
           hasNextExercise={navigation.hasNext}
           onGoToNextExercise={navigation.goToNext}
+          onOpenComplete={
+            session.permissions.canComplete
+              ? () => setCompleteOpen(true)
+              : undefined
+          }
+          restTimerActive={restTimerActive}
           onVersionConflict={onRefetch}
-          onSetRecorded={({ status, set, exercise }) => {
+          onSetRecorded={({ status, setId, set, exercise }) => {
+            if (
+              shouldSuppressRestAfterSet({
+                session,
+                exercise,
+                setId,
+                status,
+              })
+            ) {
+              if (restTimer.isRunning || restTimer.isPaused || restTimer.justExpired) {
+                restTimer.stop();
+              }
+              return;
+            }
             if (!shouldAutoStartRest(status)) {
               return;
             }
             const rest = resolveRestSeconds(set, exercise);
             if (rest != null && rest > 0) {
-              restTimer.start(rest, set.id);
+              restTimer.start(rest, setId);
             }
           }}
         />
@@ -316,30 +405,41 @@ function ActiveWorkoutSessionView({
           restTimer.stop();
         }}
       />
+      </div>
 
-      <RestTimer
-        remainingSeconds={restTimer.remainingSeconds}
-        isRunning={restTimer.isRunning}
-        isPaused={restTimer.isPaused}
-        justExpired={restTimer.justExpired}
-        onPause={restTimer.pause}
-        onResume={restTimer.resume}
-        onStop={restTimer.stop}
-        onAdd={restTimer.addSeconds}
-        onDismissExpired={restTimer.clearExpiredBanner}
-        canManualStart={
-          session.status === 'ACTIVE' &&
-          !restTimer.isRunning &&
-          !restTimer.isPaused &&
-          manualRestSeconds != null &&
-          manualRestSeconds > 0
-        }
-        onManualStart={
-          manualRestSeconds
-            ? () => restTimer.start(manualRestSeconds, null)
-            : undefined
-        }
-      />
+      {!workoutFullyTreated ? (
+        <RestTimer
+          remainingSeconds={restTimer.remainingSeconds}
+          isRunning={restTimer.isRunning}
+          isPaused={restTimer.isPaused}
+          justExpired={restTimer.justExpired}
+          onPause={restTimer.pause}
+          onResume={restTimer.resume}
+          onStop={restTimer.stop}
+          onAdd={restTimer.addSeconds}
+          onDismissExpired={restTimer.clearExpiredBanner}
+          nextSetHint={nextSetHint}
+          primaryActionLabel={
+            exerciseCompleteWithNext ? 'Exercice suivant' : null
+          }
+          onPrimaryAction={
+            exerciseCompleteWithNext ? navigation.goToNext : undefined
+          }
+          canManualStart={
+            session.status === 'ACTIVE' &&
+            !restTimer.isRunning &&
+            !restTimer.isPaused &&
+            !restTimer.justExpired &&
+            manualRestSeconds != null &&
+            manualRestSeconds > 0
+          }
+          onManualStart={
+            manualRestSeconds
+              ? () => restTimer.start(manualRestSeconds, null)
+              : undefined
+          }
+        />
+      ) : null}
     </section>
   );
 }

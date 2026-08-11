@@ -261,6 +261,56 @@ export function formatProgressChartDate(
   }).format(date);
 }
 
+/** Heure courte pour désambiguïser plusieurs points le même jour (affichage uniquement). */
+export function formatProgressChartTime(startedAt: string): string {
+  const date = new Date(startedAt);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+  return new Intl.DateTimeFormat('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
+/**
+ * Labels d’axe X : si plusieurs points partagent le même `localDate`,
+ * ajoute l’heure (startedAt) pour éviter « 11 août ——— 11 août ».
+ */
+export function buildProgressChartAxisLabels(
+  points: Array<{ localDate: string; startedAt: string }>,
+  mode: 'short' | 'month' | 'full' = 'short',
+): string[] {
+  const dateCounts = new Map<string, number>();
+  for (const point of points) {
+    dateCounts.set(point.localDate, (dateCounts.get(point.localDate) ?? 0) + 1);
+  }
+
+  return points.map((point) => {
+    const base = formatProgressChartDate(point.localDate, mode);
+    if ((dateCounts.get(point.localDate) ?? 0) <= 1) {
+      return base;
+    }
+    const time = formatProgressChartTime(point.startedAt);
+    return time ? `${base} ${time}` : base;
+  });
+}
+
+/**
+ * Masque les ticks dont le label est identique au précédent tick rendu
+ * (évite une répétition visuelle sur l’axe X).
+ */
+export function createDedupedAxisTickFormatter() {
+  let lastShown: string | null = null;
+  return (value: string): string => {
+    if (value === lastShown) {
+      return '';
+    }
+    lastShown = value;
+    return value;
+  };
+}
+
 export function formatProgressChange(
   absoluteChange: number | null,
   percentageChange: number | null,

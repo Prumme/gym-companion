@@ -11,7 +11,7 @@ vi.mock('@/stores/auth-store', () => ({
 }));
 
 describe('HomePage', () => {
-  it('renders the Gym Companion brand', () => {
+  it('renders the Gym Companion brand for guests', () => {
     const client = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
@@ -22,6 +22,11 @@ describe('HomePage', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    expect(screen.getByRole('heading', { name: 'Gym Companion' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Gym Companion' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Se connecter' }),
+    ).toBeInTheDocument();
   });
 });
