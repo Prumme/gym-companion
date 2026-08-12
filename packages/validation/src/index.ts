@@ -40,7 +40,7 @@ export const apiEnvSchema = z.object({
   /**
    * Fournisseur LLM.
    * - `none` : aucun appel externe
-   * - `openai` : OpenAI Chat Completions (clé requise si enabled)
+   * - `openai` : OpenAI Responses API (clé requise si enabled)
    * - `fake` : réservé aux tests (interdit en production)
    */
   AI_COACH_PROVIDER: z.enum(['none', 'openai', 'fake']).default('none'),

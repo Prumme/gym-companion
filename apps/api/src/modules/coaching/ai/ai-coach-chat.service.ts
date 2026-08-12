@@ -53,6 +53,7 @@ import {
   AiCoachProviderError,
   type AiCoachConversationProviderRequest,
   type AiCoachProvider,
+  type AiCoachResponsesToolLoopItem,
 } from './ai-coach-provider';
 import { AiCoachToolRegistry } from './ai-coach-tool-registry';
 
@@ -597,6 +598,18 @@ export class AiCoachChatService {
               ? ((error.getResponse() as { code?: string })?.code ??
                 'HTTP_ERROR')
               : 'UNKNOWN',
+        phase:
+          error instanceof AiCoachProviderError ? error.phase : null,
+        providerHttpStatus:
+          error instanceof AiCoachProviderError ? error.httpStatus : null,
+        providerCode:
+          error instanceof AiCoachProviderError ? error.providerCode : null,
+        openaiRequestId:
+          error instanceof AiCoachProviderError
+            ? error.openaiRequestId
+            : null,
+        model:
+          error instanceof AiCoachProviderError ? error.model : null,
         userHash: hashUserId(userId),
         provider: this.provider.name,
       });
@@ -764,20 +777,15 @@ export class AiCoachChatService {
         continue;
       }
 
-      const assistantToolMessage = {
-        role: 'assistant' as const,
-        content: result.assistantContent,
-        tool_calls: calls.map((call) => ({
-          id: call.id,
-          type: 'function' as const,
-          function: { name: call.name, arguments: call.argumentsJson },
-        })),
-      };
-      const toolMessages: Array<{
-        role: 'tool';
-        tool_call_id: string;
-        content: string;
-      }> = [];
+      const assistantFunctionCalls: AiCoachResponsesToolLoopItem[] =
+        calls.map((call) => ({
+          type: 'function_call' as const,
+          id: call.outputItemId,
+          call_id: call.id,
+          name: call.name,
+          arguments: call.argumentsJson,
+        }));
+      const toolOutputItems: AiCoachResponsesToolLoopItem[] = [];
 
       for (const call of calls) {
         let args: unknown = {};
@@ -798,17 +806,17 @@ export class AiCoachChatService {
         for (const reference of execution.references) {
           allowedReferences.set(referenceKey(reference), reference);
         }
-        toolMessages.push({
-          role: 'tool',
-          tool_call_id: call.id,
-          content: JSON.stringify(execution.llmPayload),
+        toolOutputItems.push({
+          type: 'function_call_output',
+          call_id: call.id,
+          output: JSON.stringify(execution.llmPayload),
         });
       }
 
       pendingToolLoop = [
         ...(pendingToolLoop ?? []),
-        assistantToolMessage,
-        ...toolMessages,
+        ...assistantFunctionCalls,
+        ...toolOutputItems,
       ];
     }
 

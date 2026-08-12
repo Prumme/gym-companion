@@ -465,9 +465,12 @@ export type AiCoachConversationTurnInput = {
 };
 
 export type AiCoachProviderToolCall = {
+  /** Responses API `call_id` (référencé par function_call_output). */
   id: string;
   name: string;
   argumentsJson: string;
+  /** Identifiant item Responses (`fc_…`), optionnel. */
+  outputItemId?: string;
 };
 
 export type AiCoachConversationTurnResult =
@@ -480,7 +483,7 @@ export type AiCoachConversationTurnResult =
       kind: 'tool_calls';
       toolCalls: AiCoachProviderToolCall[];
       providerRequestId: string | null;
-      /** Message assistant brut éventuel (pour rejouabilité OpenAI). */
+      /** Message assistant brut éventuel (compat). */
       assistantContent: string | null;
     };
 

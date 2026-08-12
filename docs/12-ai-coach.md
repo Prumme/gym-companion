@@ -131,8 +131,8 @@ deux formes **canoniques** suivantes :
 #### Wire format OpenAI (privé provider)
 
 Pour réduire les tokens Structured Outputs, OpenAI reçoit/produit un **wire format compact**
-(`AI_COACH_WIRE_OUTPUT_JSON_SCHEMA`, `strict: true`, Chat Completions `json_schema` — pas de SDK
-`openai`, appels `fetch` bruts).
+(`AI_COACH_WIRE_OUTPUT_JSON_SCHEMA`, `strict: true`, **Responses API** `text.format.json_schema`
+via `POST /v1/responses` — pas de SDK `openai`, appels `fetch` bruts).
 
 Ce format :
 
@@ -146,9 +146,9 @@ Correspondances principales : `t`→type (`d`/`p`), `x`→text, `d`→data, `k`�
 
 `AiCoachProposal.payloadJson` stocke le payload **canonique** (jamais les clés wire).
 
-Budgets `max_tokens` réponse finale : discussion ≈ 900, workout ≈ 2800, program / défaut ≈ 4500
-(marge anti-troncature). L’option Responses API `verbosity: low` n’est pas utilisée ici (provider =
-Chat Completions).
+Budgets `max_output_tokens` réponse finale : discussion ≈ 900, workout ≈ 2800, program / défaut ≈ 4500
+(marge anti-troncature). Les tools function sont envoyés au format Responses (`type/name/parameters`,
+`strict: false` car plusieurs paramètres sont optionnels).
 
 Trois outils lecture seule supplémentaires permettent à l’IA de construire une proposal réaliste
 sans jamais inventer un identifiant : `search_exercises` (seule source de vrais `exerciseId`),
