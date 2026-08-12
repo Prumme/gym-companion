@@ -22,7 +22,7 @@ import {
 export const AI_COACH_CHAT_SCHEMA_VERSION =
   'AI_COACH_CHAT_STRUCTURED_V1' as const;
 export const AI_COACH_CHAT_PROMPT_VERSION =
-  'AI_COACH_CHAT_STRUCTURED_PROMPT_V3' as const;
+  'AI_COACH_CHAT_STRUCTURED_PROMPT_V4' as const;
 
 export const AI_COACH_MAX_TOOL_CALLS_PER_TURN = 4;
 export const AI_COACH_HISTORY_MESSAGE_LIMIT = 12;
@@ -198,6 +198,15 @@ export const searchExercisesToolArgsSchema = z
       emptyToUndefined,
       z.string().uuid().optional(),
     ),
+    /** Exclure un équipement (ex. « Machine » pour « sans machines »). */
+    excludeEquipmentType: z.preprocess(
+      emptyToUndefined,
+      z.string().max(80).optional(),
+    ),
+    excludeEquipmentTypeId: z.preprocess(
+      emptyToUndefined,
+      z.string().uuid().optional(),
+    ),
     measurementType: z.preprocess(
       emptyToUndefined,
       z.string().max(64).optional(),
@@ -322,11 +331,13 @@ export const AI_COACH_CHAT_SYSTEM_INSTRUCTIONS = [
   'Tu es le Coach de Gym Companion.',
   'Les outils et résultats déterministes sont la source de vérité.',
   'N’invente aucune donnée sportive et n’invente jamais un exerciseId.',
-  'Pour une proposal : appelle search_exercises (filtres muscleGroup/equipmentType de préférence à une query textuelle), copie le champ id de chaque résultat dans e[].id — jamais un id inventé.',
-  'Ex. séance dos → search_exercises({muscleGroup:"Dos",limit:12}). Bras → biceps puis triceps. Si [] : réessaie avec un autre filtre structuré avant d’abandonner.',
-  'Respecte measurementType du tool : WEIGHT_REPS/BODYWEIGHT/REPS_ONLY → r:[min,max] obligatoire, sec et m doivent rester null ; DURATION → sec ; DISTANCE_DURATION → m.',
-  'Débutant / sans historique : st=WORKING, r simple (ex. [8,12]), rir optionnel, omets kg et pct. Un seul de rir|rpe.',
-  'Lorsqu’une question nécessite des données utilisateur, utilise les outils disponibles.',
+  'Pour une proposal : search_exercises (muscleGroup prioritaire), copie e[].id — jamais d’id inventé.',
+  'Zone composite : bras→Biceps+Triceps ; jambes→quad/ischio/fessiers/mollets ; pecs→Pectoraux. Plusieurs appels OK.',
+  '« en salle / accès machines » = contexte, PAS equipmentType strict. Filtre équipement seulement si « uniquement X » / « sans Y » (excludeEquipmentType).',
+  'Si résultats insuffisants : élargis (retire équipement) avant d’abandonner. Débutant générique : pas besoin d’historique/1RM.',
+  'Si vraiment 0 exercice : « Je n’ai pas trouvé assez d’exercices dans ton catalogue pour construire cette proposition. »',
+  'Respecte measurementType du tool : WEIGHT_REPS/BODYWEIGHT/REPS_ONLY → r:[min,max], sec=m=null ; DURATION → sec ; DISTANCE_DURATION → m.',
+  'Débutant : st=WORKING, r simple (ex. [8,12]), rir optionnel, omets kg et pct. Un seul de rir|rpe.',
   'Tu ne modifies, ne crées ni n’enregistres jamais directement un programme, une séance ou une cible : tu peux uniquement PROPOSER une séance ou un programme à valider par l’utilisateur.',
   'Ne prétends pas qu’un 1RM estimé est une charge réellement soulevée.',
   'Ne transforme pas une recommandation HOLD/DECREASE/INCREASE.',
@@ -435,7 +446,7 @@ export const AI_COACH_TOOL_DEFINITIONS: AiCoachToolDefinition[] = [
   {
     name: 'search_exercises',
     description:
-      'Catalogue exercices (SYSTEM + personnels user). Filtre par muscleGroup/equipmentType (labels FR ou codes, ex. "Dos"/"back", "Haltères"/"dumbbell") plutôt que query textuelle pour une séance. Retourne id à copier dans e[].id. N’invente jamais d’id.',
+      'Catalogue exercices (SYSTEM + personnels). muscleGroup: label/code ou concept (bras, jambes, pecs, full body). equipmentType = contrainte stricte seulement si l’utilisateur l’exige. excludeEquipmentType pour « sans machines ». Retourne id à copier dans e[].id.',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -444,14 +455,21 @@ export const AI_COACH_TOOL_DEFINITIONS: AiCoachToolDefinition[] = [
         search: { type: 'string', description: 'Alias de query' },
         muscleGroup: {
           type: 'string',
-          description: 'Label ou code muscle (ex. Dos, back)',
+          description:
+            'Label, code ou concept (Dos, biceps, bras, jambes, pecs, full body)',
         },
         muscleGroupId: { type: 'string', format: 'uuid' },
         equipmentType: {
           type: 'string',
-          description: 'Label ou code équipement (ex. Haltères, machine)',
+          description:
+            'Contrainte stricte uniquement (ex. Haltères si « uniquement haltères »)',
         },
         equipmentTypeId: { type: 'string', format: 'uuid' },
+        excludeEquipmentType: {
+          type: 'string',
+          description: 'Exclure un équipement (ex. Machine si « sans machines »)',
+        },
+        excludeEquipmentTypeId: { type: 'string', format: 'uuid' },
         measurementType: { type: 'string' },
         limit: {
           type: 'integer',

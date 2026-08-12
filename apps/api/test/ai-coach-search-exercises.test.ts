@@ -234,6 +234,215 @@ describe('search_exercises tool (Coach catalogue)', () => {
     );
   });
 
+  it('bras + Machine (contexte salle) → résultats via concept (pas 0)', async () => {
+    const result = await tools.execute(
+      'search_exercises',
+      { muscleGroup: 'Bras', equipmentType: 'Machine', limit: 12 },
+      { ownerUserId: userAId },
+    );
+    const payload = result.llmPayload as {
+      count: number;
+      exercises: Array<{ id: string; muscle: string }>;
+    };
+    // Machine touche surtout des polyarticulaires (triceps/biceps secondaires) — OK.
+    expect(payload.count).toBeGreaterThan(0);
+    expect(
+      payload.exercises.every((item) => Boolean(item.id)),
+    ).toBe(true);
+  });
+
+  it('bras + équipement introuvable pour la zone → fallback dropped_equipment', async () => {
+    const result = await tools.execute(
+      'search_exercises',
+      {
+        muscleGroup: 'bras',
+        equipmentType: 'Machine de cardio',
+        limit: 12,
+      },
+      { ownerUserId: userAId },
+    );
+    const payload = result.llmPayload as {
+      count: number;
+      exercises: Array<{ id: string; muscle: string }>;
+      fallback?: string;
+    };
+    expect(payload.count).toBeGreaterThanOrEqual(2);
+    expect(payload.fallback).toBe('dropped_equipment');
+    expect(result.outputSummary.fallback).toBe('dropped_equipment');
+    const muscles = payload.exercises.map((item) => item.muscle.toLowerCase());
+    expect(muscles.some((m) => m.includes('biceps'))).toBe(true);
+    expect(muscles.some((m) => m.includes('triceps'))).toBe(true);
+  });
+
+  it('bras + Haltères (contrainte stricte) → résultats sans fallback', async () => {
+    const result = await tools.execute(
+      'search_exercises',
+      { muscleGroup: 'bras', equipmentType: 'Haltères', limit: 12 },
+      { ownerUserId: userAId },
+    );
+    const payload = result.llmPayload as {
+      count: number;
+      fallback?: string;
+      exercises: Array<{ id: string; name: string }>;
+    };
+    expect(payload.count).toBeGreaterThan(0);
+    expect(payload.fallback).toBeUndefined();
+    expect(result.outputSummary.fallback).toBe('none');
+  });
+
+  it('bras sans machines (excludeEquipmentType)', async () => {
+    const result = await tools.execute(
+      'search_exercises',
+      { muscleGroup: 'bras', excludeEquipmentType: 'Machine', limit: 12 },
+      { ownerUserId: userAId },
+    );
+    const payload = result.llmPayload as { count: number; exercises: unknown[] };
+    expect(payload.count).toBeGreaterThan(0);
+  });
+
+  it('jambes → groupes composites', async () => {
+    const result = await tools.execute(
+      'search_exercises',
+      { muscleGroup: 'jambes', limit: 12 },
+      { ownerUserId: userAId },
+    );
+    expect((result.llmPayload as { count: number }).count).toBeGreaterThan(0);
+    expect(
+      (result.outputSummary.muscleGroupIds as string[]).length,
+    ).toBeGreaterThanOrEqual(2);
+  });
+
+  it('full body → plusieurs groupes', async () => {
+    const result = await tools.execute(
+      'search_exercises',
+      { muscleGroup: 'full body', limit: 12 },
+      { ownerUserId: userAId },
+    );
+    expect((result.llmPayload as { count: number }).count).toBeGreaterThan(2);
+    expect(
+      (result.outputSummary.muscleGroupIds as string[]).length,
+    ).toBeGreaterThan(3);
+  });
+
+  it('user sans exercice personnel voit le catalogue SYSTEM', async () => {
+    const result = await tools.execute(
+      'search_exercises',
+      { muscleGroup: 'Dos', limit: 8 },
+      { ownerUserId: userBId },
+    );
+    const payload = result.llmPayload as {
+      count: number;
+      exercises: Array<{ id: string; name: string }>;
+    };
+    expect(payload.count).toBeGreaterThan(0);
+    const personalCount = await prisma.exercise.count({
+      where: { ownerUserId: userBId, source: 'USER' },
+    });
+    expect(personalCount).toBe(0);
+    const systemIds = await prisma.exercise.findMany({
+      where: {
+        id: { in: payload.exercises.map((item) => item.id) },
+        source: 'SYSTEM',
+      },
+      select: { id: true },
+    });
+    expect(systemIds.length).toBe(payload.exercises.length);
+  });
+
+  it('programme bras en salle (Machine dans l’appel) → proposal program', async () => {
+    const search = await tools.execute(
+      'search_exercises',
+      { muscleGroup: 'bras', equipmentType: 'Machine', limit: 8 },
+      { ownerUserId: userBId },
+    );
+    const found = (
+      search.llmPayload as {
+        exercises: Array<{ id: string; measurementType: string }>;
+      }
+    ).exercises;
+    expect(found.length).toBeGreaterThanOrEqual(2);
+    const picked = found
+      .filter((item) => item.measurementType === 'WEIGHT_REPS')
+      .slice(0, 2);
+    expect(picked.length).toBeGreaterThanOrEqual(1);
+
+    fakeProvider.resetChat();
+    fakeProvider.chatBehavior = {
+      mode: 'tools_then_answer',
+      toolCalls: [
+        {
+          name: 'search_exercises',
+          arguments: { muscleGroup: 'Bras', equipmentType: 'Machine' },
+        },
+      ],
+      answer: {
+        type: 'proposal',
+        text: 'Programme bras débutant en salle.',
+        data: {
+          kind: 'program',
+          workout: null,
+          program: {
+            name: 'Bras débutant',
+            description: null,
+            goal: 'HYPERTROPHY' as const,
+            workouts: [
+              {
+                name: 'Séance bras',
+                estimatedDurationMinutes: 40,
+                exercises: picked.map((item) => ({
+                  exerciseId: item.id,
+                  equipmentTypeId: null,
+                  notes: null,
+                  sets: [
+                    {
+                      setType: 'WORKING' as const,
+                      targetRepMin: 8,
+                      targetRepMax: 12,
+                      targetDurationSeconds: null,
+                      targetDistanceMeters: null,
+                      targetWeightKg: null,
+                      targetIntensityPercent: null,
+                      targetRir: 2,
+                      targetRpe: null,
+                      restSeconds: 90,
+                    },
+                  ],
+                })),
+              },
+            ],
+            schedule: null,
+          },
+        },
+        references: [],
+        suggestedFollowUps: [],
+      },
+    };
+
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/coaching/conversations')
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({})
+      .expect(201);
+
+    const response = await request(app.getHttpServer())
+      .post(
+        `/api/v1/coaching/conversations/${created.body.data.id}/messages`,
+      )
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({
+        content:
+          'Je débute la salle de sport et j’ai accès à toutes les machines. Crée-moi un programme pour les bras.',
+        clientCommandId: randomUUID(),
+      })
+      .expect(201);
+
+    expect(response.body.data.assistantMessage.proposal).toBeTruthy();
+    expect(response.body.data.assistantMessage.proposal.kind).toBe('PROGRAM');
+    expect(response.body.data.assistantMessage.content).not.toMatch(
+      /pas trouvé|aucun exercice|filtres/i,
+    );
+  });
+
   it('respecte limit', async () => {
     const result = await tools.execute(
       'search_exercises',

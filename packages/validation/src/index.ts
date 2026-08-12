@@ -2199,6 +2199,12 @@ export type {
 } from './ai-coach-explanation';
 
 export {
+  AI_COACH_MUSCLE_CONCEPT_ALIASES,
+  aiCoachMuscleConceptKey,
+  resolveAiCoachMuscleConcept,
+} from './ai-coach-muscle-concepts';
+
+export {
   AI_COACH_ASSISTANT_MESSAGE_MAX_LENGTH,
   AI_COACH_CHAT_PROMPT_VERSION,
   AI_COACH_CHAT_SCHEMA_VERSION,

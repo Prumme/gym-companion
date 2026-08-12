@@ -5,6 +5,7 @@ import {
   AI_COACH_RECENT_WORKOUTS_MAX,
   AI_COACH_SEARCH_EXERCISES_DEFAULT_LIMIT,
   AI_COACH_SEARCH_EXERCISES_MAX_RESULTS,
+  aiCoachMuscleConceptKey,
   assertReadOnlyToolRegistry,
   getActiveProgramToolArgsSchema,
   getExerciseCoachSummaryToolArgsSchema,
@@ -15,6 +16,7 @@ import {
   getRecentWorkoutsToolArgsSchema,
   getWorkoutDetailToolArgsSchema,
   normalizeExerciseName,
+  resolveAiCoachMuscleConcept,
   searchExercisesToolArgsSchema,
   type AiCoachReadOnlyToolName,
 } from '@gym-companion/validation';
@@ -476,6 +478,10 @@ export class AiCoachToolRegistry {
       AI_COACH_SEARCH_EXERCISES_MAX_RESULTS,
     );
 
+    const conceptKey = parsed.muscleGroup
+      ? aiCoachMuscleConceptKey(parsed.muscleGroup)
+      : null;
+
     const unresolved: Record<string, string> = {};
     let muscleGroupIds: string[] = [];
     if (parsed.muscleGroupId) {
@@ -494,15 +500,27 @@ export class AiCoachToolRegistry {
       if (!equipmentTypeId) unresolved.equipmentType = parsed.equipmentType;
     }
 
+    let excludeEquipmentTypeId = parsed.excludeEquipmentTypeId;
+    if (!excludeEquipmentTypeId && parsed.excludeEquipmentType) {
+      excludeEquipmentTypeId =
+        (await this.resolveEquipmentTypeId(parsed.excludeEquipmentType)) ??
+        undefined;
+      if (!excludeEquipmentTypeId) {
+        unresolved.excludeEquipmentType = parsed.excludeEquipmentType;
+      }
+    }
+
     // Label non résolu → résultats vides + hint (évite une recherche name="Dos").
     if (Object.keys(unresolved).length > 0) {
       this.logger.log({
-        event: 'ai_coach.tool.search_exercises',
+        event: 'ai_coach.search',
+        concept: conceptKey,
+        resolvedGroupsCount: 0,
+        strictEquipment: Boolean(equipmentTypeId),
         query: queryText ?? null,
-        muscle: parsed.muscleGroup ?? parsed.muscleGroupId ?? null,
-        equipment: parsed.equipmentType ?? parsed.equipmentTypeId ?? null,
+        muscleGroup: parsed.muscleGroup ?? null,
+        equipmentType: parsed.equipmentType ?? null,
         resultCount: 0,
-        hasIds: false,
         unresolved,
       });
       return {
@@ -511,7 +529,7 @@ export class AiCoachToolRegistry {
           count: 0,
           exercises: [],
           unresolved,
-          hint: 'Utilise un label référentiel exact (ex. muscleGroup:"Dos", equipmentType:"Haltères" ou codes back/dumbbell). Pour les bras : biceps puis triceps.',
+          hint: 'Utilise un label/concept connu (ex. muscleGroup:"bras"|"Biceps"|"Dos", pecs, jambes). « en salle » ≠ filtre Machine.',
         },
         outputSummary: {
           count: 0,
@@ -523,6 +541,118 @@ export class AiCoachToolRegistry {
       };
     }
 
+    const runSearch = async (equipmentFilter: string | undefined) =>
+      this.collectSearchExercises({
+        ownerUserId: context.ownerUserId,
+        queryText,
+        muscleGroupIds,
+        equipmentTypeId: equipmentFilter,
+        excludeEquipmentTypeId,
+        measurementType: parsed.measurementType,
+        limit,
+      });
+
+    // NIVEAU 1 — critères demandés (muscle ± équipement strict).
+    let exercises = await runSearch(equipmentTypeId);
+    let fallback: 'none' | 'dropped_equipment' | 'neighbor_query' = 'none';
+
+    // NIVEAU 2 — si équipement strict → 0, élargir sans équipement (contexte salle).
+    if (exercises.length === 0 && equipmentTypeId) {
+      exercises = await runSearch(undefined);
+      if (exercises.length > 0) {
+        fallback = 'dropped_equipment';
+      }
+    }
+
+    // NIVEAU 3 — query voisine minimale si toujours vide et concept connu.
+    if (exercises.length === 0 && conceptKey && !queryText) {
+      const neighborQuery =
+        conceptKey === 'bras' || conceptKey === 'arms' || conceptKey === 'arm'
+          ? 'curl'
+          : conceptKey === 'jambes' ||
+              conceptKey === 'jambe' ||
+              conceptKey === 'legs' ||
+              conceptKey === 'leg'
+            ? 'squat'
+            : conceptKey === 'pecs' ||
+                conceptKey === 'pec' ||
+                conceptKey === 'poitrine'
+              ? 'developpe'
+              : null;
+      if (neighborQuery) {
+        exercises = await this.collectSearchExercises({
+          ownerUserId: context.ownerUserId,
+          queryText: neighborQuery,
+          muscleGroupIds: [],
+          equipmentTypeId: undefined,
+          excludeEquipmentTypeId,
+          measurementType: parsed.measurementType,
+          limit,
+        });
+        if (exercises.length > 0) {
+          fallback = 'neighbor_query';
+        }
+      }
+    }
+
+    const idsPresent = exercises.filter((item) => Boolean(item.id)).length;
+
+    this.logger.log({
+      event: 'ai_coach.search',
+      concept: conceptKey,
+      resolvedGroupsCount: muscleGroupIds.length,
+      strictEquipment: Boolean(equipmentTypeId) && fallback === 'none',
+      query: queryText ?? null,
+      muscleGroup: parsed.muscleGroup ?? null,
+      equipmentType: parsed.equipmentType ?? null,
+      resultCount: exercises.length,
+      fallback,
+    });
+
+    return {
+      toolName: 'search_exercises',
+      llmPayload: {
+        count: exercises.length,
+        exercises,
+        ...(fallback !== 'none'
+          ? {
+              fallback,
+              hint: 'Filtre équipement trop strict : résultats élargis sans equipmentType. Ne pas réimposer Machine pour un contexte « salle ».',
+            }
+          : {}),
+      },
+      outputSummary: {
+        count: exercises.length,
+        idsPresent,
+        query: queryText ?? null,
+        muscleGroupId: muscleGroupIds[0] ?? null,
+        muscleGroupIds,
+        equipmentTypeId: equipmentTypeId ?? null,
+        excludeEquipmentTypeId: excludeEquipmentTypeId ?? null,
+        fallback,
+        concept: conceptKey,
+      },
+      references: [],
+    };
+  }
+
+  private async collectSearchExercises(input: {
+    ownerUserId: string;
+    queryText: string | undefined;
+    muscleGroupIds: string[];
+    equipmentTypeId: string | undefined;
+    excludeEquipmentTypeId: string | undefined;
+    measurementType: string | undefined;
+    limit: number;
+  }): Promise<
+    Array<{
+      id: string;
+      name: string;
+      muscle: string;
+      equipment: string | null;
+      measurementType: string;
+    }>
+  > {
     const byId = new Map<
       string,
       {
@@ -534,14 +664,20 @@ export class AiCoachToolRegistry {
       }
     >();
     const muscleTargets =
-      muscleGroupIds.length > 0 ? muscleGroupIds : [undefined];
+      input.muscleGroupIds.length > 0 ? input.muscleGroupIds : [undefined];
+
     for (const muscleGroupId of muscleTargets) {
-      const result = await this.exercisesService.list(context.ownerUserId, {
-        search: queryText,
+      const result = await this.exercisesService.list(input.ownerUserId, {
+        search: input.queryText,
         muscleGroupId,
-        equipmentTypeId,
-        measurementType: parsed.measurementType,
-        limit: String(limit),
+        equipmentTypeId: input.equipmentTypeId,
+        measurementType: input.measurementType,
+        // Sur-fetch si exclusion : on filtre ensuite.
+        limit: String(
+          input.excludeEquipmentTypeId
+            ? Math.min(input.limit * 3, AI_COACH_SEARCH_EXERCISES_MAX_RESULTS)
+            : input.limit,
+        ),
       });
       for (const item of result.data) {
         if (byId.has(item.id)) continue;
@@ -552,60 +688,54 @@ export class AiCoachToolRegistry {
           equipment: item.defaultEquipmentType?.name ?? null,
           measurementType: item.measurementType,
         });
-        if (byId.size >= limit) break;
       }
-      if (byId.size >= limit) break;
+      if (byId.size >= input.limit * 3) break;
     }
 
-    const exercises = [...byId.values()].slice(0, limit);
-    const idsPresent = exercises.filter((item) => Boolean(item.id)).length;
+    let exercises = [...byId.values()];
 
-    this.logger.log({
-      event: 'ai_coach.tool.search_exercises',
-      query: queryText ?? null,
-      muscle: parsed.muscleGroup ?? muscleGroupIds[0] ?? null,
-      muscleGroupCount: muscleGroupIds.length,
-      equipment: parsed.equipmentType ?? equipmentTypeId ?? null,
-      resultCount: exercises.length,
-      hasIds: idsPresent === exercises.length && exercises.length > 0,
-      idsPresent,
-    });
+    if (input.excludeEquipmentTypeId && exercises.length > 0) {
+      const rows = await this.prisma.exercise.findMany({
+        where: { id: { in: exercises.map((item) => item.id) } },
+        select: {
+          id: true,
+          defaultEquipmentTypeId: true,
+          compatibleEquipment: { select: { equipmentTypeId: true } },
+        },
+      });
+      const excluded = new Set(
+        rows
+          .filter(
+            (row) =>
+              row.defaultEquipmentTypeId === input.excludeEquipmentTypeId ||
+              row.compatibleEquipment.some(
+                (item) =>
+                  item.equipmentTypeId === input.excludeEquipmentTypeId,
+              ),
+          )
+          .map((row) => row.id),
+      );
+      exercises = exercises.filter((item) => !excluded.has(item.id));
+    }
 
-    return {
-      toolName: 'search_exercises',
-      llmPayload: {
-        count: exercises.length,
-        exercises,
-      },
-      outputSummary: {
-        count: exercises.length,
-        idsPresent,
-        query: queryText ?? null,
-        muscleGroupId: muscleGroupIds[0] ?? null,
-        muscleGroupIds,
-        equipmentTypeId: equipmentTypeId ?? null,
-      },
-      references: [],
-    };
+    return exercises.slice(0, input.limit);
   }
 
   /**
    * Résout un label MuscleGroup → UUID(s).
-   * « bras » / « arms » n’est pas un MuscleGroup exact → biceps + triceps.
+   * Concepts composites (bras, jambes…) → plusieurs codes référentiels.
    */
   private async resolveMuscleGroupIds(label: string): Promise<string[]> {
     const exact = await this.resolveMuscleGroupId(label);
     if (exact) return [exact];
 
-    const needle = normalizeExerciseName(label);
-    if (needle === 'bras' || needle === 'arms' || needle === 'arm') {
-      const ids = await Promise.all([
-        this.resolveMuscleGroupId('biceps'),
-        this.resolveMuscleGroupId('triceps'),
-      ]);
-      return ids.filter((id): id is string => id != null);
-    }
-    return [];
+    const concept = resolveAiCoachMuscleConcept(label);
+    if (!concept) return [];
+
+    const ids = await Promise.all(
+      concept.map((code) => this.resolveMuscleGroupId(code)),
+    );
+    return [...new Set(ids.filter((id): id is string => id != null))];
   }
 
   /** Résout un label/code MuscleGroup vers son UUID (sans exposer le catalogue). */
