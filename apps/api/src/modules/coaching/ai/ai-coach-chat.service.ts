@@ -44,6 +44,7 @@ import { PrismaService } from '../../../database/prisma/prisma.service';
 import {
   AiCoachProposalBusinessError,
   buildProposalPreview,
+  buildProposalRepairFeedback,
   toAiCoachProposalSummary,
   validateProposalContext,
 } from './ai-coach-proposal-payload';
@@ -57,9 +58,9 @@ import {
 } from './ai-coach-provider';
 import { AiCoachToolRegistry } from './ai-coach-tool-registry';
 
-/** Réponse de repli (discussion) quand une proposal échoue la revalidation métier serveur. */
+/** Réponse de repli (discussion) quand repair + validation échouent. */
 const PROPOSAL_BUSINESS_INVALID_FALLBACK_TEXT =
-  'Je n’ai pas pu valider automatiquement cette proposition (exercice obsolète ou cible invalide). Réessaie avec une description plus précise.';
+  'Le Coach n’a pas réussi à construire une proposition compatible avec ton catalogue. Essaie de préciser le type d’entraînement souhaité.';
 
 @Injectable()
 export class AiCoachChatService {
@@ -519,10 +520,12 @@ export class AiCoachChatService {
         providerRequestId,
       } = await this.runToolLoop(userId, turnInput);
 
-      // Jalon 8 — une proposal est revalidée intégralement avant persistance ;
-      // si invalide (exercice obsolète, cible incohérente…), on ne persiste
-      // jamais l’AiCoachProposal et on répond par un message discussion.
-      const finalAnswer = await this.finalizeAnswer(userId, answer);
+      // Jalon 8 — proposal revalidée (+ sanitize measurementType) avant
+      // persistance ; max 1 repair OpenAI si cible métier réparable.
+      const finalAnswer = await this.finalizeAnswer(userId, answer, {
+        turnInput,
+        conversationId,
+      });
 
       const assistant = await this.prisma.$transaction(async (tx) => {
         const created = await tx.aiCoachMessage.create({
@@ -662,13 +665,17 @@ export class AiCoachChatService {
   }
 
   /**
-   * Jalon 8 — dernière étape avant persistance : revalide intégralement une
-   * proposal (exercices, équipement, cibles). Si invalide, la proposal n’est
-   * jamais persistée et la réponse bascule vers un message discussion.
+   * Jalon 8 — dernière étape avant persistance : sanitize + revalidation
+   * métier. Une seule tentative de repair OpenAI si la validation échoue.
+   * Persiste uniquement le payload sanitizé (measurementType DB = vérité).
    */
   private async finalizeAnswer(
     userId: string,
     answer: AiCoachChatAnswer,
+    repairCtx: {
+      turnInput: AiCoachConversationProviderRequest['input'];
+      conversationId: string;
+    },
   ): Promise<
     | {
         type: 'discussion';
@@ -697,38 +704,111 @@ export class AiCoachChatService {
       };
     }
 
-    const kind = answer.data.kind === 'workout' ? 'WORKOUT' : 'PROGRAM';
-    try {
-      const context = await validateProposalContext(
-        this.prisma,
-        userId,
-        kind,
-        answer.data.workout,
-        answer.data.program,
-      );
-      const preview = buildProposalPreview(
-        kind,
-        answer.data.workout,
-        answer.data.program,
-        context,
-      );
-      return {
-        type: 'proposal',
-        text: answer.text,
-        data: answer.data,
-        references: answer.references,
-        suggestedFollowUps: answer.suggestedFollowUps,
-        preview,
-      };
-    } catch (error) {
-      if (error instanceof AiCoachProposalBusinessError) {
+    let current = answer;
+    for (let repairAttempt = 0; repairAttempt <= 1; repairAttempt += 1) {
+      if (!current.data) break;
+      const kind = current.data.kind === 'workout' ? 'WORKOUT' : 'PROGRAM';
+      try {
+        const validated = await validateProposalContext(
+          this.prisma,
+          userId,
+          kind,
+          current.data.workout,
+          current.data.program,
+        );
+        const sanitizedData =
+          kind === 'WORKOUT'
+            ? {
+                kind: 'workout' as const,
+                workout: validated.workout!,
+                program: null,
+              }
+            : {
+                kind: 'program' as const,
+                workout: null,
+                program: validated.program!,
+              };
+        const preview = buildProposalPreview(
+          kind,
+          validated.workout,
+          validated.program,
+          validated.context,
+        );
+        this.logger.log({
+          event: 'ai_coach.proposal.validation_success',
+          repairAttempt,
+          conversationId: repairCtx.conversationId,
+          kind,
+          userHash: hashUserId(userId),
+        });
+        return {
+          type: 'proposal',
+          text: current.text,
+          data: sanitizedData,
+          references: current.references,
+          suggestedFollowUps: current.suggestedFollowUps,
+          preview,
+        };
+      } catch (error) {
+        if (!(error instanceof AiCoachProposalBusinessError)) {
+          throw error;
+        }
         this.logger.warn({
-          event: 'ai_coach.failed',
-          phase: 'proposal_validation',
-          reason: error.message.includes('exercice')
-            ? 'invalid_exercise_reference'
-            : 'business_invalid',
-          detail: error.message.slice(0, 200),
+          event: 'ai_coach.proposal.validation_failed',
+          reason: error.code,
+          repairAttempt,
+          conversationId: repairCtx.conversationId,
+          exerciseId: error.details.exerciseId ?? null,
+          measurementType: error.details.measurementType ?? null,
+          exerciseIndex: error.details.exerciseIndex ?? null,
+          setIndex: error.details.setIndex ?? null,
+          validationCode: error.details.validationCode ?? null,
+          userHash: hashUserId(userId),
+        });
+
+        if (
+          repairAttempt === 0 &&
+          (error.code === 'PROPOSAL_SET_TARGET_INVALID' ||
+            error.code === 'PROPOSAL_PROGRAM_INVALID')
+        ) {
+          this.logger.log({
+            event: 'ai_coach.proposal.repair_started',
+            reason: error.code,
+            conversationId: repairCtx.conversationId,
+            userHash: hashUserId(userId),
+          });
+          try {
+            const repaired = await this.provider.generateConversationTurn({
+              input: repairCtx.turnInput,
+              tools: [],
+              timeoutMs: this.config.aiCoachTimeoutMs,
+              model: this.config.aiCoachModel,
+              forceFinalAnswer: true,
+              repairFeedback: buildProposalRepairFeedback(error),
+            });
+            if (repaired.kind === 'answer' && repaired.answer.type === 'proposal') {
+              current = repaired.answer;
+              continue;
+            }
+          } catch (repairError) {
+            this.logger.warn({
+              event: 'ai_coach.proposal.repair_failed',
+              reason: 'provider_error',
+              conversationId: repairCtx.conversationId,
+              providerCode:
+                repairError instanceof AiCoachProviderError
+                  ? repairError.code
+                  : 'UNKNOWN',
+              userHash: hashUserId(userId),
+            });
+          }
+        }
+
+        this.logger.warn({
+          event: 'ai_coach.proposal.repair_failed',
+          reason: error.code,
+          repairAttempt,
+          conversationId: repairCtx.conversationId,
           userHash: hashUserId(userId),
         });
         return {
@@ -739,8 +819,15 @@ export class AiCoachChatService {
           suggestedFollowUps: [],
         };
       }
-      throw error;
     }
+
+    return {
+      type: 'discussion',
+      text: PROPOSAL_BUSINESS_INVALID_FALLBACK_TEXT,
+      data: null,
+      references: [],
+      suggestedFollowUps: [],
+    };
   }
 
   private async runToolLoop(

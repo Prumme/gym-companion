@@ -141,7 +141,20 @@ export class AiCoachProposalService {
     }
 
     const payload = coachWorkoutProposalSchema.parse(proposal.payloadJson);
-    await validateProposalContext(this.prisma, userId, 'WORKOUT', payload, null);
+    const validated = await validateProposalContext(
+      this.prisma,
+      userId,
+      'WORKOUT',
+      payload,
+      null,
+    );
+    const workout = validated.workout;
+    if (!workout) {
+      throw new AiCoachProposalBusinessError(
+        'data.workout manquant après validation.',
+        'PROPOSAL_DATA_MISSING',
+      );
+    }
 
     return this.prisma.$transaction(async (tx) => {
       const existingTemplates = await tx.workoutTemplate.findMany({
@@ -156,12 +169,12 @@ export class AiCoachProposalService {
         data: {
           ownerUserId: userId,
           programId,
-          name: payload.name.trim(),
+          name: workout.name.trim(),
           description: null,
-          estimatedDurationMinutes: payload.estimatedDurationMinutes,
+          estimatedDurationMinutes: workout.estimatedDurationMinutes,
           positionInProgram: position,
           exercises: {
-            create: payload.exercises.map((exercise, exerciseIndex) => ({
+            create: workout.exercises.map((exercise, exerciseIndex) => ({
               exerciseId: exercise.exerciseId,
               position: exerciseIndex,
               equipmentTypeId: exercise.equipmentTypeId,
@@ -202,7 +215,20 @@ export class AiCoachProposalService {
     proposal: AiCoachProposal,
   ): Promise<AiCoachProposal> {
     const payload = coachProgramProposalSchema.parse(proposal.payloadJson);
-    await validateProposalContext(this.prisma, userId, 'PROGRAM', null, payload);
+    const validated = await validateProposalContext(
+      this.prisma,
+      userId,
+      'PROGRAM',
+      null,
+      payload,
+    );
+    const programPayload = validated.program;
+    if (!programPayload) {
+      throw new AiCoachProposalBusinessError(
+        'data.program manquant après validation.',
+        'PROPOSAL_DATA_MISSING',
+      );
+    }
 
     return this.prisma.$transaction(async (tx) => {
       // Jalon 8 — la proposal ne peut jamais activer un programme : le
@@ -210,12 +236,12 @@ export class AiCoachProposalService {
       const program = await tx.program.create({
         data: {
           ownerUserId: userId,
-          name: payload.name.trim(),
-          description: payload.description,
-          goal: payload.goal,
+          name: programPayload.name.trim(),
+          description: programPayload.description,
+          goal: programPayload.goal,
           status: 'DRAFT',
           workoutTemplates: {
-            create: payload.workouts.map((workout, workoutIndex) => ({
+            create: programPayload.workouts.map((workout, workoutIndex) => ({
               ownerUserId: userId,
               name: workout.name.trim(),
               description: null,
@@ -252,15 +278,17 @@ export class AiCoachProposalService {
         },
       });
 
-      if (payload.schedule && payload.schedule.length > 0) {
+      if (programPayload.schedule && programPayload.schedule.length > 0) {
         await tx.programScheduleEntry.createMany({
-          data: payload.schedule.map((entry) => {
+          data: programPayload.schedule.map((entry) => {
             const template = program.workoutTemplates[entry.workoutIndex];
             if (!template) {
               // Couvert par coachProgramProposalSchema (workoutIndex bornes) ;
               // garde défensive si l’invariant est un jour rompu.
               throw new AiCoachProposalBusinessError(
                 'workoutIndex hors bornes dans la planification proposée.',
+                'PROPOSAL_PROGRAM_INVALID',
+                { workoutIndex: entry.workoutIndex },
               );
             }
             return {

@@ -2267,6 +2267,7 @@ export {
   coachProgramScheduleEntrySchema,
   coachProposalDataSchema,
   coachProposalExerciseSchema,
+  sanitizeCoachProposalSetForMeasurement,
   coachProposalSetSchema,
   coachStructuredResponseSchema,
   coachWorkoutProposalSchema,

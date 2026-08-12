@@ -65,6 +65,61 @@ export const coachProposalSetSchema = z
 
 export type CoachProposalSet = z.infer<typeof coachProposalSetSchema>;
 
+/**
+ * Aligne un set proposal sur le measurementType DB (source de vérité).
+ * Retire les champs interdits (ex. duration sur WEIGHT_REPS) et résout
+ * RIR/RPE conflictuels — sans inventer de cibles manquantes.
+ */
+export function sanitizeCoachProposalSetForMeasurement(
+  measurementType:
+    | 'WEIGHT_REPS'
+    | 'BODYWEIGHT_REPS'
+    | 'ASSISTED_BODYWEIGHT_REPS'
+    | 'REPS_ONLY'
+    | 'DURATION'
+    | 'DISTANCE_DURATION'
+    | 'WEIGHT_DURATION',
+  set: CoachProposalSet,
+): CoachProposalSet {
+  let next: CoachProposalSet = { ...set };
+  if (next.targetRir != null && next.targetRpe != null) {
+    next = { ...next, targetRpe: null };
+  }
+
+  switch (measurementType) {
+    case 'WEIGHT_REPS':
+    case 'BODYWEIGHT_REPS':
+    case 'ASSISTED_BODYWEIGHT_REPS':
+    case 'REPS_ONLY':
+      next = {
+        ...next,
+        targetDurationSeconds: null,
+        targetDistanceMeters: null,
+      };
+      break;
+    case 'DURATION':
+    case 'WEIGHT_DURATION':
+      next = {
+        ...next,
+        targetRepMin: null,
+        targetRepMax: null,
+        targetDistanceMeters: null,
+      };
+      break;
+    case 'DISTANCE_DURATION':
+      next = {
+        ...next,
+        targetRepMin: null,
+        targetRepMax: null,
+      };
+      break;
+    default:
+      break;
+  }
+
+  return next;
+}
+
 export const coachProposalExerciseSchema = z
   .object({
     exerciseId: z.string().uuid(),

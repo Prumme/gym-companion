@@ -238,11 +238,19 @@ export class OpenAiCoachProvider implements AiCoachProvider {
       ...(request.pendingToolLoop ?? []),
     ];
 
+    if (request.repairFeedback) {
+      input.push({
+        role: 'user',
+        content: request.repairFeedback,
+      });
+    }
+
     if (request.forceFinalAnswer) {
       input.push({
         role: 'system',
-        content:
-          'Limite d’outils atteinte. Conclue maintenant avec le JSON final uniquement, sans nouvel appel d’outil.',
+        content: request.repairFeedback
+          ? 'Repair proposal : produis uniquement le JSON wire final corrigé, sans nouvel appel d’outil.'
+          : 'Limite d’outils atteinte. Conclue maintenant avec le JSON final uniquement, sans nouvel appel d’outil.',
       });
     }
 

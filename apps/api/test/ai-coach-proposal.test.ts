@@ -11,8 +11,13 @@ import { AppConfigService } from '../src/config/app-config.service';
 import { PrismaService } from '../src/database/prisma/prisma.service';
 import { AI_COACH_PROVIDER } from '../src/modules/coaching/ai/ai-coach-provider';
 import { FakeAiCoachProvider } from '../src/modules/coaching/ai/fake-ai-coach.provider';
+import { AiCoachToolRegistry } from '../src/modules/coaching/ai/ai-coach-tool-registry';
 import { seedReferenceData } from '../src/modules/reference/reference.seed';
 import { seedSystemExercises } from '../src/modules/exercises/exercises.seed';
+import type {
+  CoachProgramProposal,
+  CoachWorkoutProposal,
+} from '@gym-companion/validation';
 
 function applyTestEnv() {
   process.env.NODE_ENV = 'test';
@@ -55,12 +60,18 @@ describe('Coach IA — propositions structurées (jalon 8)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let fakeProvider: FakeAiCoachProvider;
+  let tools: AiCoachToolRegistry;
   let token: string;
+  let userId: string;
   let exerciseId: string;
   let equipmentTypeId: string;
 
-  const workoutProposalData = () => ({
-    kind: 'workout' as const,
+  const workoutProposalData = (): {
+    kind: 'workout';
+    workout: CoachWorkoutProposal;
+    program: null;
+  } => ({
+    kind: 'workout',
     workout: {
       name: 'Push A',
       estimatedDurationMinutes: 45,
@@ -71,7 +82,7 @@ describe('Coach IA — propositions structurées (jalon 8)', () => {
           notes: null,
           sets: [
             {
-              setType: 'WORKING' as const,
+              setType: 'WORKING',
               targetRepMin: 6,
               targetRepMax: 10,
               targetDurationSeconds: null,
@@ -89,13 +100,17 @@ describe('Coach IA — propositions structurées (jalon 8)', () => {
     program: null,
   });
 
-  const programProposalData = () => ({
-    kind: 'program' as const,
+  const programProposalData = (): {
+    kind: 'program';
+    workout: null;
+    program: CoachProgramProposal;
+  } => ({
+    kind: 'program',
     workout: null,
     program: {
       name: 'Programme Full Body',
       description: null,
-      goal: 'HYPERTROPHY' as const,
+      goal: 'HYPERTROPHY',
       workouts: [
         {
           name: 'Séance 1',
@@ -107,7 +122,7 @@ describe('Coach IA — propositions structurées (jalon 8)', () => {
               notes: null,
               sets: [
                 {
-                  setType: 'WORKING' as const,
+                  setType: 'WORKING',
                   targetRepMin: 8,
                   targetRepMax: 12,
                   targetDurationSeconds: null,
@@ -123,7 +138,7 @@ describe('Coach IA — propositions structurées (jalon 8)', () => {
           ],
         },
       ],
-      schedule: [{ weekday: 'MONDAY' as const, workoutIndex: 0, position: 0 }],
+      schedule: [{ weekday: 'MONDAY', workoutIndex: 0, position: 0 }],
     },
   });
 
@@ -173,9 +188,14 @@ describe('Coach IA — propositions structurées (jalon 8)', () => {
     await seedReferenceData(prisma);
     await seedSystemExercises(prisma);
     fakeProvider = app.get(AI_COACH_PROVIDER) as FakeAiCoachProvider;
+    tools = app.get(AiCoachToolRegistry);
 
     const suffix = Date.now();
     token = await registerUser(app, `proposal-${suffix}@test.local`, 'Proposal User');
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { email: `proposal-${suffix}@test.local` },
+    });
+    userId = user.id;
 
     const eq = await prisma.equipmentType.findFirstOrThrow({
       where: { isActive: true },
@@ -247,9 +267,263 @@ describe('Coach IA — propositions structurées (jalon 8)', () => {
 
     const response = await sendProposalMessage(token, conversationId, badData);
     expect(response.body.data.assistantMessage.proposal).toBeNull();
+    expect(response.body.data.assistantMessage.content).toMatch(
+      /compatible avec ton catalogue/i,
+    );
     expect(
       await prisma.aiCoachProposal.count({ where: { conversationId } }),
     ).toBe(0);
+  });
+
+  it('sanitize WEIGHT_REPS : sec/m parasites → proposal persistée sans duration', async () => {
+    const conversationId = await createConversation(token);
+    const data = workoutProposalData();
+    data.workout.exercises[0]!.sets[0] = {
+      ...data.workout.exercises[0]!.sets[0]!,
+      targetDurationSeconds: 60,
+      targetDistanceMeters: 100,
+      targetWeightKg: null,
+      targetIntensityPercent: null,
+    };
+
+    const response = await sendProposalMessage(token, conversationId, data);
+    const proposal = response.body.data.assistantMessage.proposal;
+    expect(proposal).toBeTruthy();
+    expect(proposal.status).toBe('PENDING');
+
+    const row = await prisma.aiCoachProposal.findUnique({
+      where: { id: proposal.id },
+    });
+    const payload = row?.payloadJson as {
+      exercises: Array<{
+        sets: Array<{
+          targetDurationSeconds: number | null;
+          targetDistanceMeters: number | null;
+          targetRepMin: number | null;
+        }>;
+      }>;
+    };
+    expect(payload.exercises[0]!.sets[0]!.targetDurationSeconds).toBeNull();
+    expect(payload.exercises[0]!.sets[0]!.targetDistanceMeters).toBeNull();
+    expect(payload.exercises[0]!.sets[0]!.targetRepMin).toBe(6);
+  });
+
+  it('repair : WEIGHT_REPS sans reps → 1 repair puis proposal valide', async () => {
+    const conversationId = await createConversation(token);
+    const invalid = workoutProposalData();
+    invalid.workout.exercises[0]!.sets[0] = {
+      ...invalid.workout.exercises[0]!.sets[0]!,
+      targetRepMin: null,
+      targetRepMax: null,
+      targetDurationSeconds: 45,
+      targetWeightKg: null,
+    };
+    const repaired = workoutProposalData();
+    repaired.workout.exercises[0]!.sets[0] = {
+      ...repaired.workout.exercises[0]!.sets[0]!,
+      targetWeightKg: null,
+      targetIntensityPercent: null,
+      targetRir: 2,
+    };
+
+    fakeProvider.chatBehavior = {
+      mode: 'answer',
+      answer: {
+        type: 'proposal',
+        text: 'Proposition initiale invalide.',
+        data: invalid,
+        references: [],
+        suggestedFollowUps: [],
+      },
+    };
+    fakeProvider.repairAnswer = {
+      type: 'proposal',
+      text: 'Proposition réparée.',
+      data: repaired,
+      references: [],
+      suggestedFollowUps: [],
+    };
+
+    const response = await request(app.getHttpServer())
+      .post(`/api/v1/coaching/conversations/${conversationId}/messages`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        content: 'Crée une séance bras débutant',
+        clientCommandId: randomUUID(),
+      })
+      .expect(201);
+
+    expect(fakeProvider.chatCallCount).toBe(2);
+    expect(fakeProvider.lastChatRequest?.repairFeedback).toBeTruthy();
+    expect(response.body.data.assistantMessage.proposal).toBeTruthy();
+    expect(response.body.data.assistantMessage.proposal.status).toBe('PENDING');
+    expect(response.body.data.assistantMessage.content).toBe(
+      'Proposition réparée.',
+    );
+  });
+
+  it('repair échoue encore → discussion sans proposal (max 1 repair)', async () => {
+    const conversationId = await createConversation(token);
+    const stillInvalid = workoutProposalData();
+    stillInvalid.workout.exercises[0]!.sets[0] = {
+      ...stillInvalid.workout.exercises[0]!.sets[0]!,
+      targetRepMin: null,
+      targetRepMax: null,
+      targetDurationSeconds: 30,
+    };
+
+    fakeProvider.chatBehavior = {
+      mode: 'answer',
+      answer: {
+        type: 'proposal',
+        text: 'Invalide 1',
+        data: stillInvalid,
+        references: [],
+        suggestedFollowUps: [],
+      },
+    };
+    fakeProvider.repairAnswer = {
+      type: 'proposal',
+      text: 'Invalide 2',
+      data: stillInvalid,
+      references: [],
+      suggestedFollowUps: [],
+    };
+
+    const response = await request(app.getHttpServer())
+      .post(`/api/v1/coaching/conversations/${conversationId}/messages`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        content: 'Programme bras',
+        clientCommandId: randomUUID(),
+      })
+      .expect(201);
+
+    expect(fakeProvider.chatCallCount).toBe(2);
+    expect(response.body.data.assistantMessage.proposal).toBeNull();
+    expect(response.body.data.assistantMessage.content).toMatch(
+      /compatible avec ton catalogue/i,
+    );
+    expect(
+      await prisma.aiCoachProposal.count({ where: { conversationId } }),
+    ).toBe(0);
+  });
+
+  it('programme bras débutant : IDs search + sets WEIGHT_REPS valides', async () => {
+    const search = await tools.execute(
+      'search_exercises',
+      { muscleGroup: 'bras', limit: 8 },
+      { ownerUserId: userId },
+    );
+    const found = (
+      search.llmPayload as {
+        exercises: Array<{
+          id: string;
+          muscle: string;
+          measurementType: string;
+        }>;
+      }
+    ).exercises;
+    expect(found.length).toBeGreaterThanOrEqual(2);
+    const muscles = new Set(found.map((item) => item.muscle.toLowerCase()));
+    expect(
+      [...muscles].some((m) => m.includes('biceps') || m.includes('triceps')),
+    ).toBe(true);
+    const picked = found
+      .filter((item) => item.measurementType === 'WEIGHT_REPS')
+      .slice(0, 2);
+    expect(picked.length).toBeGreaterThanOrEqual(1);
+
+    const conversationId = await createConversation(token);
+    fakeProvider.chatBehavior = {
+      mode: 'tools_then_answer',
+      toolCalls: [
+        { name: 'search_exercises', arguments: { muscleGroup: 'bras' } },
+      ],
+      answer: {
+        type: 'proposal',
+        text: 'Programme bras débutant.',
+        data: {
+          kind: 'program',
+          workout: null,
+          program: {
+            name: 'Bras débutant',
+            description: 'Programme bras salle',
+            goal: 'HYPERTROPHY' as const,
+            workouts: [
+              {
+                name: 'Séance bras',
+                estimatedDurationMinutes: 40,
+                exercises: picked.map((item) => ({
+                  exerciseId: item.id,
+                  equipmentTypeId: null,
+                  notes: null,
+                  sets: [
+                    {
+                      setType: 'WORKING' as const,
+                      targetRepMin: 8,
+                      targetRepMax: 12,
+                      targetDurationSeconds: null,
+                      targetDistanceMeters: null,
+                      targetWeightKg: null,
+                      targetIntensityPercent: null,
+                      targetRir: 2,
+                      targetRpe: null,
+                      restSeconds: 90,
+                    },
+                    {
+                      setType: 'WORKING' as const,
+                      targetRepMin: 8,
+                      targetRepMax: 12,
+                      targetDurationSeconds: null,
+                      targetDistanceMeters: null,
+                      targetWeightKg: null,
+                      targetIntensityPercent: null,
+                      targetRir: 2,
+                      targetRpe: null,
+                      restSeconds: 90,
+                    },
+                    {
+                      setType: 'WORKING' as const,
+                      targetRepMin: 8,
+                      targetRepMax: 12,
+                      targetDurationSeconds: null,
+                      targetDistanceMeters: null,
+                      targetWeightKg: null,
+                      targetIntensityPercent: null,
+                      targetRir: 2,
+                      targetRpe: null,
+                      restSeconds: 90,
+                    },
+                  ],
+                })),
+              },
+            ],
+            schedule: null,
+          },
+        },
+        references: [],
+        suggestedFollowUps: [],
+      },
+    };
+
+    const response = await request(app.getHttpServer())
+      .post(`/api/v1/coaching/conversations/${conversationId}/messages`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        content:
+          'Je débute la salle de sport, je vais avoir accès aux machines. Crée-moi un programme pour les bras en salle de sport.',
+        clientCommandId: randomUUID(),
+      })
+      .expect(201);
+
+    const proposal = response.body.data.assistantMessage.proposal;
+    expect(proposal).toBeTruthy();
+    expect(proposal.kind).toBe('PROGRAM');
+    expect(proposal.status).toBe('PENDING');
+    expect(proposal.preview.program.workouts[0].exercises.length).toBe(
+      picked.length,
+    );
   });
 
   it('accepte une proposal WORKOUT (programId requis) et crée le WorkoutTemplate', async () => {

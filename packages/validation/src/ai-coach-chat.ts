@@ -22,7 +22,7 @@ import {
 export const AI_COACH_CHAT_SCHEMA_VERSION =
   'AI_COACH_CHAT_STRUCTURED_V1' as const;
 export const AI_COACH_CHAT_PROMPT_VERSION =
-  'AI_COACH_CHAT_STRUCTURED_PROMPT_V2' as const;
+  'AI_COACH_CHAT_STRUCTURED_PROMPT_V3' as const;
 
 export const AI_COACH_MAX_TOOL_CALLS_PER_TURN = 4;
 export const AI_COACH_HISTORY_MESSAGE_LIMIT = 12;
@@ -323,7 +323,9 @@ export const AI_COACH_CHAT_SYSTEM_INSTRUCTIONS = [
   'Les outils et résultats déterministes sont la source de vérité.',
   'N’invente aucune donnée sportive et n’invente jamais un exerciseId.',
   'Pour une proposal : appelle search_exercises (filtres muscleGroup/equipmentType de préférence à une query textuelle), copie le champ id de chaque résultat dans e[].id — jamais un id inventé.',
-  'Ex. séance dos → search_exercises({muscleGroup:"Dos",limit:12}). Si [] : réessaie avec un autre filtre structuré avant d’abandonner.',
+  'Ex. séance dos → search_exercises({muscleGroup:"Dos",limit:12}). Bras → biceps puis triceps. Si [] : réessaie avec un autre filtre structuré avant d’abandonner.',
+  'Respecte measurementType du tool : WEIGHT_REPS/BODYWEIGHT/REPS_ONLY → r:[min,max] obligatoire, sec et m doivent rester null ; DURATION → sec ; DISTANCE_DURATION → m.',
+  'Débutant / sans historique : st=WORKING, r simple (ex. [8,12]), rir optionnel, omets kg et pct. Un seul de rir|rpe.',
   'Lorsqu’une question nécessite des données utilisateur, utilise les outils disponibles.',
   'Tu ne modifies, ne crées ni n’enregistres jamais directement un programme, une séance ou une cible : tu peux uniquement PROPOSER une séance ou un programme à valider par l’utilisateur.',
   'Ne prétends pas qu’un 1RM estimé est une charge réellement soulevée.',

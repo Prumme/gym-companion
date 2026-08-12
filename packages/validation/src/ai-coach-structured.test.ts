@@ -5,6 +5,7 @@ import {
   coachStructuredResponseSchema,
   normalizeProposalText,
   parseCoachStructuredResponse,
+  sanitizeCoachProposalSetForMeasurement,
 } from './ai-coach-structured';
 
 const EXERCISE_ID = '11111111-1111-1111-1111-111111111111';
@@ -232,5 +233,60 @@ describe('ai-coach-structured', () => {
     expect(() =>
       acceptCoachProposalBodySchema.parse({ programId: 'not-a-uuid' }),
     ).toThrow();
+  });
+
+  describe('sanitizeCoachProposalSetForMeasurement', () => {
+    it('WEIGHT_REPS : retire duration/distance, conserve reps', () => {
+      const sanitized = sanitizeCoachProposalSetForMeasurement('WEIGHT_REPS', {
+        ...buildValidSet(),
+        targetDurationSeconds: 45,
+        targetDistanceMeters: 100,
+      });
+      expect(sanitized.targetDurationSeconds).toBeNull();
+      expect(sanitized.targetDistanceMeters).toBeNull();
+      expect(sanitized.targetRepMin).toBe(8);
+      expect(sanitized.targetRepMax).toBe(10);
+    });
+
+    it('DURATION : retire reps/distance', () => {
+      const sanitized = sanitizeCoachProposalSetForMeasurement('DURATION', {
+        ...buildValidSet(),
+        targetRepMin: 10,
+        targetRepMax: 12,
+        targetDurationSeconds: 60,
+        targetDistanceMeters: 200,
+      });
+      expect(sanitized.targetRepMin).toBeNull();
+      expect(sanitized.targetRepMax).toBeNull();
+      expect(sanitized.targetDistanceMeters).toBeNull();
+      expect(sanitized.targetDurationSeconds).toBe(60);
+    });
+
+    it('DISTANCE_DURATION : retire reps, conserve distance', () => {
+      const sanitized = sanitizeCoachProposalSetForMeasurement(
+        'DISTANCE_DURATION',
+        {
+          ...buildValidSet(),
+          targetRepMin: 5,
+          targetRepMax: 5,
+          targetDurationSeconds: 300,
+          targetDistanceMeters: 1000,
+        },
+      );
+      expect(sanitized.targetRepMin).toBeNull();
+      expect(sanitized.targetRepMax).toBeNull();
+      expect(sanitized.targetDistanceMeters).toBe(1000);
+      expect(sanitized.targetDurationSeconds).toBe(300);
+    });
+
+    it('résout RIR+RPE en gardant RIR', () => {
+      const sanitized = sanitizeCoachProposalSetForMeasurement('WEIGHT_REPS', {
+        ...buildValidSet(),
+        targetRir: 2,
+        targetRpe: 8,
+      });
+      expect(sanitized.targetRir).toBe(2);
+      expect(sanitized.targetRpe).toBeNull();
+    });
   });
 });

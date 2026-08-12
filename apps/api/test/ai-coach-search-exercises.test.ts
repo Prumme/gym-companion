@@ -212,6 +212,28 @@ describe('search_exercises tool (Coach catalogue)', () => {
     expect(payload.unresolved?.muscleGroup).toBe('GroupeInexistantXYZ');
   });
 
+  it('muscleGroup bras → biceps + triceps', async () => {
+    const result = await tools.execute(
+      'search_exercises',
+      { muscleGroup: 'bras', limit: 12 },
+      { ownerUserId: userAId },
+    );
+    const payload = result.llmPayload as {
+      count: number;
+      exercises: Array<{ id: string; muscle: string; measurementType: string }>;
+    };
+    expect(payload.count).toBeGreaterThan(0);
+    const muscles = payload.exercises.map((item) => item.muscle.toLowerCase());
+    expect(muscles.some((m) => m.includes('biceps'))).toBe(true);
+    expect(muscles.some((m) => m.includes('triceps'))).toBe(true);
+    expect(
+      payload.exercises.every((item) => Boolean(item.id) && Boolean(item.measurementType)),
+    ).toBe(true);
+    expect(result.outputSummary.muscleGroupIds).toEqual(
+      expect.arrayContaining([expect.any(String), expect.any(String)]),
+    );
+  });
+
   it('respecte limit', async () => {
     const result = await tools.execute(
       'search_exercises',

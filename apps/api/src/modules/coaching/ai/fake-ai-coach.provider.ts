@@ -52,6 +52,8 @@ export class FakeAiCoachProvider implements AiCoachProvider {
     },
   };
   lastChatRequest: AiCoachConversationProviderRequest | null = null;
+  /** Réponse utilisée uniquement quand `repairFeedback` est présent. */
+  repairAnswer: AiCoachChatAnswer | null = null;
   /** Délai artificiel (ms) avant chaque tour chat — tests concurrence. */
   chatDelayMs = 0;
   /** Nombre d’entrées dans generateConversationTurn (avant résolution). */
@@ -66,6 +68,7 @@ export class FakeAiCoachProvider implements AiCoachProvider {
     this.chatEnterCount = 0;
     this.chatPhase = 0;
     this.lastChatRequest = null;
+    this.repairAnswer = null;
     this.chatDelayMs = 0;
     this.chatGate = null;
     this.releaseChatGateFn = null;
@@ -143,6 +146,14 @@ export class FakeAiCoachProvider implements AiCoachProvider {
     }
     this.chatCallCount += 1;
     this.lastChatRequest = request;
+
+    if (request.repairFeedback && this.repairAnswer) {
+      return {
+        kind: 'answer',
+        answer: this.repairAnswer,
+        providerRequestId: 'fake-req-repair',
+      };
+    }
 
     switch (this.chatBehavior.mode) {
       case 'timeout':

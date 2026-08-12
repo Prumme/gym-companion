@@ -477,11 +477,14 @@ export class AiCoachToolRegistry {
     );
 
     const unresolved: Record<string, string> = {};
-    let muscleGroupId = parsed.muscleGroupId;
-    if (!muscleGroupId && parsed.muscleGroup) {
-      muscleGroupId =
-        (await this.resolveMuscleGroupId(parsed.muscleGroup)) ?? undefined;
-      if (!muscleGroupId) unresolved.muscleGroup = parsed.muscleGroup;
+    let muscleGroupIds: string[] = [];
+    if (parsed.muscleGroupId) {
+      muscleGroupIds = [parsed.muscleGroupId];
+    } else if (parsed.muscleGroup) {
+      muscleGroupIds = await this.resolveMuscleGroupIds(parsed.muscleGroup);
+      if (muscleGroupIds.length === 0) {
+        unresolved.muscleGroup = parsed.muscleGroup;
+      }
     }
 
     let equipmentTypeId = parsed.equipmentTypeId;
@@ -508,7 +511,7 @@ export class AiCoachToolRegistry {
           count: 0,
           exercises: [],
           unresolved,
-          hint: 'Utilise un label référentiel exact (ex. muscleGroup:"Dos", equipmentType:"Haltères" ou codes back/dumbbell).',
+          hint: 'Utilise un label référentiel exact (ex. muscleGroup:"Dos", equipmentType:"Haltères" ou codes back/dumbbell). Pour les bras : biceps puis triceps.',
         },
         outputSummary: {
           count: 0,
@@ -520,28 +523,48 @@ export class AiCoachToolRegistry {
       };
     }
 
-    const result = await this.exercisesService.list(context.ownerUserId, {
-      search: queryText,
-      muscleGroupId,
-      equipmentTypeId,
-      measurementType: parsed.measurementType,
-      limit: String(limit),
-    });
-    const items = result.data.slice(0, limit);
-    const exercises = items.map((item) => ({
-      // Champ canonique pour le wire proposal (`e[].id`).
-      id: item.id,
-      name: item.name,
-      muscle: item.primaryMuscleGroup.name,
-      equipment: item.defaultEquipmentType?.name ?? null,
-      measurementType: item.measurementType,
-    }));
+    const byId = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        muscle: string;
+        equipment: string | null;
+        measurementType: string;
+      }
+    >();
+    const muscleTargets =
+      muscleGroupIds.length > 0 ? muscleGroupIds : [undefined];
+    for (const muscleGroupId of muscleTargets) {
+      const result = await this.exercisesService.list(context.ownerUserId, {
+        search: queryText,
+        muscleGroupId,
+        equipmentTypeId,
+        measurementType: parsed.measurementType,
+        limit: String(limit),
+      });
+      for (const item of result.data) {
+        if (byId.has(item.id)) continue;
+        byId.set(item.id, {
+          id: item.id,
+          name: item.name,
+          muscle: item.primaryMuscleGroup.name,
+          equipment: item.defaultEquipmentType?.name ?? null,
+          measurementType: item.measurementType,
+        });
+        if (byId.size >= limit) break;
+      }
+      if (byId.size >= limit) break;
+    }
+
+    const exercises = [...byId.values()].slice(0, limit);
     const idsPresent = exercises.filter((item) => Boolean(item.id)).length;
 
     this.logger.log({
       event: 'ai_coach.tool.search_exercises',
       query: queryText ?? null,
-      muscle: parsed.muscleGroup ?? muscleGroupId ?? null,
+      muscle: parsed.muscleGroup ?? muscleGroupIds[0] ?? null,
+      muscleGroupCount: muscleGroupIds.length,
       equipment: parsed.equipmentType ?? equipmentTypeId ?? null,
       resultCount: exercises.length,
       hasIds: idsPresent === exercises.length && exercises.length > 0,
@@ -558,11 +581,31 @@ export class AiCoachToolRegistry {
         count: exercises.length,
         idsPresent,
         query: queryText ?? null,
-        muscleGroupId: muscleGroupId ?? null,
+        muscleGroupId: muscleGroupIds[0] ?? null,
+        muscleGroupIds,
         equipmentTypeId: equipmentTypeId ?? null,
       },
       references: [],
     };
+  }
+
+  /**
+   * Résout un label MuscleGroup → UUID(s).
+   * « bras » / « arms » n’est pas un MuscleGroup exact → biceps + triceps.
+   */
+  private async resolveMuscleGroupIds(label: string): Promise<string[]> {
+    const exact = await this.resolveMuscleGroupId(label);
+    if (exact) return [exact];
+
+    const needle = normalizeExerciseName(label);
+    if (needle === 'bras' || needle === 'arms' || needle === 'arm') {
+      const ids = await Promise.all([
+        this.resolveMuscleGroupId('biceps'),
+        this.resolveMuscleGroupId('triceps'),
+      ]);
+      return ids.filter((id): id is string => id != null);
+    }
+    return [];
   }
 
   /** Résout un label/code MuscleGroup vers son UUID (sans exposer le catalogue). */

@@ -50,6 +50,8 @@ export type AiCoachConversationProviderRequest = {
   model: string;
   pendingToolLoop?: AiCoachResponsesToolLoopItem[];
   forceFinalAnswer?: boolean;
+  /** Compact machine feedback for one bounded proposal repair attempt. */
+  repairFeedback?: string;
 };
 
 export interface AiCoachProvider {
