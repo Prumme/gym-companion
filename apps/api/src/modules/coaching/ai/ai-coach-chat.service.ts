@@ -698,9 +698,13 @@ export class AiCoachChatService {
     } catch (error) {
       if (error instanceof AiCoachProposalBusinessError) {
         this.logger.warn({
-          event: 'ai_coach_proposal_business_invalid',
+          event: 'ai_coach.failed',
+          phase: 'proposal_validation',
+          reason: error.message.includes('exercice')
+            ? 'invalid_exercise_reference'
+            : 'business_invalid',
+          detail: error.message.slice(0, 200),
           userHash: hashUserId(userId),
-          reason: error.message,
         });
         return {
           type: 'discussion',

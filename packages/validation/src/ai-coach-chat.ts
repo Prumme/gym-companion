@@ -20,7 +20,7 @@ import {
 export const AI_COACH_CHAT_SCHEMA_VERSION =
   'AI_COACH_CHAT_STRUCTURED_V1' as const;
 export const AI_COACH_CHAT_PROMPT_VERSION =
-  'AI_COACH_CHAT_STRUCTURED_PROMPT_V1' as const;
+  'AI_COACH_CHAT_STRUCTURED_PROMPT_V2' as const;
 
 export const AI_COACH_MAX_TOOL_CALLS_PER_TURN = 4;
 export const AI_COACH_HISTORY_MESSAGE_LIMIT = 12;
@@ -28,7 +28,10 @@ export const AI_COACH_USER_MESSAGE_MAX_LENGTH = 1500;
 export const AI_COACH_ASSISTANT_MESSAGE_MAX_LENGTH = 1800;
 export const AI_COACH_MAX_FOLLOW_UPS = 3;
 export const AI_COACH_RECENT_WORKOUTS_MAX = 5;
-export const AI_COACH_SEARCH_EXERCISES_MAX_RESULTS = 15;
+/** Limite par défaut renvoyée au modèle (assez pour une séance). */
+export const AI_COACH_SEARCH_EXERCISES_DEFAULT_LIMIT = 12;
+/** Plafond tool — reste token-efficient. */
+export const AI_COACH_SEARCH_EXERCISES_MAX_RESULTS = 20;
 
 export const AI_COACH_READ_ONLY_TOOL_NAMES = [
   'get_exercise_coach_summary',
@@ -175,14 +178,20 @@ export const getWorkoutDetailToolArgsSchema = z
   })
   .strict();
 
-/** Jalon 8 — recherche catalogue pour référencer de vrais exerciseId. */
+/** Jalon 8 — recherche catalogue pour référencer de vrais exerciseId.
+ * Accepte des labels humains (`muscleGroup: "Dos"`) — le backend résout vers les IDs.
+ * `query` est l’alias préféré de `search` (compat).
+ */
 export const searchExercisesToolArgsSchema = z
   .object({
+    query: z.preprocess(emptyToUndefined, z.string().max(100).optional()),
     search: z.preprocess(emptyToUndefined, z.string().max(100).optional()),
+    muscleGroup: z.preprocess(emptyToUndefined, z.string().max(80).optional()),
     muscleGroupId: z.preprocess(
       emptyToUndefined,
       z.string().uuid().optional(),
     ),
+    equipmentType: z.preprocess(emptyToUndefined, z.string().max(80).optional()),
     equipmentTypeId: z.preprocess(
       emptyToUndefined,
       z.string().uuid().optional(),
@@ -201,7 +210,28 @@ export const searchExercisesToolArgsSchema = z
         .optional(),
     ),
   })
-  .strict();
+  .strict()
+  .superRefine((data, ctx) => {
+    const hasCriterion =
+      Boolean(data.query) ||
+      Boolean(data.search) ||
+      Boolean(data.muscleGroup) ||
+      Boolean(data.muscleGroupId) ||
+      Boolean(data.equipmentType) ||
+      Boolean(data.equipmentTypeId) ||
+      Boolean(data.measurementType);
+    if (!hasCriterion) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'Au moins un critère requis (query, muscleGroup, equipmentType ou measurementType).',
+      });
+    }
+  });
+
+export type SearchExercisesToolArgs = z.infer<
+  typeof searchExercisesToolArgsSchema
+>;
 
 export const getActiveProgramToolArgsSchema = z.object({}).strict();
 
@@ -289,7 +319,9 @@ export function filterAiCoachFollowUps(
 export const AI_COACH_CHAT_SYSTEM_INSTRUCTIONS = [
   'Tu es le Coach de Gym Companion.',
   'Les outils et résultats déterministes sont la source de vérité.',
-  'N’invente aucune donnée sportive et n’invente jamais un exerciseId : utilise uniquement les identifiants renvoyés par search_exercises, ou par le contexte fourni.',
+  'N’invente aucune donnée sportive et n’invente jamais un exerciseId.',
+  'Pour une proposal : appelle search_exercises (filtres muscleGroup/equipmentType de préférence à une query textuelle), copie le champ id de chaque résultat dans e[].id — jamais un id inventé.',
+  'Ex. séance dos → search_exercises({muscleGroup:"Dos",limit:12}). Si [] : réessaie avec un autre filtre structuré avant d’abandonner.',
   'Lorsqu’une question nécessite des données utilisateur, utilise les outils disponibles.',
   'Tu ne modifies, ne crées ni n’enregistres jamais directement un programme, une séance ou une cible : tu peux uniquement PROPOSER une séance ou un programme à valider par l’utilisateur.',
   'Ne prétends pas qu’un 1RM estimé est une charge réellement soulevée.',
@@ -306,7 +338,6 @@ export const AI_COACH_CHAT_SYSTEM_INSTRUCTIONS = [
   'Programme : n,desc,goal,w[séances],sch[{day,wi,pos}]|null',
   'Références : rf[{t:ex|wo|pr,id,l}]',
   'Ne produis une proposal que si l’utilisateur demande explicitement une séance ou un programme (ou confirme après clarification).',
-  'Avant toute proposal, utilise search_exercises ; n’insère que des id obtenus ainsi.',
   'Ne duplique jamais noms d’exercices, muscles, équipements ou instructions dans la proposal.',
   'Ne suggère jamais d’appliquer une charge ou de créer un programme toi-même : seul l’utilisateur accepte une proposal dans l’UI.',
 ].join('\n');
@@ -400,13 +431,22 @@ export const AI_COACH_TOOL_DEFINITIONS: AiCoachToolDefinition[] = [
   {
     name: 'search_exercises',
     description:
-      'Recherche des exercices du catalogue (nom, groupe musculaire, équipement, type de mesure). Obligatoire avant toute proposal pour obtenir de vrais exerciseId — n’invente jamais un identifiant.',
+      'Catalogue exercices (SYSTEM + personnels user). Filtre par muscleGroup/equipmentType (labels FR ou codes, ex. "Dos"/"back", "Haltères"/"dumbbell") plutôt que query textuelle pour une séance. Retourne id à copier dans e[].id. N’invente jamais d’id.',
     parameters: {
       type: 'object',
       additionalProperties: false,
       properties: {
-        search: { type: 'string' },
+        query: { type: 'string', description: 'Recherche par nom (optionnel)' },
+        search: { type: 'string', description: 'Alias de query' },
+        muscleGroup: {
+          type: 'string',
+          description: 'Label ou code muscle (ex. Dos, back)',
+        },
         muscleGroupId: { type: 'string', format: 'uuid' },
+        equipmentType: {
+          type: 'string',
+          description: 'Label ou code équipement (ex. Haltères, machine)',
+        },
         equipmentTypeId: { type: 'string', format: 'uuid' },
         measurementType: { type: 'string' },
         limit: {

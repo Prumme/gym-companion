@@ -151,7 +151,8 @@ Budgets `max_output_tokens` réponse finale : discussion ≈ 900, workout ≈ 28
 `strict: false` car plusieurs paramètres sont optionnels).
 
 Trois outils lecture seule supplémentaires permettent à l’IA de construire une proposal réaliste
-sans jamais inventer un identifiant : `search_exercises` (seule source de vrais `exerciseId`),
+sans jamais inventer un identifiant : `search_exercises` (seule source de vrais IDs ;
+filtre par labels `muscleGroup`/`equipmentType` résolus côté backend, retour compact `{id,name,muscle,equipment,measurementType}` → wire `e[].id` → canonique `exerciseId`),
 `get_active_program`, `get_program_detail`.
 
 Pipeline serveur pour une réponse `proposal` :

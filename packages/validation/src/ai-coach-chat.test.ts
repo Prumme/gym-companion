@@ -7,6 +7,7 @@ import {
   filterAiCoachFollowUps,
   isAiCoachMutationFollowUp,
   parseAiCoachChatAnswer,
+  searchExercisesToolArgsSchema,
   sendAiCoachMessageBodySchema,
 } from './ai-coach-chat';
 
@@ -202,5 +203,31 @@ describe('ai-coach-chat (5.6 + jalon 8 structuré)', () => {
       'Montre-moi ma progression.',
       'Quels sont mes records ?',
     ]);
+  });
+
+  it('valide search_exercises : labels + au moins un critère', () => {
+    expect(
+      searchExercisesToolArgsSchema.safeParse({ muscleGroup: 'Dos' }).success,
+    ).toBe(true);
+    expect(
+      searchExercisesToolArgsSchema.safeParse({
+        query: 'tractions',
+        limit: 12,
+      }).success,
+    ).toBe(true);
+    expect(
+      searchExercisesToolArgsSchema.safeParse({
+        equipmentType: 'Haltères',
+      }).success,
+    ).toBe(true);
+    expect(searchExercisesToolArgsSchema.safeParse({}).success).toBe(false);
+    expect(
+      searchExercisesToolArgsSchema.safeParse({ limit: 5 }).success,
+    ).toBe(false);
+    const def = AI_COACH_TOOL_DEFINITIONS.find(
+      (tool) => tool.name === 'search_exercises',
+    );
+    expect(def?.parameters.properties).toHaveProperty('muscleGroup');
+    expect(def?.parameters.properties).toHaveProperty('equipmentType');
   });
 });

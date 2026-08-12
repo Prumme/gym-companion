@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { AiCoachChatReference } from '@gym-companion/shared';
 import {
   AI_COACH_READ_ONLY_TOOL_NAMES,
   AI_COACH_RECENT_WORKOUTS_MAX,
+  AI_COACH_SEARCH_EXERCISES_DEFAULT_LIMIT,
   AI_COACH_SEARCH_EXERCISES_MAX_RESULTS,
   assertReadOnlyToolRegistry,
   getActiveProgramToolArgsSchema,
@@ -13,10 +14,12 @@ import {
   getProgramDetailToolArgsSchema,
   getRecentWorkoutsToolArgsSchema,
   getWorkoutDetailToolArgsSchema,
+  normalizeExerciseName,
   searchExercisesToolArgsSchema,
   type AiCoachReadOnlyToolName,
 } from '@gym-companion/validation';
 
+import { PrismaService } from '../../../database/prisma/prisma.service';
 import { ExercisesService } from '../../exercises/exercises.service';
 import { PersonalRecordsService } from '../../personal-records/personal-records.service';
 import { ProgramsService } from '../../programs/programs.service';
@@ -42,7 +45,10 @@ assertReadOnlyToolRegistry(AI_COACH_READ_ONLY_TOOL_NAMES);
 
 @Injectable()
 export class AiCoachToolRegistry {
+  private readonly logger = new Logger(AiCoachToolRegistry.name);
+
   constructor(
+    private readonly prisma: PrismaService,
     private readonly coachSummaryService: CoachSummaryService,
     private readonly progressService: ProgressService,
     private readonly personalRecordsService: PersonalRecordsService,
@@ -464,36 +470,133 @@ export class AiCoachToolRegistry {
     context: AiCoachToolExecutionContext,
   ): Promise<AiCoachToolExecutionResult> {
     const parsed = searchExercisesToolArgsSchema.parse(args);
+    const queryText = parsed.query ?? parsed.search;
     const limit = Math.min(
-      parsed.limit ?? AI_COACH_SEARCH_EXERCISES_MAX_RESULTS,
+      parsed.limit ?? AI_COACH_SEARCH_EXERCISES_DEFAULT_LIMIT,
       AI_COACH_SEARCH_EXERCISES_MAX_RESULTS,
     );
+
+    const unresolved: Record<string, string> = {};
+    let muscleGroupId = parsed.muscleGroupId;
+    if (!muscleGroupId && parsed.muscleGroup) {
+      muscleGroupId =
+        (await this.resolveMuscleGroupId(parsed.muscleGroup)) ?? undefined;
+      if (!muscleGroupId) unresolved.muscleGroup = parsed.muscleGroup;
+    }
+
+    let equipmentTypeId = parsed.equipmentTypeId;
+    if (!equipmentTypeId && parsed.equipmentType) {
+      equipmentTypeId =
+        (await this.resolveEquipmentTypeId(parsed.equipmentType)) ?? undefined;
+      if (!equipmentTypeId) unresolved.equipmentType = parsed.equipmentType;
+    }
+
+    // Label non résolu → résultats vides + hint (évite une recherche name="Dos").
+    if (Object.keys(unresolved).length > 0) {
+      this.logger.log({
+        event: 'ai_coach.tool.search_exercises',
+        query: queryText ?? null,
+        muscle: parsed.muscleGroup ?? parsed.muscleGroupId ?? null,
+        equipment: parsed.equipmentType ?? parsed.equipmentTypeId ?? null,
+        resultCount: 0,
+        hasIds: false,
+        unresolved,
+      });
+      return {
+        toolName: 'search_exercises',
+        llmPayload: {
+          count: 0,
+          exercises: [],
+          unresolved,
+          hint: 'Utilise un label référentiel exact (ex. muscleGroup:"Dos", equipmentType:"Haltères" ou codes back/dumbbell).',
+        },
+        outputSummary: {
+          count: 0,
+          idsPresent: 0,
+          unresolved,
+          query: queryText ?? null,
+        },
+        references: [],
+      };
+    }
+
     const result = await this.exercisesService.list(context.ownerUserId, {
-      search: parsed.search,
-      muscleGroupId: parsed.muscleGroupId,
-      equipmentTypeId: parsed.equipmentTypeId,
+      search: queryText,
+      muscleGroupId,
+      equipmentTypeId,
       measurementType: parsed.measurementType,
       limit: String(limit),
     });
     const items = result.data.slice(0, limit);
+    const exercises = items.map((item) => ({
+      // Champ canonique pour le wire proposal (`e[].id`).
+      id: item.id,
+      name: item.name,
+      muscle: item.primaryMuscleGroup.name,
+      equipment: item.defaultEquipmentType?.name ?? null,
+      measurementType: item.measurementType,
+    }));
+    const idsPresent = exercises.filter((item) => Boolean(item.id)).length;
+
+    this.logger.log({
+      event: 'ai_coach.tool.search_exercises',
+      query: queryText ?? null,
+      muscle: parsed.muscleGroup ?? muscleGroupId ?? null,
+      equipment: parsed.equipmentType ?? equipmentTypeId ?? null,
+      resultCount: exercises.length,
+      hasIds: idsPresent === exercises.length && exercises.length > 0,
+      idsPresent,
+    });
+
     return {
       toolName: 'search_exercises',
       llmPayload: {
-        count: items.length,
-        exercises: items.map((item) => ({
-          exerciseId: item.id,
-          name: item.name,
-          measurementType: item.measurementType,
-          muscle: item.primaryMuscleGroup.name,
-          equipment: item.defaultEquipmentType?.name ?? null,
-        })),
+        count: exercises.length,
+        exercises,
       },
       outputSummary: {
-        count: items.length,
-        search: parsed.search ?? null,
+        count: exercises.length,
+        idsPresent,
+        query: queryText ?? null,
+        muscleGroupId: muscleGroupId ?? null,
+        equipmentTypeId: equipmentTypeId ?? null,
       },
       references: [],
     };
+  }
+
+  /** Résout un label/code MuscleGroup vers son UUID (sans exposer le catalogue). */
+  private async resolveMuscleGroupId(label: string): Promise<string | null> {
+    const needle = normalizeExerciseName(label);
+    if (!needle) return null;
+    const rows = await this.prisma.muscleGroup.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, code: true },
+    });
+    const exact = rows.find(
+      (row) =>
+        normalizeExerciseName(row.name) === needle ||
+        normalizeExerciseName(row.code) === needle ||
+        row.code.toLowerCase() === label.trim().toLowerCase(),
+    );
+    return exact?.id ?? null;
+  }
+
+  /** Résout un label/code EquipmentType vers son UUID. */
+  private async resolveEquipmentTypeId(label: string): Promise<string | null> {
+    const needle = normalizeExerciseName(label);
+    if (!needle) return null;
+    const rows = await this.prisma.equipmentType.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, code: true },
+    });
+    const exact = rows.find(
+      (row) =>
+        normalizeExerciseName(row.name) === needle ||
+        normalizeExerciseName(row.code) === needle ||
+        row.code.toLowerCase() === label.trim().toLowerCase(),
+    );
+    return exact?.id ?? null;
   }
 
   /** Jalon 8 — permet à l’IA de s’appuyer sur le programme actif pour une proposal program. */
