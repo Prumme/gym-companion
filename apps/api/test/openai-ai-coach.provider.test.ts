@@ -302,6 +302,124 @@ describe('OpenAiCoachProvider (Responses API)', () => {
     },
   );
 
+  it('TURN 2 : historique assistant rejoué en wire JSON + text.format + tools + instructions', () => {
+    const p = provider();
+    const body = p.buildConversationBody({
+      input: {
+        ...baseTurnInput,
+        history: [
+          { role: 'USER', content: 'Bonjour' },
+          {
+            role: 'ASSISTANT',
+            content: 'Bonjour ! Comment puis-je t’aider ?',
+            proposalKind: null,
+          },
+        ],
+        userMessage: 'Peux-tu préciser ?',
+      },
+      tools: AI_COACH_TOOL_DEFINITIONS,
+      timeoutMs: 10_000,
+      model: 'gpt-5.4-mini',
+    });
+
+    expect(body.previous_response_id).toBeUndefined();
+    expect(body.instructions).toBeTruthy();
+    expect((body.text as { format: { type: string; strict: boolean } }).format).toMatchObject({
+      type: 'json_schema',
+      strict: true,
+    });
+    expect(Array.isArray(body.tools)).toBe(true);
+
+    const input = body.input as Array<{ role: string; content: string }>;
+    const assistant = input.find((item) => item.role === 'assistant');
+    expect(assistant).toBeTruthy();
+    const parsed = JSON.parse(assistant!.content) as {
+      t: string;
+      x: string;
+    };
+    expect(parsed.t).toBe('d');
+    expect(parsed.x).toContain('Bonjour');
+    // Ne jamais envoyer un UUID interne Nest/Prisma comme previous_response_id
+    expect(JSON.stringify(body)).not.toMatch(
+      /"previous_response_id"\s*:\s*"[0-9a-f-]{36}"/i,
+    );
+  });
+
+  it('multi-turn mock : Bonjour puis Peux-tu préciser', async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          id: 'resp_t1',
+          status: 'completed',
+          output_text: JSON.stringify({
+            t: 'd',
+            x: 'Bonjour !',
+            d: null,
+            rf: [],
+            fu: [],
+          }),
+          output: [],
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          id: 'resp_t2',
+          status: 'completed',
+          output_text: JSON.stringify({
+            t: 'd',
+            x: 'Bien sûr, sur quel exercice ?',
+            d: null,
+            rf: [],
+            fu: [],
+          }),
+          output: [],
+        }),
+      );
+
+    const p = provider();
+    const t1 = await p.generateConversationTurn({
+      input: baseTurnInput,
+      tools: AI_COACH_TOOL_DEFINITIONS,
+      timeoutMs: 10_000,
+      model: 'gpt-5.4-mini',
+    });
+    expect(t1.kind).toBe('answer');
+
+    const t2 = await p.generateConversationTurn({
+      input: {
+        ...baseTurnInput,
+        history: [
+          { role: 'USER', content: 'Bonjour' },
+          { role: 'ASSISTANT', content: 'Bonjour !', proposalKind: null },
+        ],
+        userMessage: 'Peux-tu préciser ?',
+      },
+      tools: AI_COACH_TOOL_DEFINITIONS,
+      timeoutMs: 10_000,
+      model: 'gpt-5.4-mini',
+    });
+    expect(t2.kind).toBe('answer');
+    if (t2.kind === 'answer') {
+      expect(t2.answer.text).toContain('exercice');
+    }
+
+    const secondBody = JSON.parse(
+      (fetchMock.mock.calls[1]?.[1] as { body: string }).body,
+    ) as {
+      instructions: string;
+      text: { format: { type: string } };
+      tools: unknown[];
+      input: Array<{ role: string; content: string }>;
+      previous_response_id?: string;
+    };
+    expect(secondBody.previous_response_id).toBeUndefined();
+    expect(secondBody.instructions.length).toBeGreaterThan(20);
+    expect(secondBody.text.format.type).toBe('json_schema');
+    expect(secondBody.tools.length).toBeGreaterThan(0);
+    const histAssistant = secondBody.input.find((i) => i.role === 'assistant');
+    expect(JSON.parse(histAssistant!.content).t).toBe('d');
+  });
+
   it('n’appelle jamais /chat/completions', async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse(200, {

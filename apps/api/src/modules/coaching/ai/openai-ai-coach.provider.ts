@@ -1,10 +1,11 @@
 import { Logger } from '@nestjs/common';
 import {
   AI_COACH_SYSTEM_INSTRUCTIONS,
-  AI_COACH_CHAT_SYSTEM_INSTRUCTIONS,
   AI_COACH_TOOL_DEFINITIONS,
   AI_COACH_WIRE_MAX_TOKENS,
   AI_COACH_WIRE_OUTPUT_JSON_SCHEMA,
+  buildAiCoachHistoryAssistantWireContent,
+  buildAiCoachInstructions,
   buildAiCoachUserMessage,
   parseAiCoachChatAnswer,
   parseAiCoachExplanationResult,
@@ -139,6 +140,7 @@ export class OpenAiCoachProvider implements AiCoachProvider {
       this.logUsage(response.usage);
 
       const toolCalls = this.extractFunctionCalls(response);
+      this.logResponseShape(response, request);
       if (toolCalls.length > 0 && !request.forceFinalAnswer) {
         return {
           kind: 'tool_calls',
@@ -212,10 +214,19 @@ export class OpenAiCoachProvider implements AiCoachProvider {
           }),
         ].join('\n'),
       },
-      ...request.input.history.map((message) => ({
-        role: message.role === 'USER' ? 'user' : 'assistant',
-        content: message.content,
-      })),
+      ...request.input.history.map((message) => {
+        if (message.role === 'USER') {
+          return { role: 'user' as const, content: message.content };
+        }
+        return {
+          role: 'assistant' as const,
+          // Structured Outputs : l’historique assistant DOIT être du wire JSON.
+          content: buildAiCoachHistoryAssistantWireContent(
+            message.content,
+            message.proposalKind,
+          ),
+        };
+      }),
       {
         role: 'user',
         content: [
@@ -237,7 +248,7 @@ export class OpenAiCoachProvider implements AiCoachProvider {
 
     const body: Record<string, unknown> = {
       model: request.model,
-      instructions: AI_COACH_CHAT_SYSTEM_INSTRUCTIONS,
+      instructions: buildAiCoachInstructions(),
       input,
       max_output_tokens: request.forceFinalAnswer
         ? FINAL_ANSWER_MAX_TOKENS
@@ -262,6 +273,26 @@ export class OpenAiCoachProvider implements AiCoachProvider {
     }
 
     return body;
+  }
+
+  private logResponseShape(
+    response: ResponsesApiResult,
+    request: AiCoachConversationProviderRequest,
+  ): void {
+    const outputTypes = (response.output ?? [])
+      .map((item) => item.type)
+      .filter((type): type is string => typeof type === 'string');
+    this.logger.log({
+      event: 'ai_coach.response',
+      model: request.model,
+      status: response.status ?? null,
+      outputTypes,
+      hasOutputText: Boolean(this.tryExtractOutputText(response)),
+      hasFunctionCall: outputTypes.includes('function_call'),
+      historyTurns: request.input.history.length,
+      forceFinalAnswer: Boolean(request.forceFinalAnswer),
+      openaiRequestId: response.id ?? null,
+    });
   }
 
   private mapTools(toolDefs: AiCoachToolDefinition[]): unknown[] {

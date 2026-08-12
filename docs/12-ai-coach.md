@@ -150,6 +150,11 @@ Budgets `max_output_tokens` réponse finale : discussion ≈ 900, workout ≈ 28
 (marge anti-troncature). Les tools function sont envoyés au format Responses (`type/name/parameters`,
 `strict: false` car plusieurs paramètres sont optionnels).
 
+Continuité multi-tour : **historique manuel** (pas `previous_response_id`). Les messages assistant
+persistés (texte UI) sont rejoués vers OpenAI sous forme **wire JSON**
+(`buildAiCoachHistoryAssistantWireContent`) pour rester compatibles avec Structured Outputs
+`strict: true` — le texte libre brut cassait le TURN 2+.
+
 Trois outils lecture seule supplémentaires permettent à l’IA de construire une proposal réaliste
 sans jamais inventer un identifiant : `search_exercises` (seule source de vrais IDs ;
 filtre par labels `muscleGroup`/`equipmentType` résolus côté backend, retour compact `{id,name,muscle,equipment,measurementType}` → wire `e[].id` → canonique `exerciseId`),

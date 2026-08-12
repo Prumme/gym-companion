@@ -2219,6 +2219,8 @@ export {
   aiCoachConversationsListQuerySchema,
   assertReadOnlyToolRegistry,
   buildAiCoachConversationTitle,
+  buildAiCoachHistoryAssistantWireContent,
+  buildAiCoachInstructions,
   createAiCoachConversationBodySchema,
   decodeAiCoachConversationCursor,
   decodeAiCoachMessageCursor,

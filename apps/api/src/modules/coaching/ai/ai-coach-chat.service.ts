@@ -472,6 +472,7 @@ export class AiCoachChatService {
         where: { conversationId },
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: AI_COACH_HISTORY_MESSAGE_LIMIT + 1,
+        include: { proposal: { select: { kind: true } } },
       });
       const chronological = historyRows.reverse();
       // Exclure le message USER courant de l’historique (il est passé séparément).
@@ -481,7 +482,21 @@ export class AiCoachChatService {
         .map((row) => ({
           role: row.role as 'USER' | 'ASSISTANT',
           content: row.content,
+          proposalKind:
+            row.role === 'ASSISTANT' && row.proposal
+              ? (row.proposal.kind as 'WORKOUT' | 'PROGRAM')
+              : null,
         }));
+
+      this.logger.log({
+        event: 'ai_coach.turn.start',
+        conversationId,
+        turn: history.filter((item) => item.role === 'USER').length + 1,
+        historyTurns: history.length,
+        hasPreviousResponse: false,
+        strategy: 'manual_history',
+        userHash: hashUserId(userId),
+      });
 
       const turnInput = {
         schemaVersion: AI_COACH_CHAT_SCHEMA_VERSION,
@@ -570,8 +585,18 @@ export class AiCoachChatService {
         toolCount: toolInvocations.length,
         toolNames: toolInvocations.map((item) => item.toolName),
         proposalKind: assistant.proposal?.kind ?? null,
+        responseType: finalAnswer.type,
         userHash: hashUserId(userId),
         provider: this.provider.name,
+      });
+
+      this.logger.log({
+        event: 'ai_coach.turn.complete',
+        conversationId,
+        status: 'completed',
+        toolsUsed: toolInvocations.length,
+        responseType: finalAnswer.type,
+        userHash: hashUserId(userId),
       });
 
       return {

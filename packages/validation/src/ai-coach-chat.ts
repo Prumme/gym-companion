@@ -7,6 +7,8 @@
 import { z } from 'zod';
 
 import {
+  AI_COACH_DISCUSSION_TEXT_MAX,
+  AI_COACH_PROPOSAL_TEXT_MAX,
   coachStructuredResponseSchema,
   parseCoachStructuredResponse,
   type CoachStructuredResponse,
@@ -489,6 +491,11 @@ assertReadOnlyToolRegistry(AI_COACH_TOOL_DEFINITIONS.map((tool) => tool.name));
 export type AiCoachConversationHistoryMessage = {
   role: 'USER' | 'ASSISTANT';
   content: string;
+  /**
+   * Présent uniquement pour les messages ASSISTANT qui avaient une proposal
+   * persistée — sert à rejouer un wire compact compatible Structured Outputs.
+   */
+  proposalKind?: 'WORKOUT' | 'PROGRAM' | null;
 };
 
 export type AiCoachConversationTurnInput = {
@@ -503,6 +510,75 @@ export type AiCoachConversationTurnInput = {
     measurementType: string;
   } | null;
 };
+
+/**
+ * Instructions Coach stables — à fournir à CHAQUE tour Responses API
+ * (pas de reliance sur previous_response_id pour transporter le system prompt).
+ */
+export function buildAiCoachInstructions(): string {
+  return AI_COACH_CHAT_SYSTEM_INSTRUCTIONS;
+}
+
+/**
+ * Rejoue un message assistant persisté (texte UI) sous forme wire JSON valide.
+ *
+ * OpenAI Structured Outputs (`strict: true`) exige que les messages `assistant`
+ * de l’historique soient conformes au schema — le texte libre stocké en DB
+ * casse le TURN 2+ si on le renvoie tel quel.
+ */
+export function buildAiCoachHistoryAssistantWireContent(
+  content: string,
+  proposalKind?: 'WORKOUT' | 'PROGRAM' | null,
+): string {
+  const trimmed = content.trim();
+  // Déjà du wire JSON ? on conserve.
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      !Array.isArray(parsed) &&
+      't' in parsed &&
+      'x' in parsed
+    ) {
+      return trimmed;
+    }
+  } catch {
+    // texte libre UI
+  }
+
+  const x =
+    proposalKind != null
+      ? trimmed.slice(0, AI_COACH_PROPOSAL_TEXT_MAX) || 'Proposition.'
+      : trimmed.slice(0, AI_COACH_DISCUSSION_TEXT_MAX) || '…';
+
+  if (proposalKind === 'WORKOUT') {
+    return JSON.stringify({
+      t: 'p',
+      x,
+      d: { k: 'wk', wk: null, pg: null },
+      rf: [],
+      fu: [],
+    });
+  }
+  if (proposalKind === 'PROGRAM') {
+    return JSON.stringify({
+      t: 'p',
+      x,
+      d: { k: 'pg', wk: null, pg: null },
+      rf: [],
+      fu: [],
+    });
+  }
+
+  return JSON.stringify({
+    t: 'd',
+    x,
+    d: null,
+    rf: [],
+    fu: [],
+  });
+}
 
 export type AiCoachProviderToolCall = {
   /** Responses API `call_id` (référencé par function_call_output). */

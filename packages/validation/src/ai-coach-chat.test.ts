@@ -4,6 +4,8 @@ import {
   AI_COACH_READ_ONLY_TOOL_NAMES,
   AI_COACH_TOOL_DEFINITIONS,
   assertReadOnlyToolRegistry,
+  buildAiCoachHistoryAssistantWireContent,
+  buildAiCoachInstructions,
   filterAiCoachFollowUps,
   isAiCoachMutationFollowUp,
   parseAiCoachChatAnswer,
@@ -229,5 +231,24 @@ describe('ai-coach-chat (5.6 + jalon 8 structuré)', () => {
     );
     expect(def?.parameters.properties).toHaveProperty('muscleGroup');
     expect(def?.parameters.properties).toHaveProperty('equipmentType');
+  });
+
+  it('rejoue l’historique assistant en wire JSON (TURN 2 Structured Outputs)', () => {
+    const wire = JSON.parse(
+      buildAiCoachHistoryAssistantWireContent('Bonjour !'),
+    ) as { t: string; x: string; d: null };
+    expect(wire).toEqual({
+      t: 'd',
+      x: 'Bonjour !',
+      d: null,
+      rf: [],
+      fu: [],
+    });
+    const proposalWire = JSON.parse(
+      buildAiCoachHistoryAssistantWireContent('Séance dos.', 'WORKOUT'),
+    ) as { t: string; d: { k: string } };
+    expect(proposalWire.t).toBe('p');
+    expect(proposalWire.d.k).toBe('wk');
+    expect(buildAiCoachInstructions()).toContain('search_exercises');
   });
 });

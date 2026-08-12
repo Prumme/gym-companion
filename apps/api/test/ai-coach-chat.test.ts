@@ -244,6 +244,69 @@ describe('Coach chat API (5.6)', () => {
     expect(fakeProvider.chatCallCount).toBe(1);
   });
 
+  it('multi-turn : Bonjour puis Peux-tu préciser (même conversationId)', async () => {
+    fakeProvider.resetChat();
+    fakeProvider.chatBehavior = {
+      mode: 'answer',
+      answer: {
+        type: 'discussion',
+        text: 'Bonjour !',
+        data: null,
+        references: [],
+        suggestedFollowUps: [],
+      },
+    };
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/coaching/conversations')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({})
+      .expect(201);
+    const conversationId = created.body.data.id as string;
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/coaching/conversations/${conversationId}/messages`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ content: 'Bonjour', clientCommandId: randomUUID() })
+      .expect(201);
+
+    fakeProvider.chatBehavior = {
+      mode: 'answer',
+      answer: {
+        type: 'discussion',
+        text: 'Bien sûr, précise ton objectif.',
+        data: null,
+        references: [],
+        suggestedFollowUps: [],
+      },
+    };
+
+    const turn2 = await request(app.getHttpServer())
+      .post(`/api/v1/coaching/conversations/${conversationId}/messages`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({
+        content: 'Peux-tu préciser ?',
+        clientCommandId: randomUUID(),
+      })
+      .expect(201);
+
+    expect(turn2.body.data.assistantMessage.content).toContain('objectif');
+    expect(fakeProvider.lastChatRequest?.input.history).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ role: 'USER', content: 'Bonjour' }),
+        expect.objectContaining({
+          role: 'ASSISTANT',
+          content: 'Bonjour !',
+        }),
+      ]),
+    );
+    expect(fakeProvider.lastChatRequest?.input.userMessage).toBe(
+      'Peux-tu préciser ?',
+    );
+    expect(
+      await prisma.aiCoachMessage.count({ where: { conversationId } }),
+    ).toBe(4);
+  });
+
   it('envoie un message avec tool call et refuse IDOR tool', async () => {
     fakeProvider.resetChat();
     fakeProvider.chatBehavior = {
