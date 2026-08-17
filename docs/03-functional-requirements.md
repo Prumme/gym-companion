@@ -1190,3 +1190,55 @@ Les valeurs sont enregistrées dans une unité canonique et converties pour l’
 **Priorité : MUST**
 
 L’indisponibilité d’un module facultatif ne doit pas rendre toute l’application inutilisable.
+
+## 24. Partage temporaire de programmes et séances (templates)
+
+> Distinct des Shared Workouts (salles temps réel) et du Coach IA.
+
+### TSH-001 — Partager un programme
+
+**Priorité : MUST**
+
+Le propriétaire d’un programme peut générer un lien temporaire (`/share/:token`) contenant un **snapshot figé** du programme (séances, exercices SYSTEM, cibles).
+
+### TSH-002 — Partager une séance modèle
+
+**Priorité : MUST**
+
+Le propriétaire peut partager un `WorkoutTemplate` d’un de ses programmes via le même mécanisme.
+
+### TSH-003 — Durée du lien
+
+**Priorité : MUST**
+
+Chaque lien expire exactement **1 heure** après création (`expiresAt = createdAt + 60 min`, UTC serveur). L’expiration est revalidée à l’import.
+
+### TSH-004 — Preview
+
+**Priorité : MUST**
+
+La preview est consultable sans authentification. Elle n’affiche pas d’auteur / profil / email.
+
+### TSH-005 — Import programme
+
+**Priorité : MUST**
+
+L’import crée une **copie** DRAFT inactive, sans planning, sans activation, sans historique. Aucune synchronisation ultérieure avec la source.
+
+### TSH-006 — Import séance
+
+**Priorité : MUST**
+
+L’utilisateur choisit : nouveau programme (nom prérempli) ou programme existant éditable. Transaction atomique.
+
+### TSH-007 — Exercices PERSONAL
+
+**Priorité : MUST**
+
+Un programme/séance contenant un exercice `USER` ne peut pas être partagé en V1.
+
+### TSH-008 — Multi-import
+
+**Priorité : MUST**
+
+Un même lien peut être importé par plusieurs utilisateurs pendant sa validité.

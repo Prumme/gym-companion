@@ -728,7 +728,22 @@ Une modification du modèle n’affecte pas :
 
 - les séances terminées ;
 - la séance active ;
-- les séances déjà créées sous forme de snapshot.
+- les séances déjà créées sous forme de snapshot ;
+- les snapshots de partage déjà émis.
+
+### 15.4 Partage temporaire (TrainingShareLink)
+
+Règles V1 :
+
+- durée du lien = **1 h** (serveur UTC) ;
+- snapshot **immutable** au moment du partage ;
+- partage ≠ sync : import = **copie** ;
+- pas de métadonnée auteur visible sur l’import ;
+- programme importé : `DRAFT`, non activé, sans `ProgramScheduleEntry` ;
+- exercices PERSONAL interdits à la création du share ;
+- token stocké uniquement en **SHA-256** (`tokenHash`) ;
+- le token brut n’est jamais loggé ;
+- planning personnel non partagé.
 
 ## 16. Séance active
 

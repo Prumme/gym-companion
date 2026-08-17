@@ -35,6 +35,9 @@ import { ExercisePicker } from './ExercisePicker';
 import { TemplateExerciseForm } from './TemplateExerciseForm';
 import { TemplateExerciseCard } from './TemplateExerciseCard';
 import { WorkoutTemplateForm } from './WorkoutTemplateForm';
+import { ShareLinkSheet } from '@/features/training-shares/components/ShareLinkSheet';
+import { useCreateWorkoutTemplateShareMutation } from '@/features/training-shares/hooks/use-training-share-mutations';
+import { getTrainingShareErrorMessage } from '@/features/training-shares/lib/share-format';
 
 type WorkoutTemplateCardProps = {
   programId: string;
@@ -74,6 +77,11 @@ export function WorkoutTemplateCard({
   );
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareToken, setShareToken] = useState<string | null>(null);
+  const [shareExpiresAt, setShareExpiresAt] = useState<string | null>(null);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const shareMutation = useCreateWorkoutTemplateShareMutation();
 
   const existingExerciseIds = useMemo(
     () => new Set(template.exercises.map((item) => item.exercise.id)),
@@ -112,6 +120,28 @@ export function WorkoutTemplateCard({
       onBack?.();
     } catch (err) {
       setError(getApiErrorMessage(err, 'Impossible de supprimer cette séance.'));
+    }
+  }
+
+  async function handleShareTemplate() {
+    setShareOpen(true);
+    setShareToken(null);
+    setShareExpiresAt(null);
+    setShareError(null);
+    try {
+      const result = await shareMutation.mutateAsync({
+        programId,
+        workoutTemplateId: template.id,
+      });
+      setShareToken(result.token);
+      setShareExpiresAt(result.expiresAt);
+    } catch (err) {
+      setShareError(
+        getTrainingShareErrorMessage(
+          err,
+          'Impossible de générer le lien de partage.',
+        ),
+      );
     }
   }
 
@@ -248,6 +278,13 @@ export function WorkoutTemplateCard({
                   onSelect: () => setPickerOpen(true),
                 },
                 {
+                  label: 'Partager la séance',
+                  disabled: shareMutation.isPending,
+                  onSelect: () => {
+                    void handleShareTemplate();
+                  },
+                },
+                {
                   label: 'Supprimer',
                   destructive: true,
                   onSelect: () => setDeleteOpen(true),
@@ -347,6 +384,16 @@ export function WorkoutTemplateCard({
         error={error}
         onConfirm={() => void handleDelete()}
         onCancel={() => setDeleteOpen(false)}
+      />
+
+      <ShareLinkSheet
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        title="Partager la séance"
+        token={shareToken}
+        expiresAt={shareExpiresAt}
+        loading={shareMutation.isPending && !shareToken && !shareError}
+        error={shareError}
       />
     </section>
   );

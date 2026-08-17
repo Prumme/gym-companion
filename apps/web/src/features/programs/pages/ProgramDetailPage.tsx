@@ -13,6 +13,9 @@ import { Button, ButtonLink } from '@/components/ui/button';
 import { EmptyState } from '@/components/common/EmptyState';
 import { LoadingState } from '@/components/common/LoadingState';
 import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
+import { ShareLinkSheet } from '@/features/training-shares/components/ShareLinkSheet';
+import { useCreateProgramShareMutation } from '@/features/training-shares/hooks/use-training-share-mutations';
+import { getTrainingShareErrorMessage } from '@/features/training-shares/lib/share-format';
 
 import { programDetailQueryOptions } from '../api/program-query-options';
 import { ProgramActivationActions } from '../components/ProgramActivationActions';
@@ -35,9 +38,14 @@ export function ProgramDetailPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [deactivateOpen, setDeactivateOpen] = useState(false);
   const [deactivateError, setDeactivateError] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareToken, setShareToken] = useState<string | null>(null);
+  const [shareExpiresAt, setShareExpiresAt] = useState<string | null>(null);
+  const [shareError, setShareError] = useState<string | null>(null);
   const menuId = useId();
   const menuRef = useRef<HTMLDivElement>(null);
   const deactivateMutation = useDeactivateProgramMutation();
+  const shareMutation = useCreateProgramShareMutation();
 
   const editingTemplateId = searchParams.get('templateId');
 
@@ -150,6 +158,26 @@ export function ProgramDetailPage() {
     }
   }
 
+  async function handleShareProgram() {
+    setMenuOpen(false);
+    setShareOpen(true);
+    setShareToken(null);
+    setShareExpiresAt(null);
+    setShareError(null);
+    try {
+      const result = await shareMutation.mutateAsync(currentProgram.id);
+      setShareToken(result.token);
+      setShareExpiresAt(result.expiresAt);
+    } catch (err) {
+      setShareError(
+        getTrainingShareErrorMessage(
+          err,
+          'Impossible de générer le lien de partage.',
+        ),
+      );
+    }
+  }
+
   if (editingTemplate) {
     const templateIndex = program.workoutTemplates.findIndex(
       (item) => item.id === editingTemplate.id,
@@ -241,6 +269,19 @@ export function ProgramDetailPage() {
               >
                 Planning
               </Link>
+              {!isArchived ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="block w-full rounded-[calc(var(--radius)-2px)] px-3 py-2.5 text-left text-sm hover:bg-[var(--background)] disabled:opacity-50"
+                  disabled={shareMutation.isPending}
+                  onClick={() => {
+                    void handleShareProgram();
+                  }}
+                >
+                  Partager
+                </button>
+              ) : null}
               {program.isCurrent && program.permissions.canDeactivate ? (
                 <button
                   type="button"
@@ -365,6 +406,16 @@ export function ProgramDetailPage() {
         error={deactivateError}
         onConfirm={() => void handleDeactivate()}
         onCancel={() => setDeactivateOpen(false)}
+      />
+
+      <ShareLinkSheet
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        title="Partager le programme"
+        token={shareToken}
+        expiresAt={shareExpiresAt}
+        loading={shareMutation.isPending && !shareToken && !shareError}
+        error={shareError}
       />
     </main>
   );

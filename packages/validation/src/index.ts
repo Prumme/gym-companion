@@ -2405,3 +2405,35 @@ export type {
   SharedProgressSetInput,
   SharedWorkoutProgressSummary,
 } from './shared-workout-progress';
+
+export {
+  TRAINING_SHARE_LIFETIME_MS,
+  TRAINING_SHARE_SNAPSHOT_VERSION,
+  trainingShareKindSchema,
+  sharedTemplateSetSchema,
+  sharedTemplateExerciseSchema,
+  sharedWorkoutTemplateBodySchema,
+  sharedWorkoutTemplateSnapshotV1Schema,
+  sharedProgramSnapshotV1Schema,
+  trainingShareSnapshotSchema,
+  createTrainingShareResponseSchema,
+  trainingSharePreviewSchema,
+  importTrainingShareDestinationSchema,
+  importTrainingShareSchema,
+  importTrainingShareResultSchema,
+  suggestProgramNameFromWorkoutTemplate,
+  isTrainingShareExpired,
+} from './training-share';
+export type {
+  TrainingShareKind,
+  SharedTemplateSet,
+  SharedTemplateExercise,
+  SharedWorkoutTemplateBody,
+  SharedWorkoutTemplateSnapshotV1,
+  SharedProgramSnapshotV1,
+  TrainingShareSnapshot,
+  CreateTrainingShareResponse,
+  TrainingSharePreview,
+  ImportTrainingShareInput,
+  ImportTrainingShareResult,
+} from './training-share';

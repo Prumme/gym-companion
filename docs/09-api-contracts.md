@@ -3101,6 +3101,8 @@ L’API ne doit jamais retourner :
 - hash de refresh token ;
 - token de réinitialisation ;
 - token de vérification ;
+- token brut de `TrainingShareLink` (seule la réponse de création le renvoie une fois) ;
+- `tokenHash` / `createdByUserId` dans preview/import ;
 - clé privée Web Push ;
 - clé de fournisseur IA ;
 - détails Prisma ;
@@ -3108,6 +3110,21 @@ L’API ne doit jamais retourner :
 - données d’un autre utilisateur sans autorisation ;
 - prompt interne complet ;
 - secrets de configuration.
+
+## 39bis. Partage temporaire de templates
+
+```http
+POST /api/v1/programs/:programId/share
+POST /api/v1/programs/:programId/workout-templates/:workoutTemplateId/share
+GET  /api/v1/shares/:token          # public
+POST /api/v1/shares/:token/import   # auth
+```
+
+Réponse création : `{ token, expiresAt, kind }`.  
+Preview : `{ kind, expiresAt, preview }` (sans auteur).  
+Import programme : `{}`. Import séance : `{ destination: { type: 'NEW_PROGRAM'|'EXISTING_PROGRAM', ... } }`.
+
+Codes : `SHARE_LINK_EXPIRED` (410), `SHARE_LINK_INVALID` (404), `TRAINING_SHARE_PERSONAL_EXERCISE` (400), `SHARE_VERSION_UNSUPPORTED` (400).
 
 ## 40. Implémentation progressive
 

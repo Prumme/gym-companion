@@ -170,6 +170,7 @@ Swagger `/docs` : **désactivé** en prod (`GYM_ENV=production`). Staging inchan
 - [ ] Démarrer séance, séries, timer repos, terminer
 - [ ] Historique / progression / records
 - [ ] Shared room + join code + 2ᵉ utilisateur + présence
+- [ ] Partage programme/séance : lien 1 h, preview, import copie DRAFT
 - [ ] PWA (install / update après reload)
 - [ ] Coach IA : indisponible / désactivé selon UX (config `AI_COACH_ENABLED=false`)
 
@@ -212,6 +213,17 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
 
 7. Healthchecks + smoke tests courts
 8. Si `VITE_*` ont changé : s’assurer que `gym-web` a bien été **rebuild** (pas seulement restart)
+
+### Release incluant `TrainingShareLink` (`20260817140000_add_training_share_links`)
+
+Ordre strict :
+
+1. `./scripts/prod/backup-postgres.sh`
+2. `git pull` / checkout tag
+3. `docker compose -f docker-compose.prod.yml --env-file .env.prod build`
+4. `migrate deploy` (commande ci-dessus)
+5. `up -d` api + web
+6. Smoke : créer share programme → ouvrir `/share/:token` → importer sur un 2ᵉ compte
 
 ### PWA après déploiement web
 

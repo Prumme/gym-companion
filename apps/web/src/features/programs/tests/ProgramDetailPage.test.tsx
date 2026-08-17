@@ -64,6 +64,20 @@ vi.mock('@/features/coaching/api/coaching-api', () => ({
   decideLoadRecommendation: vi.fn(),
 }));
 
+vi.mock('@/features/training-shares/api/training-share-api', () => ({
+  createProgramShare: vi.fn().mockResolvedValue({
+    token: 'test-share-token',
+    expiresAt: '2026-08-17T15:00:00.000Z',
+    kind: 'PROGRAM',
+  }),
+  createWorkoutTemplateShare: vi.fn().mockResolvedValue({
+    token: 'test-wt-token',
+    expiresAt: '2026-08-17T15:00:00.000Z',
+    kind: 'WORKOUT_TEMPLATE',
+  }),
+  buildShareUrl: (token: string) => `http://localhost/share/${token}`,
+}));
+
 const PROGRAM_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 
 async function openTemplate(

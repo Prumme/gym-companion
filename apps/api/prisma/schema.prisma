@@ -78,6 +78,7 @@ model User {
   sharedWorkoutRoomMemberships SharedWorkoutRoomMember[]
   sharedWorkoutRoomLifecycleCommands SharedWorkoutRoomLifecycleCommand[]
   sharedWorkoutEquipmentCommands SharedWorkoutEquipmentCommand[]
+  trainingShareLinks      TrainingShareLink[]
 
   @@index([status])
   @@map("users")
@@ -918,4 +919,30 @@ model SharedWorkoutEquipmentCommand {
   @@unique([ownerUserId, clientCommandId])
   @@index([roomId])
   @@map("shared_workout_equipment_commands")
+}
+
+/// Partage temporaire de programme / modèle de séance (lien 1h, snapshot figé).
+/// Distinct des SharedWorkoutRoom (séance collaborative temps réel).
+enum TrainingShareKind {
+  PROGRAM
+  WORKOUT_TEMPLATE
+}
+
+model TrainingShareLink {
+  id              String            @id @default(uuid()) @db.Uuid
+  kind            TrainingShareKind
+  /// SHA-256 hex du token bearer (jamais le token brut).
+  tokenHash       String            @unique
+  /// Snapshot portable versionné (JSON).
+  snapshot        Json
+  createdByUserId String            @db.Uuid
+  createdAt       DateTime          @default(now())
+  expiresAt       DateTime
+  revokedAt       DateTime?
+
+  createdBy User @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([createdByUserId])
+  @@map("training_share_links")
 }

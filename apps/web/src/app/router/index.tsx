@@ -33,6 +33,7 @@ import { CoachChatPage } from '@/features/coaching/pages/CoachChatPage';
 import { CreateSharedWorkoutRoomPage } from '@/features/shared-workouts/pages/CreateSharedWorkoutRoomPage';
 import { SharedWorkoutRoomDetailPage } from '@/features/shared-workouts/pages/SharedWorkoutRoomDetailPage';
 import { SharedWorkoutsPage } from '@/features/shared-workouts/pages/SharedWorkoutsPage';
+import { ShareLandingPage } from '@/features/training-shares/pages/ShareLandingPage';
 
 export const router = createBrowserRouter([
   {
@@ -50,6 +51,7 @@ export const router = createBrowserRouter([
       },
       { path: 'forgot-password', element: <ForgotPasswordPage /> },
       { path: 'reset-password', element: <ResetPasswordPage /> },
+      { path: 'share/:token', element: <ShareLandingPage /> },
       {
         element: <ProtectedRoute />,
         children: [

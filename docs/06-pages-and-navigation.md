@@ -57,8 +57,9 @@ Structure cible (routes livrées en gras conceptuel via commentaires) :
 ├── register
 ├── forgot-password
 ├── reset-password
+├── share/:token                    # preview publique + import (auth)
 ├── verify-email                    # futur
-├── invite/:invitationCode          # futur (lien public — hors V1)
+├── invite/:invitationCode          # futur (lien public Shared — hors V1)
 │
 ├── profile                         # livré
 ├── planning                        # livré
@@ -574,9 +575,27 @@ Tap sur une séance → éditeur focused (`templateId`). Voir aussi `docs/07-ui-
 - modifier les informations ;
 - archiver / restaurer ;
 - ajouter une séance ;
+- **partager** (lien temporaire 1 h) ;
 - démarrer une séance (depuis l’éditeur).
 
-## 17. Éditeur de programme
+Dans l’éditeur focused d’une séance : **Partager la séance**.
+
+## 16bis. Page de partage (`/share/:token`)
+
+### Route
+
+```text
+/share/:token
+```
+
+Accessible hors `ProtectedRoute` (preview publique). Import nécessite authentification ; redirection login avec conservation du path.
+
+### Contenu
+
+- titre ressource (programme ou séance) — **sans** auteur ;
+- résumé séances / exercices / sets ;
+- CTA import ;
+- états expiré / invalide.
 
 ### Routes
 

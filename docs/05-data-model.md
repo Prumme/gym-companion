@@ -1911,6 +1911,9 @@ L’audit ne doit pas contenir :
 - `SharedWorkoutRoom.joinCode` unique ;
 - `SharedWorkoutRoomMemberSession.(roomMemberId)` unique ; *(Shared 5.4)*
 - `SharedWorkoutRoomMemberSession.(workoutSessionId)` unique ; *(Shared 5.4)*
+- `TrainingShareLink.tokenHash` unique ;
+- `TrainingShareLink.expiresAt` ;
+- `TrainingShareLink.createdByUserId` ;
 - (futur Shared 5.5+) `SharedWorkoutParticipant.*` / `RealtimeCommand.commandId`.
 
 ### Nutrition
@@ -2336,4 +2339,26 @@ Les décisions suivantes sont confirmées pour le jalon 3.3 :
 - idempotence séries via table `WorkoutSetCommand` (`ownerUserId` + `clientCommandId`, `payloadFingerprint`, `appliedVersion`) : le rejeu avec `expectedVersion` obsolète après perte de réponse renvoie le reçu sans double effet.
 
 Les décisions encore ouvertes devront être prises avant l’implémentation du module concerné et documentées dans les fichiers techniques.
+
+## Annexe — TrainingShareLink (partage templates)
+
+```ts
+type TrainingShareKind = 'PROGRAM' | 'WORKOUT_TEMPLATE';
+
+type TrainingShareLink = {
+  id: string;
+  kind: TrainingShareKind;
+  tokenHash: string; // SHA-256 hex du token bearer
+  snapshot: SharedProgramSnapshotV1 | SharedWorkoutTemplateSnapshotV1;
+  createdByUserId: string; // audit/ownership technique uniquement
+  createdAt: Date;
+  expiresAt: Date;
+  revokedAt: Date | null; // optionnel V1
+};
+```
+
+Snapshot V1 programme : `{ version: 1, kind: 'PROGRAM', name, description, goal, workouts[] }`  
+Snapshot V1 séance : `{ version: 1, kind: 'WORKOUT_TEMPLATE', name, description, estimatedDurationMinutes, exercises[] }`  
+
+Pas de planning, pas d’activation, pas d’historique, pas d’auteur visible.
 

@@ -521,6 +521,17 @@ Informations visibles après join (membership) : inchangées (privacy coarse Sha
 
 Rate limit sur `POST /join` (~10/min, throttler process-local ; Redis multi-instance = dette future).
 
+## 16bis. Liens de partage de templates (`TrainingShareLink`)
+
+- token : `crypto.randomBytes(32).toString('base64url')` ;
+- stockage : SHA-256 hex uniquement ;
+- lifetime : 1 h ;
+- preview publique OK ; import JWT obligatoire ;
+- ne jamais logger le token / path `/shares/:token` en clair (redaction filtre) ;
+- throttle create/import ~20/min, preview ~60/min ;
+- snapshot sans userId/email/historique/records ;
+- ownership strict à la création (404 neutre non-owner).
+
 ## 17. Protection des données locales
 
 ### 17.1 IndexedDB

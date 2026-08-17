@@ -48,24 +48,32 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       (request.headers['x-request-id'] as string | undefined) ?? randomUUID();
 
     const { status, body } = this.toErrorResponse(exception, requestId);
+    const safePath = this.redactSensitivePath(request.url);
 
     if (status >= 500) {
       this.logger.error({
         requestId,
-        path: request.url,
+        path: safePath,
         method: request.method,
         message: exception instanceof Error ? exception.message : 'Unknown error',
       });
     } else {
       this.logger.warn({
         requestId,
-        path: request.url,
+        path: safePath,
         method: request.method,
         code: body.error.code,
       });
     }
 
     response.status(status).json(body);
+  }
+
+  /** Ne jamais logger le token bearer d’un lien /share/:token. */
+  private redactSensitivePath(url: string): string {
+    return url
+      .replace(/(\/api\/v1\/shares\/)[^/?#]+/gi, '$1[redacted]')
+      .replace(/([?&]token=)[^&]*/gi, '$1[redacted]');
   }
 
   private toErrorResponse(

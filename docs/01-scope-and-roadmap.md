@@ -250,8 +250,8 @@ Permettre à l’utilisateur de préparer ses entraînements avant de se rendre 
 - Génération IA.
 - Planification complexe sur plusieurs mois.
 - Périodisation automatique.
-- Partage public de programmes.
 - Achat ou vente de programmes.
+- Partage public permanent / bibliothèque communautaire (le partage temporaire par lien 1 h est livré — voir exigences TSH).
 
 ### 5.4 Critères de validation
 
@@ -949,14 +949,14 @@ Fonctionnalités envisageables après validation des usages principaux :
 - intégration calendrier ;
 - widgets d’écran d’accueil ;
 - synchronisation avec des montres ;
-- import de programmes ;
-- partage privé de programmes ;
 - bibliothèque communautaire modérée ;
 - mode coach ;
 - gestion de groupes permanents ;
 - exercices avec vidéo ;
 - import depuis d’autres applications ;
-- application native si une limite PWA le justifie.
+- application native si une limite PWA le justifie ;
+- cleanup périodique des `TrainingShareLink` expirés ;
+- partage d’exercices PERSONAL (copie explicite) dans un lien.
 
 ## 13. Priorités transversales
 

@@ -1119,6 +1119,17 @@ Modification/négociation en langage naturel avant acceptation reste hors périm
 4. vérifier le refus ;
 5. vérifier l’absence de donnée exposée.
 
+## 22.8 Partage temporaire programmes / séances
+
+1. A partage un programme SYSTEM → lien ;
+2. B ouvre preview (sans auth) puis importe ;
+3. B voit une copie DRAFT ; A inchangé ;
+4. A modifie après share → import B reste l’ancienne version ;
+5. B et C importent le même lien → copies indépendantes ;
+6. lien expiré → 410 ;
+7. programme avec exercice PERSONAL → partage refusé ;
+8. partage séance → NEW_PROGRAM / EXISTING_PROGRAM.
+
 ## 23. Navigateurs et appareils
 
 ### Navigateurs prioritaires

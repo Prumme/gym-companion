@@ -1463,6 +1463,79 @@ export type SharedWorkoutRealtimeSocketErrorCode =
   | 'ROOM_NOT_ACCESSIBLE'
   | 'VALIDATION_ERROR';
 
+/** Partage temporaire de templates (programme / séance) — distinct des Shared Workouts. */
+export type TrainingShareKind = 'PROGRAM' | 'WORKOUT_TEMPLATE';
+
+export type CreateTrainingShareResponse = {
+  token: string;
+  expiresAt: string;
+  kind: TrainingShareKind;
+};
+
+export type TrainingShareSetPreview = {
+  setType: string;
+  targetRepMin: number | null;
+  targetRepMax: number | null;
+  targetDurationSeconds: number | null;
+  targetDistanceMeters: number | null;
+  targetWeightKg: number | null;
+  restSeconds: number | null;
+};
+
+export type TrainingShareExercisePreview = {
+  exerciseId: string;
+  name: string;
+  measurementType: string;
+  sets: TrainingShareSetPreview[];
+};
+
+export type TrainingShareWorkoutPreview = {
+  name: string;
+  estimatedDurationMinutes: number | null;
+  exerciseCount: number;
+  exercises: TrainingShareExercisePreview[];
+};
+
+export type TrainingShareProgramPreviewPayload = {
+  kind: 'PROGRAM';
+  name: string;
+  description: string | null;
+  goal: string;
+  workoutCount: number;
+  workouts: TrainingShareWorkoutPreview[];
+};
+
+export type TrainingShareWorkoutPreviewPayload = {
+  kind: 'WORKOUT_TEMPLATE';
+  name: string;
+  description: string | null;
+  estimatedDurationMinutes: number | null;
+  exerciseCount: number;
+  exercises: TrainingShareExercisePreview[];
+};
+
+export type TrainingSharePreviewResponse = {
+  kind: TrainingShareKind;
+  expiresAt: string;
+  preview:
+    | TrainingShareProgramPreviewPayload
+    | TrainingShareWorkoutPreviewPayload;
+};
+
+export type ImportTrainingShareDestination =
+  | { type: 'EXISTING_PROGRAM'; programId: string }
+  | { type: 'NEW_PROGRAM'; programName: string };
+
+export type ImportTrainingShareRequest = {
+  destination?: ImportTrainingShareDestination;
+};
+
+export type ImportTrainingShareResponse = {
+  kind: TrainingShareKind;
+  programId: string;
+  workoutTemplateId: string | null;
+};
+
 export function createSuccessResponse<T>(data: T): ApiSuccessResponse<T> {
   return { data };
 }
