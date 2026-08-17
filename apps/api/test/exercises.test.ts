@@ -156,11 +156,54 @@ describe('Exercises catalog API', () => {
       where: { source: 'SYSTEM', slug: { not: null } },
     });
     expect(count).toBeGreaterThanOrEqual(SYSTEM_EXERCISE_SEEDS.length);
+    expect(count).toBeGreaterThanOrEqual(100);
 
     const bySlug = await prisma.exercise.findMany({
       where: { slug: { in: SYSTEM_EXERCISE_SEEDS.map((item) => item.slug) } },
+      select: { id: true, slug: true },
     });
     expect(bySlug).toHaveLength(SYSTEM_EXERCISE_SEEDS.length);
+
+    const idsBefore = Object.fromEntries(
+      bySlug.map((row) => [row.slug!, row.id]),
+    );
+
+    await seedSystemExercises(prisma);
+
+    const countAfter = await prisma.exercise.count({
+      where: { source: 'SYSTEM', slug: { not: null } },
+    });
+    expect(countAfter).toBe(count);
+
+    const bySlugAfter = await prisma.exercise.findMany({
+      where: { slug: { in: SYSTEM_EXERCISE_SEEDS.map((item) => item.slug) } },
+      select: { id: true, slug: true },
+    });
+    expect(bySlugAfter).toHaveLength(SYSTEM_EXERCISE_SEEDS.length);
+    for (const row of bySlugAfter) {
+      expect(row.id).toBe(idsBefore[row.slug!]);
+    }
+  });
+
+  it('catalogue SYSTEM couvre la séance Full Body A débutant', async () => {
+    const matchers: Array<(name: string) => boolean> = [
+      (n) => /^Presse à cuisses$/i.test(n),
+      (n) => /Chest Press machine/i.test(n),
+      (n) => /Tirage vertical/i.test(n),
+      (n) => /Leg Curl/i.test(n),
+      (n) => /Rowing assis/i.test(n),
+      (n) => /Élévations latérales/i.test(n),
+      (n) => /Curl/i.test(n),
+      (n) => /Extension triceps/i.test(n) && /poulie/i.test(n),
+    ];
+    const rows = await prisma.exercise.findMany({
+      where: { source: 'SYSTEM', archivedAt: null },
+      select: { name: true, slug: true },
+    });
+    const names = rows.map((row) => row.name);
+    for (const matcher of matchers) {
+      expect(names.some(matcher)).toBe(true);
+    }
   });
 
   it('lists with default limit 20 and pagination meta', async () => {

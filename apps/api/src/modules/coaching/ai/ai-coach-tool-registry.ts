@@ -665,6 +665,15 @@ export class AiCoachToolRegistry {
     >();
     const muscleTargets =
       input.muscleGroupIds.length > 0 ? input.muscleGroupIds : [undefined];
+    // Répartition équitable quand plusieurs groupes (ex. bras → biceps+triceps).
+    const perTarget = Math.max(
+      2,
+      Math.ceil(input.limit / Math.max(1, muscleTargets.length)),
+    );
+    const fetchLimit = Math.min(
+      input.excludeEquipmentTypeId ? perTarget * 3 : perTarget + 2,
+      AI_COACH_SEARCH_EXERCISES_MAX_RESULTS,
+    );
 
     for (const muscleGroupId of muscleTargets) {
       const result = await this.exercisesService.list(input.ownerUserId, {
@@ -672,13 +681,9 @@ export class AiCoachToolRegistry {
         muscleGroupId,
         equipmentTypeId: input.equipmentTypeId,
         measurementType: input.measurementType,
-        // Sur-fetch si exclusion : on filtre ensuite.
-        limit: String(
-          input.excludeEquipmentTypeId
-            ? Math.min(input.limit * 3, AI_COACH_SEARCH_EXERCISES_MAX_RESULTS)
-            : input.limit,
-        ),
+        limit: String(fetchLimit),
       });
+      let addedForTarget = 0;
       for (const item of result.data) {
         if (byId.has(item.id)) continue;
         byId.set(item.id, {
@@ -688,8 +693,36 @@ export class AiCoachToolRegistry {
           equipment: item.defaultEquipmentType?.name ?? null,
           measurementType: item.measurementType,
         });
+        addedForTarget += 1;
+        if (addedForTarget >= perTarget) break;
       }
-      if (byId.size >= input.limit * 3) break;
+    }
+
+    // Compléter jusqu’à `limit` si un groupe était pauvre.
+    if (byId.size < input.limit) {
+      for (const muscleGroupId of muscleTargets) {
+        if (byId.size >= input.limit) break;
+        const result = await this.exercisesService.list(input.ownerUserId, {
+          search: input.queryText,
+          muscleGroupId,
+          equipmentTypeId: input.equipmentTypeId,
+          measurementType: input.measurementType,
+          limit: String(
+            Math.min(input.limit * 2, AI_COACH_SEARCH_EXERCISES_MAX_RESULTS),
+          ),
+        });
+        for (const item of result.data) {
+          if (byId.has(item.id)) continue;
+          byId.set(item.id, {
+            id: item.id,
+            name: item.name,
+            muscle: item.primaryMuscleGroup.name,
+            equipment: item.defaultEquipmentType?.name ?? null,
+            measurementType: item.measurementType,
+          });
+          if (byId.size >= input.limit) break;
+        }
+      }
     }
 
     let exercises = [...byId.values()];

@@ -3,10 +3,16 @@
     "slug": "developpe-couche-barre",
     "name": "Développé couché à la barre",
     "primaryMuscleCode": "chest",
-    "secondaryMuscleCodes": ["triceps", "shoulders"],
+    "secondaryMuscleCodes": [
+      "triceps",
+      "shoulders"
+    ],
     "measurementType": "WEIGHT_REPS",
     "defaultEquipmentCode": "barbell",
-    "compatibleEquipmentCodes": ["barbell", "machine"],
+    "compatibleEquipmentCodes": [
+      "barbell",
+      "machine"
+    ],
     "defaultRestSeconds": 120,
     "instructions": null
   },
@@ -14,87 +20,1265 @@
     "slug": "developpe-couche-halteres",
     "name": "Développé couché avec haltères",
     "primaryMuscleCode": "chest",
-    "secondaryMuscleCodes": ["triceps", "shoulders"],
+    "secondaryMuscleCodes": [
+      "triceps",
+      "shoulders"
+    ],
     "measurementType": "WEIGHT_REPS",
     "defaultEquipmentCode": "dumbbell",
-    "compatibleEquipmentCodes": ["dumbbell"],
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
     "defaultRestSeconds": 120,
     "instructions": null
   },
   {
-    "slug": "squat-barre",
-    "name": "Squat à la barre",
-    "primaryMuscleCode": "quadriceps",
-    "secondaryMuscleCodes": ["glutes", "hamstrings", "core"],
+    "slug": "developpe-couche-smith",
+    "name": "Développé couché Smith",
+    "primaryMuscleCode": "chest",
+    "secondaryMuscleCodes": [
+      "triceps",
+      "shoulders"
+    ],
     "measurementType": "WEIGHT_REPS",
-    "defaultEquipmentCode": "barbell",
-    "compatibleEquipmentCodes": ["barbell"],
-    "defaultRestSeconds": 180,
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 120,
     "instructions": null
   },
   {
-    "slug": "souleve-de-terre",
-    "name": "Soulevé de terre",
-    "primaryMuscleCode": "back",
-    "secondaryMuscleCodes": ["hamstrings", "glutes", "core"],
+    "slug": "chest-press-machine",
+    "name": "Chest Press machine",
+    "primaryMuscleCode": "chest",
+    "secondaryMuscleCodes": [
+      "triceps",
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "developpe-incline-barre",
+    "name": "Développé incliné à la barre",
+    "primaryMuscleCode": "chest",
+    "secondaryMuscleCodes": [
+      "triceps",
+      "shoulders"
+    ],
     "measurementType": "WEIGHT_REPS",
     "defaultEquipmentCode": "barbell",
-    "compatibleEquipmentCodes": ["barbell", "dumbbell"],
-    "defaultRestSeconds": 180,
+    "compatibleEquipmentCodes": [
+      "barbell"
+    ],
+    "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "developpe-incline-halteres",
+    "name": "Développé incliné haltères",
+    "primaryMuscleCode": "chest",
+    "secondaryMuscleCodes": [
+      "triceps",
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "developpe-incline-machine",
+    "name": "Développé incliné machine",
+    "primaryMuscleCode": "chest",
+    "secondaryMuscleCodes": [
+      "triceps",
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "developpe-incline-smith",
+    "name": "Développé incliné Smith",
+    "primaryMuscleCode": "chest",
+    "secondaryMuscleCodes": [
+      "triceps",
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "developpe-decline-barre",
+    "name": "Développé décliné à la barre",
+    "primaryMuscleCode": "chest",
+    "secondaryMuscleCodes": [
+      "triceps",
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": [
+      "barbell"
+    ],
+    "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "developpe-decline-halteres",
+    "name": "Développé décliné haltères",
+    "primaryMuscleCode": "chest",
+    "secondaryMuscleCodes": [
+      "triceps",
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "developpe-decline-machine",
+    "name": "Développé décliné machine",
+    "primaryMuscleCode": "chest",
+    "secondaryMuscleCodes": [
+      "triceps",
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "pec-deck",
+    "name": "Pec Deck (Butterfly)",
+    "primaryMuscleCode": "chest",
+    "secondaryMuscleCodes": [
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "ecarte-halteres-couche",
+    "name": "Écarté haltères couché",
+    "primaryMuscleCode": "chest",
+    "secondaryMuscleCodes": [
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "ecarte-halteres-incline",
+    "name": "Écarté haltères incliné",
+    "primaryMuscleCode": "chest",
+    "secondaryMuscleCodes": [
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "ecarte-poulie-vis-a-vis",
+    "name": "Écarté poulie vis-à-vis",
+    "primaryMuscleCode": "chest",
+    "secondaryMuscleCodes": [
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "ecarte-poulie-basse-haute",
+    "name": "Écarté poulie basse vers haute",
+    "primaryMuscleCode": "chest",
+    "secondaryMuscleCodes": [
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "ecarte-poulie-haute-basse",
+    "name": "Écarté poulie haute vers basse",
+    "primaryMuscleCode": "chest",
+    "secondaryMuscleCodes": [
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "pompes",
+    "name": "Pompes",
+    "primaryMuscleCode": "chest",
+    "secondaryMuscleCodes": [
+      "triceps",
+      "shoulders",
+      "core"
+    ],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "pompes-inclinees",
+    "name": "Pompes inclinées",
+    "primaryMuscleCode": "chest",
+    "secondaryMuscleCodes": [
+      "triceps",
+      "shoulders"
+    ],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "pompes-declinees",
+    "name": "Pompes déclinées",
+    "primaryMuscleCode": "chest",
+    "secondaryMuscleCodes": [
+      "triceps",
+      "shoulders"
+    ],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "dips-pectoraux",
+    "name": "Dips orientés pectoraux",
+    "primaryMuscleCode": "chest",
+    "secondaryMuscleCodes": [
+      "triceps",
+      "shoulders"
+    ],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight",
+      "machine"
+    ],
+    "defaultRestSeconds": 90,
     "instructions": null
   },
   {
     "slug": "tractions",
     "name": "Tractions",
     "primaryMuscleCode": "back",
-    "secondaryMuscleCodes": ["biceps", "forearms"],
+    "secondaryMuscleCodes": [
+      "biceps",
+      "forearms"
+    ],
     "measurementType": "BODYWEIGHT_REPS",
     "defaultEquipmentCode": "bodyweight",
-    "compatibleEquipmentCodes": ["bodyweight", "machine", "resistance-band"],
+    "compatibleEquipmentCodes": [
+      "bodyweight",
+      "machine",
+      "resistance-band"
+    ],
     "defaultRestSeconds": 120,
     "instructions": null
   },
   {
-    "slug": "tirage-vertical-poulie",
-    "name": "Tirage vertical à la poulie",
+    "slug": "tractions-pronation",
+    "name": "Tractions pronation",
     "primaryMuscleCode": "back",
-    "secondaryMuscleCodes": ["biceps"],
+    "secondaryMuscleCodes": [
+      "biceps",
+      "forearms"
+    ],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "tractions-supination",
+    "name": "Tractions supination",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "biceps",
+      "forearms"
+    ],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "tractions-prise-neutre",
+    "name": "Tractions prise neutre",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "biceps",
+      "forearms"
+    ],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "tractions-assistees",
+    "name": "Tractions assistées",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "biceps"
+    ],
+    "measurementType": "ASSISTED_BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine",
+      "resistance-band"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "tirage-vertical-poulie",
+    "name": "Tirage vertical (Lat Pulldown)",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "biceps"
+    ],
     "measurementType": "WEIGHT_REPS",
     "defaultEquipmentCode": "cable",
-    "compatibleEquipmentCodes": ["cable", "machine"],
+    "compatibleEquipmentCodes": [
+      "cable",
+      "machine"
+    ],
     "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "tirage-vertical-prise-large",
+    "name": "Tirage vertical prise large",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "biceps"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable",
+      "machine"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "tirage-vertical-prise-neutre",
+    "name": "Tirage vertical prise neutre",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "biceps"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable",
+      "machine"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "tirage-vertical-prise-serree",
+    "name": "Tirage vertical prise serrée",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "biceps"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable",
+      "machine"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "tirage-vertical-supination",
+    "name": "Tirage vertical supination",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "biceps"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable",
+      "machine"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "tirage-vertical-unilateral",
+    "name": "Tirage vertical unilatéral poulie",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "biceps"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "rowing-assis-poulie-neutre",
+    "name": "Rowing assis poulie",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "biceps",
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable",
+      "machine"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "rowing-assis-poulie-large",
+    "name": "Rowing assis poulie prise large",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "biceps",
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable",
+      "machine"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "rowing-machine",
+    "name": "Rowing machine",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "biceps",
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "rowing-machine-unilateral",
+    "name": "Rowing machine unilatéral",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "biceps",
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 75,
     "instructions": null
   },
   {
     "slug": "rowing-barre",
     "name": "Rowing à la barre",
     "primaryMuscleCode": "back",
-    "secondaryMuscleCodes": ["biceps", "shoulders"],
+    "secondaryMuscleCodes": [
+      "biceps",
+      "shoulders"
+    ],
     "measurementType": "WEIGHT_REPS",
     "defaultEquipmentCode": "barbell",
-    "compatibleEquipmentCodes": ["barbell", "dumbbell", "cable"],
+    "compatibleEquipmentCodes": [
+      "barbell",
+      "dumbbell",
+      "cable"
+    ],
     "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "rowing-barre-en-t",
+    "name": "Rowing barre en T",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "biceps",
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": [
+      "barbell",
+      "machine"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "rowing-haltere-unilateral",
+    "name": "Rowing haltère unilatéral",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "biceps",
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "rowing-poitrine-appui-halteres",
+    "name": "Rowing poitrine appuyée haltères",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "biceps",
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "rowing-poitrine-appui-machine",
+    "name": "Rowing poitrine appuyée machine",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "biceps",
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "rowing-smith",
+    "name": "Rowing Smith",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "biceps",
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "tirage-horizontal-unilateral",
+    "name": "Tirage horizontal unilatéral poulie",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "biceps",
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "pullover-poulie",
+    "name": "Pullover poulie bras tendus",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "chest"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "pullover-machine",
+    "name": "Pullover machine",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "chest"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "pullover-haltere",
+    "name": "Pullover haltère",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "chest"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "shrugs-barre",
+    "name": "Shrugs barre",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "forearms"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": [
+      "barbell"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "shrugs-halteres",
+    "name": "Shrugs haltères",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "forearms"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "shrugs-machine",
+    "name": "Shrugs machine",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "forearms"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 75,
     "instructions": null
   },
   {
     "slug": "developpe-militaire-barre",
     "name": "Développé militaire à la barre",
     "primaryMuscleCode": "shoulders",
-    "secondaryMuscleCodes": ["triceps"],
+    "secondaryMuscleCodes": [
+      "triceps"
+    ],
     "measurementType": "WEIGHT_REPS",
     "defaultEquipmentCode": "barbell",
-    "compatibleEquipmentCodes": ["barbell", "dumbbell"],
+    "compatibleEquipmentCodes": [
+      "barbell",
+      "dumbbell"
+    ],
     "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "developpe-epaules-halteres",
+    "name": "Développé épaules haltères",
+    "primaryMuscleCode": "shoulders",
+    "secondaryMuscleCodes": [
+      "triceps"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "shoulder-press-machine",
+    "name": "Shoulder Press machine",
+    "primaryMuscleCode": "shoulders",
+    "secondaryMuscleCodes": [
+      "triceps"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "developpe-epaules-smith",
+    "name": "Développé épaules Smith",
+    "primaryMuscleCode": "shoulders",
+    "secondaryMuscleCodes": [
+      "triceps"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "arnold-press",
+    "name": "Arnold Press",
+    "primaryMuscleCode": "shoulders",
+    "secondaryMuscleCodes": [
+      "triceps"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "elevations-laterales-halteres",
+    "name": "Élévations latérales haltères",
+    "primaryMuscleCode": "shoulders",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "elevations-laterales-poulie",
+    "name": "Élévations latérales poulie",
+    "primaryMuscleCode": "shoulders",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "elevations-laterales-machine",
+    "name": "Élévations latérales machine",
+    "primaryMuscleCode": "shoulders",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "elevation-laterale-unilaterale-poulie",
+    "name": "Élévation latérale unilatérale poulie",
+    "primaryMuscleCode": "shoulders",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "elevations-frontales-halteres",
+    "name": "Élévations frontales haltères",
+    "primaryMuscleCode": "shoulders",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "elevations-frontales-poulie",
+    "name": "Élévations frontales poulie",
+    "primaryMuscleCode": "shoulders",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "oiseau-halteres",
+    "name": "Oiseau haltères",
+    "primaryMuscleCode": "shoulders",
+    "secondaryMuscleCodes": [
+      "back"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "oiseau-banc-incline",
+    "name": "Oiseau sur banc incliné",
+    "primaryMuscleCode": "shoulders",
+    "secondaryMuscleCodes": [
+      "back"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "reverse-pec-deck",
+    "name": "Reverse Pec Deck",
+    "primaryMuscleCode": "shoulders",
+    "secondaryMuscleCodes": [
+      "back"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "face-pull",
+    "name": "Face Pull",
+    "primaryMuscleCode": "shoulders",
+    "secondaryMuscleCodes": [
+      "back"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "reverse-fly-machine",
+    "name": "Reverse Fly machine",
+    "primaryMuscleCode": "shoulders",
+    "secondaryMuscleCodes": [
+      "back"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "reverse-fly-poulie",
+    "name": "Reverse Fly poulie",
+    "primaryMuscleCode": "shoulders",
+    "secondaryMuscleCodes": [
+      "back"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "upright-row-barre",
+    "name": "Upright Row barre",
+    "primaryMuscleCode": "shoulders",
+    "secondaryMuscleCodes": [
+      "back"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": [
+      "barbell"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "upright-row-poulie",
+    "name": "Upright Row poulie",
+    "primaryMuscleCode": "shoulders",
+    "secondaryMuscleCodes": [
+      "back"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "curl-barre-droite",
+    "name": "Curl barre droite",
+    "primaryMuscleCode": "biceps",
+    "secondaryMuscleCodes": [
+      "forearms"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": [
+      "barbell"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "curl-barre-ez",
+    "name": "Curl barre EZ",
+    "primaryMuscleCode": "biceps",
+    "secondaryMuscleCodes": [
+      "forearms"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": [
+      "barbell"
+    ],
+    "defaultRestSeconds": 60,
     "instructions": null
   },
   {
     "slug": "curl-halteres",
     "name": "Curl avec haltères",
     "primaryMuscleCode": "biceps",
-    "secondaryMuscleCodes": ["forearms"],
+    "secondaryMuscleCodes": [
+      "forearms"
+    ],
     "measurementType": "WEIGHT_REPS",
     "defaultEquipmentCode": "dumbbell",
-    "compatibleEquipmentCodes": ["dumbbell", "barbell", "cable"],
+    "compatibleEquipmentCodes": [
+      "dumbbell",
+      "barbell",
+      "cable"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "curl-alterne-halteres",
+    "name": "Curl alterné haltères",
+    "primaryMuscleCode": "biceps",
+    "secondaryMuscleCodes": [
+      "forearms"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "curl-marteau",
+    "name": "Curl marteau",
+    "primaryMuscleCode": "biceps",
+    "secondaryMuscleCodes": [
+      "forearms"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "curl-marteau-croise",
+    "name": "Curl marteau croisé",
+    "primaryMuscleCode": "biceps",
+    "secondaryMuscleCodes": [
+      "forearms"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "curl-incline-halteres",
+    "name": "Curl incliné haltères",
+    "primaryMuscleCode": "biceps",
+    "secondaryMuscleCodes": [
+      "forearms"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "curl-pupitre-barre-ez",
+    "name": "Curl pupitre barre EZ",
+    "primaryMuscleCode": "biceps",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": [
+      "barbell"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "curl-pupitre-haltere",
+    "name": "Curl pupitre haltère",
+    "primaryMuscleCode": "biceps",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "curl-pupitre-machine",
+    "name": "Curl pupitre machine",
+    "primaryMuscleCode": "biceps",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "curl-poulie-basse-barre",
+    "name": "Curl poulie basse barre",
+    "primaryMuscleCode": "biceps",
+    "secondaryMuscleCodes": [
+      "forearms"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "curl-poulie-basse-corde",
+    "name": "Curl poulie basse corde",
+    "primaryMuscleCode": "biceps",
+    "secondaryMuscleCodes": [
+      "forearms"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "curl-unilateral-poulie",
+    "name": "Curl unilatéral poulie",
+    "primaryMuscleCode": "biceps",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "bayesian-curl-poulie",
+    "name": "Bayesian Curl poulie",
+    "primaryMuscleCode": "biceps",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "curl-machine",
+    "name": "Curl machine",
+    "primaryMuscleCode": "biceps",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "curl-concentration",
+    "name": "Curl concentration",
+    "primaryMuscleCode": "biceps",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
     "defaultRestSeconds": 60,
     "instructions": null
   },
@@ -105,19 +1289,973 @@
     "secondaryMuscleCodes": [],
     "measurementType": "WEIGHT_REPS",
     "defaultEquipmentCode": "cable",
-    "compatibleEquipmentCodes": ["cable", "dumbbell"],
+    "compatibleEquipmentCodes": [
+      "cable",
+      "dumbbell"
+    ],
     "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "extension-triceps-poulie-barre",
+    "name": "Extension triceps poulie barre",
+    "primaryMuscleCode": "triceps",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "extension-triceps-poulie-corde",
+    "name": "Extension triceps poulie corde",
+    "primaryMuscleCode": "triceps",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "extension-triceps-unilaterale-poulie",
+    "name": "Extension triceps unilatérale poulie",
+    "primaryMuscleCode": "triceps",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "extension-triceps-overhead-corde",
+    "name": "Extension triceps overhead corde",
+    "primaryMuscleCode": "triceps",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "extension-triceps-overhead-haltere",
+    "name": "Extension triceps overhead haltère",
+    "primaryMuscleCode": "triceps",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "barre-au-front-ez",
+    "name": "Barre au front barre EZ",
+    "primaryMuscleCode": "triceps",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": [
+      "barbell"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "barre-au-front-halteres",
+    "name": "Barre au front haltères",
+    "primaryMuscleCode": "triceps",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "developpe-couche-prise-serree",
+    "name": "Développé couché prise serrée",
+    "primaryMuscleCode": "triceps",
+    "secondaryMuscleCodes": [
+      "chest",
+      "shoulders"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": [
+      "barbell"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "dips-triceps",
+    "name": "Dips triceps",
+    "primaryMuscleCode": "triceps",
+    "secondaryMuscleCodes": [
+      "chest",
+      "shoulders"
+    ],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight",
+      "machine"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "dips-assistes",
+    "name": "Dips assistés",
+    "primaryMuscleCode": "triceps",
+    "secondaryMuscleCodes": [
+      "chest",
+      "shoulders"
+    ],
+    "measurementType": "ASSISTED_BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "extension-triceps-machine",
+    "name": "Extension triceps machine",
+    "primaryMuscleCode": "triceps",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "kickback-haltere",
+    "name": "Kickback haltère",
+    "primaryMuscleCode": "triceps",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "kickback-poulie",
+    "name": "Kickback poulie",
+    "primaryMuscleCode": "triceps",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "squat-barre",
+    "name": "Squat à la barre",
+    "primaryMuscleCode": "quadriceps",
+    "secondaryMuscleCodes": [
+      "glutes",
+      "hamstrings",
+      "core"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": [
+      "barbell"
+    ],
+    "defaultRestSeconds": 180,
+    "instructions": null
+  },
+  {
+    "slug": "squat-barre-avant",
+    "name": "Squat barre avant",
+    "primaryMuscleCode": "quadriceps",
+    "secondaryMuscleCodes": [
+      "glutes",
+      "core"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": [
+      "barbell"
+    ],
+    "defaultRestSeconds": 150,
+    "instructions": null
+  },
+  {
+    "slug": "squat-smith",
+    "name": "Squat Smith",
+    "primaryMuscleCode": "quadriceps",
+    "secondaryMuscleCodes": [
+      "glutes",
+      "hamstrings"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "goblet-squat",
+    "name": "Goblet Squat",
+    "primaryMuscleCode": "quadriceps",
+    "secondaryMuscleCodes": [
+      "glutes",
+      "core"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell",
+      "other"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "hack-squat-machine",
+    "name": "Hack Squat machine",
+    "primaryMuscleCode": "quadriceps",
+    "secondaryMuscleCodes": [
+      "glutes"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 120,
     "instructions": null
   },
   {
     "slug": "presse-cuisses",
     "name": "Presse à cuisses",
     "primaryMuscleCode": "quadriceps",
-    "secondaryMuscleCodes": ["glutes", "hamstrings"],
+    "secondaryMuscleCodes": [
+      "glutes",
+      "hamstrings"
+    ],
     "measurementType": "WEIGHT_REPS",
     "defaultEquipmentCode": "machine",
-    "compatibleEquipmentCodes": ["machine"],
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
     "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "presse-cuisses-45",
+    "name": "Presse à cuisses 45°",
+    "primaryMuscleCode": "quadriceps",
+    "secondaryMuscleCodes": [
+      "glutes",
+      "hamstrings"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "presse-cuisses-horizontale",
+    "name": "Presse à cuisses horizontale",
+    "primaryMuscleCode": "quadriceps",
+    "secondaryMuscleCodes": [
+      "glutes",
+      "hamstrings"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "presse-cuisses-unilaterale",
+    "name": "Presse à cuisses unilatérale",
+    "primaryMuscleCode": "quadriceps",
+    "secondaryMuscleCodes": [
+      "glutes"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "leg-extension",
+    "name": "Leg Extension",
+    "primaryMuscleCode": "quadriceps",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "leg-extension-unilateral",
+    "name": "Leg Extension unilatéral",
+    "primaryMuscleCode": "quadriceps",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "fentes-avant",
+    "name": "Fentes avant",
+    "primaryMuscleCode": "quadriceps",
+    "secondaryMuscleCodes": [
+      "glutes",
+      "hamstrings"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell",
+      "barbell",
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "fentes-arriere",
+    "name": "Fentes arrière",
+    "primaryMuscleCode": "quadriceps",
+    "secondaryMuscleCodes": [
+      "glutes",
+      "hamstrings"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell",
+      "barbell",
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "fentes-marchees",
+    "name": "Fentes marchées",
+    "primaryMuscleCode": "quadriceps",
+    "secondaryMuscleCodes": [
+      "glutes"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell",
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "split-squat",
+    "name": "Split Squat",
+    "primaryMuscleCode": "quadriceps",
+    "secondaryMuscleCodes": [
+      "glutes"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell",
+      "barbell",
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "bulgarian-split-squat",
+    "name": "Bulgarian Split Squat",
+    "primaryMuscleCode": "quadriceps",
+    "secondaryMuscleCodes": [
+      "glutes",
+      "hamstrings"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell",
+      "barbell",
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "step-up",
+    "name": "Step-Up",
+    "primaryMuscleCode": "quadriceps",
+    "secondaryMuscleCodes": [
+      "glutes"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell",
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "leg-curl-assis",
+    "name": "Leg Curl assis",
+    "primaryMuscleCode": "hamstrings",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "leg-curl-allonge",
+    "name": "Leg Curl allongé",
+    "primaryMuscleCode": "hamstrings",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "leg-curl-debout",
+    "name": "Leg Curl debout",
+    "primaryMuscleCode": "hamstrings",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "leg-curl-unilateral",
+    "name": "Leg Curl unilatéral",
+    "primaryMuscleCode": "hamstrings",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "souleve-de-terre-roumain-barre",
+    "name": "Soulevé de terre roumain barre",
+    "primaryMuscleCode": "hamstrings",
+    "secondaryMuscleCodes": [
+      "glutes",
+      "back"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": [
+      "barbell"
+    ],
+    "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "souleve-de-terre-roumain-halteres",
+    "name": "Soulevé de terre roumain haltères",
+    "primaryMuscleCode": "hamstrings",
+    "secondaryMuscleCodes": [
+      "glutes",
+      "back"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "souleve-de-terre-roumain-smith",
+    "name": "Soulevé de terre roumain Smith",
+    "primaryMuscleCode": "hamstrings",
+    "secondaryMuscleCodes": [
+      "glutes",
+      "back"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "souleve-de-terre-jambes-tendues",
+    "name": "Soulevé de terre jambes tendues",
+    "primaryMuscleCode": "hamstrings",
+    "secondaryMuscleCodes": [
+      "glutes",
+      "back"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": [
+      "barbell"
+    ],
+    "defaultRestSeconds": 120,
+    "instructions": null
+  },
+  {
+    "slug": "good-morning-barre",
+    "name": "Good Morning barre",
+    "primaryMuscleCode": "hamstrings",
+    "secondaryMuscleCodes": [
+      "back",
+      "glutes"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": [
+      "barbell"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "nordic-curl",
+    "name": "Nordic Curl",
+    "primaryMuscleCode": "hamstrings",
+    "secondaryMuscleCodes": [],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "hip-thrust-barre",
+    "name": "Hip Thrust barre",
+    "primaryMuscleCode": "glutes",
+    "secondaryMuscleCodes": [
+      "hamstrings"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": [
+      "barbell"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "hip-thrust-machine",
+    "name": "Hip Thrust machine",
+    "primaryMuscleCode": "glutes",
+    "secondaryMuscleCodes": [
+      "hamstrings"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "hip-thrust-smith",
+    "name": "Hip Thrust Smith",
+    "primaryMuscleCode": "glutes",
+    "secondaryMuscleCodes": [
+      "hamstrings"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "glute-bridge",
+    "name": "Glute Bridge",
+    "primaryMuscleCode": "glutes",
+    "secondaryMuscleCodes": [
+      "hamstrings"
+    ],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "glute-bridge-barre",
+    "name": "Glute Bridge barre",
+    "primaryMuscleCode": "glutes",
+    "secondaryMuscleCodes": [
+      "hamstrings"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": [
+      "barbell"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "kickback-fessier-poulie",
+    "name": "Kickback fessier poulie",
+    "primaryMuscleCode": "glutes",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "kickback-fessier-machine",
+    "name": "Kickback fessier machine",
+    "primaryMuscleCode": "glutes",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "abduction-machine",
+    "name": "Abduction machine",
+    "primaryMuscleCode": "glutes",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "abduction-poulie",
+    "name": "Abduction poulie",
+    "primaryMuscleCode": "glutes",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "adduction-machine",
+    "name": "Adduction machine",
+    "primaryMuscleCode": "glutes",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "adduction-poulie",
+    "name": "Adduction poulie",
+    "primaryMuscleCode": "glutes",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "pull-through-poulie",
+    "name": "Pull Through poulie",
+    "primaryMuscleCode": "glutes",
+    "secondaryMuscleCodes": [
+      "hamstrings"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "mollets-debout-machine",
+    "name": "Mollets debout machine",
+    "primaryMuscleCode": "calves",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "mollets-assis-machine",
+    "name": "Mollets assis machine",
+    "primaryMuscleCode": "calves",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "mollets-presse",
+    "name": "Mollets à la presse",
+    "primaryMuscleCode": "calves",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "mollets-debout-smith",
+    "name": "Mollets debout Smith",
+    "primaryMuscleCode": "calves",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "mollets-debout-halteres",
+    "name": "Mollets debout haltères",
+    "primaryMuscleCode": "calves",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "mollets-unilateraux",
+    "name": "Mollets unilatéraux",
+    "primaryMuscleCode": "calves",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell",
+      "machine",
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 45,
+    "instructions": null
+  },
+  {
+    "slug": "crunch-sol",
+    "name": "Crunch au sol",
+    "primaryMuscleCode": "core",
+    "secondaryMuscleCodes": [],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 45,
+    "instructions": null
+  },
+  {
+    "slug": "crunch-machine",
+    "name": "Crunch machine",
+    "primaryMuscleCode": "core",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 45,
+    "instructions": null
+  },
+  {
+    "slug": "crunch-poulie",
+    "name": "Crunch poulie",
+    "primaryMuscleCode": "core",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 45,
+    "instructions": null
+  },
+  {
+    "slug": "releve-genoux-suspendu",
+    "name": "Relevé de genoux suspendu",
+    "primaryMuscleCode": "core",
+    "secondaryMuscleCodes": [],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "releve-jambes-suspendu",
+    "name": "Relevé de jambes suspendu",
+    "primaryMuscleCode": "core",
+    "secondaryMuscleCodes": [],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "releve-jambes-sol",
+    "name": "Relevé de jambes au sol",
+    "primaryMuscleCode": "core",
+    "secondaryMuscleCodes": [],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 45,
+    "instructions": null
+  },
+  {
+    "slug": "releve-jambes-chaise-romaine",
+    "name": "Relevé de jambes chaise romaine",
+    "primaryMuscleCode": "core",
+    "secondaryMuscleCodes": [],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "sit-up",
+    "name": "Sit-Up",
+    "primaryMuscleCode": "core",
+    "secondaryMuscleCodes": [],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 45,
+    "instructions": null
+  },
+  {
+    "slug": "reverse-crunch",
+    "name": "Reverse Crunch",
+    "primaryMuscleCode": "core",
+    "secondaryMuscleCodes": [],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 45,
     "instructions": null
   },
   {
@@ -127,7 +2265,342 @@
     "secondaryMuscleCodes": [],
     "measurementType": "DURATION",
     "defaultEquipmentCode": "bodyweight",
-    "compatibleEquipmentCodes": ["bodyweight"],
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "planche-laterale",
+    "name": "Planche latérale",
+    "primaryMuscleCode": "core",
+    "secondaryMuscleCodes": [],
+    "measurementType": "DURATION",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 45,
+    "instructions": null
+  },
+  {
+    "slug": "dead-bug",
+    "name": "Dead Bug",
+    "primaryMuscleCode": "core",
+    "secondaryMuscleCodes": [],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 45,
+    "instructions": null
+  },
+  {
+    "slug": "bird-dog",
+    "name": "Bird Dog",
+    "primaryMuscleCode": "core",
+    "secondaryMuscleCodes": [],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 45,
+    "instructions": null
+  },
+  {
+    "slug": "pallof-press",
+    "name": "Pallof Press",
+    "primaryMuscleCode": "core",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 45,
+    "instructions": null
+  },
+  {
+    "slug": "rotation-buste-poulie",
+    "name": "Rotation du buste poulie",
+    "primaryMuscleCode": "core",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 45,
+    "instructions": null
+  },
+  {
+    "slug": "woodchopper-haute-basse",
+    "name": "Woodchopper poulie haute vers basse",
+    "primaryMuscleCode": "core",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 45,
+    "instructions": null
+  },
+  {
+    "slug": "woodchopper-basse-haute",
+    "name": "Woodchopper poulie basse vers haute",
+    "primaryMuscleCode": "core",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 45,
+    "instructions": null
+  },
+  {
+    "slug": "ab-wheel",
+    "name": "Ab Wheel",
+    "primaryMuscleCode": "core",
+    "secondaryMuscleCodes": [],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "other",
+    "compatibleEquipmentCodes": [
+      "other"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "russian-twist",
+    "name": "Russian Twist",
+    "primaryMuscleCode": "core",
+    "secondaryMuscleCodes": [],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight",
+      "dumbbell",
+      "other"
+    ],
+    "defaultRestSeconds": 45,
+    "instructions": null
+  },
+  {
+    "slug": "extensions-lombaires-45",
+    "name": "Extensions lombaires banc 45°",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "glutes",
+      "hamstrings"
+    ],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "extensions-lombaires-machine",
+    "name": "Extensions lombaires machine",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "glutes"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "machine",
+    "compatibleEquipmentCodes": [
+      "machine"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "superman",
+    "name": "Superman",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "glutes"
+    ],
+    "measurementType": "BODYWEIGHT_REPS",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
+    "defaultRestSeconds": 45,
+    "instructions": null
+  },
+  {
+    "slug": "souleve-de-terre",
+    "name": "Soulevé de terre",
+    "primaryMuscleCode": "back",
+    "secondaryMuscleCodes": [
+      "hamstrings",
+      "glutes",
+      "core"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": [
+      "barbell",
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 180,
+    "instructions": null
+  },
+  {
+    "slug": "souleve-de-terre-sumo",
+    "name": "Soulevé de terre sumo",
+    "primaryMuscleCode": "glutes",
+    "secondaryMuscleCodes": [
+      "quadriceps",
+      "hamstrings",
+      "back"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": [
+      "barbell"
+    ],
+    "defaultRestSeconds": 180,
+    "instructions": null
+  },
+  {
+    "slug": "kettlebell-swing",
+    "name": "Kettlebell Swing",
+    "primaryMuscleCode": "glutes",
+    "secondaryMuscleCodes": [
+      "hamstrings",
+      "core",
+      "back"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "other",
+    "compatibleEquipmentCodes": [
+      "other"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "farmer-carry",
+    "name": "Farmer Carry",
+    "primaryMuscleCode": "forearms",
+    "secondaryMuscleCodes": [
+      "core",
+      "shoulders"
+    ],
+    "measurementType": "DISTANCE_DURATION",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell",
+      "other"
+    ],
+    "defaultRestSeconds": 90,
+    "instructions": null
+  },
+  {
+    "slug": "suitcase-carry",
+    "name": "Suitcase Carry",
+    "primaryMuscleCode": "core",
+    "secondaryMuscleCodes": [
+      "forearms",
+      "shoulders"
+    ],
+    "measurementType": "DISTANCE_DURATION",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 75,
+    "instructions": null
+  },
+  {
+    "slug": "wrist-curl-barre",
+    "name": "Wrist Curl barre",
+    "primaryMuscleCode": "forearms",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": [
+      "barbell"
+    ],
+    "defaultRestSeconds": 45,
+    "instructions": null
+  },
+  {
+    "slug": "wrist-curl-halteres",
+    "name": "Wrist Curl haltères",
+    "primaryMuscleCode": "forearms",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "dumbbell",
+    "compatibleEquipmentCodes": [
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 45,
+    "instructions": null
+  },
+  {
+    "slug": "reverse-wrist-curl",
+    "name": "Reverse Wrist Curl",
+    "primaryMuscleCode": "forearms",
+    "secondaryMuscleCodes": [],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": [
+      "barbell",
+      "dumbbell"
+    ],
+    "defaultRestSeconds": 45,
+    "instructions": null
+  },
+  {
+    "slug": "reverse-curl-barre-ez",
+    "name": "Reverse Curl barre EZ",
+    "primaryMuscleCode": "forearms",
+    "secondaryMuscleCodes": [
+      "biceps"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "barbell",
+    "compatibleEquipmentCodes": [
+      "barbell"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "reverse-curl-poulie",
+    "name": "Reverse Curl poulie",
+    "primaryMuscleCode": "forearms",
+    "secondaryMuscleCodes": [
+      "biceps"
+    ],
+    "measurementType": "WEIGHT_REPS",
+    "defaultEquipmentCode": "cable",
+    "compatibleEquipmentCodes": [
+      "cable"
+    ],
+    "defaultRestSeconds": 60,
+    "instructions": null
+  },
+  {
+    "slug": "dead-hang",
+    "name": "Dead Hang",
+    "primaryMuscleCode": "forearms",
+    "secondaryMuscleCodes": [],
+    "measurementType": "DURATION",
+    "defaultEquipmentCode": "bodyweight",
+    "compatibleEquipmentCodes": [
+      "bodyweight"
+    ],
     "defaultRestSeconds": 60,
     "instructions": null
   }

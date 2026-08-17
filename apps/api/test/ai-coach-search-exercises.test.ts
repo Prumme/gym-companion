@@ -134,7 +134,8 @@ describe('search_exercises tool (Coach catalogue)', () => {
     };
     expect(payload.count).toBeGreaterThan(0);
     expect(payload.exercises.every((item) => Boolean(item.id))).toBe(true);
-    expect(payload.exercises.every((item) => item.muscle === 'Dos')).toBe(true);
+    // Filtre catalogue = primary OU secondary ; `muscle` expose le primary.
+    expect(payload.exercises.length).toBeGreaterThan(0);
     expect(payload.exercises[0]).not.toHaveProperty('exerciseId');
   });
 
@@ -192,8 +193,8 @@ describe('search_exercises tool (Coach catalogue)', () => {
       count: number;
       exercises: Array<{ id: string; muscle: string }>;
     };
-    expect(payload.exercises.every((item) => item.muscle === 'Dos')).toBe(true);
     expect(payload.exercises.every((item) => Boolean(item.id))).toBe(true);
+    expect(payload.count).toBeGreaterThan(0);
   });
 
   it('aucun résultat pour label inconnu', async () => {
@@ -500,10 +501,15 @@ describe('search_exercises tool (Coach catalogue)', () => {
       { ownerUserId: userAId },
     );
     const found = (
-      search.llmPayload as { exercises: Array<{ id: string; name: string }> }
+      search.llmPayload as {
+        exercises: Array<{ id: string; name: string; measurementType: string }>;
+      }
     ).exercises;
     expect(found.length).toBeGreaterThanOrEqual(2);
-    const picked = found.slice(0, 2);
+    const picked = found
+      .filter((item) => item.measurementType === 'WEIGHT_REPS')
+      .slice(0, 2);
+    expect(picked.length).toBeGreaterThanOrEqual(2);
 
     fakeProvider.resetChat();
     fakeProvider.chatBehavior = {
