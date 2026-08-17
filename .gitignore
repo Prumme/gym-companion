@@ -12,8 +12,13 @@ coverage/
 .env
 .env.local
 .env.*.local
-!.env.example
 .env.staging
+.env.prod
+!.env.example
+!.env.prod.example
+
+# Production DB dumps (local / VPS working copies — never commit)
+backups/
 
 # IDE / OS
 .DS_Store

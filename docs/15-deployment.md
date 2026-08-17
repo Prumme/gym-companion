@@ -109,6 +109,12 @@ Contient les données réelles.
 
 Elle doit être isolée des autres environnements.
 
+Procédure opérationnelle (compose, secrets, migrate deploy, seed, backups, Caddy) :
+
+→ [`docs/production-runbook.md`](./production-runbook.md)
+
+Fichiers : `docker-compose.prod.yml`, `.env.prod.example`, `scripts/prod/*.sh`.
+
 ## 4. Architecture initiale
 
 Architecture recommandée :

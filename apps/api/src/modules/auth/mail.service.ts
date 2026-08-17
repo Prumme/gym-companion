@@ -11,7 +11,13 @@ export class MailService {
 
   async sendPasswordReset(email: string, resetUrl: string): Promise<void> {
     if (this.config.emailProvider === 'none') {
-      this.logger.log(`Password reset link for ${email}: ${resetUrl}`);
+      if (this.config.isProduction) {
+        this.logger.warn(
+          'Password reset requested but EMAIL_PROVIDER=none (email not sent).',
+        );
+      } else {
+        this.logger.log(`Password reset link for ${email}: ${resetUrl}`);
+      }
       return;
     }
 

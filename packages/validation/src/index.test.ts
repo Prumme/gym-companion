@@ -81,6 +81,39 @@ describe('parseApiEnv', () => {
       expect(String(error)).not.toContain('super-secret-value-that-must-not-leak');
     }
   });
+
+  it('autorise production avec Coach IA désactivé sans API key', () => {
+    const env = parseApiEnv({
+      ...validEnv,
+      NODE_ENV: 'production',
+      AI_COACH_ENABLED: 'false',
+      AI_COACH_PROVIDER: 'none',
+    });
+    expect(env.AI_COACH_ENABLED).toBe(false);
+    expect(env.AI_COACH_API_KEY).toBeUndefined();
+  });
+
+  it('refuse openai enabled sans AI_COACH_API_KEY', () => {
+    expect(() =>
+      parseApiEnv({
+        ...validEnv,
+        NODE_ENV: 'production',
+        AI_COACH_ENABLED: 'true',
+        AI_COACH_PROVIDER: 'openai',
+      }),
+    ).toThrow(/AI_COACH_API_KEY/);
+  });
+
+  it('refuse AI_COACH_PROVIDER=fake en production', () => {
+    expect(() =>
+      parseApiEnv({
+        ...validEnv,
+        NODE_ENV: 'production',
+        AI_COACH_ENABLED: 'true',
+        AI_COACH_PROVIDER: 'fake',
+      }),
+    ).toThrow(/fake/);
+  });
 });
 
 describe('profileFormSchema', () => {

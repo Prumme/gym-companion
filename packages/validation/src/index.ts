@@ -60,6 +60,18 @@ export const apiEnvSchema = z.object({
       message: 'AI_COACH_PROVIDER=fake is forbidden in production.',
     });
   }
+  if (
+    env.AI_COACH_ENABLED &&
+    env.AI_COACH_PROVIDER === 'openai' &&
+    !env.AI_COACH_API_KEY
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['AI_COACH_API_KEY'],
+      message:
+        'AI_COACH_API_KEY is required when AI_COACH_ENABLED=true and AI_COACH_PROVIDER=openai.',
+    });
+  }
 });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;

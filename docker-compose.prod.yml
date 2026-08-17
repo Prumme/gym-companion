@@ -1,0 +1,120 @@
+name: gym-companion-prod
+
+# Production isolée du staging.
+# Usage :
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod config
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod build
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+#
+# Aucun port publié : seul Caddy (réseau prumme-proxy) expose 80/443.
+
+services:
+  postgres:
+    image: postgres:16.8-alpine
+    container_name: gym-prod-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+    volumes:
+      - gym_prod_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - gym-prod
+
+  gym-api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    image: gym-companion-api:prod
+    container_name: gym-prod-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      GYM_ENV: production
+      PORT: 3000
+
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:?PUBLIC_APP_URL is required}
+      API_BASE_URL: ${API_BASE_URL:?API_BASE_URL is required}
+
+      # Fournir DATABASE_URL explicitement dans .env.prod (voir .env.prod.example).
+      # Ne pas interpoler le mot de passe ici : les caractères spéciaux cassent l’URL.
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      REFRESH_TOKEN_EXPIRES_IN: ${REFRESH_TOKEN_EXPIRES_IN:-30d}
+      COOKIE_SECRET: ${COOKIE_SECRET:?COOKIE_SECRET is required}
+
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-none}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@gym.prumme.dev}
+      EMAIL_VERIFICATION_REQUIRED: ${EMAIL_VERIFICATION_REQUIRED:-false}
+
+      AI_COACH_ENABLED: ${AI_COACH_ENABLED:-false}
+      AI_COACH_PROVIDER: ${AI_COACH_PROVIDER:-none}
+      AI_COACH_MODEL: ${AI_COACH_MODEL:-gpt-4o-mini}
+      AI_COACH_API_KEY: ${AI_COACH_API_KEY:-}
+      AI_COACH_TIMEOUT_MS: ${AI_COACH_TIMEOUT_MS:-15000}
+      AI_COACH_RATE_LIMIT_PER_MINUTE: ${AI_COACH_RATE_LIMIT_PER_MINUTE:-5}
+
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/health/live']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+    networks:
+      gym-prod:
+      prumme-proxy:
+        aliases:
+          - gym-prod-api
+
+  gym-web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:?VITE_API_BASE_URL is required}
+        VITE_PUBLIC_APP_URL: ${VITE_PUBLIC_APP_URL:?VITE_PUBLIC_APP_URL is required}
+    image: gym-companion-web:prod
+    container_name: gym-prod-web
+    restart: unless-stopped
+    depends_on:
+      gym-api:
+        condition: service_healthy
+    healthcheck:
+      # 127.0.0.1 (pas localhost) — bug nginx/alpine déjà observé en staging.
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1/']
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 10s
+    networks:
+      prumme-proxy:
+        aliases:
+          - gym-prod-web
+
+volumes:
+  gym_prod_pg_data:
+
+networks:
+  gym-prod:
+    driver: bridge
+    internal: true
+
+  prumme-proxy:
+    external: true
+    name: prumme-proxy
