@@ -57,6 +57,11 @@ jobs:
       - name: Prisma migrate
         run: pnpm --filter @gym-companion/api prisma:deploy
 
+      # migrate deploy (Prisma 6 + prisma.config) n'émet plus le client ;
+      # sans generate, tsc voit un stub @prisma/client → centaines d'erreurs TS.
+      - name: Prisma generate
+        run: pnpm --filter @gym-companion/api prisma:generate
+
       - name: Shell syntax (prod scripts)
         run: |
           bash -n scripts/prod/backup-postgres.sh
