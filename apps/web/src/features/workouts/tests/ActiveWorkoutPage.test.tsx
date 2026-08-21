@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ActiveWorkoutPage } from '../pages/ActiveWorkoutPage';
 import { StartWorkoutButton } from '../components/StartWorkoutButton';
@@ -55,12 +55,35 @@ function meResponse(mode: 'NONE' | 'RIR' | 'RPE' = 'RIR') {
 }
 
 describe('ActiveWorkoutPage', () => {
+  let wakeLockRequest: ReturnType<typeof vi.fn>;
+  let wakeLockRelease: ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
     getActiveWorkoutSession.mockReset();
     createWorkoutSession.mockReset();
     updateWorkoutSet.mockReset();
     getMe.mockReset();
     getMe.mockResolvedValue(meResponse());
+
+    wakeLockRelease = vi.fn(async () => undefined);
+    wakeLockRequest = vi.fn(async () => ({
+      released: false,
+      release: wakeLockRelease,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'visible',
+    });
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      wakeLock: { request: wakeLockRequest },
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('affiche l’état vide sans séance active', async () => {
@@ -83,6 +106,31 @@ describe('ActiveWorkoutPage', () => {
     expect(
       screen.queryByRole('button', { name: /Pause|Terminer|Annuler/i }),
     ).not.toBeInTheDocument();
+    expect(wakeLockRequest).not.toHaveBeenCalled();
+  });
+
+  it('demande un screen wake lock quand une séance ACTIVE est affichée', async () => {
+    getActiveWorkoutSession.mockResolvedValue(createWorkoutSessionDetail());
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    const { unmount } = render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={['/workouts/active']}>
+          <ActiveWorkoutPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('Séance Push')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(wakeLockRequest).toHaveBeenCalledWith('screen');
+    });
+
+    unmount();
+    await waitFor(() => {
+      expect(wakeLockRelease).toHaveBeenCalled();
+    });
   });
 
   it('affiche le snapshot et permet la saisie', async () => {

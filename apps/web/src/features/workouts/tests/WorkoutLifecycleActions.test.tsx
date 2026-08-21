@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ActiveWorkoutPage } from '../pages/ActiveWorkoutPage';
 import { WorkoutSessionDetailPage } from '../pages/WorkoutSessionDetailPage';
@@ -83,6 +83,9 @@ function renderActive(client?: QueryClient) {
 }
 
 describe('Workout lifecycle UI (3.3)', () => {
+  let wakeLockRequest: ReturnType<typeof vi.fn>;
+  let wakeLockRelease: ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
     getActiveWorkoutSession.mockReset();
     getWorkoutSessionDetail.mockReset();
@@ -97,6 +100,26 @@ describe('Workout lifecycle UI (3.3)', () => {
       configurable: true,
       value: true,
     });
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'visible',
+    });
+    wakeLockRelease = vi.fn(async () => undefined);
+    wakeLockRequest = vi.fn(async () => ({
+      released: false,
+      release: wakeLockRelease,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      onLine: true,
+      wakeLock: { request: wakeLockRequest },
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('affiche les actions ACTIVE et met en pause', async () => {
@@ -245,6 +268,9 @@ describe('Workout lifecycle UI (3.3)', () => {
     await waitFor(() => expect(completeWorkoutSession).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('Terminée')).toBeInTheDocument();
     expect(client.getQueryData(['workouts', 'active'])).toBeNull();
+    await waitFor(() => {
+      expect(wakeLockRelease).toHaveBeenCalled();
+    });
   });
 
   it('annule avec motif et conserve l’affichage lecture seule', async () => {

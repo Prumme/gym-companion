@@ -54,6 +54,15 @@ Lorsque le réseau est coupé, l’application ne doit pas prétendre que :
 
 Une mise à jour, un crash ou une fermeture de l’application ne doit pas supprimer une séance active non synchronisée.
 
+### 2.4bis Screen Wake Lock (Active Workout)
+
+Pendant qu’une séance **ACTIVE** ou **PAUSED** est affichée dans l’UI Active Workout, les appareils compatibles demandent un *screen wake lock* (`navigator.wakeLock.request('screen')`) afin de limiter la mise en veille automatique.
+
+- best-effort (feature detection uniquement, pas de dépendance tierce) ;
+- réacquisition lorsque l’app redevient visible (`visibilitychange`) ;
+- release à la fin / annulation, au unmount, ou en quittant la page Active Workout ;
+- refus système silencieux — la séance reste utilisable.
+
 ### 2.5 Sécurité
 
 Le cache et IndexedDB ne doivent contenir que les données nécessaires à l’usage hors ligne.

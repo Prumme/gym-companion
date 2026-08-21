@@ -17,6 +17,7 @@ import { WorkoutConflictPanel } from '../components/WorkoutConflictPanel';
 import { WorkoutLifecycleActions } from '../components/WorkoutLifecycleActions';
 import { WorkoutSyncBanner } from '../components/WorkoutSyncBanner';
 import { useRestTimer } from '../hooks/use-rest-timer';
+import { useScreenWakeLock } from '../hooks/use-screen-wake-lock';
 import { useWorkoutLifecycleControls } from '../hooks/use-workout-lifecycle-controls';
 import { useWorkoutOfflineSync } from '../hooks/use-workout-offline-sync';
 import { useWorkoutExerciseNavigation } from '../hooks/use-workout-exercise-navigation';
@@ -133,6 +134,12 @@ function ActiveWorkoutSessionView({
     workoutSessionId: session.id,
     enabled: true,
   });
+
+  // Wake lock uniquement tant que l’UI Active Workout affiche une séance
+  // en cours (ACTIVE / PAUSED). Terminer / annuler / quitter la page → release.
+  useScreenWakeLock(
+    session.status === 'ACTIVE' || session.status === 'PAUSED',
+  );
 
   const lifecycle = useWorkoutLifecycleControls(session, {
     onVersionConflict: onRefetch,
