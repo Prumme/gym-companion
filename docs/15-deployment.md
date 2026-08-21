@@ -557,6 +557,9 @@ production
 
 Le déploiement de production peut rester manuel au début.
 
+**Implémenté :** GitHub Actions `Deploy production` (`workflow_dispatch`) → SSH → `scripts/prod/deploy.sh <sha>`.  
+Détails secrets / bootstrap / rollback : `docs/production-runbook.md` §4bis.
+
 ## 22. Registre d’images
 
 Les images peuvent être publiées dans un registre privé ou protégé.

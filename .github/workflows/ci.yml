@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_call:
 
 jobs:
   quality:
@@ -55,6 +56,13 @@ jobs:
 
       - name: Prisma migrate
         run: pnpm --filter @gym-companion/api prisma:deploy
+
+      - name: Shell syntax (prod scripts)
+        run: |
+          bash -n scripts/prod/backup-postgres.sh
+          bash -n scripts/prod/restore-postgres.sh
+          bash -n scripts/prod/prune-backups.sh
+          bash -n scripts/prod/deploy.sh
 
       - name: Lint
         run: pnpm lint

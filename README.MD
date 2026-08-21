@@ -80,6 +80,8 @@ gym-companion/
     └── config/
 ```
 
+Production (compose, backups, CI/CD **Deploy production**) : [`docs/production-runbook.md`](docs/production-runbook.md).
+
 ## Stack technique prévue
 
 ### Monorepo

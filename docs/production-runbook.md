@@ -6,9 +6,11 @@ Références code :
 
 - `docker-compose.prod.yml`
 - `.env.prod.example` → copier en `.env.prod` (gitignored)
+- `scripts/prod/deploy.sh` (déploiement versionné — utilisé par GitHub Actions)
 - `scripts/prod/backup-postgres.sh`
 - `scripts/prod/restore-postgres.sh`
 - `scripts/prod/prune-backups.sh`
+- `.github/workflows/deploy-production.yml`
 
 **Règle absolue :** le staging est un environnement de test. Sa DB n’est **jamais** promue en production. Seul le **code** est promu. Les référentiels prod sont recréés via `migrate deploy` + seed.
 
@@ -182,48 +184,30 @@ iPhone / Android réel : safe-area, bottom nav, focus workout, clavier, sheets, 
 
 ## 2. Déploiement suivant (release)
 
+**Préféré :** GitHub Actions → workflow **Deploy production** (manuel). Voir §4bis.
+
+Déploiement SSH manuel (secours) :
+
 1. **Backup DB** (obligatoire si migration ; fortement recommandé sinon)
 
 ```bash
-./scripts/prod/backup-postgres.sh
+BACKUP_DIR=/var/backups/gym-companion ./scripts/prod/backup-postgres.sh
 # Vérifier taille non nulle affichée par le script
 ```
 
-2. `git fetch && git checkout <tag-ou-commit>` (ex. `prod-v1.0.1`)
-3. Vérifier / ajuster `.env.prod` si nouvelles variables (sans commit)
-4. Build
+2. Déployer un SHA précis :
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.prod build
+./scripts/prod/deploy.sh <git-sha-40-chars>
 ```
-
-5. Si migration Prisma présente :
-
-```bash
-# backup déjà fait
-docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm --entrypoint node \
-  gym-api apps/api/scripts/run-prisma.cjs migrate deploy
-```
-
-6. Recreate services
-
-```bash
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
-```
-
-7. Healthchecks + smoke tests courts
-8. Si `VITE_*` ont changé : s’assurer que `gym-web` a bien été **rebuild** (pas seulement restart)
 
 ### Release incluant `TrainingShareLink` (`20260817140000_add_training_share_links`)
 
-Ordre strict :
-
-1. `./scripts/prod/backup-postgres.sh`
-2. `git pull` / checkout tag
-3. `docker compose -f docker-compose.prod.yml --env-file .env.prod build`
-4. `migrate deploy` (commande ci-dessus)
-5. `up -d` api + web
-6. Smoke : créer share programme → ouvrir `/share/:token` → importer sur un 2ᵉ compte
+```bash
+./scripts/prod/deploy.sh <sha>
+# ou workflow Deploy production
+# Smoke : créer share programme → ouvrir /share/:token → importer sur un 2ᵉ compte
+```
 
 ### PWA après déploiement web
 
@@ -270,6 +254,133 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
 
 **Limite :** une migration DB non rétrocompatible empêche un simple rollback code.  
 Ne pas automatiser un rollback DB destructif. Prévoir restauration dump uniquement si nécessaire et après confirmation.
+
+Les migrations Prisma en production doivent rester **backward-compatible** autant que possible (API ancienne encore en ligne pendant le build, puis migrate, puis recreate).
+
+---
+
+## 4bis. CI/CD production (GitHub Actions)
+
+### Architecture
+
+```text
+GitHub Actions (workflow_dispatch « Deploy production »)
+  → quality gate (réutilise CI)
+  → SSH VPS
+  → /opt/gym-companion/scripts/prod/deploy.sh <github.sha>
+```
+
+La CI **ne contient pas** `.env.prod` ni secrets applicatifs (JWT, DB, Coach…).  
+Ceux-ci restent uniquement sur le VPS dans `/opt/gym-companion/.env.prod`.
+
+Caddy / DNS / staging : **hors scope** de ce workflow.
+
+### Workflow
+
+- Fichier : `.github/workflows/deploy-production.yml`
+- Trigger : **manuel uniquement** (`workflow_dispatch`)
+- Environment GitHub : `production` (URL `https://gym.prumme.dev`)
+- Concurrency : groupe `gym-production` (pas d’annulation d’un run en cours)
+- Timeout job deploy : 15 min
+- SHA déployé : **exactement** `github.sha` (pas `git pull origin main`)
+
+### Secrets GitHub (environment `production`)
+
+| Secret | Rôle |
+|---|---|
+| `PROD_SSH_HOST` | Hostname / IP du VPS |
+| `PROD_SSH_USER` | Utilisateur SSH (idéalement `deploy`, pas root) |
+| `PROD_SSH_PRIVATE_KEY` | Clé privée Ed25519 (PEM) |
+| `PROD_SSH_KNOWN_HOSTS` | Sortie `ssh-keyscan -H <host>` **vérifiée** |
+| `PROD_SSH_PORT` | Optionnel (défaut 22) |
+
+**Ne jamais** mettre dans GitHub : `DATABASE_URL`, `POSTGRES_PASSWORD`, `JWT_*`, `COOKIE_SECRET`, `AI_COACH_API_KEY`, contenu de `.env.prod`.
+
+### Protection environment
+
+Dans GitHub → Settings → Environments → `production` :
+
+1. Créer l’environment `production`
+2. Ajouter les secrets ci-dessus **sur l’environment** (pas repository-wide si possible)
+3. Optionnel : Required reviewers (approbation avant deploy)
+4. Optionnel : limiter aux branches `main` / tags `prod-*`
+
+### Déroulé du script `scripts/prod/deploy.sh`
+
+1. `flock` `/var/lock/gym-companion-prod-deploy.lock` (fail si concurrent)
+2. Vérifie `.env.prod` + `docker-compose.prod.yml`
+3. Refuse si arbre git **tracked** dirty (`git status -uno`)
+4. `git fetch` + vérifie le SHA
+5. Backup via `BACKUP_DIR=/var/backups/gym-companion ./scripts/prod/backup-postgres.sh`
+6. `git checkout --detach <sha>`
+7. `docker compose … config`
+8. `build gym-api gym-web` (ancienne version encore up)
+9. `prisma migrate deploy` (jamais `migrate dev` / `reset`)
+10. `up -d --no-deps --force-recreate gym-api gym-web`
+11. Attend Docker healthy (`gym-prod-api`, `gym-prod-web`)
+12. `curl` HTTPS `api…/health/live` puis `gym.prumme.dev`
+
+Mode dry-run :
+
+```bash
+./scripts/prod/deploy.sh --check <sha>
+```
+
+### Seed
+
+**Aucun seed** automatique en release. Seed catalogue = opération manuelle distincte.
+
+### Rollback manuel
+
+En cas d’échec après migration :
+
+1. Lire dans les logs CI : `previous=<sha>` / `target=<sha>`
+2. Si migration rétrocompatible :  
+   `ssh … '/opt/gym-companion/scripts/prod/deploy.sh <previous>'`
+3. Sinon : restaurer dump + redeploy code compatible (voir §3–4)
+
+Pas de rollback DB automatique.
+
+### Utilisateur SSH recommandé
+
+Préférence : compte `deploy` avec accès à `/opt/gym-companion`, Docker, `/var/backups/gym-companion`.  
+Si la prod tourne encore via root/sudo : acceptable pour V1, migrer plus tard.
+
+### Création clé SSH (manuel admin)
+
+Sur une machine d’admin (pas dans le repo) :
+
+```bash
+ssh-keygen -t ed25519 -C "gym-companion-ci-prod" -f gym-companion-ci-prod -N ""
+# privée → secret GitHub PROD_SSH_PRIVATE_KEY (contenu PEM)
+# publique → ~/.ssh/authorized_keys du compte deploy sur le VPS
+```
+
+Known hosts (vérifier l’empreinte avant stockage CI) :
+
+```bash
+ssh-keyscan -H <VPS_HOST>
+# coller la sortie dans secret PROD_SSH_KNOWN_HOSTS
+```
+
+### Déclencher un déploiement
+
+1. CI verte sur le commit voulu
+2. GitHub → Actions → **Deploy production** → Run workflow
+3. Choisir la branche/tag (donc le `github.sha`)
+4. Suivre les logs `quality` puis `deploy`
+
+### Troubleshooting
+
+| Symptôme | Piste |
+|---|---|
+| `HOST KEY VERIFICATION FAILED` | `PROD_SSH_KNOWN_HOSTS` incorrect / obsolète |
+| `Permission denied (publickey)` | clé / user / `authorized_keys` |
+| `arbre git dirty` | fichiers tracked modifiés sur le VPS |
+| `another deployment is in progress` | flock ; attendre ou inspecter process |
+| backup vide / fail | Postgres down / droits `BACKUP_DIR` |
+| timeout healthy | `docker logs gym-prod-api` / `gym-prod-web` |
+| migrate fail | ne pas seed ; restaurer dump si besoin |
 
 ---
 
