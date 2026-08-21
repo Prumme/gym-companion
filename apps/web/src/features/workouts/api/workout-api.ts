@@ -9,6 +9,7 @@ import type {
   CompleteWorkoutSessionInput,
   CreateWorkoutSessionInput,
   PauseWorkoutSessionInput,
+  ReplaceWorkoutSessionExerciseInput,
   ResumeWorkoutSessionInput,
   UpdateWorkoutSetInput,
   WorkoutHistoryQuery,
@@ -93,6 +94,21 @@ export async function updateWorkoutSet(
 ): Promise<UpdateWorkoutSetResult> {
   const response = await apiFetch<{ data: UpdateWorkoutSetResult }>(
     `/api/v1/workouts/${encodeURIComponent(workoutSessionId)}/exercises/${encodeURIComponent(sessionExerciseId)}/sets/${encodeURIComponent(workoutSetId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    },
+  );
+  return response.data;
+}
+
+export async function replaceWorkoutSessionExercise(
+  workoutSessionId: string,
+  sessionExerciseId: string,
+  input: ReplaceWorkoutSessionExerciseInput,
+): Promise<WorkoutSessionDetail> {
+  const response = await apiFetch<{ data: WorkoutSessionDetail }>(
+    `/api/v1/workouts/${encodeURIComponent(workoutSessionId)}/exercises/${encodeURIComponent(sessionExerciseId)}/exercise`,
     {
       method: 'PATCH',
       body: JSON.stringify(input),

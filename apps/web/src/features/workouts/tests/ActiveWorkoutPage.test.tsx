@@ -18,6 +18,7 @@ vi.mock('../api/workout-api', () => ({
     getActiveWorkoutSession(...args),
   createWorkoutSession: (...args: unknown[]) => createWorkoutSession(...args),
   updateWorkoutSet: (...args: unknown[]) => updateWorkoutSet(...args),
+  replaceWorkoutSessionExercise: vi.fn(),
   getWorkoutSessionDetail: vi.fn(),
   pauseWorkoutSession: vi.fn(),
   resumeWorkoutSession: vi.fn(),

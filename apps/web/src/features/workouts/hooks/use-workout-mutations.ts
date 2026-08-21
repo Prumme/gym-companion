@@ -9,6 +9,7 @@ import type {
   CompleteWorkoutSessionInput,
   CreateWorkoutSessionInput,
   PauseWorkoutSessionInput,
+  ReplaceWorkoutSessionExerciseInput,
   ResumeWorkoutSessionInput,
   UpdateWorkoutSetInput,
 } from '@gym-companion/validation';
@@ -20,6 +21,7 @@ import {
   completeWorkoutSession,
   createWorkoutSession,
   pauseWorkoutSession,
+  replaceWorkoutSessionExercise,
   resumeWorkoutSession,
   updateWorkoutSet,
 } from '../api/workout-api';
@@ -372,5 +374,43 @@ export function useCancelWorkoutSessionMutation(workoutSessionId: string) {
       }),
     onSuccess: (result) =>
       applyLifecycleToCache(queryClient, result.workoutSession),
+  });
+}
+
+/**
+ * Remplacement d’exercice — online only (hors file offline V1).
+ */
+export function useReplaceWorkoutSessionExerciseMutation(
+  workoutSessionId: string,
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (args: {
+      sessionExerciseId: string;
+      input: ReplaceWorkoutSessionExerciseInput;
+    }) => {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        throw Object.assign(
+          new Error('Connexion nécessaire pour remplacer un exercice.'),
+          { status: 0, code: 'OFFLINE' },
+        );
+      }
+      const userId = await resolveUserId(queryClient);
+      const detail = await replaceWorkoutSessionExercise(
+        workoutSessionId,
+        args.sessionExerciseId,
+        args.input,
+      );
+      await persistServerSnapshot(userId, detail);
+      return detail;
+    },
+    onSuccess: (detail) => {
+      queryClient.setQueryData(workoutQueryKeys.active(), detail);
+      queryClient.setQueryData(workoutQueryKeys.detail(detail.id), detail);
+      void queryClient.invalidateQueries({
+        queryKey: sharedWorkoutRoomQueryKeys.all,
+      });
+    },
   });
 }

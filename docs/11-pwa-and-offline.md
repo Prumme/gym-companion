@@ -331,7 +331,7 @@ COMPLETE_WORKOUT
 CANCEL_WORKOUT
 ```
 
-Non supporté hors ligne : création de séance, édition du snapshot, add/remove/reorder.
+Non supporté hors ligne : création de séance, édition du snapshot structurel, add/remove/reorder, **remplacement d’exercice** (online only V1 — action désactivée offline avec message explicite).
 
 La minuterie de repos (3.4) reste dans `localStorage` et ne crée aucune commande.
 

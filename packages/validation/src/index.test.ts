@@ -35,6 +35,7 @@ import {
   completeWorkoutSessionSchema,
   pauseWorkoutSessionSchema,
   resolveWorkoutLifecycleTransition,
+  replaceWorkoutSessionExerciseSchema,
   updateWorkoutSetSchema,
   utcDateToLocalDateString,
   validateProgramScheduleEntries,
@@ -843,6 +844,35 @@ describe('updateWorkoutSetSchema', () => {
   it('accepte des notes nulles', () => {
     const parsed = updateWorkoutSetSchema.parse({ ...valid, notes: null });
     expect(parsed.notes).toBeNull();
+  });
+});
+
+describe('replaceWorkoutSessionExerciseSchema', () => {
+  const exerciseId = '11111111-1111-4111-8111-111111111111';
+
+  it('accepte un payload valide', () => {
+    expect(
+      replaceWorkoutSessionExerciseSchema.safeParse({
+        exerciseId,
+        expectedVersion: 2,
+      }).success,
+    ).toBe(true);
+  });
+
+  it('refuse les champs supplémentaires et un uuid invalide', () => {
+    expect(
+      replaceWorkoutSessionExerciseSchema.safeParse({
+        exerciseId,
+        expectedVersion: 2,
+        extra: true,
+      }).success,
+    ).toBe(false);
+    expect(
+      replaceWorkoutSessionExerciseSchema.safeParse({
+        exerciseId: 'not-uuid',
+        expectedVersion: 1,
+      }).success,
+    ).toBe(false);
   });
 });
 

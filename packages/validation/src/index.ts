@@ -1251,6 +1251,21 @@ export const updateWorkoutSetSchema = z
 
 export type UpdateWorkoutSetInput = z.infer<typeof updateWorkoutSetSchema>;
 
+/**
+ * Remplacement d’exercice sur une WorkoutSessionExercise (séance ACTIVE uniquement).
+ * Ne touche ni Program ni WorkoutTemplate — uniquement le snapshot de séance.
+ */
+export const replaceWorkoutSessionExerciseSchema = z
+  .object({
+    exerciseId: z.string().uuid('L’identifiant d’exercice est invalide.'),
+    expectedVersion: z.number().int().min(1).max(1_000_000_000),
+  })
+  .strict();
+
+export type ReplaceWorkoutSessionExerciseInput = z.infer<
+  typeof replaceWorkoutSessionExerciseSchema
+>;
+
 export type WorkoutSetActualFields = {
   status: z.infer<typeof workoutSetStatusSchema>;
   actualWeightKg: number | null;

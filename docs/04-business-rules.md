@@ -153,9 +153,18 @@ Un exercice archivé :
 
 ### 4.5 Remplacement
 
-Lorsqu’un exercice est remplacé pendant une séance, le remplacement ne change pas automatiquement le modèle d’origine.
+Lorsqu’un exercice est remplacé pendant une séance active, le remplacement ne change **jamais** le modèle d’origine (`Program` / `WorkoutTemplate`).
 
-L’utilisateur peut choisir, après la séance, de reporter le changement dans le modèle.
+Règle V1 :
+
+- An exercise can be replaced during an active workout.
+- The replacement only affects the current WorkoutSession.
+- Program and WorkoutTemplate remain unchanged.
+- Historique, records et progression utilisent le `sourceExerciseId` effectivement exécuté.
+- Si au moins une série n’est plus `PENDING`, le remplacement est refusé.
+- Compatibilité : égalité stricte de `measurementType` (pas de conversion).
+
+L’utilisateur pourra éventuellement, plus tard, choisir de reporter le changement dans le modèle (hors V1).
 
 ## 5. Équipements et charges disponibles
 

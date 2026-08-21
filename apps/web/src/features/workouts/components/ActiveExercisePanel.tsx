@@ -6,12 +6,14 @@ import type {
   WorkoutSessionSetDetail,
   WorkoutSetStatus,
 } from '@gym-companion/shared';
-import { Check } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowLeftRight, Check, MoreHorizontal } from 'lucide-react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { getMeasurementTypeLabel } from '@/features/exercises/lib/exercise-labels';
+import { getApiErrorMessage } from '@/lib/api/client';
 
+import { useReplaceWorkoutSessionExerciseMutation } from '../hooks/use-workout-mutations';
 import {
   formatWorkoutSetTargetCompact,
   getWorkoutSetTypeLabelSafe,
@@ -20,6 +22,7 @@ import {
   findNextPendingSetInExercise,
   isExerciseTreated,
 } from '../lib/workout-progress';
+import { ReplaceSessionExerciseSheet } from './ReplaceSessionExerciseSheet';
 import { WorkoutSetCard } from './WorkoutSetCard';
 import { WorkoutSetFormDialog } from './WorkoutSetFormDialog';
 
@@ -48,6 +51,7 @@ type ActiveExercisePanelProps = {
   onOpenComplete?: () => void;
   /** Masque le CTA sticky si le timer de repos occupe le bas. */
   restTimerActive?: boolean;
+  browserOffline?: boolean;
 };
 
 function formatExerciseMeta(exercise: WorkoutSessionExerciseDetail): string {
@@ -118,9 +122,49 @@ export function ActiveExercisePanel({
   hasNextExercise,
   onOpenComplete,
   restTimerActive = false,
+  browserOffline = false,
 }: ActiveExercisePanelProps) {
   const [editing, setEditing] = useState<EditingState | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [replaceOpen, setReplaceOpen] = useState(false);
+  const [replaceFeedback, setReplaceFeedback] = useState<string | null>(null);
+  const [replaceError, setReplaceError] = useState<string | null>(null);
+  const menuId = useId();
+  const menuRef = useRef<HTMLDivElement>(null);
+  const replaceMutation = useReplaceWorkoutSessionExerciseMutation(session.id);
+
   const treated = isExerciseTreated(exercise);
+  const hasRecordedSets = exercise.sets.some((set) => set.status !== 'PENDING');
+  const canReplace =
+    session.status === 'ACTIVE' &&
+    !hasRecordedSets &&
+    !browserOffline &&
+    exercise.sourceExerciseId != null;
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onPointerDown(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setMenuOpen(false);
+    }
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!replaceFeedback) return;
+    const timer = window.setTimeout(() => setReplaceFeedback(null), 2500);
+    return () => window.clearTimeout(timer);
+  }, [replaceFeedback]);
+
   const nextSet =
     nextPendingSetId != null
       ? (exercise.sets.find((set) => set.id === nextPendingSetId) ??
@@ -135,15 +179,67 @@ export function ActiveExercisePanel({
           <h2 className="text-2xl font-semibold tracking-tight uppercase sm:normal-case sm:text-3xl">
             {exercise.exerciseName}
           </h2>
-          <span className="shrink-0 pt-1 text-xs tabular-nums text-[var(--muted)]">
-            {exerciseIndex + 1} / {totalExercises}
-          </span>
+          <div className="flex shrink-0 items-start gap-1">
+            <span className="pt-1 text-xs tabular-nums text-[var(--muted)]">
+              {exerciseIndex + 1} / {totalExercises}
+            </span>
+            <div className="relative" ref={menuRef}>
+              <Button
+                type="button"
+                variant="ghost"
+                className="size-11 min-h-11 px-0"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                aria-controls={menuId}
+                aria-label="Actions de l’exercice"
+                onClick={() => setMenuOpen((value) => !value)}
+              >
+                <MoreHorizontal className="size-5" aria-hidden="true" />
+              </Button>
+              {menuOpen ? (
+                <div
+                  id={menuId}
+                  role="menu"
+                  className="absolute right-0 z-20 mt-1 min-w-56 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] py-1 shadow-lg"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-[var(--surface)] disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={!canReplace}
+                    title={
+                      browserOffline
+                        ? 'Connexion nécessaire pour remplacer un exercice.'
+                        : hasRecordedSets
+                          ? 'Cet exercice a déjà des séries enregistrées. Supprime ou réinitialise ses séries avant de le remplacer.'
+                          : session.status !== 'ACTIVE'
+                            ? 'Reprenez la séance pour remplacer un exercice.'
+                            : undefined
+                    }
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setReplaceError(null);
+                      setReplaceOpen(true);
+                    }}
+                  >
+                    <ArrowLeftRight className="size-4 shrink-0" aria-hidden="true" />
+                    Remplacer l’exercice
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
         </div>
         <p className="text-sm text-[var(--muted)]">
           {formatExerciseMeta(exercise)}
         </p>
         {exercise.notes ? (
           <p className="text-sm text-[var(--muted)]">{exercise.notes}</p>
+        ) : null}
+        {replaceFeedback ? (
+          <p className="text-sm text-[var(--foreground)]" role="status">
+            {replaceFeedback}
+          </p>
         ) : null}
       </header>
 
@@ -287,6 +383,62 @@ export function ActiveExercisePanel({
           }}
         />
       ) : null}
+
+      <ReplaceSessionExerciseSheet
+        open={replaceOpen}
+        currentExercise={exercise}
+        measurementType={exercise.measurementType}
+        pending={replaceMutation.isPending}
+        errorMessage={replaceError}
+        onClose={() => {
+          if (!replaceMutation.isPending) {
+            setReplaceOpen(false);
+            setReplaceError(null);
+          }
+        }}
+        onReplace={(chosen) => {
+          setReplaceError(null);
+          replaceMutation.mutate(
+            {
+              sessionExerciseId: exercise.id,
+              input: {
+                exerciseId: chosen.id,
+                expectedVersion: session.version,
+              },
+            },
+            {
+              onSuccess: () => {
+                setReplaceOpen(false);
+                setReplaceFeedback('Exercice remplacé');
+              },
+              onError: (error) => {
+                const code =
+                  error &&
+                  typeof error === 'object' &&
+                  'code' in error &&
+                  typeof (error as { code: unknown }).code === 'string'
+                    ? (error as { code: string }).code
+                    : null;
+                if (code === 'WORKOUT_VERSION_CONFLICT') {
+                  onVersionConflict();
+                }
+                if (code === 'OFFLINE' || (error as { status?: number }).status === 0) {
+                  setReplaceError(
+                    'Connexion nécessaire pour remplacer un exercice.',
+                  );
+                  return;
+                }
+                setReplaceError(
+                  getApiErrorMessage(
+                    error,
+                    'Impossible de remplacer cet exercice.',
+                  ),
+                );
+              },
+            },
+          );
+        }}
+      />
     </section>
   );
 }

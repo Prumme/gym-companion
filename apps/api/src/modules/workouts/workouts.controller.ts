@@ -128,6 +128,26 @@ export class WorkoutsController {
     return createSuccessResponse(data);
   }
 
+  @Patch(':workoutSessionId/exercises/:sessionExerciseId/exercise')
+  @ApiOperation({
+    summary:
+      'Remplacer l’exercice catalogue d’une ligne de séance (snapshot session uniquement)',
+  })
+  async replaceExercise(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('workoutSessionId', ParseUUIDPipe) workoutSessionId: string,
+    @Param('sessionExerciseId', ParseUUIDPipe) sessionExerciseId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.workoutsService.replaceExercise(
+      user.id,
+      workoutSessionId,
+      sessionExerciseId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
   @Patch(':workoutSessionId/exercises/:sessionExerciseId/sets/:workoutSetId')
   @ApiOperation({ summary: 'Enregistrer le résultat réel d’une série' })
   async updateSet(

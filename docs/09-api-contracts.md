@@ -1472,7 +1472,55 @@ Requête :
 }
 ```
 
-### 20.2 Modifier
+### 20.2 Remplacer l’exercice (snapshot de séance)
+
+```text
+PATCH /api/v1/workouts/:workoutSessionId/exercises/:sessionExerciseId/exercise
+```
+
+Remplace l’exercice catalogue d’une ligne `WorkoutSessionExercise` **uniquement pour la séance courante**.
+
+Ne modifie jamais :
+
+- `Program` ;
+- `WorkoutTemplate` ;
+- `WorkoutTemplateExercise`.
+
+Requête :
+
+```json
+{
+  "exerciseId": "uuid-nouvel-exercice",
+  "expectedVersion": 4
+}
+```
+
+Règles V1 :
+
+- séance `ACTIVE` uniquement ;
+- nouvel exercice accessible (`SYSTEM` ou `USER` du propriétaire) et non archivé ;
+- même `measurementType` que le snapshot courant (égalité stricte) ;
+- aucune série avec un statut autre que `PENDING` ;
+- même `exerciseId` → réponse idempotente (pas d’incrément de version) ;
+- conserve le nombre de séries et toutes les cibles (`target*`) ;
+- met à jour `sourceExerciseId` + snapshots nom / muscle / équipement par défaut.
+
+Réponse : `WorkoutSessionDetail` (séance complète).
+
+Erreurs métier courantes :
+
+- `WORKOUT_NOT_FOUND` ;
+- `WORKOUT_NOT_EDITABLE` ;
+- `WORKOUT_VERSION_CONFLICT` ;
+- `WORKOUT_SESSION_EXERCISE_NOT_FOUND` ;
+- `WORKOUT_EXERCISE_HAS_RECORDED_SETS` ;
+- `WORKOUT_EXERCISE_MEASUREMENT_INCOMPATIBLE` ;
+- `EXERCISE_NOT_FOUND` ;
+- `EXERCISE_ARCHIVED`.
+
+Offline : non supporté V1 (action désactivée côté client).
+
+### 20.2bis Modifier (générique — backlog)
 
 ```text
 PATCH /api/v1/workouts/:workoutSessionId/exercises/:sessionExerciseId

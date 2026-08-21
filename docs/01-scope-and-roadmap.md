@@ -310,6 +310,7 @@ Permettre à l’utilisateur d’exécuter et d’enregistrer une séance compl�
 - Résolution explicite des conflits de version.
 - Cloisonnement des données locales par utilisateur et nettoyage à la déconnexion.
 - La création de séance reste en ligne.
+- Remplacement d’exercice en séance active (online only V1) : menu exercice → catalogue filtré par `measurementType` ; n’affecte que le snapshot `WorkoutSessionExercise` (`sourceExerciseId` + snapshots), jamais le programme / template.
 
 ### 6.3 Backlog futur (hors phase 3 livrée)
 
@@ -322,7 +323,7 @@ Ces éléments restent explicitement hors livraison de la phase 3 :
 - ajout ou suppression d’exercices pendant la séance ;
 - ajout ou suppression de séries pendant la séance ;
 - réordonnancement du snapshot ;
-- remplacement d’exercice en séance ;
+- remplacement d’exercice hors ligne / file de sync ;
 - copie ou duplication d’une séance ;
 - durée active nette (historique complet des pauses) ;
 - volume officiel, records, statistiques, progression, graphiques ;

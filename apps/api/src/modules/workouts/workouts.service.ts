@@ -19,6 +19,7 @@ import {
   normalizeOptionalPlainText,
   parseWorkoutHistoryQuery,
   pauseWorkoutSessionSchema,
+  replaceWorkoutSessionExerciseSchema,
   resolveWorkoutLifecycleTransition,
   resumeWorkoutSessionSchema,
   updateWorkoutSetSchema,
@@ -896,6 +897,177 @@ export class WorkoutsService {
         throw new ConflictException({
           code: 'WORKOUT_DUPLICATE_COMMAND',
           message: 'Identifiant de commande déjà utilisé.',
+        });
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Remplace l’exercice catalogue d’une ligne de séance ACTIVE.
+   * Conserve les séries (targets) ; interdit si une série n’est plus PENDING.
+   * Ne modifie jamais Program / WorkoutTemplate.
+   */
+  async replaceExercise(
+    userId: string,
+    workoutSessionId: string,
+    sessionExerciseId: string,
+    input: unknown,
+  ): Promise<WorkoutSessionDetail> {
+    const data = replaceWorkoutSessionExerciseSchema.parse(input);
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const session = await tx.workoutSession.findFirst({
+          where: { id: workoutSessionId, ownerUserId: userId },
+          select: {
+            id: true,
+            status: true,
+            version: true,
+          },
+        });
+
+        if (!session) {
+          throw new NotFoundException({
+            code: 'WORKOUT_NOT_FOUND',
+            message: 'Séance introuvable.',
+          });
+        }
+
+        if (session.status !== 'ACTIVE') {
+          throw new BadRequestException({
+            code: 'WORKOUT_NOT_EDITABLE',
+            message:
+              session.status === 'PAUSED'
+                ? 'La séance est en pause : remplacez l’exercice après reprise.'
+                : 'Cette séance n’est plus modifiable.',
+          });
+        }
+
+        if (session.version !== data.expectedVersion) {
+          throw new ConflictException({
+            code: 'WORKOUT_VERSION_CONFLICT',
+            message:
+              'La séance a été modifiée depuis un autre onglet ou appareil.',
+            details: { currentVersion: session.version },
+          });
+        }
+
+        const sessionExercise = await tx.workoutSessionExercise.findFirst({
+          where: {
+            id: sessionExerciseId,
+            workoutSessionId: session.id,
+          },
+          include: {
+            sets: {
+              select: { id: true, status: true },
+            },
+          },
+        });
+
+        if (!sessionExercise) {
+          throw new NotFoundException({
+            code: 'WORKOUT_SESSION_EXERCISE_NOT_FOUND',
+            message: 'Exercice de séance introuvable.',
+          });
+        }
+
+        // Idempotent : même exercice catalogue → pas de mutation.
+        if (sessionExercise.sourceExerciseId === data.exerciseId) {
+          const unchanged = await tx.workoutSession.findFirstOrThrow({
+            where: { id: session.id },
+            include: sessionDetailInclude,
+          });
+          return toWorkoutSessionDetail(
+            unchanged as WorkoutSessionSnapshotRow,
+          );
+        }
+
+        const hasRecordedSet = sessionExercise.sets.some(
+          (set) => set.status !== 'PENDING',
+        );
+        if (hasRecordedSet) {
+          throw new BadRequestException({
+            code: 'WORKOUT_EXERCISE_HAS_RECORDED_SETS',
+            message:
+              'Cet exercice a déjà des séries enregistrées. Supprime ou réinitialise ses séries avant de le remplacer.',
+          });
+        }
+
+        const newExercise = await tx.exercise.findFirst({
+          where: {
+            id: data.exerciseId,
+            OR: [{ source: 'SYSTEM' }, { source: 'USER', ownerUserId: userId }],
+          },
+          include: {
+            primaryMuscleGroup: { select: { name: true } },
+            defaultEquipmentType: {
+              select: { id: true, name: true, code: true },
+            },
+          },
+        });
+
+        if (!newExercise) {
+          throw new NotFoundException({
+            code: 'EXERCISE_NOT_FOUND',
+            message: 'Exercice introuvable.',
+          });
+        }
+
+        if (newExercise.archivedAt) {
+          throw new BadRequestException({
+            code: 'EXERCISE_ARCHIVED',
+            message: 'Cet exercice est archivé et ne peut pas être utilisé.',
+          });
+        }
+
+        if (
+          newExercise.measurementType !==
+          sessionExercise.measurementTypeSnapshot
+        ) {
+          throw new BadRequestException({
+            code: 'WORKOUT_EXERCISE_MEASUREMENT_INCOMPATIBLE',
+            message:
+              'L’exercice de remplacement doit avoir le même type de mesure.',
+          });
+        }
+
+        await tx.workoutSessionExercise.update({
+          where: { id: sessionExercise.id },
+          data: {
+            sourceExerciseId: newExercise.id,
+            exerciseNameSnapshot: newExercise.name,
+            measurementTypeSnapshot: newExercise.measurementType,
+            primaryMuscleGroupNameSnapshot: newExercise.primaryMuscleGroup.name,
+            sourceExerciseArchivedAtCreation: false,
+            equipmentTypeId: newExercise.defaultEquipmentType?.id ?? null,
+            equipmentNameSnapshot:
+              newExercise.defaultEquipmentType?.name ?? null,
+            equipmentCodeSnapshot:
+              newExercise.defaultEquipmentType?.code ?? null,
+            // Conserve notes / repos de la ligne de séance et
+            // sourceTemplateExerciseId (provenance template, non contaminante).
+          },
+        });
+
+        const updatedSession = await tx.workoutSession.update({
+          where: { id: session.id },
+          data: { version: { increment: 1 } },
+          include: sessionDetailInclude,
+        });
+
+        return toWorkoutSessionDetail(
+          updatedSession as WorkoutSessionSnapshotRow,
+        );
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException({
+          code: 'WORKOUT_NOT_FOUND',
+          message: 'Séance introuvable.',
         });
       }
       throw error;

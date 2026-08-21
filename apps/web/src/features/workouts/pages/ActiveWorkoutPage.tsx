@@ -364,6 +364,7 @@ function ActiveWorkoutSessionView({
               : undefined
           }
           restTimerActive={restTimerActive}
+          browserOffline={offlineSync.browserOffline}
           onVersionConflict={onRefetch}
           onSetRecorded={({ status, setId, set, exercise }) => {
             if (
