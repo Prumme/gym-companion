@@ -6,7 +6,7 @@ export function ErrorPage() {
     ? error.statusText
     : error instanceof Error
       ? error.message
-      : 'Une erreur inattendue est survenue.';
+      : 'Une erreur inattendue est survenue!';
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center gap-4 px-4">
