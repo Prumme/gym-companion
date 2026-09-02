@@ -166,6 +166,23 @@ Règle V1 :
 
 L’utilisateur pourra éventuellement, plus tard, choisir de reporter le changement dans le modèle (hors V1).
 
+### 4.6 Exercices et séries ad hoc (séance ACTIVE)
+
+Une `WorkoutSession` peut contenir des exercices absents du `WorkoutTemplate` source.
+
+Règles V1 :
+
+- l’ajout n’affecte que la `WorkoutSession` courante ;
+- `Program` et `WorkoutTemplate` restent inchangés ;
+- `sourceTemplateExerciseId` est `null` pour un exercice ajouté pendant la séance ;
+- un même `sourceExerciseId` ne peut pas apparaître deux fois dans la séance ;
+- des `WorkoutSet` WORKING supplémentaires (sans cibles) peuvent être ajoutés pendant une séance `ACTIVE` ;
+- une fois la séance `COMPLETED`, historique, records, progression et e1RM traitent ces lignes comme n’importe quel autre snapshot (`sourceExerciseId`).
+
+Active Workout peut afficher en lecture seule les Personal Records existants (`MAX_WEIGHT` pour les types avec charge) et un lien vers l’historique d’exercice. Le libellé est **Record**, jamais « charge conseillée ».
+
+L’utilisateur pourra éventuellement, plus tard, reporter un exercice ad hoc dans le modèle (hors V1).
+
 ## 5. Équipements et charges disponibles
 
 ### 5.1 Équipement générique ou spécifique
@@ -787,6 +804,19 @@ Une séance terminée doit comporter :
 Une séance annulée peut conserver ses données selon le choix utilisateur.
 
 Le statut final doit permettre de la distinguer d’une séance terminée.
+
+### 16.5 Exercices ad hoc
+
+Une séance `ACTIVE` peut recevoir des `WorkoutSessionExercise` absents du modèle source.
+
+Ces lignes :
+
+- sont snapshotées côté serveur (nom, type de mesure, équipement par défaut) ;
+- reçoivent une `position` à la fin de la séance ;
+- n’écrivent jamais dans `WorkoutTemplateExercise` / `Program` ;
+- restent dans l’historique une fois la séance terminée.
+
+Des séries ad hoc (`WorkoutSet` WORKING, cibles `null`) peuvent être ajoutées sur n’importe quel exercice de la séance `ACTIVE`.
 
 ## 17. Fonctionnement hors ligne
 

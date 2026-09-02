@@ -2,6 +2,7 @@ import type {
   ExerciseProgressMetric,
   ExerciseProgressResponse,
   ExerciseStrengthResponse,
+  LastWorkingSetCue,
   ProgressOverviewMetric,
   ProgressOverviewResponse,
 } from '@gym-companion/shared';
@@ -67,6 +68,20 @@ export async function getProgressOverview(
   const suffix = toSearchParams(filters);
   const response = await apiFetch<{ data: ProgressOverviewResponse }>(
     `/api/v1/progress/overview${suffix ? `?${suffix}` : ''}`,
+  );
+  return response.data;
+}
+
+export async function getLastWorkingSets(
+  exerciseIds: string[],
+): Promise<LastWorkingSetCue[]> {
+  if (exerciseIds.length === 0) {
+    return [];
+  }
+  const params = new URLSearchParams();
+  params.set('exerciseIds', exerciseIds.join(','));
+  const response = await apiFetch<{ data: LastWorkingSetCue[] }>(
+    `/api/v1/progress/last-working-sets?${params.toString()}`,
   );
   return response.data;
 }

@@ -92,7 +92,9 @@ function point(
   };
 }
 
-function renderPage(initialEntry = '/progress/exercises/exercise-1') {
+function renderPage(
+  initialEntry: string | { pathname: string; state?: { from?: string } } = '/progress/exercises/exercise-1',
+) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -103,6 +105,10 @@ function renderPage(initialEntry = '/progress/exercises/exercise-1') {
           <Route
             path="/progress/exercises/:exerciseId"
             element={<ExerciseProgressPage />}
+          />
+          <Route
+            path="/workouts/active"
+            element={<div>Séance active</div>}
           />
         </Routes>
       </MemoryRouter>
@@ -381,5 +387,18 @@ describe('ExerciseProgressPage', () => {
     expect(
       within(container as HTMLElement).getByLabelText('Graphique de progression'),
     ).toBeInTheDocument();
+  });
+
+  it('affiche Retour à la séance lorsque l’on vient d’Active Workout', async () => {
+    getExerciseProgress.mockResolvedValue(emptyResponse());
+    renderPage({
+      pathname: '/progress/exercises/exercise-1',
+      state: { from: 'workout' },
+    });
+    const back = await screen.findByRole('link', { name: 'Retour à la séance' });
+    expect(back).toHaveAttribute('href', '/workouts/active');
+    expect(
+      screen.queryByRole('link', { name: 'Progression' }),
+    ).not.toBeInTheDocument();
   });
 });

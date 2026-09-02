@@ -708,7 +708,18 @@ Interface dédiée ; la barre de navigation principale peut rester visible ou ê
 - RIR/RPE ;
 - indication d’échec musculaire ;
 - statut ;
-- validation / ignore / échec.
+- validation / ignore / échec ;
+- **Ajouter une série** (WORKING vide, sans cible — online only V1).
+
+### Repères de charge
+
+- **Record** : Personal Record `MAX_WEIGHT` existant (exercice + équipement), jamais « charge conseillée » ;
+- **Dernière fois** : dernière série de travail COMPLETED (hors WARMUP) via `GET /progress/last-working-sets` ;
+- **Voir l’historique** → `/progress/exercises/:exerciseId` (`location.state.from = workout`) avec retour vers `/workouts/active`.
+
+### Ajout d’exercice ad hoc
+
+Bouton **Ajouter un exercice** sous l’exercice courant. Sheet catalogue (même recherche que le remplacement). N’écrit pas dans le programme / template.
 
 ### Chronomètre de repos (local)
 
@@ -726,12 +737,11 @@ Interface dédiée ; la barre de navigation principale peut rester visible ou ê
 - session expirée ;
 - séance terminée ailleurs.
 
-### Hors périmètre de cette page (phase 3)
+### Hors périmètre de cette page (restant)
 
-- ajout / suppression / réordonnancement d’exercices ou de séries ;
+- suppression / réordonnancement complexe d’exercices ;
 - modification des cibles ;
-- dernière performance / copie de charges ;
-- volume officiel ou records.
+- report automatique d’un exercice ad hoc dans le template.
 
 ## 21. Liste compacte de la séance active
 

@@ -10,6 +10,7 @@ import type {
   ExerciseProgressPoint,
   ExerciseProgressResponse,
   ExerciseStrengthResponse,
+  LastWorkingSetCue,
   ProgressOverviewResponse,
   WorkoutSetType,
 } from '@gym-companion/shared';
@@ -34,6 +35,7 @@ import {
   localDateStringToUtcDate,
   parseExerciseProgressQuery,
   parseExerciseStrengthQuery,
+  parseLastWorkingSetsQuery,
   parseProgressOverviewQuery,
   resolveAvailableOverviewMetrics,
   resolveAvailableProgressMetrics,
@@ -275,6 +277,128 @@ export class ProgressService {
       recentRecords,
       topExercises,
     };
+  }
+
+  /**
+   * Dernière série de travail COMPLETED (hors WARMUP) par exercice,
+   * issue d’une séance COMPLETED. Batch pour éviter un N+1 Active Workout.
+   */
+  async getLastWorkingSets(
+    userId: string,
+    rawQuery: Record<string, string | undefined>,
+  ): Promise<LastWorkingSetCue[]> {
+    const parsed = parseLastWorkingSetsQuery({
+      exerciseIds: rawQuery.exerciseIds,
+    });
+    if (!parsed.ok) {
+      throw new BadRequestException({
+        code: parsed.code,
+        message: parsed.message,
+      });
+    }
+
+    const exerciseIds = parsed.data.exerciseIds;
+    const rows = await this.prisma.workoutSet.findMany({
+      where: {
+        ownerUserId: userId,
+        status: 'COMPLETED',
+        setType: { not: 'WARMUP' },
+        workoutSessionExercise: {
+          sourceExerciseId: { in: exerciseIds },
+          workoutSession: {
+            ownerUserId: userId,
+            status: 'COMPLETED',
+          },
+        },
+      },
+      select: {
+        id: true,
+        setType: true,
+        position: true,
+        actualWeightKg: true,
+        actualReps: true,
+        actualDurationSeconds: true,
+        actualDistanceMeters: true,
+        completedAt: true,
+        workoutSessionExercise: {
+          select: {
+            sourceExerciseId: true,
+            workoutSession: {
+              select: {
+                id: true,
+                localDate: true,
+                startedAt: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const bestByExercise = new Map<string, (typeof rows)[number]>();
+    for (const row of rows) {
+      const exerciseId = row.workoutSessionExercise.sourceExerciseId;
+      if (!exerciseId) continue;
+      const current = bestByExercise.get(exerciseId);
+      if (!current || this.isLaterWorkingSet(row, current)) {
+        bestByExercise.set(exerciseId, row);
+      }
+    }
+
+    const cues: LastWorkingSetCue[] = [];
+    for (const exerciseId of exerciseIds) {
+      const row = bestByExercise.get(exerciseId);
+      if (!row) continue;
+      cues.push({
+        exerciseId,
+        actualWeightKg: decimalToNumber(row.actualWeightKg),
+        actualReps: row.actualReps,
+        actualDurationSeconds: row.actualDurationSeconds,
+        actualDistanceMeters: decimalToNumber(row.actualDistanceMeters),
+        setType: row.setType as WorkoutSetType,
+        localDate: utcDateToLocalDateString(
+          row.workoutSessionExercise.workoutSession.localDate,
+        ),
+        workoutSessionId: row.workoutSessionExercise.workoutSession.id,
+        workoutSetId: row.id,
+      });
+    }
+    return cues;
+  }
+
+  private isLaterWorkingSet(
+    candidate: {
+      position: number;
+      completedAt: Date | null;
+      workoutSessionExercise: {
+        workoutSession: { localDate: Date; startedAt: Date; id: string };
+      };
+    },
+    current: {
+      position: number;
+      completedAt: Date | null;
+      workoutSessionExercise: {
+        workoutSession: { localDate: Date; startedAt: Date; id: string };
+      };
+    },
+  ): boolean {
+    const a = candidate.workoutSessionExercise.workoutSession;
+    const b = current.workoutSessionExercise.workoutSession;
+    if (a.localDate.getTime() !== b.localDate.getTime()) {
+      return a.localDate.getTime() > b.localDate.getTime();
+    }
+    if (a.startedAt.getTime() !== b.startedAt.getTime()) {
+      return a.startedAt.getTime() > b.startedAt.getTime();
+    }
+    if (a.id !== b.id) {
+      return a.id > b.id;
+    }
+    if (candidate.position !== current.position) {
+      return candidate.position > current.position;
+    }
+    const aCompleted = candidate.completedAt?.getTime() ?? 0;
+    const bCompleted = current.completedAt?.getTime() ?? 0;
+    return aCompleted > bCompleted;
   }
 
   async getExerciseProgress(

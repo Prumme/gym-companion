@@ -5,6 +5,7 @@ import type {
 } from '@gym-companion/shared';
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type {
+  AddWorkoutSessionExerciseInput,
   CancelWorkoutSessionInput,
   CompleteWorkoutSessionInput,
   CreateWorkoutSessionInput,
@@ -17,6 +18,8 @@ import type {
 import type { ApiRequestError } from '@/lib/api/client';
 
 import {
+  addWorkoutSessionExercise,
+  addWorkoutSessionSet,
   cancelWorkoutSession,
   completeWorkoutSession,
   createWorkoutSession,
@@ -405,6 +408,78 @@ export function useReplaceWorkoutSessionExerciseMutation(
       await persistServerSnapshot(userId, detail);
       return detail;
     },
+    onSuccess: (detail) => {
+      queryClient.setQueryData(workoutQueryKeys.active(), detail);
+      queryClient.setQueryData(workoutQueryKeys.detail(detail.id), detail);
+      void queryClient.invalidateQueries({
+        queryKey: sharedWorkoutRoomQueryKeys.all,
+      });
+    },
+  });
+}
+
+async function persistOnlineSessionMutation(
+  queryClient: ReturnType<typeof useQueryClient>,
+  offlineMessage: string,
+  call: () => Promise<WorkoutSessionDetail>,
+): Promise<WorkoutSessionDetail> {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    throw Object.assign(new Error(offlineMessage), {
+      status: 0,
+      code: 'OFFLINE',
+    });
+  }
+  const userId = await resolveUserId(queryClient);
+  const detail = await call();
+  await persistServerSnapshot(userId, detail);
+  return detail;
+}
+
+/**
+ * Ajout d’exercice — online only (hors file offline V1).
+ */
+export function useAddWorkoutSessionExerciseMutation(
+  workoutSessionId: string,
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: AddWorkoutSessionExerciseInput) =>
+      persistOnlineSessionMutation(
+        queryClient,
+        'Connexion nécessaire pour ajouter un exercice.',
+        () => addWorkoutSessionExercise(workoutSessionId, input),
+      ),
+    onSuccess: (detail) => {
+      queryClient.setQueryData(workoutQueryKeys.active(), detail);
+      queryClient.setQueryData(workoutQueryKeys.detail(detail.id), detail);
+      void queryClient.invalidateQueries({
+        queryKey: sharedWorkoutRoomQueryKeys.all,
+      });
+    },
+  });
+}
+
+/**
+ * Ajout de série — online only (création d’id serveur). La saisie reste offline.
+ */
+export function useAddWorkoutSessionSetMutation(workoutSessionId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (args: {
+      sessionExerciseId: string;
+      expectedVersion: number;
+    }) =>
+      persistOnlineSessionMutation(
+        queryClient,
+        'Connexion nécessaire pour ajouter une série.',
+        () =>
+          addWorkoutSessionSet(workoutSessionId, args.sessionExerciseId, {
+            expectedVersion: args.expectedVersion,
+            clientCommandId: createClientCommandId(),
+          }),
+      ),
     onSuccess: (detail) => {
       queryClient.setQueryData(workoutQueryKeys.active(), detail);
       queryClient.setQueryData(workoutQueryKeys.detail(detail.id), detail);

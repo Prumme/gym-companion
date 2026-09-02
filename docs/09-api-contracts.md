@@ -1455,22 +1455,55 @@ Pour ce jalon, `keepRecordedData` doit être `true`. Snapshot et performances so
 
 ## 20. Exercices d’une séance active
 
-### 20.1 Ajouter
+### 20.1 Ajouter un exercice ad hoc
 
 ```text
 POST /api/v1/workouts/:workoutSessionId/exercises
 ```
 
+Ajoute un `WorkoutSessionExercise` **uniquement pour la séance courante**.
+
+Ne modifie jamais :
+
+- `Program` ;
+- `WorkoutTemplate` ;
+- `WorkoutTemplateExercise`.
+
 Requête :
 
 ```json
 {
-  "exerciseId": "exercise-id",
-  "equipmentId": "equipment-id",
-  "position": 3,
+  "exerciseId": "uuid-exercice-catalogue",
   "expectedVersion": 4
 }
 ```
+
+Règles V1 :
+
+- séance `ACTIVE` uniquement (`PAUSED` / terminal → `WORKOUT_NOT_EDITABLE`) ;
+- JWT + ownership de la séance ;
+- exercice accessible (`SYSTEM` ou `USER` du propriétaire) et non archivé ;
+- refus si le même `sourceExerciseId` est déjà présent (`409 WORKOUT_EXERCISE_ALREADY_IN_SESSION`) ;
+- snapshot serveur (nom, `measurementType`, muscle, équipement par défaut, repos catalogue) ;
+- `sourceTemplateExerciseId = null` ;
+- `position` = max existant + 1 (fin de séance) ;
+- crée automatiquement **1** `WorkoutSet` `WORKING` / `PENDING` sans cibles ;
+- transaction unique (exercice + série + incrément de version).
+
+Réponse : `201 Created` avec `{ "data": WorkoutSessionDetail }`.
+
+Erreurs métier courantes :
+
+- `WORKOUT_NOT_FOUND` ;
+- `WORKOUT_NOT_EDITABLE` ;
+- `WORKOUT_VERSION_CONFLICT` ;
+- `WORKOUT_EXERCISE_ALREADY_IN_SESSION` ;
+- `EXERCISE_NOT_FOUND` ;
+- `EXERCISE_ARCHIVED`.
+
+Offline : non supporté V1 (action désactivée côté client : « Connexion nécessaire pour ajouter un exercice. »).
+
+Shared Workout : l’ajout n’affecte que la `WorkoutSession` personnelle. Les autres membres ne reçoivent pas l’exercice.
 
 ### 20.2 Remplacer l’exercice (snapshot de séance)
 
@@ -1549,31 +1582,37 @@ DELETE /api/v1/workouts/:workoutSessionId/exercises/:sessionExerciseId
 
 ## 21. Séries
 
-### 21.1 Créer ou enregistrer
+### 21.1 Ajouter une série ad hoc
 
 ```text
 POST /api/v1/workouts/:workoutSessionId/exercises/:sessionExerciseId/sets
 ```
 
+Crée un `WorkoutSet` `WORKING` / `PENDING` **sans cibles** sur un exercice de la séance `ACTIVE` (issu du template ou ajouté ad hoc).
+
 Requête :
 
 ```json
 {
-  "clientCommandId": "command-id",
-  "setNumber": 1,
-  "setType": "WORKING",
-  "status": "COMPLETED",
-  "targetWeightKg": 60,
-  "targetRepMin": 8,
-  "targetRepMax": 10,
-  "actualWeightKg": 60,
-  "actualReps": 10,
-  "actualRir": 2,
-  "reachedFailure": false,
-  "completedAt": "2026-08-03T09:45:00.000Z",
-  "expectedVersion": 6
+  "expectedVersion": 6,
+  "clientCommandId": "opaque-command-id"
 }
 ```
+
+`clientCommandId` est facultatif. Même identifiant + même exercice → rejeu idempotent (pas de deuxième série).
+
+Règles V1 :
+
+- séance `ACTIVE` + ownership ;
+- `WorkoutSessionExercise` appartenant à cette séance ;
+- `position` = max(`position`) + 1 ;
+- toutes les cibles `target*` = `null` ;
+- `sourceTemplateSetId = null` ;
+- `setType = WORKING`.
+
+Réponse : `201 Created` avec `{ "data": WorkoutSessionDetail }`.
+
+Offline : création non supportée V1 (id serveur). La **saisie** de la série créée réutilise `UPDATE_WORKOUT_SET` / file IndexedDB existante.
 
 ### 21.2 Modifier une série effectuée (jalon 3.2)
 
@@ -1743,6 +1782,20 @@ type ProgressOverviewResponse = {
 
 `PROGRESS_INVALID_FROM_DATE`, `PROGRESS_INVALID_TO_DATE`, `PROGRESS_INVALID_DATE_RANGE`,
 `PROGRESS_INVALID_METRIC`, `PROGRESS_INVALID_QUERY`.
+
+### 23.1bis Dernière série de travail (batch Active Workout)
+
+```text
+GET /api/v1/progress/last-working-sets?exerciseIds=uuid,uuid
+```
+
+JWT obligatoire. Retourne, pour chaque exercice demandé qui en possède une, la **dernière** série `COMPLETED` hors `WARMUP` dans une `WorkoutSession` `COMPLETED` du caller.
+
+Pas un second moteur de records : lecture simple de l’historique existant (une requête, pas un N+1 par exercice). Max 40 identifiants. Exercices sans historique omis.
+
+Réponse : `{ "data": LastWorkingSetCue[] }`.
+
+Codes : `PROGRESS_INVALID_EXERCISE_IDS`, `PROGRESS_INVALID_QUERY`.
 
 ### 23.2 Progression d’un exercice (jalon 4.3)
 
@@ -3056,6 +3109,11 @@ WORKOUT_SET_CONFLICTING_EFFORT_VALUES
 WORKOUT_SET_DUPLICATE_COMMAND
 WORKOUT_SET_COMMAND_CONFLICT
 WORKOUT_OFFLINE_CONFLICT
+WORKOUT_SESSION_EXERCISE_NOT_FOUND
+WORKOUT_EXERCISE_ALREADY_IN_SESSION
+WORKOUT_EXERCISE_HAS_RECORDED_SETS
+WORKOUT_EXERCISE_MEASUREMENT_INCOMPATIBLE
+EXERCISE_ARCHIVED
 ```
 
 ### Séances partagées

@@ -1,4 +1,5 @@
 import type { WorkoutSessionDetail } from '@gym-companion/shared';
+import { Plus } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 
@@ -11,6 +12,7 @@ import { activeWorkoutQueryOptions } from '../api/workout-query-options';
 import { workoutQueryKeys } from '../api/workout-query-keys';
 import { ActiveExercisePanel } from '../components/ActiveExercisePanel';
 import { ActiveWorkoutHeader } from '../components/ActiveWorkoutHeader';
+import { AddSessionExerciseSheet } from '../components/AddSessionExerciseSheet';
 import { ExerciseNavigator } from '../components/ExerciseNavigator';
 import { RestTimer } from '../components/RestTimer';
 import { WorkoutConflictPanel } from '../components/WorkoutConflictPanel';
@@ -21,6 +23,8 @@ import { useScreenWakeLock } from '../hooks/use-screen-wake-lock';
 import { useWorkoutLifecycleControls } from '../hooks/use-workout-lifecycle-controls';
 import { useWorkoutOfflineSync } from '../hooks/use-workout-offline-sync';
 import { useWorkoutExerciseNavigation } from '../hooks/use-workout-exercise-navigation';
+import { useActiveWorkoutLoadCues } from '../hooks/use-active-workout-load-cues';
+import { useAddWorkoutSessionExerciseMutation } from '../hooks/use-workout-mutations';
 import { formatWorkoutSetTargetCompact } from '../lib/workout-labels';
 import {
   computeWorkoutProgress,
@@ -123,9 +127,20 @@ function ActiveWorkoutSessionView({
   const [completeOpen, setCompleteOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [resumeTimerPrompt, setResumeTimerPrompt] = useState(false);
+  const [addExerciseOpen, setAddExerciseOpen] = useState(false);
+  const [addExerciseError, setAddExerciseError] = useState<string | null>(null);
 
   const offlineSync = useWorkoutOfflineSync(session.id);
   const navigation = useWorkoutExerciseNavigation(session);
+  const addExerciseMutation = useAddWorkoutSessionExerciseMutation(session.id);
+  const catalogExerciseIds = useMemo(
+    () =>
+      session.exercises
+        .map((exercise) => exercise.sourceExerciseId)
+        .filter((id): id is string => id != null),
+    [session.exercises],
+  );
+  const loadCues = useActiveWorkoutLoadCues(catalogExerciseIds);
   const sharedSync = useSyncSharedCurrentExercise(
     session.id,
     navigation.selectedExerciseId,
@@ -365,6 +380,13 @@ function ActiveWorkoutSessionView({
           }
           restTimerActive={restTimerActive}
           browserOffline={offlineSync.browserOffline}
+          loadRecords={loadCues.records}
+          lastWorkingSet={
+            selectedExercise.sourceExerciseId
+              ? loadCues.lastByExercise.get(selectedExercise.sourceExerciseId)
+              : undefined
+          }
+          loadCuesReady={loadCues.isFetched}
           onVersionConflict={onRefetch}
           onSetRecorded={({ status, setId, set, exercise }) => {
             if (
@@ -390,6 +412,98 @@ function ActiveWorkoutSessionView({
           }}
         />
       ) : null}
+
+      <div className="flex flex-col gap-2">
+        {addExerciseError ? (
+          <p className="text-sm text-[var(--danger)]" role="alert">
+            {addExerciseError}
+          </p>
+        ) : null}
+        <Button
+          type="button"
+          variant="secondary"
+          className="w-full"
+          disabled={
+            session.status !== 'ACTIVE' ||
+            offlineSync.browserOffline ||
+            addExerciseMutation.isPending
+          }
+          title={
+            offlineSync.browserOffline
+              ? 'Connexion nécessaire pour ajouter un exercice.'
+              : session.status !== 'ACTIVE'
+                ? 'Reprenez la séance pour ajouter un exercice.'
+                : undefined
+          }
+          onClick={() => {
+            setAddExerciseError(null);
+            setAddExerciseOpen(true);
+          }}
+        >
+          <Plus className="size-4" aria-hidden="true" />
+          Ajouter un exercice
+        </Button>
+      </div>
+
+      <AddSessionExerciseSheet
+        open={addExerciseOpen}
+        presentExerciseIds={catalogExerciseIds}
+        pending={addExerciseMutation.isPending}
+        errorMessage={addExerciseError}
+        onClose={() => {
+          if (!addExerciseMutation.isPending) {
+            setAddExerciseOpen(false);
+            setAddExerciseError(null);
+          }
+        }}
+        onAdd={(chosen) => {
+          setAddExerciseError(null);
+          addExerciseMutation.mutate(
+            {
+              exerciseId: chosen.id,
+              expectedVersion: session.version,
+            },
+            {
+              onSuccess: (detail) => {
+                setAddExerciseOpen(false);
+                const added = detail.exercises.find(
+                  (exercise) => exercise.sourceExerciseId === chosen.id,
+                );
+                if (added) {
+                  navigation.selectExercise(added.id);
+                }
+              },
+              onError: (error) => {
+                const code =
+                  error &&
+                  typeof error === 'object' &&
+                  'code' in error &&
+                  typeof (error as { code: unknown }).code === 'string'
+                    ? (error as { code: string }).code
+                    : null;
+                if (code === 'WORKOUT_VERSION_CONFLICT') {
+                  onRefetch();
+                }
+                if (
+                  code === 'OFFLINE' ||
+                  (error as { status?: number }).status === 0
+                ) {
+                  setAddExerciseError(
+                    'Connexion nécessaire pour ajouter un exercice.',
+                  );
+                  return;
+                }
+                setAddExerciseError(
+                  getApiErrorMessage(
+                    error,
+                    'Impossible d’ajouter cet exercice.',
+                  ),
+                );
+              },
+            },
+          );
+        }}
+      />
 
       <WorkoutLifecycleActions
         session={session}

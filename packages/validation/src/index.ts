@@ -1266,6 +1266,43 @@ export type ReplaceWorkoutSessionExerciseInput = z.infer<
   typeof replaceWorkoutSessionExerciseSchema
 >;
 
+/**
+ * Ajout d’un exercice ad hoc sur une WorkoutSession ACTIVE.
+ * Ne touche ni Program ni WorkoutTemplate — snapshot de séance uniquement.
+ * Position et snapshot déterminés côté serveur.
+ */
+export const addWorkoutSessionExerciseSchema = z
+  .object({
+    exerciseId: z.string().uuid('L’identifiant d’exercice est invalide.'),
+    expectedVersion: z.number().int().min(1).max(1_000_000_000),
+  })
+  .strict();
+
+export type AddWorkoutSessionExerciseInput = z.infer<
+  typeof addWorkoutSessionExerciseSchema
+>;
+
+/**
+ * Ajout d’une série ad hoc (WORKING, sans cibles) sur un exercice de séance ACTIVE.
+ * setNumber / position déterminés côté serveur (max + 1).
+ */
+export const addWorkoutSessionSetSchema = z
+  .object({
+    expectedVersion: z.number().int().min(1).max(1_000_000_000),
+    clientCommandId: z
+      .string()
+      .trim()
+      .min(1)
+      .max(128)
+      .regex(/^[A-Za-z0-9._:-]+$/, 'Identifiant de commande invalide.')
+      .optional(),
+  })
+  .strict();
+
+export type AddWorkoutSessionSetInput = z.infer<
+  typeof addWorkoutSessionSetSchema
+>;
+
 export type WorkoutSetActualFields = {
   status: z.infer<typeof workoutSetStatusSchema>;
   actualWeightKg: number | null;
@@ -2025,6 +2062,17 @@ export type {
   ExerciseProgressSetInput,
   ExerciseProgressSummaryComputed,
 } from './exercise-progress';
+
+export {
+  LAST_WORKING_SETS_MAX_EXERCISE_IDS,
+  lastWorkingSetsQuerySchema,
+  parseLastWorkingSetsQuery,
+} from './last-working-sets';
+export type {
+  LastWorkingSetsQuery,
+  LastWorkingSetsQueryParseErrorCode,
+  LastWorkingSetsQueryParseResult,
+} from './last-working-sets';
 
 export {
   PROGRESS_OVERVIEW_DAY_BUCKET_MAX_DAYS,

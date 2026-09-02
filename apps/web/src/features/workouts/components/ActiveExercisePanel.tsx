@@ -1,19 +1,24 @@
 import type {
   EffortTrackingMode,
   ExerciseMeasurementType,
+  LastWorkingSetCue,
+  PersonalRecord,
   WorkoutSessionDetail,
   WorkoutSessionExerciseDetail,
   WorkoutSessionSetDetail,
   WorkoutSetStatus,
 } from '@gym-companion/shared';
-import { ArrowLeftRight, Check, MoreHorizontal } from 'lucide-react';
+import { ArrowLeftRight, Check, MoreHorizontal, Plus } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { getMeasurementTypeLabel } from '@/features/exercises/lib/exercise-labels';
 import { getApiErrorMessage } from '@/lib/api/client';
 
-import { useReplaceWorkoutSessionExerciseMutation } from '../hooks/use-workout-mutations';
+import {
+  useAddWorkoutSessionSetMutation,
+  useReplaceWorkoutSessionExerciseMutation,
+} from '../hooks/use-workout-mutations';
 import {
   formatWorkoutSetTargetCompact,
   getWorkoutSetTypeLabelSafe,
@@ -23,6 +28,7 @@ import {
   isExerciseTreated,
 } from '../lib/workout-progress';
 import { ReplaceSessionExerciseSheet } from './ReplaceSessionExerciseSheet';
+import { ExerciseLoadCues } from './ExerciseLoadCues';
 import { WorkoutSetCard } from './WorkoutSetCard';
 import { WorkoutSetFormDialog } from './WorkoutSetFormDialog';
 
@@ -52,6 +58,9 @@ type ActiveExercisePanelProps = {
   /** Masque le CTA sticky si le timer de repos occupe le bas. */
   restTimerActive?: boolean;
   browserOffline?: boolean;
+  loadRecords?: PersonalRecord[];
+  lastWorkingSet?: LastWorkingSetCue;
+  loadCuesReady?: boolean;
 };
 
 function formatExerciseMeta(exercise: WorkoutSessionExerciseDetail): string {
@@ -123,15 +132,20 @@ export function ActiveExercisePanel({
   onOpenComplete,
   restTimerActive = false,
   browserOffline = false,
+  loadRecords = [],
+  lastWorkingSet,
+  loadCuesReady = false,
 }: ActiveExercisePanelProps) {
   const [editing, setEditing] = useState<EditingState | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [replaceFeedback, setReplaceFeedback] = useState<string | null>(null);
   const [replaceError, setReplaceError] = useState<string | null>(null);
+  const [addSetError, setAddSetError] = useState<string | null>(null);
   const menuId = useId();
   const menuRef = useRef<HTMLDivElement>(null);
   const replaceMutation = useReplaceWorkoutSessionExerciseMutation(session.id);
+  const addSetMutation = useAddWorkoutSessionSetMutation(session.id);
 
   const treated = isExerciseTreated(exercise);
   const hasRecordedSets = exercise.sets.some((set) => set.status !== 'PENDING');
@@ -236,6 +250,12 @@ export function ActiveExercisePanel({
         {exercise.notes ? (
           <p className="text-sm text-[var(--muted)]">{exercise.notes}</p>
         ) : null}
+        <ExerciseLoadCues
+          exercise={exercise}
+          records={loadRecords}
+          lastSet={lastWorkingSet}
+          ready={loadCuesReady}
+        />
         {replaceFeedback ? (
           <p className="text-sm text-[var(--foreground)]" role="status">
             {replaceFeedback}
@@ -304,6 +324,67 @@ export function ActiveExercisePanel({
             />
           ))}
         </ol>
+        {addSetError ? (
+          <p className="mt-2 text-sm text-[var(--danger)]" role="alert">
+            {addSetError}
+          </p>
+        ) : null}
+        <Button
+          type="button"
+          variant="secondary"
+          className="mt-3 w-full"
+          disabled={
+            !canRecordSets ||
+            session.status !== 'ACTIVE' ||
+            browserOffline ||
+            addSetMutation.isPending
+          }
+          title={
+            browserOffline
+              ? 'Connexion nécessaire pour ajouter une série.'
+              : session.status !== 'ACTIVE'
+                ? 'Reprenez la séance pour ajouter une série.'
+                : undefined
+          }
+          onClick={() => {
+            setAddSetError(null);
+            addSetMutation.mutate(
+              {
+                sessionExerciseId: exercise.id,
+                expectedVersion: session.version,
+              },
+              {
+                onError: (error) => {
+                  const code =
+                    error &&
+                    typeof error === 'object' &&
+                    'code' in error &&
+                    typeof (error as { code: unknown }).code === 'string'
+                      ? (error as { code: string }).code
+                      : null;
+                  if (code === 'WORKOUT_VERSION_CONFLICT') {
+                    onVersionConflict();
+                  }
+                  if (code === 'OFFLINE' || (error as { status?: number }).status === 0) {
+                    setAddSetError(
+                      'Connexion nécessaire pour ajouter une série.',
+                    );
+                    return;
+                  }
+                  setAddSetError(
+                    getApiErrorMessage(
+                      error,
+                      'Impossible d’ajouter une série.',
+                    ),
+                  );
+                },
+              },
+            );
+          }}
+        >
+          <Plus className="size-4" aria-hidden="true" />
+          {addSetMutation.isPending ? 'Ajout…' : 'Ajouter une série'}
+        </Button>
       </div>
 
       {(() => {

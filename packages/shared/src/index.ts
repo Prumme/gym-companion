@@ -586,6 +586,22 @@ export type ExerciseProgressResponse = {
   points: ExerciseProgressPoint[];
 };
 
+/**
+ * Dernière série de travail COMPLETED (hors WARMUP) d’un exercice,
+ * dans une WorkoutSession COMPLETED antérieure — repère de charge Active Workout.
+ */
+export type LastWorkingSetCue = {
+  exerciseId: string;
+  actualWeightKg: number | null;
+  actualReps: number | null;
+  actualDurationSeconds: number | null;
+  actualDistanceMeters: number | null;
+  setType: WorkoutSetType;
+  localDate: string;
+  workoutSessionId: string;
+  workoutSetId: string;
+};
+
 /** Métriques du dashboard global (jalon 4.4 — dérivées). */
 export type ProgressOverviewMetric =
   | 'WORKOUT_COUNT'

@@ -13,4 +13,6 @@ export const progressQueryKeys = {
     [...progressQueryKeys.exercises(), exerciseId, filters] as const,
   exerciseStrength: (exerciseId: string, filters: ExerciseStrengthFilters) =>
     [...progressQueryKeys.exercises(), exerciseId, 'strength', filters] as const,
+  lastWorkingSets: (exerciseIds: string[]) =>
+    [...progressQueryKeys.all, 'last-working-sets', [...exerciseIds].sort()] as const,
 };

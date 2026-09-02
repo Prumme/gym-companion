@@ -35,6 +35,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Le bundle principal dépasse 2 MiB ; sans ceci le SW refuse de précacher le shell.
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         navigateFallback: '/index.html',
         runtimeCaching: [
           {

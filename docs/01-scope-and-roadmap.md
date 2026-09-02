@@ -318,10 +318,10 @@ Ces éléments restent explicitement hors livraison de la phase 3 :
 
 - séance vide (sans modèle) ;
 - démarrage de séance hors ligne ;
-- affichage / copie de la dernière performance ;
+- affichage / copie de la dernière performance *(repère **Record** + **Dernière fois** en lecture seule sur Active Workout — livré, sans nouveau moteur Records)* ;
 - modification des cibles pendant la séance ;
-- ajout ou suppression d’exercices pendant la séance ;
-- ajout ou suppression de séries pendant la séance ;
+- ajout ou suppression d’exercices pendant la séance *(ajout ad hoc à la WorkoutSession ACTIVE livré ; ne mute pas Program/Template ; suppression hors V1)* ;
+- ajout ou suppression de séries pendant la séance *(ajout de série WORKING sans cible livré)* ;
 - réordonnancement du snapshot ;
 - remplacement d’exercice hors ligne / file de sync ;
 - copie ou duplication d’une séance ;

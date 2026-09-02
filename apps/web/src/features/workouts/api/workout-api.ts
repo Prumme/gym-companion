@@ -5,6 +5,8 @@ import type {
   WorkoutSessionDetail,
 } from '@gym-companion/shared';
 import type {
+  AddWorkoutSessionExerciseInput,
+  AddWorkoutSessionSetInput,
   CancelWorkoutSessionInput,
   CompleteWorkoutSessionInput,
   CreateWorkoutSessionInput,
@@ -111,6 +113,35 @@ export async function replaceWorkoutSessionExercise(
     `/api/v1/workouts/${encodeURIComponent(workoutSessionId)}/exercises/${encodeURIComponent(sessionExerciseId)}/exercise`,
     {
       method: 'PATCH',
+      body: JSON.stringify(input),
+    },
+  );
+  return response.data;
+}
+
+export async function addWorkoutSessionExercise(
+  workoutSessionId: string,
+  input: AddWorkoutSessionExerciseInput,
+): Promise<WorkoutSessionDetail> {
+  const response = await apiFetch<{ data: WorkoutSessionDetail }>(
+    `/api/v1/workouts/${encodeURIComponent(workoutSessionId)}/exercises`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+  );
+  return response.data;
+}
+
+export async function addWorkoutSessionSet(
+  workoutSessionId: string,
+  sessionExerciseId: string,
+  input: AddWorkoutSessionSetInput,
+): Promise<WorkoutSessionDetail> {
+  const response = await apiFetch<{ data: WorkoutSessionDetail }>(
+    `/api/v1/workouts/${encodeURIComponent(workoutSessionId)}/exercises/${encodeURIComponent(sessionExerciseId)}/sets`,
+    {
+      method: 'POST',
       body: JSON.stringify(input),
     },
   );

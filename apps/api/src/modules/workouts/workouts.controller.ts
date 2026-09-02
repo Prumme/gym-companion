@@ -148,6 +148,44 @@ export class WorkoutsController {
     return createSuccessResponse(data);
   }
 
+  @Post(':workoutSessionId/exercises')
+  @ApiOperation({
+    summary:
+      'Ajouter un exercice ad hoc à la séance ACTIVE (snapshot session uniquement)',
+  })
+  async addExercise(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('workoutSessionId', ParseUUIDPipe) workoutSessionId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.workoutsService.addExercise(
+      user.id,
+      workoutSessionId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Post(':workoutSessionId/exercises/:sessionExerciseId/sets')
+  @ApiOperation({
+    summary:
+      'Ajouter une série WORKING vide à un exercice de la séance ACTIVE',
+  })
+  async addSet(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('workoutSessionId', ParseUUIDPipe) workoutSessionId: string,
+    @Param('sessionExerciseId', ParseUUIDPipe) sessionExerciseId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.workoutsService.addSet(
+      user.id,
+      workoutSessionId,
+      sessionExerciseId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
   @Patch(':workoutSessionId/exercises/:sessionExerciseId/sets/:workoutSetId')
   @ApiOperation({ summary: 'Enregistrer le résultat réel d’une série' })
   async updateSet(

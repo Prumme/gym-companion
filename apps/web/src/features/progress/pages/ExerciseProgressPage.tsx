@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft } from 'lucide-react';
 import { useMemo } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
 
 import { ButtonLink } from '@/components/ui/button';
 import { LoadingState } from '@/components/common/LoadingState';
@@ -37,6 +37,9 @@ import type { ExerciseProgressMetric } from '@gym-companion/shared';
 export function ExerciseProgressPage() {
   const { exerciseId = '' } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const fromWorkout =
+    (location.state as { from?: string } | null)?.from === 'workout';
 
   const urlFilters = useMemo(
     () => parseProgressSearchParams(searchParams),
@@ -129,12 +132,12 @@ export function ExerciseProgressPage() {
     return (
       <main className="flex flex-1 flex-col gap-4">
         <ButtonLink
-          to="/progress"
+          to={fromWorkout ? '/workouts/active' : '/progress'}
           variant="ghost"
           className="w-fit gap-2 px-0"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
-          Progression
+          {fromWorkout ? 'Retour à la séance' : 'Progression'}
         </ButtonLink>
         <div
           className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4"
@@ -194,13 +197,23 @@ export function ExerciseProgressPage() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5">
       <header>
-        <Link
-          to="/progress"
-          className="mb-2 inline-flex min-h-11 items-center gap-1 text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
-        >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Progression
-        </Link>
+        {fromWorkout ? (
+          <Link
+            to="/workouts/active"
+            className="mb-2 inline-flex min-h-11 items-center gap-1 text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
+          >
+            <ArrowLeft className="size-4" aria-hidden="true" />
+            Retour à la séance
+          </Link>
+        ) : (
+          <Link
+            to="/progress"
+            className="mb-2 inline-flex min-h-11 items-center gap-1 text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
+          >
+            <ArrowLeft className="size-4" aria-hidden="true" />
+            Progression
+          </Link>
+        )}
         <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
           {data.exercise.name}
         </h1>

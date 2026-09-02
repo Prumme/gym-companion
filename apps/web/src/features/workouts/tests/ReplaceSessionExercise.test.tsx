@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ActiveExercisePanel } from '../components/ActiveExercisePanel';
@@ -18,6 +19,8 @@ vi.mock('../api/workout-api', async () => {
     ...actual,
     replaceWorkoutSessionExercise: (...args: unknown[]) =>
       replaceWorkoutSessionExercise(...args),
+    addWorkoutSessionSet: vi.fn(),
+    addWorkoutSessionExercise: vi.fn(),
   };
 });
 
@@ -70,7 +73,8 @@ function renderPanel(
     exercise,
     ...render(
       <QueryClientProvider client={queryClient}>
-        <ActiveExercisePanel
+        <MemoryRouter>
+          <ActiveExercisePanel
           session={session}
           exercise={exercise}
           effortTrackingMode="RIR"
@@ -83,6 +87,7 @@ function renderPanel(
           onSetRecorded={vi.fn()}
           {...overrides}
         />
+        </MemoryRouter>
       </QueryClientProvider>,
     ),
   };

@@ -36,6 +36,8 @@ import {
   pauseWorkoutSessionSchema,
   resolveWorkoutLifecycleTransition,
   replaceWorkoutSessionExerciseSchema,
+  addWorkoutSessionExerciseSchema,
+  addWorkoutSessionSetSchema,
   updateWorkoutSetSchema,
   utcDateToLocalDateString,
   validateProgramScheduleEntries,
@@ -871,6 +873,69 @@ describe('replaceWorkoutSessionExerciseSchema', () => {
       replaceWorkoutSessionExerciseSchema.safeParse({
         exerciseId: 'not-uuid',
         expectedVersion: 1,
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('addWorkoutSessionExerciseSchema', () => {
+  const exerciseId = '11111111-1111-4111-8111-111111111111';
+
+  it('accepte un payload valide', () => {
+    expect(
+      addWorkoutSessionExerciseSchema.safeParse({
+        exerciseId,
+        expectedVersion: 2,
+      }).success,
+    ).toBe(true);
+  });
+
+  it('refuse position ou equipmentId client', () => {
+    expect(
+      addWorkoutSessionExerciseSchema.safeParse({
+        exerciseId,
+        expectedVersion: 2,
+        position: 3,
+      }).success,
+    ).toBe(false);
+    expect(
+      addWorkoutSessionExerciseSchema.safeParse({
+        exerciseId,
+        expectedVersion: 1,
+        extra: true,
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('addWorkoutSessionSetSchema', () => {
+  it('accepte expectedVersion seul', () => {
+    expect(
+      addWorkoutSessionSetSchema.safeParse({ expectedVersion: 4 }).success,
+    ).toBe(true);
+  });
+
+  it('accepte un clientCommandId opaque', () => {
+    expect(
+      addWorkoutSessionSetSchema.safeParse({
+        expectedVersion: 4,
+        clientCommandId: 'cmd-add-set-1',
+      }).success,
+    ).toBe(true);
+  });
+
+  it('refuse setNumber / setType / targets inventés par le client', () => {
+    expect(
+      addWorkoutSessionSetSchema.safeParse({
+        expectedVersion: 4,
+        setNumber: 2,
+      }).success,
+    ).toBe(false);
+    expect(
+      addWorkoutSessionSetSchema.safeParse({
+        expectedVersion: 4,
+        setType: 'WORKING',
+        targetWeightKg: 60,
       }).success,
     ).toBe(false);
   });

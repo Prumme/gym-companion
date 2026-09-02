@@ -867,6 +867,8 @@ Les champs snapshot permettent de conserver une lecture correcte si l’exercice
 
 L’équipement prévu copie le type d’équipement du modèle (`equipmentTypeId` + nom/code snapshot), pas un équipement physique.
 
+Une ligne peut être **ad hoc** : `sourceTemplateExerciseId = null` lorsqu’elle a été ajoutée pendant la séance ACTIVE, sans exister dans le `WorkoutTemplate` source. `sourceExerciseId` reste renseigné (catalogue SYSTEM ou PERSONAL du propriétaire). Historique, records et progression se regroupent toujours par `sourceExerciseId`, y compris pour ces lignes.
+
 Les relations `sourceExercise` / `sourceTemplateExercise` / `equipmentType` utilisent `ON DELETE SET NULL`.
 
 ## 26. WorkoutSet
@@ -918,7 +920,8 @@ type WorkoutSet = {
 ### Contraintes
 
 - `position` unique dans un `WorkoutSessionExercise` ;
-- `status` vaut `PENDING` à la création du snapshot ;
+- `status` vaut `PENDING` à la création (snapshot initial **ou** série ad hoc ajoutée pendant la séance) ;
+- une série ad hoc a `sourceTemplateSetId = null`, `setType = WORKING` et toutes les cibles `target*` à `null` ;
 - les champs `target*` sont immuables après création : une mutation de performance ne les modifie jamais ;
 - les valeurs réelles (`actual*`) sont stockées séparément et validées selon `measurementTypeSnapshot` ;
 - RIR et RPE réels ne sont pas renseignés simultanément ;

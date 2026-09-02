@@ -11,7 +11,9 @@ import { createWorkoutSessionDetail, createWorkoutSet } from './fixtures';
 const getActiveWorkoutSession = vi.fn();
 const createWorkoutSession = vi.fn();
 const updateWorkoutSet = vi.fn();
+const addWorkoutSessionExercise = vi.fn();
 const getMe = vi.fn();
+const listExercises = vi.fn();
 
 vi.mock('../api/workout-api', () => ({
   getActiveWorkoutSession: (...args: unknown[]) =>
@@ -19,6 +21,9 @@ vi.mock('../api/workout-api', () => ({
   createWorkoutSession: (...args: unknown[]) => createWorkoutSession(...args),
   updateWorkoutSet: (...args: unknown[]) => updateWorkoutSet(...args),
   replaceWorkoutSessionExercise: vi.fn(),
+  addWorkoutSessionExercise: (...args: unknown[]) =>
+    addWorkoutSessionExercise(...args),
+  addWorkoutSessionSet: vi.fn(),
   getWorkoutSessionDetail: vi.fn(),
   pauseWorkoutSession: vi.fn(),
   resumeWorkoutSession: vi.fn(),
@@ -26,8 +31,36 @@ vi.mock('../api/workout-api', () => ({
   cancelWorkoutSession: vi.fn(),
 }));
 
+vi.mock('@/features/personal-records/api/personal-records-api', () => ({
+  listPersonalRecords: async () => ({
+    data: [],
+    pagination: { nextCursor: null, hasMore: false },
+  }),
+  listExercisePersonalRecords: async () => [],
+}));
+
+vi.mock('@/features/progress/api/progress-api', () => ({
+  getLastWorkingSets: async () => [],
+  getExerciseProgress: async () => {
+    throw new Error('not used');
+  },
+  getExerciseStrength: async () => {
+    throw new Error('not used');
+  },
+  getProgressOverview: async () => {
+    throw new Error('not used');
+  },
+}));
+
 vi.mock('@/features/profile/api/profile-api', () => ({
   getMe: (...args: unknown[]) => getMe(...args),
+}));
+
+vi.mock('@/features/exercises/api/exercise-api', () => ({
+  listExercises: (...args: unknown[]) => listExercises(...args),
+  getExercise: vi.fn(),
+  listMuscleGroups: vi.fn().mockResolvedValue([]),
+  listEquipmentTypes: vi.fn().mockResolvedValue([]),
 }));
 
 function meResponse(mode: 'NONE' | 'RIR' | 'RPE' = 'RIR') {
@@ -63,7 +96,39 @@ describe('ActiveWorkoutPage', () => {
     getActiveWorkoutSession.mockReset();
     createWorkoutSession.mockReset();
     updateWorkoutSet.mockReset();
+    addWorkoutSessionExercise.mockReset();
     getMe.mockReset();
+    listExercises.mockReset();
+    listExercises.mockResolvedValue({
+      data: [
+        {
+          id: 'ex-leg-ext',
+          source: 'SYSTEM',
+          name: 'Leg Extension',
+          measurementType: 'WEIGHT_REPS',
+          primaryMuscleGroup: {
+            id: 'mg-quad',
+            name: 'Quadriceps',
+            code: 'QUADS',
+          },
+          defaultEquipmentType: {
+            id: 'eq-1',
+            name: 'Machine',
+            code: 'MACHINE',
+          },
+          defaultRestSeconds: 90,
+          archivedAt: null,
+          permissions: { canEdit: false, canArchive: false, canRestore: false },
+          userPreference: {
+            isFavorite: false,
+            isExcludedFromSuggestions: false,
+            preferredEquipmentTypeId: null,
+            restSecondsOverride: null,
+          },
+        },
+      ],
+      pagination: { nextCursor: null, hasMore: false },
+    });
     getMe.mockResolvedValue(meResponse());
 
     wakeLockRelease = vi.fn(async () => undefined);
@@ -459,6 +524,80 @@ describe('ActiveWorkoutPage', () => {
       within(completeDialog).getByRole('button', {
         name: /Continuer la séance/i,
       }),
+    ).toBeInTheDocument();
+  });
+
+  it('ajoute un exercice via le sheet et l’affiche sans reload', async () => {
+    const user = userEvent.setup();
+    const initial = createWorkoutSessionDetail();
+    getActiveWorkoutSession.mockResolvedValue(initial);
+    const added = createWorkoutSessionDetail({
+      version: 2,
+      exercises: [
+        ...initial.exercises,
+        {
+          id: 'wse-leg-ext',
+          position: 1,
+          sourceExerciseId: 'ex-leg-ext',
+          exerciseName: 'Leg Extension',
+          measurementType: 'WEIGHT_REPS',
+          primaryMuscleGroupName: 'Quadriceps',
+          sourceExerciseArchivedAtCreation: false,
+          equipment: { id: 'eq-1', code: 'MACHINE', name: 'Machine' },
+          notes: null,
+          restSeconds: 90,
+          sets: [
+            createWorkoutSet({
+              id: 'ws-leg-1',
+              position: 0,
+              targetWeightKg: null,
+              targetRepMin: null,
+              targetRepMax: null,
+            }),
+          ],
+        },
+      ],
+    });
+    addWorkoutSessionExercise.mockResolvedValue(added);
+
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    client.setQueryData(['me'], meResponse());
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={['/workouts/active']}>
+          <ActiveWorkoutPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('Séance Push')).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: /Ajouter un exercice/i }),
+    );
+    expect(
+      await screen.findByRole('heading', { name: 'Ajouter un exercice' }),
+    ).toBeInTheDocument();
+    await user.click(
+      await screen.findByRole('button', { name: /Leg Extension/i }),
+    );
+    await user.click(screen.getByRole('button', { name: /^Ajouter$/i }));
+
+    await waitFor(() => {
+      expect(addWorkoutSessionExercise).toHaveBeenCalledWith(
+        initial.id,
+        expect.objectContaining({
+          exerciseId: 'ex-leg-ext',
+          expectedVersion: 1,
+        }),
+      );
+    });
+    expect(
+      await screen.findByRole('heading', { name: 'Leg Extension' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Série 1/i }),
     ).toBeInTheDocument();
   });
 });

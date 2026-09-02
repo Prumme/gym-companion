@@ -32,6 +32,20 @@ export class ProgressController {
     return createSuccessResponse(data);
   }
 
+  @Get('api/v1/progress/last-working-sets')
+  @ApiOperation({
+    summary:
+      'Dernière série de travail COMPLETED par exercice (batch Active Workout)',
+  })
+  @ApiQuery({ name: 'exerciseIds', required: true, type: String })
+  async getLastWorkingSets(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: Record<string, string | undefined>,
+  ) {
+    const data = await this.progressService.getLastWorkingSets(user.id, query);
+    return createSuccessResponse(data);
+  }
+
   @Get('api/v1/progress/exercises/:exerciseId/strength')
   @ApiOperation({
     summary:

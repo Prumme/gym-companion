@@ -228,6 +228,8 @@ Concernés :
 
 Les noms de fichiers hashés permettent l’invalidation.
 
+Le précache Workbox accepte un bundle principal jusqu’à 3 MiB (`maximumFileSizeToCacheInBytes`) afin que le shell PWA reste hors ligne.
+
 ### 6.2 Navigation de l’application
 
 Stratégie :
@@ -331,7 +333,7 @@ COMPLETE_WORKOUT
 CANCEL_WORKOUT
 ```
 
-Non supporté hors ligne : création de séance, édition du snapshot structurel, add/remove/reorder, **remplacement d’exercice** (online only V1 — action désactivée offline avec message explicite).
+Non supporté hors ligne : création de séance, édition du snapshot structurel, add/remove/reorder, **remplacement d’exercice**, **ajout d’exercice**, **ajout de série** (online only V1 — actions désactivées offline avec message explicite). La saisie d’une série déjà créée reste dans `UPDATE_WORKOUT_SET`.
 
 La minuterie de repos (3.4) reste dans `localStorage` et ne crée aucune commande.
 
