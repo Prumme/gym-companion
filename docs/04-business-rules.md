@@ -771,6 +771,16 @@ Règles V1 :
 - le token brut n’est jamais loggé ;
 - planning personnel non partagé.
 
+### 15.5 Import via IA externe (AI Program Import Bridge)
+
+Gym Companion ne contacte aucune IA.
+
+Le JSON collé (`schemaVersion: 1`) est une entrée hostile. Validation stricte, preview obligatoire, import transactionnel en `DRAFT`.
+
+Les exercices sont résolus uniquement par `exerciseSlug` SYSTEM actuel. Un même slug ne peut pas apparaître deux fois dans une séance.
+
+Voir `docs/16-ai-program-import.md`.
+
 ## 16. Séance active
 
 ### 16.1 Nombre de séances actives

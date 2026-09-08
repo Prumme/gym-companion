@@ -22,6 +22,7 @@ import { ProgramDetailPage } from '@/features/programs/pages/ProgramDetailPage';
 import { EditProgramPage } from '@/features/programs/pages/EditProgramPage';
 import { PlanningPage } from '@/features/programs/pages/PlanningPage';
 import { ProgramScheduleEditPage } from '@/features/programs/pages/ProgramScheduleEditPage';
+import { ProgramImportPage } from '@/features/programs/pages/ProgramImportPage';
 import { ActiveWorkoutPage } from '@/features/workouts/pages/ActiveWorkoutPage';
 import { WorkoutSessionDetailPage } from '@/features/workouts/pages/WorkoutSessionDetailPage';
 import { WorkoutsHistoryPage } from '@/features/workouts/pages/WorkoutsHistoryPage';
@@ -81,6 +82,7 @@ export const router = createBrowserRouter([
           },
           { path: 'programs', element: <ProgramsPage /> },
           { path: 'programs/new', element: <CreateProgramPage /> },
+          { path: 'programs/import', element: <ProgramImportPage /> },
           { path: 'programs/:programId/edit', element: <EditProgramPage /> },
           { path: 'programs/:programId/schedule', element: <ProgramScheduleEditPage /> },
           { path: 'programs/:programId', element: <ProgramDetailPage /> },

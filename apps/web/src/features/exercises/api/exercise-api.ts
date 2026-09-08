@@ -6,6 +6,7 @@ import type {
   ExerciseSource,
   ExerciseUserPreference,
   MuscleGroupReference,
+  SystemExerciseCatalogItem,
 } from '@gym-companion/shared';
 import type {
   CreateExerciseInput,
@@ -153,6 +154,15 @@ export async function restoreExercise(exerciseId: string): Promise<ExerciseDetai
 export async function listMuscleGroups(): Promise<MuscleGroupReference[]> {
   const response = await apiFetch<{ data: MuscleGroupReference[] }>(
     '/api/v1/reference/muscle-groups',
+  );
+  return response.data;
+}
+
+export async function listSystemExerciseCatalog(): Promise<
+  SystemExerciseCatalogItem[]
+> {
+  const response = await apiFetch<{ data: SystemExerciseCatalogItem[] }>(
+    '/api/v1/exercises/system-catalog',
   );
   return response.data;
 }

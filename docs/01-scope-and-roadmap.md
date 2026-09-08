@@ -244,10 +244,11 @@ Permettre à l’utilisateur de préparer ses entraînements avant de se rendre 
 - Définition d’une intensité facultative.
 - Notes par exercice.
 - Estimation simple de durée.
+- Import via IA externe (prompt copiable + JSON V1, sans appel LLM) — `docs/16-ai-program-import.md`.
 
 ### 5.3 Hors périmètre
 
-- Génération IA.
+- Génération IA **intégrée** (appels LLM serveur). L’import via prompt copiable / JSON externe est livré séparément.
 - Planification complexe sur plusieurs mois.
 - Périodisation automatique.
 - Achat ou vente de programmes.

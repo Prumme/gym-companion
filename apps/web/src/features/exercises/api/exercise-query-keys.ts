@@ -11,4 +11,5 @@ export const exerciseQueryKeys = {
     [...exerciseQueryKeys.all, 'preference', exerciseId] as const,
   muscleGroups: () => ['reference', 'muscle-groups'] as const,
   equipmentTypes: () => ['reference', 'equipment-types'] as const,
+  systemCatalog: () => [...exerciseQueryKeys.all, 'system-catalog'] as const,
 };

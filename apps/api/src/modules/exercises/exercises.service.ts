@@ -7,6 +7,7 @@ import {
 import type {
   ExerciseListResponse,
   ExerciseUserPreference,
+  SystemExerciseCatalogItem,
 } from '@gym-companion/shared';
 import {
   buildExerciseCursorFilter,
@@ -205,6 +206,43 @@ export class ExercisesService {
         hasMore,
       },
     };
+  }
+
+  /**
+   * Catalogue SYSTEM compact pour le prompt d’import IA.
+   * Pas d’UUID, pas de préférences, uniquement les exercices non archivés avec slug.
+   */
+  async listSystemCatalog(): Promise<SystemExerciseCatalogItem[]> {
+    const rows = await this.prisma.exercise.findMany({
+      where: {
+        source: 'SYSTEM',
+        archivedAt: null,
+        slug: { not: null },
+      },
+      orderBy: { slug: 'asc' },
+      select: {
+        slug: true,
+        name: true,
+        measurementType: true,
+        primaryMuscleGroup: { select: { code: true } },
+        defaultEquipmentType: { select: { code: true } },
+      },
+    });
+
+    const catalog: SystemExerciseCatalogItem[] = [];
+    for (const row of rows) {
+      if (row.slug == null) {
+        continue;
+      }
+      catalog.push({
+        slug: row.slug,
+        name: row.name,
+        primaryMuscleCode: row.primaryMuscleGroup.code,
+        defaultEquipmentCode: row.defaultEquipmentType?.code ?? 'other',
+        measurementType: row.measurementType,
+      });
+    }
+    return catalog;
   }
 
   async getById(userId: string, exerciseId: string) {

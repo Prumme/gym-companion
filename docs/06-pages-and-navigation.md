@@ -540,7 +540,8 @@ Le formulaire peut être découpé en sections repliables, mais ne doit pas masq
 - programmes personnels ;
 - brouillons ;
 - archivés, sur demande ;
-- bouton Nouveau programme.
+- bouton Nouveau programme ;
+- bouton Importer avec une IA (`/programs/import`, distinct du partage par lien).
 
 ### Carte de programme
 
@@ -601,6 +602,7 @@ Accessible hors `ProtectedRoute` (preview publique). Import nécessite authentif
 
 ```text
 /programs/new
+/programs/import
 /programs/:programId/edit
 ```
 

@@ -30,6 +30,7 @@ function renderList(entry = '/programs') {
         <Routes>
           <Route path="/programs" element={children} />
           <Route path="/programs/new" element={<div>Création</div>} />
+          <Route path="/programs/import" element={<div>Import IA</div>} />
           <Route path="/programs/:programId" element={<div>Détail</div>} />
           <Route path="/programs/:programId/edit" element={<div>Édition</div>} />
         </Routes>
@@ -58,6 +59,18 @@ describe('ProgramsPage', () => {
 
     await user.click(screen.getByRole('link', { name: /Créer un programme/i }));
     expect(await screen.findByText('Création')).toBeInTheDocument();
+  });
+
+  it('exposes an AI import entry distinct from create', async () => {
+    listPrograms.mockResolvedValue({
+      data: [createProgramListItem()],
+      pagination: { nextCursor: null, hasMore: false },
+    });
+    renderList();
+    expect(await screen.findByText('Push Pull Legs')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /Importer un programme avec une IA/i }),
+    ).toHaveAttribute('href', '/programs/import');
   });
 
   it('opens detail on row tap and exposes secondary menu', async () => {

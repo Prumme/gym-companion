@@ -3080,6 +3080,13 @@ PROGRAM_SCHEDULE_TEMPLATE_NOT_FOUND
 PROGRAM_SCHEDULE_TEMPLATE_MISMATCH
 PROGRAM_SCHEDULE_INVALID_POSITION
 PROGRAM_SCHEDULE_DUPLICATE_POSITION
+
+PROGRAM_IMPORT_INVALID
+UNSUPPORTED_SCHEMA_VERSION
+UNKNOWN_EXERCISE
+INCOMPATIBLE_MEASUREMENT
+DUPLICATE_EXERCISE_IN_WORKOUT
+PAYLOAD_TOO_LARGE
 ```
 
 ### Séances
@@ -3230,7 +3237,21 @@ Réponse création : `{ token, expiresAt, kind }`.
 Preview : `{ kind, expiresAt, preview }` (sans auteur).  
 Import programme : `{}`. Import séance : `{ destination: { type: 'NEW_PROGRAM'|'EXISTING_PROGRAM', ... } }`.
 
-Codes : `SHARE_LINK_EXPIRED` (410), `SHARE_LINK_INVALID` (404), `TRAINING_SHARE_PERSONAL_EXERCISE` (400), `SHARE_VERSION_UNSUPPORTED` (400).
+## 39ter. Import de programme via IA externe
+
+Contrat détaillé : `docs/16-ai-program-import.md`.
+
+```http
+GET  /api/v1/exercises/system-catalog
+POST /api/v1/program-imports/validate
+POST /api/v1/program-imports
+```
+
+Auth JWT. Aucun appel LLM. `validate` ne persiste rien. `import` revalide et crée un `Program` `DRAFT` en une transaction.
+
+Codes import : `PROGRAM_IMPORT_INVALID`, `UNSUPPORTED_SCHEMA_VERSION`, `UNKNOWN_EXERCISE`, `INCOMPATIBLE_MEASUREMENT`, `DUPLICATE_EXERCISE_IN_WORKOUT`, `PAYLOAD_TOO_LARGE`.
+
+Codes share : `SHARE_LINK_EXPIRED` (410), `SHARE_LINK_INVALID` (404), `TRAINING_SHARE_PERSONAL_EXERCISE` (400), `SHARE_VERSION_UNSUPPORTED` (400).
 
 ## 40. Implémentation progressive
 

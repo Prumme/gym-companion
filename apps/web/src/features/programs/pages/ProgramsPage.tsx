@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import type { ProgramListItem } from '@gym-companion/shared';
-import { Plus } from 'lucide-react';
+import { Plus, Sparkles } from 'lucide-react';
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
@@ -58,14 +58,25 @@ export function ProgramsPage() {
             Crée et organise tes programmes d’entraînement.
           </p>
         </div>
-        <ButtonLink
-          to="/programs/new"
-          className="w-full gap-2 sm:w-auto"
-          aria-label="Créer un programme"
-        >
-          <Plus className="size-4" aria-hidden="true" />
-          Créer un programme
-        </ButtonLink>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <ButtonLink
+            to="/programs/import"
+            variant="secondary"
+            className="w-full gap-2 sm:w-auto"
+            aria-label="Importer un programme avec une IA"
+          >
+            <Sparkles className="size-4" aria-hidden="true" />
+            Importer avec une IA
+          </ButtonLink>
+          <ButtonLink
+            to="/programs/new"
+            className="w-full gap-2 sm:w-auto"
+            aria-label="Créer un programme"
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            Créer un programme
+          </ButtonLink>
+        </div>
       </header>
 
       <label className="flex items-center gap-2 text-sm">
@@ -114,6 +125,13 @@ export function ProgramsPage() {
           </p>
           <ButtonLink to="/programs/new" className="mt-4 inline-flex">
             Créer mon premier programme
+          </ButtonLink>
+          <ButtonLink
+            to="/programs/import"
+            variant="secondary"
+            className="mt-2 inline-flex"
+          >
+            Importer avec une IA
           </ButtonLink>
           {!includeArchived ? (
             <p className="mt-4 text-sm text-[var(--muted)]">

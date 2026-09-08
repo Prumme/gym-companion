@@ -1552,6 +1552,64 @@ export type ImportTrainingShareResponse = {
   workoutTemplateId: string | null;
 };
 
+/** Catalogue SYSTEM compact pour le prompt d’import IA (pas d’UUID). */
+export type SystemExerciseCatalogItem = {
+  slug: string;
+  name: string;
+  primaryMuscleCode: string;
+  defaultEquipmentCode: string;
+  measurementType: ExerciseMeasurementType;
+};
+
+export type ProgramImportError = {
+  path: string;
+  code: string;
+  message: string;
+  suggestions?: string[];
+};
+
+export type ProgramImportSetPreview = {
+  repsMin: number | null;
+  repsMax: number | null;
+  durationSeconds: number | null;
+  distanceMeters: number | null;
+  weightKg: number | null;
+  rir: number | null;
+  rpe: number | null;
+  restSeconds: number | null;
+};
+
+export type ProgramImportExercisePreview = {
+  exerciseSlug: string;
+  name: string;
+  measurementType: ExerciseMeasurementType;
+  notes: string | null;
+  sets: ProgramImportSetPreview[];
+};
+
+export type ProgramImportWorkoutPreview = {
+  name: string;
+  description: string | null;
+  estimatedDurationMinutes: number;
+  exercises: ProgramImportExercisePreview[];
+};
+
+export type ProgramImportPreview = {
+  name: string;
+  description: string | null;
+  goal: TrainingGoal;
+  workoutCount: number;
+  exerciseCount: number;
+  setCount: number;
+  workouts: ProgramImportWorkoutPreview[];
+};
+
+export type ProgramImportValidateResponse = {
+  valid: boolean;
+  preview: ProgramImportPreview | null;
+  errors: ProgramImportError[];
+};
+
 export function createSuccessResponse<T>(data: T): ApiSuccessResponse<T> {
   return { data };
 }

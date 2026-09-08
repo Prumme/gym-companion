@@ -49,6 +49,16 @@ export class ExercisesController {
     return this.exercisesService.list(user.id, query);
   }
 
+  @Get('system-catalog')
+  @ApiOperation({
+    summary:
+      'Catalogue SYSTEM compact (slug, nom, muscle, équipement, measurementType) pour l’import IA',
+  })
+  async listSystemCatalog() {
+    const data = await this.exercisesService.listSystemCatalog();
+    return createSuccessResponse(data);
+  }
+
   @Get(':exerciseId/preference')
   @ApiOperation({ summary: 'Préférences effectives de l’utilisateur pour un exercice' })
   async getPreference(

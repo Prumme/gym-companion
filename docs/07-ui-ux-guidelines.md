@@ -551,7 +551,17 @@ Pas de footer sticky permanent sur les pages liste / détail / éditeur. Sticky 
 
 ### 15bis.8 Hors périmètre builder
 
-Planning, Active Workout, Progression, Shared Workouts, catalogue global, Coach : inchangés par ce jalon.
+Pas de drag-and-drop, pas de preview 1RM, pas d’édition IA inline.
+
+### 15bis.9 Import avec une IA
+
+Route : `/programs/import`.
+
+Entrée distincte de la création manuelle et du partage par lien.
+
+Parcours mobile-first : décrire → copier le prompt → coller le JSON → vérifier → importer.
+
+Aucun provider n’est ouvert automatiquement. Hors ligne : vérification et import désactivés.
 
 ## 16. Chronomètre
 

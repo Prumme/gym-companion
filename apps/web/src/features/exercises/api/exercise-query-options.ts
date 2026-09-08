@@ -5,6 +5,7 @@ import {
   listEquipmentTypes,
   listExercises,
   listMuscleGroups,
+  listSystemExerciseCatalog,
   type ExerciseListQuery,
 } from './exercise-api';
 import { exerciseQueryKeys } from './exercise-query-keys';
@@ -49,6 +50,14 @@ export function equipmentTypesQueryOptions() {
   return queryOptions({
     queryKey: exerciseQueryKeys.equipmentTypes(),
     queryFn: listEquipmentTypes,
+    staleTime: REFERENCE_STALE_TIME_MS,
+  });
+}
+
+export function systemExerciseCatalogQueryOptions() {
+  return queryOptions({
+    queryKey: exerciseQueryKeys.systemCatalog(),
+    queryFn: listSystemExerciseCatalog,
     staleTime: REFERENCE_STALE_TIME_MS,
   });
 }
