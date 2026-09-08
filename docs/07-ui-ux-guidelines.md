@@ -432,6 +432,7 @@ Sur mobile, préférer un bottom sheet à une modale centrée.
 - Champs numériques `min-h-12`, `inputMode` adapté, `tabular-nums` ;
 - Sticky : **Enregistrer** ;
 - Secondaires discrets : Annuler · Ignorer la série ;
+- À partir de la série 2 : action texte « Copier la série précédente » (valeurs **actual** du set précédent du même exercice ; pas RIR/RPE/échec/notes/targets). Absente sur la série 1. Désactivée si le set précédent est vide ou si la série courante est `COMPLETED` ;
 - Statut / notes dans « Plus d’options ».
 
 Préserver le préremplissage métier existant (cibles, valeurs déjà saisies). Ne pas inventer de nouvelle recommandation.

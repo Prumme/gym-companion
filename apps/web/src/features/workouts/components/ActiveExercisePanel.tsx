@@ -19,14 +19,9 @@ import {
   useAddWorkoutSessionSetMutation,
   useReplaceWorkoutSessionExerciseMutation,
 } from '../hooks/use-workout-mutations';
-import {
-  formatWorkoutSetTargetCompact,
-  getWorkoutSetTypeLabelSafe,
-} from '../lib/workout-labels';
-import {
-  findNextPendingSetInExercise,
-  isExerciseTreated,
-} from '../lib/workout-progress';
+import { findPreviousSetInExercise } from '../lib/copy-previous-set';
+import { formatWorkoutSetTargetCompact, getWorkoutSetTypeLabelSafe } from '../lib/workout-labels';
+import { findNextPendingSetInExercise, isExerciseTreated } from '../lib/workout-progress';
 import { ReplaceSessionExerciseSheet } from './ReplaceSessionExerciseSheet';
 import { ExerciseLoadCues } from './ExerciseLoadCues';
 import { WorkoutSetCard } from './WorkoutSetCard';
@@ -70,21 +65,13 @@ function formatExerciseMeta(exercise: WorkoutSessionExerciseDetail): string {
 
   if (exercise.measurementType === 'BODYWEIGHT_REPS') {
     parts.push('Poids du corps');
-  } else if (
-    exercise.measurementType === 'WEIGHT_REPS' &&
-    equipment
-  ) {
+  } else if (exercise.measurementType === 'WEIGHT_REPS' && equipment) {
     parts.push(equipment);
-  } else if (
-    exercise.measurementType === 'ASSISTED_BODYWEIGHT_REPS'
-  ) {
+  } else if (exercise.measurementType === 'ASSISTED_BODYWEIGHT_REPS') {
     parts.push(equipment ? `Assistance · ${equipment}` : 'Assistance');
   } else {
     parts.push(measurement);
-    if (
-      equipment &&
-      !measurement.toLowerCase().includes(equipment.toLowerCase())
-    ) {
+    if (equipment && !measurement.toLowerCase().includes(equipment.toLowerCase())) {
       parts.push(equipment);
     }
   }
@@ -244,12 +231,8 @@ export function ActiveExercisePanel({
             </div>
           </div>
         </div>
-        <p className="text-sm text-[var(--muted)]">
-          {formatExerciseMeta(exercise)}
-        </p>
-        {exercise.notes ? (
-          <p className="text-sm text-[var(--muted)]">{exercise.notes}</p>
-        ) : null}
+        <p className="text-sm text-[var(--muted)]">{formatExerciseMeta(exercise)}</p>
+        {exercise.notes ? <p className="text-sm text-[var(--muted)]">{exercise.notes}</p> : null}
         <ExerciseLoadCues
           exercise={exercise}
           records={loadRecords}
@@ -269,10 +252,7 @@ export function ActiveExercisePanel({
           role="status"
         >
           <p className="flex items-center gap-2 text-base font-semibold">
-            <Check
-              className="size-5 text-[var(--primary-foreground)]"
-              aria-hidden="true"
-            />
+            <Check className="size-5 text-[var(--primary-foreground)]" aria-hidden="true" />
             Exercice terminé
           </p>
           <p className="text-sm text-[var(--muted)]">
@@ -291,15 +271,12 @@ export function ActiveExercisePanel({
             <p className="mt-1 text-lg font-semibold tabular-nums tracking-tight">
               {formatWorkoutSetTargetCompact(nextSet) || '—'}
             </p>
-            {nextSet.targetRestSeconds != null &&
-            nextSet.targetRestSeconds > 0 ? (
+            {nextSet.targetRestSeconds != null && nextSet.targetRestSeconds > 0 ? (
               <p className="mt-1 text-sm text-[var(--muted)]">
                 Repos {nextSet.targetRestSeconds} s
               </p>
             ) : exercise.restSeconds != null && exercise.restSeconds > 0 ? (
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                Repos {exercise.restSeconds} s
-              </p>
+              <p className="mt-1 text-sm text-[var(--muted)]">Repos {exercise.restSeconds} s</p>
             ) : null}
           </div>
         </div>
@@ -318,9 +295,7 @@ export function ActiveExercisePanel({
               isNext={nextPendingSetId === set.id}
               onEdit={() => setEditing({ set })}
               onSkip={() => setEditing({ set, initialStatus: 'SKIPPED' })}
-              onMarkFailed={() =>
-                setEditing({ set, initialStatus: 'FAILED' })
-              }
+              onMarkFailed={() => setEditing({ set, initialStatus: 'FAILED' })}
             />
           ))}
         </ol>
@@ -366,17 +341,10 @@ export function ActiveExercisePanel({
                     onVersionConflict();
                   }
                   if (code === 'OFFLINE' || (error as { status?: number }).status === 0) {
-                    setAddSetError(
-                      'Connexion nécessaire pour ajouter une série.',
-                    );
+                    setAddSetError('Connexion nécessaire pour ajouter une série.');
                     return;
                   }
-                  setAddSetError(
-                    getApiErrorMessage(
-                      error,
-                      'Impossible d’ajouter une série.',
-                    ),
-                  );
+                  setAddSetError(getApiErrorMessage(error, 'Impossible d’ajouter une série.'));
                 },
               },
             );
@@ -389,28 +357,17 @@ export function ActiveExercisePanel({
 
       {(() => {
         const showComplete =
-          treated &&
-          isLastExercise &&
-          !hasNextExercise &&
-          Boolean(onOpenComplete);
+          treated && isLastExercise && !hasNextExercise && Boolean(onOpenComplete);
         // Pendant le repos entre exercices, le CTA « suivant » vit dans le RestTimer.
         const showNext =
-          treated &&
-          hasNextExercise &&
-          Boolean(onGoToNextExercise) &&
-          !restTimerActive;
-        const showRecord =
-          !treated && Boolean(nextSet) && canRecordSets && !restTimerActive;
+          treated && hasNextExercise && Boolean(onGoToNextExercise) && !restTimerActive;
+        const showRecord = !treated && Boolean(nextSet) && canRecordSets && !restTimerActive;
 
         // Fin de séance : toujours prioritaire, même si un timer était encore actif.
         if (showComplete) {
           return (
             <div className="sticky bottom-0 z-30 -mx-4 border-t border-[var(--border)] bg-[var(--background)]/95 px-4 pt-3 backdrop-blur-sm pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:mx-0 sm:rounded-b-[var(--radius)]">
-              <Button
-                type="button"
-                className="w-full"
-                onClick={onOpenComplete}
-              >
+              <Button type="button" className="w-full" onClick={onOpenComplete}>
                 Terminer la séance
               </Button>
             </div>
@@ -421,20 +378,12 @@ export function ActiveExercisePanel({
         return (
           <div className="sticky bottom-0 z-10 -mx-4 border-t border-[var(--border)] bg-[var(--background)]/95 px-4 pt-3 backdrop-blur-sm pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:mx-0 sm:rounded-b-[var(--radius)]">
             {showNext ? (
-              <Button
-                type="button"
-                className="w-full"
-                onClick={onGoToNextExercise}
-              >
+              <Button type="button" className="w-full" onClick={onGoToNextExercise}>
                 Exercice suivant
               </Button>
             ) : null}
             {showRecord && nextSet ? (
-              <Button
-                type="button"
-                className="w-full"
-                onClick={() => setEditing({ set: nextSet })}
-              >
+              <Button type="button" className="w-full" onClick={() => setEditing({ set: nextSet })}>
                 Enregistrer la série
               </Button>
             ) : null}
@@ -451,6 +400,7 @@ export function ActiveExercisePanel({
           effortTrackingMode={effortTrackingMode}
           expectedVersion={session.version}
           set={editing.set}
+          previousSet={findPreviousSetInExercise(exercise.sets, editing.set.id)}
           initialStatus={editing.initialStatus}
           onClose={() => setEditing(null)}
           onVersionConflict={onVersionConflict}
@@ -504,17 +454,10 @@ export function ActiveExercisePanel({
                   onVersionConflict();
                 }
                 if (code === 'OFFLINE' || (error as { status?: number }).status === 0) {
-                  setReplaceError(
-                    'Connexion nécessaire pour remplacer un exercice.',
-                  );
+                  setReplaceError('Connexion nécessaire pour remplacer un exercice.');
                   return;
                 }
-                setReplaceError(
-                  getApiErrorMessage(
-                    error,
-                    'Impossible de remplacer cet exercice.',
-                  ),
-                );
+                setReplaceError(getApiErrorMessage(error, 'Impossible de remplacer cet exercice.'));
               },
             },
           );

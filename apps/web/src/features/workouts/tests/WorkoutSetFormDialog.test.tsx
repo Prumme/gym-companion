@@ -108,50 +108,35 @@ describe('WorkoutSetFormDialog', () => {
   it.each([
     ['REPS_ONLY', { reps: true, weight: false, duration: false, distance: false }],
     ['DURATION', { reps: false, weight: false, duration: true, distance: false }],
-    [
-      'DISTANCE_DURATION',
-      { reps: false, weight: false, duration: true, distance: true },
-    ],
-    [
-      'WEIGHT_DURATION',
-      { reps: false, weight: true, duration: true, distance: false },
-    ],
-  ] as const)(
-    'affiche les champs adaptés à %s',
-    (measurementType, visibility) => {
-      renderDialog({
-        measurementType: measurementType as ExerciseMeasurementType,
-        set: createWorkoutSet({
-          targetWeightKg: measurementType.includes('WEIGHT') ? 40 : null,
-          targetRepMin: measurementType.includes('REPS') ? 12 : null,
-          targetRepMax: measurementType.includes('REPS') ? 12 : null,
-          targetDurationSeconds: measurementType.includes('DURATION')
-            ? 45
-            : null,
-          targetDistanceMeters: measurementType.includes('DISTANCE')
-            ? 1000
-            : null,
-          targetRir: null,
-        }),
-        effortTrackingMode: 'NONE',
-      });
-      const dialog = screen.getByRole('dialog');
-      expect(Boolean(within(dialog).queryByLabelText(/^Répétitions$/i))).toBe(
-        visibility.reps,
-      );
-      expect(
-        Boolean(within(dialog).queryByLabelText(/Charge \(kg\)|Assistance/i)),
-      ).toBe(visibility.weight);
-      expect(
-        Boolean(within(dialog).queryByLabelText(/Durée \(secondes\)/i)),
-      ).toBe(visibility.duration);
-      expect(
-        Boolean(within(dialog).queryByLabelText(/Distance \(mètres\)/i)),
-      ).toBe(visibility.distance);
-      expect(within(dialog).queryByLabelText(/^RIR$/i)).not.toBeInTheDocument();
-      expect(within(dialog).queryByLabelText(/^RPE$/i)).not.toBeInTheDocument();
-    },
-  );
+    ['DISTANCE_DURATION', { reps: false, weight: false, duration: true, distance: true }],
+    ['WEIGHT_DURATION', { reps: false, weight: true, duration: true, distance: false }],
+  ] as const)('affiche les champs adaptés à %s', (measurementType, visibility) => {
+    renderDialog({
+      measurementType: measurementType as ExerciseMeasurementType,
+      set: createWorkoutSet({
+        targetWeightKg: measurementType.includes('WEIGHT') ? 40 : null,
+        targetRepMin: measurementType.includes('REPS') ? 12 : null,
+        targetRepMax: measurementType.includes('REPS') ? 12 : null,
+        targetDurationSeconds: measurementType.includes('DURATION') ? 45 : null,
+        targetDistanceMeters: measurementType.includes('DISTANCE') ? 1000 : null,
+        targetRir: null,
+      }),
+      effortTrackingMode: 'NONE',
+    });
+    const dialog = screen.getByRole('dialog');
+    expect(Boolean(within(dialog).queryByLabelText(/^Répétitions$/i))).toBe(visibility.reps);
+    expect(Boolean(within(dialog).queryByLabelText(/Charge \(kg\)|Assistance/i))).toBe(
+      visibility.weight,
+    );
+    expect(Boolean(within(dialog).queryByLabelText(/Durée \(secondes\)/i))).toBe(
+      visibility.duration,
+    );
+    expect(Boolean(within(dialog).queryByLabelText(/Distance \(mètres\)/i))).toBe(
+      visibility.distance,
+    );
+    expect(within(dialog).queryByLabelText(/^RIR$/i)).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText(/^RPE$/i)).not.toBeInTheDocument();
+  });
 
   it('affiche RPE sans RIR selon le profil', () => {
     renderDialog({
@@ -229,9 +214,7 @@ describe('WorkoutSetFormDialog', () => {
     await user.click(screen.getByRole('button', { name: /^Enregistrer$/i }));
 
     expect(
-      await screen.findByText(
-        /La séance a été modifiée depuis un autre onglet ou appareil/i,
-      ),
+      await screen.findByText(/La séance a été modifiée depuis un autre onglet ou appareil/i),
     ).toBeInTheDocument();
     expect(onVersionConflict).toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
@@ -289,5 +272,241 @@ describe('WorkoutSetFormDialog', () => {
       screen.queryByText(/Une connexion est nécessaire pour enregistrer cette série/i),
     ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Enregistrer$/i })).not.toBeDisabled();
+  });
+
+  it('n’affiche pas l’action de copie sur la première série', () => {
+    renderDialog();
+    expect(
+      screen.queryByRole('button', { name: /Copier la série précédente/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('copie WEIGHT_REPS depuis la série précédente sans persister tout de suite', async () => {
+    const user = userEvent.setup();
+    const current = createWorkoutSet({
+      id: 'ws-2',
+      position: 1,
+      targetWeightKg: 60,
+      targetRepMin: 8,
+      targetRepMax: 10,
+      targetRir: 2,
+    });
+    renderDialog({
+      set: current,
+      previousSet: createWorkoutSet({
+        id: 'ws-1',
+        position: 0,
+        status: 'COMPLETED',
+        actualWeightKg: 70,
+        actualReps: 10,
+        actualRir: 0,
+        actualRpe: 9,
+        reachedFailure: true,
+        notes: 'Série 1',
+      }),
+    });
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByLabelText(/Charge \(kg\)/i)).toHaveValue(60);
+    expect(within(dialog).getByText(/8–10 reps/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/60 kg/)).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole('button', { name: /^Copier la série précédente$/i }));
+
+    expect(within(dialog).getByLabelText(/Charge \(kg\)/i)).toHaveValue(70);
+    expect(within(dialog).getByLabelText(/^Répétitions$/i)).toHaveValue(10);
+    expect(within(dialog).getByLabelText(/^RIR$/i)).toHaveValue(2);
+    expect(within(dialog).getByLabelText(/Échec musculaire/i)).not.toBeChecked();
+    expect(within(dialog).getByText(/8–10 reps/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/60 kg/)).toBeInTheDocument();
+    expect(updateWorkoutSet).not.toHaveBeenCalled();
+  });
+
+  it('copie DURATION depuis la série précédente', async () => {
+    const user = userEvent.setup();
+    renderDialog({
+      measurementType: 'DURATION',
+      effortTrackingMode: 'NONE',
+      set: createWorkoutSet({
+        id: 'ws-2',
+        position: 1,
+        targetDurationSeconds: 30,
+        targetWeightKg: null,
+        targetRepMin: null,
+        targetRepMax: null,
+        targetRir: null,
+      }),
+      previousSet: createWorkoutSet({
+        id: 'ws-1',
+        status: 'COMPLETED',
+        actualDurationSeconds: 45,
+        actualWeightKg: 70,
+        actualReps: 10,
+      }),
+    });
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByLabelText(/Durée \(secondes\)/i)).toHaveValue(30);
+    await user.click(within(dialog).getByRole('button', { name: /^Copier la série précédente$/i }));
+    expect(within(dialog).getByLabelText(/Durée \(secondes\)/i)).toHaveValue(45);
+    expect(updateWorkoutSet).not.toHaveBeenCalled();
+  });
+
+  it('copie uniquement les valeurs présentes d’une série précédente partielle', async () => {
+    const user = userEvent.setup();
+    renderDialog({
+      set: createWorkoutSet({
+        id: 'ws-2',
+        position: 1,
+        targetWeightKg: 60,
+        targetRepMax: 10,
+      }),
+      previousSet: createWorkoutSet({
+        status: 'PARTIAL',
+        actualWeightKg: 70,
+        actualReps: null,
+      }),
+    });
+    const dialog = screen.getByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: /^Copier la série précédente$/i }));
+    expect(within(dialog).getByLabelText(/Charge \(kg\)/i)).toHaveValue(70);
+    expect(within(dialog).getByLabelText(/^Répétitions$/i)).toHaveValue(10);
+  });
+
+  it('désactive la copie si la série précédente est vide', () => {
+    renderDialog({
+      set: createWorkoutSet({ id: 'ws-2', position: 1 }),
+      previousSet: createWorkoutSet({
+        status: 'PENDING',
+        actualWeightKg: null,
+        actualReps: null,
+      }),
+    });
+    expect(
+      screen.getByRole('button', {
+        name: /Copier la série précédente.*n’a pas de valeurs/i,
+      }),
+    ).toBeDisabled();
+  });
+
+  it('ne modifie pas une série COMPLETED via la copie', () => {
+    renderDialog({
+      set: createWorkoutSet({
+        id: 'ws-2',
+        position: 1,
+        status: 'COMPLETED',
+        actualWeightKg: 55,
+        actualReps: 8,
+        actualRir: 1,
+      }),
+      previousSet: createWorkoutSet({
+        status: 'COMPLETED',
+        actualWeightKg: 70,
+        actualReps: 10,
+      }),
+    });
+    const dialog = screen.getByRole('dialog');
+    const copy = within(dialog).getByRole('button', {
+      name: /Copier la série précédente.*déjà terminée/i,
+    });
+    expect(copy).toBeDisabled();
+    expect(within(dialog).getByLabelText(/Charge \(kg\)/i)).toHaveValue(55);
+    expect(within(dialog).getByLabelText(/^Répétitions$/i)).toHaveValue(8);
+    expect(updateWorkoutSet).not.toHaveBeenCalled();
+  });
+
+  it('fonctionne sur un exercice ajouté à la volée', async () => {
+    const user = userEvent.setup();
+    renderDialog({
+      sessionExerciseId: 'wse-adhoc',
+      set: createWorkoutSet({
+        id: 'ws-2',
+        position: 1,
+        targetWeightKg: null,
+        targetRepMin: null,
+        targetRepMax: null,
+        targetRir: null,
+      }),
+      previousSet: createWorkoutSet({
+        actualWeightKg: 50,
+        actualReps: 12,
+      }),
+    });
+    const dialog = screen.getByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: /^Copier la série précédente$/i }));
+    expect(within(dialog).getByLabelText(/Charge \(kg\)/i)).toHaveValue(50);
+    expect(within(dialog).getByLabelText(/^Répétitions$/i)).toHaveValue(12);
+  });
+
+  it('fonctionne sur un exercice remplacé (même flux, même exercice de séance)', async () => {
+    const user = userEvent.setup();
+    renderDialog({
+      sessionExerciseId: 'wse-replaced',
+      set: createWorkoutSet({
+        id: 'ws-2',
+        position: 1,
+        targetWeightKg: 40,
+        targetRepMax: 8,
+      }),
+      previousSet: createWorkoutSet({
+        actualWeightKg: 80,
+        actualReps: 6,
+      }),
+    });
+    await user.click(screen.getByRole('button', { name: /^Copier la série précédente$/i }));
+    expect(screen.getByLabelText(/Charge \(kg\)/i)).toHaveValue(80);
+    expect(screen.getByLabelText(/^Répétitions$/i)).toHaveValue(6);
+  });
+
+  it('enregistre les valeurs copiées sans RIR/notes de la série précédente', async () => {
+    const user = userEvent.setup();
+    updateWorkoutSet.mockResolvedValue({
+      workoutSet: createWorkoutSet({
+        id: 'ws-2',
+        position: 1,
+        status: 'COMPLETED',
+        actualWeightKg: 70,
+        actualReps: 10,
+      }),
+      workoutSessionVersion: 2,
+    });
+    renderDialog({
+      set: createWorkoutSet({ id: 'ws-2', position: 1 }),
+      previousSet: createWorkoutSet({
+        status: 'COMPLETED',
+        actualWeightKg: 70,
+        actualReps: 10,
+        actualRir: 0,
+        notes: 'Ne pas copier',
+        reachedFailure: true,
+      }),
+    });
+    await user.click(screen.getByRole('button', { name: /^Copier la série précédente$/i }));
+    await user.click(screen.getByRole('button', { name: /^Enregistrer$/i }));
+    await waitFor(() => expect(updateWorkoutSet).toHaveBeenCalledTimes(1));
+    expect(updateWorkoutSet.mock.calls[0]?.[3]).toMatchObject({
+      status: 'COMPLETED',
+      actualWeightKg: 70,
+      actualReps: 10,
+      actualRir: 2,
+      reachedFailure: false,
+      notes: null,
+    });
+  });
+
+  it('copie hors ligne sans appeler l’API', async () => {
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, 'onLine', {
+      configurable: true,
+      value: false,
+    });
+    renderDialog({
+      set: createWorkoutSet({ id: 'ws-2', position: 1 }),
+      previousSet: createWorkoutSet({
+        actualWeightKg: 70,
+        actualReps: 10,
+      }),
+    });
+    await user.click(screen.getByRole('button', { name: /^Copier la série précédente$/i }));
+    expect(screen.getByLabelText(/Charge \(kg\)/i)).toHaveValue(70);
+    expect(updateWorkoutSet).not.toHaveBeenCalled();
   });
 });

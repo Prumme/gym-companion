@@ -7,10 +7,7 @@ import type {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useId, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import {
-  updateWorkoutSetSchema,
-  type UpdateWorkoutSetInput,
-} from '@gym-companion/validation';
+import { updateWorkoutSetSchema, type UpdateWorkoutSetInput } from '@gym-companion/validation';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
@@ -19,9 +16,13 @@ import { cn } from '@/lib/utils';
 
 import { useUpdateWorkoutSetMutation } from '../hooks/use-workout-mutations';
 import {
-  formatWorkoutSetTargetCompact,
-  getWorkoutSetTypeLabelSafe,
-} from '../lib/workout-labels';
+  canCopyPreviousSetIntoCurrent,
+  getWorkoutSetActualFieldVisibility,
+  hasCopyableActuals,
+  pickCopyableActuals,
+  type CopyableActualKey,
+} from '../lib/copy-previous-set';
+import { formatWorkoutSetTargetCompact, getWorkoutSetTypeLabelSafe } from '../lib/workout-labels';
 
 const formSchema = updateWorkoutSetSchema;
 
@@ -35,6 +36,7 @@ type WorkoutSetFormDialogProps = {
   effortTrackingMode: EffortTrackingMode;
   expectedVersion: number;
   set: WorkoutSessionSetDetail;
+  previousSet?: WorkoutSessionSetDetail | null;
   initialStatus?: WorkoutSetStatus;
   onClose: () => void;
   onVersionConflict: () => void;
@@ -102,9 +104,7 @@ function buildDefaults(
 
   return {
     status:
-      initialStatus &&
-      initialStatus !== 'CANCELLED' &&
-      initialStatus !== 'PENDING'
+      initialStatus && initialStatus !== 'CANCELLED' && initialStatus !== 'PENDING'
         ? initialStatus
         : 'COMPLETED',
     actualWeightKg: set.targetWeightKg,
@@ -138,6 +138,7 @@ export function WorkoutSetFormDialog({
   effortTrackingMode,
   expectedVersion,
   set,
+  previousSet = null,
   initialStatus,
   onClose,
   onVersionConflict,
@@ -148,8 +149,7 @@ export function WorkoutSetFormDialog({
   const [confirmClose, setConfirmClose] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const defaults = useMemo(
-    () =>
-      buildDefaults(set, effortTrackingMode, expectedVersion, initialStatus),
+    () => buildDefaults(set, effortTrackingMode, expectedVersion, initialStatus),
     [set, effortTrackingMode, expectedVersion, initialStatus],
   );
 
@@ -167,9 +167,7 @@ export function WorkoutSetFormDialog({
 
   useEffect(() => {
     if (open) {
-      reset(
-        buildDefaults(set, effortTrackingMode, expectedVersion, initialStatus),
-      );
+      reset(buildDefaults(set, effortTrackingMode, expectedVersion, initialStatus));
       setConfirmClose(false);
       setMoreOpen(false);
     }
@@ -181,24 +179,20 @@ export function WorkoutSetFormDialog({
     return null;
   }
 
-  const showReps = [
-    'WEIGHT_REPS',
-    'BODYWEIGHT_REPS',
-    'ASSISTED_BODYWEIGHT_REPS',
-    'REPS_ONLY',
-  ].includes(measurementType);
-  const showWeight = [
-    'WEIGHT_REPS',
-    'BODYWEIGHT_REPS',
-    'ASSISTED_BODYWEIGHT_REPS',
-    'WEIGHT_DURATION',
-  ].includes(measurementType);
-  const showDuration = [
-    'DURATION',
-    'DISTANCE_DURATION',
-    'WEIGHT_DURATION',
-  ].includes(measurementType);
-  const showDistance = measurementType === 'DISTANCE_DURATION';
+  const {
+    reps: showReps,
+    weight: showWeight,
+    duration: showDuration,
+    distance: showDistance,
+  } = getWorkoutSetActualFieldVisibility(measurementType);
+  const showCopyPrevious = previousSet != null && status !== 'SKIPPED' && status !== 'PENDING';
+  const copyDisabledReason = !canCopyPreviousSetIntoCurrent(set.status)
+    ? 'Cette série est déjà terminée.'
+    : !hasCopyableActuals(previousSet, measurementType)
+      ? 'La série précédente n’a pas de valeurs à copier.'
+      : mutation.isPending
+        ? 'Enregistrement en cours.'
+        : null;
   const weightLabel =
     measurementType === 'ASSISTED_BODYWEIGHT_REPS'
       ? 'Assistance (kg)'
@@ -217,6 +211,19 @@ export function WorkoutSetFormDialog({
       return;
     }
     onClose();
+  }
+
+  function copyPreviousSet() {
+    if (!previousSet || copyDisabledReason) {
+      return;
+    }
+    const copied = pickCopyableActuals(previousSet, measurementType);
+    (Object.keys(copied) as CopyableActualKey[]).forEach((key) => {
+      const value = copied[key];
+      if (value != null) {
+        setValue(key, value, { shouldDirty: true, shouldValidate: true });
+      }
+    });
   }
 
   async function submit(values: FormValues) {
@@ -259,12 +266,8 @@ export function WorkoutSetFormDialog({
   }
 
   const apiError =
-    mutation.error &&
-    (mutation.error as ApiRequestError).code !== 'WORKOUT_VERSION_CONFLICT'
-      ? getApiErrorMessage(
-          mutation.error,
-          'Impossible d’enregistrer cette série.',
-        )
+    mutation.error && (mutation.error as ApiRequestError).code !== 'WORKOUT_VERSION_CONFLICT'
+      ? getApiErrorMessage(mutation.error, 'Impossible d’enregistrer cette série.')
       : null;
 
   return (
@@ -305,9 +308,7 @@ export function WorkoutSetFormDialog({
                     <div
                       className={cn(
                         'grid gap-3',
-                        showWeight && showReps
-                          ? 'grid-cols-2'
-                          : 'grid-cols-1',
+                        showWeight && showReps ? 'grid-cols-2' : 'grid-cols-1',
                       )}
                     >
                       {showWeight ? (
@@ -393,6 +394,23 @@ export function WorkoutSetFormDialog({
                     </label>
                   ) : null}
 
+                  {showCopyPrevious ? (
+                    <button
+                      type="button"
+                      className="min-h-11 self-start px-1 text-sm text-[var(--primary)] underline-offset-4 hover:underline disabled:pointer-events-none disabled:opacity-50"
+                      disabled={copyDisabledReason != null}
+                      title={copyDisabledReason ?? undefined}
+                      aria-label={
+                        copyDisabledReason
+                          ? `Copier la série précédente. ${copyDisabledReason}`
+                          : 'Copier la série précédente'
+                      }
+                      onClick={copyPreviousSet}
+                    >
+                      Copier la série précédente
+                    </button>
+                  ) : null}
+
                   {effortTrackingMode === 'RIR' ? (
                     <label className="flex flex-col gap-1 text-sm">
                       <span className="font-medium">RIR</span>
@@ -446,59 +464,55 @@ export function WorkoutSetFormDialog({
                 {moreOpen ? 'Masquer les options' : 'Plus d’options'}
               </button>
 
-              <div className={moreOpen ? 'flex flex-col gap-3 border-t border-[var(--border)] pt-3' : 'sr-only'}>
-                  <label className="flex flex-col gap-1 text-sm">
-                    <span className="font-medium">Statut</span>
-                    <select
-                      className={cn(fieldClass, 'text-sm')}
-                      {...register('status')}
-                    >
-                      <option value="COMPLETED">Terminée</option>
-                      <option value="PARTIAL">Partielle</option>
-                      <option value="FAILED">Échouée</option>
-                      <option value="SKIPPED">Ignorée</option>
-                      <option value="PENDING">À faire</option>
-                    </select>
-                    {errors.status ? (
-                      <span className="text-[var(--danger)]" role="alert">
-                        {errors.status.message}
-                      </span>
-                    ) : null}
-                  </label>
-
-                  {status !== 'SKIPPED' && status !== 'PENDING' ? (
-                    <label className="flex flex-col gap-1 text-sm">
-                      <span className="font-medium">Notes</span>
-                      <textarea
-                        rows={2}
-                        className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
-                        {...register('notes')}
-                      />
-                    </label>
+              <div
+                className={
+                  moreOpen ? 'flex flex-col gap-3 border-t border-[var(--border)] pt-3' : 'sr-only'
+                }
+              >
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium">Statut</span>
+                  <select className={cn(fieldClass, 'text-sm')} {...register('status')}>
+                    <option value="COMPLETED">Terminée</option>
+                    <option value="PARTIAL">Partielle</option>
+                    <option value="FAILED">Échouée</option>
+                    <option value="SKIPPED">Ignorée</option>
+                    <option value="PENDING">À faire</option>
+                  </select>
+                  {errors.status ? (
+                    <span className="text-[var(--danger)]" role="alert">
+                      {errors.status.message}
+                    </span>
                   ) : null}
-                </div>
+                </label>
+
+                {status !== 'SKIPPED' && status !== 'PENDING' ? (
+                  <label className="flex flex-col gap-1 text-sm">
+                    <span className="font-medium">Notes</span>
+                    <textarea
+                      rows={2}
+                      className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
+                      {...register('notes')}
+                    />
+                  </label>
+                ) : null}
+              </div>
 
               {apiError ? (
                 <p className="text-sm text-[var(--danger)]" role="alert">
                   {apiError}
                 </p>
               ) : null}
-              {(mutation.error as ApiRequestError | null)?.code ===
-              'WORKOUT_VERSION_CONFLICT' ? (
+              {(mutation.error as ApiRequestError | null)?.code === 'WORKOUT_VERSION_CONFLICT' ? (
                 <p className="text-sm text-[var(--danger)]" role="alert">
-                  La séance a été modifiée depuis un autre onglet ou appareil.
-                  Les dernières données ont été rechargées.
+                  La séance a été modifiée depuis un autre onglet ou appareil. Les dernières données
+                  ont été rechargées.
                 </p>
               ) : null}
             </div>
           </div>
 
           <div className="shrink-0 border-t border-[var(--border)] bg-[var(--card)] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={mutation.isPending}
-            >
+            <Button type="submit" className="w-full" disabled={mutation.isPending}>
               {mutation.isPending ? 'Enregistrement…' : 'Enregistrer'}
             </Button>
             <div className="mt-2 flex items-center justify-between gap-3">
@@ -532,8 +546,7 @@ export function WorkoutSetFormDialog({
             aria-label="Modifications non enregistrées"
           >
             <p className="text-sm">
-              Des modifications non enregistrées seront perdues. Fermer quand
-              même ?
+              Des modifications non enregistrées seront perdues. Fermer quand même ?
             </p>
             <div className="mt-2 flex gap-2">
               <Button
