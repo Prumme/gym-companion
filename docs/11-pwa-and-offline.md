@@ -163,22 +163,24 @@ Exemple conceptuel :
   "display": "standalone",
   "start_url": "/",
   "scope": "/",
-  "theme_color": "#000000",
-  "background_color": "#000000"
+  "theme_color": "#b7f34a",
+  "background_color": "#f5f6f3"
 }
 ```
 
-Les couleurs exactes dépendent du design final.
+`theme_color` suit le token `--primary` (`#b7f34a`) ; `background_color` suit `--background` (`#f5f6f3`).
 
 ### 4.2 Icônes
 
 Prévoir :
 
-- 192 × 192 ;
-- 512 × 512 ;
-- icônes maskable ;
+- 192 × 192 (`purpose: any`) ;
+- 512 × 512 (`purpose: any`) ;
+- icônes maskable (fond opaque, glyphe dans la safe zone centrale) ;
 - favicon ;
 - icônes Apple lorsque nécessaire.
+
+Les PNG sont régénérés depuis `apps/web/public/icons/icon.svg` via `apps/web/scripts/generate-pwa-icons.py`. Une PWA déjà installée peut conserver l’ancienne icône jusqu’à réinstallation ou rafraîchissement du cache.
 
 ### 4.3 Invitation à installer
 
