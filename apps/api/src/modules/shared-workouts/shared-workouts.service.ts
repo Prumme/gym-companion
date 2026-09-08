@@ -54,10 +54,7 @@ import {
 import { SharedWorkoutEquipmentCoordinationService } from './shared-workout-equipment-coordination.service';
 import { generateSharedWorkoutJoinCode } from './shared-workout-join-code';
 import { SharedWorkoutRealtimePublisher } from './shared-workout-realtime.publisher';
-import {
-  toSharedWorkoutRoomDetail,
-  toSharedWorkoutRoomListItem,
-} from './shared-workouts.mapper';
+import { toSharedWorkoutRoomDetail, toSharedWorkoutRoomListItem } from './shared-workouts.mapper';
 
 const activeMemberSome = (userId: string) => ({
   members: { some: { userId, leftAt: null } },
@@ -118,10 +115,7 @@ export class SharedWorkoutsService {
     private readonly workoutsService: WorkoutsService,
   ) {}
 
-  async createRoom(
-    userId: string,
-    body: unknown,
-  ): Promise<SharedWorkoutRoomDetail> {
+  async createRoom(userId: string, body: unknown): Promise<SharedWorkoutRoomDetail> {
     const parsed = createSharedWorkoutRoomBodySchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException({
@@ -134,11 +128,7 @@ export class SharedWorkoutsService {
     const name = resolveSharedWorkoutRoomName(parsed.data.name);
     const now = new Date();
 
-    for (
-      let attempt = 0;
-      attempt < SHARED_WORKOUT_JOIN_CODE_GENERATE_MAX_ATTEMPTS;
-      attempt += 1
-    ) {
+    for (let attempt = 0; attempt < SHARED_WORKOUT_JOIN_CODE_GENERATE_MAX_ATTEMPTS; attempt += 1) {
       const joinCode = generateSharedWorkoutJoinCode();
       try {
         const room = await this.prisma.$transaction(async (tx) => {
@@ -161,10 +151,7 @@ export class SharedWorkoutsService {
         });
         return toSharedWorkoutRoomDetail(room, userId);
       } catch (error) {
-        if (
-          error instanceof Prisma.PrismaClientKnownRequestError &&
-          error.code === 'P2002'
-        ) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
           continue;
         }
         throw error;
@@ -236,10 +223,7 @@ export class SharedWorkoutsService {
     };
   }
 
-  async getRoom(
-    userId: string,
-    roomId: string,
-  ): Promise<SharedWorkoutRoomDetail> {
+  async getRoom(userId: string, roomId: string): Promise<SharedWorkoutRoomDetail> {
     const room = await this.findActiveMemberRoomOrThrow(userId, roomId);
     return toSharedWorkoutRoomDetail(room, userId);
   }
@@ -247,10 +231,7 @@ export class SharedWorkoutsService {
   /**
    * Shared 5.4 — état attach/create pour le current user.
    */
-  async getMyWorkoutSession(
-    userId: string,
-    roomId: string,
-  ): Promise<MySharedWorkoutSessionDto> {
+  async getMyWorkoutSession(userId: string, roomId: string): Promise<MySharedWorkoutSessionDto> {
     const room = await this.findActiveMemberRoomOrThrow(userId, roomId);
     const member = room.members.find((m) => m.userId === userId);
     if (!member) {
@@ -262,8 +243,7 @@ export class SharedWorkoutsService {
 
     const linked = member.memberSession?.workoutSession ?? null;
     if (linked) {
-      const terminal =
-        linked.status === 'COMPLETED' || linked.status === 'CANCELLED';
+      const terminal = linked.status === 'COMPLETED' || linked.status === 'CANCELLED';
       return {
         linked: true,
         workoutSession: {
@@ -398,8 +378,7 @@ export class SharedWorkoutsService {
     if (session.status !== 'ACTIVE' && session.status !== 'PAUSED') {
       throw new BadRequestException({
         code: 'SHARED_WORKOUT_SESSION_NOT_ATTACHABLE',
-        message:
-          'Seules les séances en cours ou en pause peuvent être rattachées.',
+        message: 'Seules les séances en cours ou en pause peuvent être rattachées.',
       });
     }
 
@@ -485,22 +464,16 @@ export class SharedWorkoutsService {
       where: { userId },
       select: { timezone: true },
     });
-    const timezone =
-      parsed.data.timezone?.trim() || profile?.timezone || 'Europe/Paris';
-    const localDate =
-      parsed.data.localDate ?? utcDateToLocalDateString(new Date());
+    const timezone = parsed.data.timezone?.trim() || profile?.timezone || 'Europe/Paris';
+    const localDate = parsed.data.localDate ?? utcDateToLocalDateString(new Date());
 
     try {
       const created = await this.prisma.$transaction(async (tx) => {
-        const session = await this.workoutsService.createFromTemplateInTransaction(
-          tx,
-          userId,
-          {
-            sourceWorkoutTemplateId: parsed.data.workoutTemplateId,
-            localDate,
-            timezone,
-          },
-        );
+        const session = await this.workoutsService.createFromTemplateInTransaction(tx, userId, {
+          sourceWorkoutTemplateId: parsed.data.workoutTemplateId,
+          localDate,
+          timezone,
+        });
 
         await tx.sharedWorkoutRoomMemberSession.create({
           data: {
@@ -514,9 +487,7 @@ export class SharedWorkoutsService {
 
       this.realtime.emitRoomChanged(roomId, 'MEMBER_WORKOUT_CHANGED');
 
-      const workoutSession = toWorkoutSessionDetail(
-        created as WorkoutSessionSnapshotRow,
-      );
+      const workoutSession = toWorkoutSessionDetail(created as WorkoutSessionSnapshotRow);
       const mySession = await this.getMyWorkoutSession(userId, roomId);
       return { mySession, workoutSession };
     } catch (error) {
@@ -537,10 +508,7 @@ export class SharedWorkoutsService {
         // Conflit unicité séance active ou association — état cohérent via GET.
         const mySession = await this.getMyWorkoutSession(userId, roomId);
         if (mySession.linked && mySession.workoutSession) {
-          const detail = await this.workoutsService.getById(
-            userId,
-            mySession.workoutSession.id,
-          );
+          const detail = await this.workoutsService.getById(userId, mySession.workoutSession.id);
           return { mySession, workoutSession: detail };
         }
         throw new ConflictException({
@@ -592,8 +560,7 @@ export class SharedWorkoutsService {
     }
 
     const room = link.roomMember.room;
-    const terminalWorkoutCleared =
-      room.status === 'COMPLETED' || room.status === 'CANCELLED';
+    const terminalWorkoutCleared = room.status === 'COMPLETED' || room.status === 'CANCELLED';
 
     return {
       linked: true,
@@ -629,8 +596,7 @@ export class SharedWorkoutsService {
     if (room.status !== 'ACTIVE') {
       throw new BadRequestException({
         code: 'SHARED_WORKOUT_ROOM_NOT_ACTIVE',
-        message:
-          'L’exercice courant ne peut être modifié que lorsque la salle est active.',
+        message: 'L’exercice courant ne peut être modifié que lorsque la salle est active.',
       });
     }
 
@@ -683,11 +649,7 @@ export class SharedWorkoutsService {
       }
     }
 
-    await this.equipmentCoordination.assertCanChangeCurrentExercise(
-      userId,
-      roomId,
-      nextExerciseId,
-    );
+    await this.equipmentCoordination.assertCanChangeCurrentExercise(userId, roomId, nextExerciseId);
 
     await this.prisma.sharedWorkoutRoomMemberSession.update({
       where: { id: member.memberSession.id },
@@ -697,17 +659,9 @@ export class SharedWorkoutsService {
       },
     });
 
-    await this.equipmentCoordination.afterCurrentExerciseChanged(
-      userId,
-      roomId,
-      nextExerciseId,
-    );
+    await this.equipmentCoordination.afterCurrentExerciseChanged(userId, roomId, nextExerciseId);
 
-    this.realtime.emitRoomChanged(
-      roomId,
-      'MEMBER_CURRENT_EXERCISE_CHANGED',
-      userId,
-    );
+    this.realtime.emitRoomChanged(roomId, 'MEMBER_CURRENT_EXERCISE_CHANGED', userId);
     return this.getMyWorkoutSession(userId, roomId);
   }
 
@@ -745,11 +699,7 @@ export class SharedWorkoutsService {
     return toSharedWorkoutRoomDetail(updated, userId);
   }
 
-  async startRoom(
-    userId: string,
-    roomId: string,
-    body: unknown,
-  ): Promise<SharedWorkoutRoomDetail> {
+  async startRoom(userId: string, roomId: string, body: unknown): Promise<SharedWorkoutRoomDetail> {
     return this.transitionLifecycle(userId, roomId, 'START', body);
   }
 
@@ -769,10 +719,7 @@ export class SharedWorkoutsService {
     return this.transitionLifecycle(userId, roomId, 'CANCEL', body);
   }
 
-  async joinByCode(
-    userId: string,
-    body: unknown,
-  ): Promise<SharedWorkoutRoomDetail> {
+  async joinByCode(userId: string, body: unknown): Promise<SharedWorkoutRoomDetail> {
     let normalizedCode: string;
     try {
       normalizedCode = joinSharedWorkoutBodySchema.parse(body).code;
@@ -788,10 +735,7 @@ export class SharedWorkoutsService {
       select: { id: true, status: true },
     });
 
-    if (
-      !room ||
-      !canJoinSharedWorkoutRoomByCode(room.status as SharedWorkoutRoomStatusValue)
-    ) {
+    if (!room || !canJoinSharedWorkoutRoomByCode(room.status as SharedWorkoutRoomStatusValue)) {
       throw new NotFoundException({
         code: 'SHARED_WORKOUT_JOIN_CODE_INVALID',
         message: 'Code invalide ou expiré.',
@@ -846,10 +790,7 @@ export class SharedWorkoutsService {
 
       return toSharedWorkoutRoomDetail(result.room, userId);
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         const refreshed = await this.prisma.sharedWorkoutRoom.findFirst({
           where: {
             id: room.id,
@@ -869,16 +810,11 @@ export class SharedWorkoutsService {
     }
   }
 
-  async rotateJoinCode(
-    userId: string,
-    roomId: string,
-  ): Promise<SharedWorkoutJoinCodeDto> {
+  async rotateJoinCode(userId: string, roomId: string): Promise<SharedWorkoutJoinCodeDto> {
     const room = await this.findActiveMemberRoomOrThrow(userId, roomId);
     this.assertOwner(room.ownerUserId, userId);
 
-    if (
-      !canRotateSharedWorkoutJoinCode(room.status as SharedWorkoutRoomStatusValue)
-    ) {
+    if (!canRotateSharedWorkoutJoinCode(room.status as SharedWorkoutRoomStatusValue)) {
       throw new BadRequestException({
         code: 'SHARED_WORKOUT_ROOM_INVALID_STATUS',
         message: 'Impossible de régénérer le code pour une salle terminée ou annulée.',
@@ -887,11 +823,7 @@ export class SharedWorkoutsService {
 
     const now = new Date();
 
-    for (
-      let attempt = 0;
-      attempt < SHARED_WORKOUT_JOIN_CODE_GENERATE_MAX_ATTEMPTS;
-      attempt += 1
-    ) {
+    for (let attempt = 0; attempt < SHARED_WORKOUT_JOIN_CODE_GENERATE_MAX_ATTEMPTS; attempt += 1) {
       const joinCode = generateSharedWorkoutJoinCode();
       try {
         const updated = await this.prisma.sharedWorkoutRoom.updateMany({
@@ -913,10 +845,7 @@ export class SharedWorkoutsService {
         }
         return { joinCode: formatSharedWorkoutJoinCode(joinCode) };
       } catch (error) {
-        if (
-          error instanceof Prisma.PrismaClientKnownRequestError &&
-          error.code === 'P2002'
-        ) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
           continue;
         }
         throw error;
@@ -929,10 +858,7 @@ export class SharedWorkoutsService {
     });
   }
 
-  async leaveRoom(
-    userId: string,
-    roomId: string,
-  ): Promise<{ left: true }> {
+  async leaveRoom(userId: string, roomId: string): Promise<{ left: true }> {
     const room = await this.prisma.sharedWorkoutRoom.findFirst({
       where: {
         id: roomId,
@@ -978,6 +904,7 @@ export class SharedWorkoutsService {
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
+      await this.equipmentCoordination.lockRoom(tx, roomId);
       const result = await tx.sharedWorkoutRoomMember.updateMany({
         where: {
           roomId,
@@ -994,12 +921,11 @@ export class SharedWorkoutsService {
         });
       }
 
-      const equipmentChanged =
-        await this.equipmentCoordination.cleanupMemberLeave(
-          roomId,
-          membership.id,
-          tx,
-        );
+      const equipmentChanged = await this.equipmentCoordination.cleanupMemberLeave(
+        roomId,
+        membership.id,
+        tx,
+      );
       return { equipmentChanged };
     });
 
@@ -1115,10 +1041,7 @@ export class SharedWorkoutsService {
           }
           appliedStatus = transition.nextStatus;
 
-          if (
-            transition.nextStatus === 'COMPLETED' ||
-            transition.nextStatus === 'CANCELLED'
-          ) {
+          if (transition.nextStatus === 'COMPLETED' || transition.nextStatus === 'CANCELLED') {
             await this.equipmentCoordination.cleanupRoomTerminal(roomId, tx);
           }
         }
@@ -1150,10 +1073,7 @@ export class SharedWorkoutsService {
 
       return toSharedWorkoutRoomDetail(result.room, userId);
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new ConflictException({
           code: 'SHARED_WORKOUT_ROOM_COMMAND_CONFLICT',
           message: 'Commande déjà en cours de traitement.',

@@ -62,10 +62,7 @@ export class SharedWorkoutEquipmentCoordinationService {
     return this.buildCoordinationDto(roomId);
   }
 
-  async getMyEquipment(
-    userId: string,
-    roomId: string,
-  ): Promise<MySharedWorkoutEquipmentState> {
+  async getMyEquipment(userId: string, roomId: string): Promise<MySharedWorkoutEquipmentState> {
     const ctx = await this.resolveMemberEquipmentContext(userId, roomId);
     if (!ctx.ok) {
       return {
@@ -94,15 +91,11 @@ export class SharedWorkoutEquipmentCoordinationService {
         available: true,
         equipment,
         state: 'WAITING',
-        queuePosition: computeWaitingQueuePosition(
-          waitingEntries,
-          activeEntry.id,
-        ),
+        queuePosition: computeWaitingQueuePosition(waitingEntries, activeEntry.id),
         occupiedBy: usingEntry
           ? {
               userId: usingEntry.roomMember.userId,
-              displayName:
-                usingEntry.roomMember.user.profile?.displayName ?? null,
+              displayName: usingEntry.roomMember.user.profile?.displayName ?? null,
             }
           : null,
       };
@@ -143,6 +136,7 @@ export class SharedWorkoutEquipmentCoordinationService {
     });
 
     const result = await this.prisma.$transaction(async (tx) => {
+      await this.lockRoom(tx, roomId);
       const replay = await this.replayOrRegisterCommand(
         tx,
         userId,
@@ -159,8 +153,7 @@ export class SharedWorkoutEquipmentCoordinationService {
       if (!ctx.ok) {
         throw new BadRequestException({
           code: 'SHARED_EQUIPMENT_NOT_COORDINATABLE',
-          message:
-            'Aucun équipement coordonnable pour ton exercice courant.',
+          message: 'Aucun équipement coordonnable pour ton exercice courant.',
         });
       }
 
@@ -169,24 +162,21 @@ export class SharedWorkoutEquipmentCoordinationService {
       }
 
       const now = new Date();
+      // Après lock salle, usingEntry est à jour : pas de try/USING puis WAITING
+      // dans la même tx (P2002 avorte la transaction PostgreSQL, 25P02 ensuite).
       if (!ctx.usingEntry) {
-        try {
-          await tx.sharedWorkoutEquipmentQueueEntry.create({
-            data: {
-              id: randomUUID(),
-              roomId,
-              roomMemberId: ctx.roomMemberId,
-              equipmentTypeId: ctx.equipment.id,
-              status: 'USING',
-              requestedAt: now,
-              acquiredAt: now,
-            },
-          });
-          return { changed: true as const };
-        } catch (error) {
-          if (!this.isUniqueViolation(error)) throw error;
-          // Concurrent acquire — fall through to WAITING.
-        }
+        await tx.sharedWorkoutEquipmentQueueEntry.create({
+          data: {
+            id: randomUUID(),
+            roomId,
+            roomMemberId: ctx.roomMemberId,
+            equipmentTypeId: ctx.equipment.id,
+            status: 'USING',
+            requestedAt: now,
+            acquiredAt: now,
+          },
+        });
+        return { changed: true as const };
       }
 
       await tx.sharedWorkoutEquipmentQueueEntry.create({
@@ -220,6 +210,7 @@ export class SharedWorkoutEquipmentCoordinationService {
     });
 
     const result = await this.prisma.$transaction(async (tx) => {
+      await this.lockRoom(tx, roomId);
       const replay = await this.replayOrRegisterCommand(
         tx,
         userId,
@@ -275,6 +266,7 @@ export class SharedWorkoutEquipmentCoordinationService {
     });
 
     const result = await this.prisma.$transaction(async (tx) => {
+      await this.lockRoom(tx, roomId);
       const replay = await this.replayOrRegisterCommand(
         tx,
         userId,
@@ -298,8 +290,7 @@ export class SharedWorkoutEquipmentCoordinationService {
       if (!waiting) {
         throw new BadRequestException({
           code: 'SHARED_EQUIPMENT_NOT_WAITING',
-          message:
-            'Tu n’es pas en file d’attente. Utilise « libérer » si tu occupes l’équipement.',
+          message: 'Tu n’es pas en file d’attente. Utilise « libérer » si tu occupes l’équipement.',
         });
       }
 
@@ -357,8 +348,7 @@ export class SharedWorkoutEquipmentCoordinationService {
     if (nextExerciseId == null) {
       throw new BadRequestException({
         code: 'SHARED_EQUIPMENT_STILL_USING',
-        message:
-          'Tu utilises encore cet équipement. Libère-le avant de changer d’exercice.',
+        message: 'Tu utilises encore cet équipement. Libère-le avant de changer d’exercice.',
       });
     }
 
@@ -375,13 +365,11 @@ export class SharedWorkoutEquipmentCoordinationService {
     if (!next) return;
 
     const nextCoordinatable =
-      next.equipmentTypeId != null &&
-      isCoordinatableEquipmentCode(next.equipmentType?.code);
+      next.equipmentTypeId != null && isCoordinatableEquipmentCode(next.equipmentType?.code);
     if (!nextCoordinatable || next.equipmentTypeId !== using.equipmentTypeId) {
       throw new BadRequestException({
         code: 'SHARED_EQUIPMENT_STILL_USING',
-        message:
-          'Tu utilises encore cet équipement. Libère-le avant de changer d’exercice.',
+        message: 'Tu utilises encore cet équipement. Libère-le avant de changer d’exercice.',
       });
     }
   }
@@ -410,27 +398,21 @@ export class SharedWorkoutEquipmentCoordinationService {
           equipmentType: { select: { code: true } },
         },
       });
-      if (
-        next?.equipmentTypeId &&
-        isCoordinatableEquipmentCode(next.equipmentType?.code)
-      ) {
+      if (next?.equipmentTypeId && isCoordinatableEquipmentCode(next.equipmentType?.code)) {
         nextEquipmentId = next.equipmentTypeId;
       }
     }
 
-    const waiting = await this.prisma.sharedWorkoutEquipmentQueueEntry.findMany(
-      {
-        where: {
-          roomId,
-          roomMemberId: membership.id,
-          status: 'WAITING',
-        },
+    const waiting = await this.prisma.sharedWorkoutEquipmentQueueEntry.findMany({
+      where: {
+        roomId,
+        roomMemberId: membership.id,
+        status: 'WAITING',
       },
-    );
+    });
 
     const toCancel = waiting.filter(
-      (entry) =>
-        nextEquipmentId == null || entry.equipmentTypeId !== nextEquipmentId,
+      (entry) => nextEquipmentId == null || entry.equipmentTypeId !== nextEquipmentId,
     );
     if (toCancel.length === 0) return;
 
@@ -442,11 +424,8 @@ export class SharedWorkoutEquipmentCoordinationService {
   }
 
   /** Leave MEMBER : WAITING→CANCELLED, USING→RELEASED+promote. */
-  async cleanupMemberLeave(
-    roomId: string,
-    roomMemberId: string,
-    tx: Tx,
-  ): Promise<boolean> {
+  async cleanupMemberLeave(roomId: string, roomMemberId: string, tx: Tx): Promise<boolean> {
+    await this.lockRoom(tx, roomId);
     const now = new Date();
     let changed = false;
 
@@ -471,9 +450,7 @@ export class SharedWorkoutEquipmentCoordinationService {
   }
 
   /** Workout COMPLETED/CANCELLED : même sémantique que leave pour ce membre. */
-  async cleanupWorkoutTerminal(
-    workoutSessionId: string,
-  ): Promise<void> {
+  async cleanupWorkoutTerminal(workoutSessionId: string): Promise<void> {
     const link = await this.prisma.sharedWorkoutRoomMemberSession.findUnique({
       where: { workoutSessionId },
       select: {
@@ -530,15 +507,10 @@ export class SharedWorkoutEquipmentCoordinationService {
     });
     if (!next) return;
 
-    try {
-      await tx.sharedWorkoutEquipmentQueueEntry.update({
-        where: { id: next.id },
-        data: { status: 'USING', acquiredAt: now },
-      });
-    } catch (error) {
-      if (!this.isUniqueViolation(error)) throw error;
-      // Un autre USING a gagné la course — laisser en WAITING.
-    }
+    await tx.sharedWorkoutEquipmentQueueEntry.update({
+      where: { id: next.id },
+      data: { status: 'USING', acquiredAt: now },
+    });
   }
 
   private async buildCoordinationDto(
@@ -616,29 +588,25 @@ export class SharedWorkoutEquipmentCoordinationService {
     const equipment: SharedWorkoutEquipmentState[] = [...byEquipment.values()]
       .filter((bucket) => bucket.using != null || bucket.waiting.length > 0)
       .map((bucket) => {
-        const waitingSorted = bucket.waiting
-          .slice()
-          .sort((a, b) => {
-            const ta = a.requestedAt.getTime();
-            const tb = b.requestedAt.getTime();
-            if (ta !== tb) return ta - tb;
-            return a.id.localeCompare(b.id);
-          });
+        const waitingSorted = bucket.waiting.slice().sort((a, b) => {
+          const ta = a.requestedAt.getTime();
+          const tb = b.requestedAt.getTime();
+          if (ta !== tb) return ta - tb;
+          return a.id.localeCompare(b.id);
+        });
         return {
           equipment: bucket.equipment,
           using: bucket.using
             ? {
                 userId: bucket.using.roomMember.userId,
-                displayName:
-                  bucket.using.roomMember.user.profile?.displayName ?? null,
+                displayName: bucket.using.roomMember.user.profile?.displayName ?? null,
                 since: (bucket.using.acquiredAt ?? bucket.using.requestedAt).toISOString(),
               }
             : null,
           waiting: waitingSorted.map((entry, index) => ({
             position: index + 1,
             userId: entry.roomMember.userId,
-            displayName:
-              entry.roomMember.user.profile?.displayName ?? null,
+            displayName: entry.roomMember.user.profile?.displayName ?? null,
             requestedAt: entry.requestedAt.toISOString(),
           })),
         };
@@ -723,10 +691,8 @@ export class SharedWorkoutEquipmentCoordinationService {
       orderBy: [{ requestedAt: 'asc' }, { id: 'asc' }],
     })) as QueueRow[];
 
-    const activeEntry =
-      entries.find((entry) => entry.roomMemberId === membership.id) ?? null;
-    const usingEntry =
-      entries.find((entry) => entry.status === 'USING') ?? null;
+    const activeEntry = entries.find((entry) => entry.roomMemberId === membership.id) ?? null;
+    const usingEntry = entries.find((entry) => entry.status === 'USING') ?? null;
     const waitingEntries = entries.filter((entry) => entry.status === 'WAITING');
 
     return {
@@ -757,8 +723,7 @@ export class SharedWorkoutEquipmentCoordinationService {
     if (membership.room.status !== 'ACTIVE') {
       throw new BadRequestException({
         code: 'SHARED_WORKOUT_ROOM_NOT_ACTIVE',
-        message:
-          'La coordination d’équipement n’est disponible que lorsque la salle est active.',
+        message: 'La coordination d’équipement n’est disponible que lorsque la salle est active.',
       });
     }
     return membership;
@@ -819,12 +784,14 @@ export class SharedWorkoutEquipmentCoordinationService {
     return false;
   }
 
-  private isUniqueViolation(error: unknown): boolean {
-    return (
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      (error as { code?: string }).code === 'P2002'
-    );
+  /**
+   * Verrou de ligne sur la salle pour sérialiser request/release/cancel/leave.
+   * Un INSERT USING concurrent viole l’index unique partiel ; PostgreSQL
+   * avorte alors toute la transaction (on ne peut pas « tomber » en WAITING).
+   */
+  async lockRoom(tx: Tx, roomId: string): Promise<void> {
+    await tx.$queryRaw`
+      SELECT id FROM "shared_workout_rooms" WHERE id = ${roomId}::uuid FOR UPDATE
+    `;
   }
 }

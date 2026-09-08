@@ -20,8 +20,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -31,11 +30,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -84,9 +79,7 @@ async function createStartableTemplate(
     .expect(201);
   const templateId = tpl.body.data.workoutTemplates[0].id as string;
   const ex = await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       exerciseId: system.id,
@@ -97,9 +90,7 @@ async function createStartableTemplate(
     .expect(201);
   const teId = ex.body.data.workoutTemplates[0].exercises[0].id as string;
   await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       setType: 'WORKING',
@@ -120,11 +111,7 @@ async function createStartableTemplate(
   };
 }
 
-async function createActiveRoom(
-  app: INestApplication,
-  ownerToken: string,
-  name: string,
-) {
+async function createActiveRoom(app: INestApplication, ownerToken: string, name: string) {
   const created = await request(app.getHttpServer())
     .post('/api/v1/shared-workouts')
     .set('Authorization', `Bearer ${ownerToken}`)
@@ -157,10 +144,7 @@ async function joinWithCode(
     .expect(200);
 }
 
-async function cancelAnyActiveWorkout(
-  app: INestApplication,
-  token: string,
-) {
+async function cancelAnyActiveWorkout(app: INestApplication, token: string) {
   const active = await request(app.getHttpServer())
     .get('/api/v1/workouts/active')
     .set('Authorization', `Bearer ${token}`);
@@ -191,9 +175,7 @@ async function attachCreatedSession(
   const session = created.body.data.workoutSession;
   const exerciseId = session.exercises[0].id as string;
   await request(app.getHttpServer())
-    .put(
-      `/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`,
-    )
+    .put(`/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`)
     .set('Authorization', `Bearer ${token}`)
     .send({ workoutSessionExerciseId: exerciseId })
     .expect(200);
@@ -202,16 +184,13 @@ async function attachCreatedSession(
 
 function connectSocket(port: number, token: string): Promise<Socket> {
   return new Promise((resolve, reject) => {
-    const socket = io(
-      `http://127.0.0.1:${port}${SHARED_WORKOUT_SOCKET_NAMESPACE}`,
-      {
-        auth: { token },
-        transports: ['websocket'],
-        forceNew: true,
-        reconnection: false,
-        timeout: 5000,
-      },
-    );
+    const socket = io(`http://127.0.0.1:${port}${SHARED_WORKOUT_SOCKET_NAMESPACE}`, {
+      auth: { token },
+      transports: ['websocket'],
+      forceNew: true,
+      reconnection: false,
+      timeout: 5000,
+    });
     const timer = setTimeout(() => {
       socket.close();
       reject(new Error('socket connect timeout'));
@@ -227,16 +206,9 @@ function connectSocket(port: number, token: string): Promise<Socket> {
   });
 }
 
-function emitAck<T>(
-  socket: Socket,
-  event: string,
-  payload: unknown,
-): Promise<T> {
+function emitAck<T>(socket: Socket, event: string, payload: unknown): Promise<T> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error(`ack timeout ${event}`)),
-      5000,
-    );
+    const timer = setTimeout(() => reject(new Error(`ack timeout ${event}`)), 5000);
     socket.emit(event, payload, (response: T) => {
       clearTimeout(timer);
       resolve(response);
@@ -268,10 +240,7 @@ describe('Shared equipment coordination (Shared 5.6)', () => {
     app.useGlobalFilters(new GlobalExceptionFilter(config));
     await app.listen(0);
     const address = app.getHttpServer().address();
-    port =
-      typeof address === 'object' && address && 'port' in address
-        ? address.port
-        : 0;
+    port = typeof address === 'object' && address && 'port' in address ? address.port : 0;
     prisma = app.get(PrismaService);
     await seedReferenceData(prisma);
     await seedSystemExercises(prisma);
@@ -321,7 +290,7 @@ describe('Shared equipment coordination (Shared 5.6)', () => {
         .set('Authorization', `Bearer ${tokenB}`)
         .send({ clientCommandId: randomUUID() }),
     ]);
-    expect([resA.status, resB.status].every((s) => s === 200)).toBe(true);
+    expect({ a: resA.status, b: resB.status }).toEqual({ a: 200, b: 200 });
 
     const states = [resA.body.data, resB.body.data];
     const usingCount = states.filter((s: { state: string }) => s.state === 'USING').length;
@@ -386,9 +355,7 @@ describe('Shared equipment coordination (Shared 5.6)', () => {
 
     // B WAITING — change exercise to null cancels waiting
     await request(app.getHttpServer())
-      .put(
-        `/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`,
-      )
+      .put(`/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`)
       .set('Authorization', `Bearer ${tokenB}`)
       .send({ workoutSessionExerciseId: null })
       .expect(200);
@@ -401,9 +368,7 @@ describe('Shared equipment coordination (Shared 5.6)', () => {
 
     // A USING — cannot clear current exercise
     await request(app.getHttpServer())
-      .put(
-        `/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`,
-      )
+      .put(`/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ workoutSessionExerciseId: null })
       .expect(400)
@@ -418,9 +383,7 @@ describe('Shared equipment coordination (Shared 5.6)', () => {
       .expect(200);
 
     await request(app.getHttpServer())
-      .put(
-        `/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`,
-      )
+      .put(`/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ workoutSessionExerciseId: a.exerciseId })
       .expect(200);
@@ -496,11 +459,7 @@ describe('Shared equipment coordination (Shared 5.6)', () => {
       })
       .expect(400);
 
-    const outsider = await registerUser(
-      app,
-      `sw56-out-${stamp}@test.local`,
-      'Out',
-    );
+    const outsider = await registerUser(app, `sw56-out-${stamp}@test.local`, 'Out');
     await request(app.getHttpServer())
       .get(`/api/v1/shared-workouts/${roomId}/equipment-coordination`)
       .set('Authorization', `Bearer ${outsider.token}`)

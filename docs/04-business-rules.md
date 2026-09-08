@@ -1041,6 +1041,7 @@ identiques. Pas d’inventaire de salle. `bodyweight` exclu.
 - request / release / cancel online-only + `clientCommandId` ;
 - équipement résolu depuis current exercise (pas d’ID arbitraire client) ;
 - FIFO `requestedAt ASC, id ASC` ; OWNER = MEMBER pour la file ;
+- mutations concurrentes sérialisées par verrou de salle (`SELECT … FOR UPDATE`) : un seul `USING` par `(room, EquipmentType)` ; le second request devient `WAITING` ;
 - disconnect / presence:left **ne** libère **pas** ;
 - dette connue : pas de lease timeout / force release (membre peut oublier).
 
