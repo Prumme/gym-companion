@@ -520,14 +520,29 @@ describe('Add workout session exercise / set API', () => {
   });
 
   it('records ad-hoc performance in history, progress and records after complete', async () => {
-    const active = await getActive();
-    const adHoc = active.exercises.find(
+    let active = await getActive();
+    const adHocId = active.exercises.find(
       (exercise) => exercise.sourceExerciseId === legExtensionId,
-    );
-    expect(adHoc).toBeDefined();
-    expect(adHoc!.sets.length).toBeGreaterThanOrEqual(3);
+    )?.id;
+    expect(adHocId).toBeDefined();
 
     let version = active.version;
+    while (
+      active.exercises.find((exercise) => exercise.id === adHocId)!.sets.length < 3
+    ) {
+      const added = await request(app.getHttpServer())
+        .post(`/api/v1/workouts/${sessionId}/exercises/${adHocId}/sets`)
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({ expectedVersion: version })
+        .expect(201);
+      version = added.body.data.version as number;
+      active = await getActive();
+    }
+
+    const adHoc = active.exercises.find((exercise) => exercise.id === adHocId);
+    expect(adHoc).toBeDefined();
+    expect(adHoc!.sets).toHaveLength(3);
+
     const payloads = [
       { weight: 60, reps: 12 },
       { weight: 65, reps: 10 },
