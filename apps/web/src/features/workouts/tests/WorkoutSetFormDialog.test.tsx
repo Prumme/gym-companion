@@ -239,6 +239,19 @@ describe('WorkoutSetFormDialog', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('propose la suppression réelle distincte de Ignorer', async () => {
+    const user = userEvent.setup();
+    const onRequestDelete = vi.fn();
+    renderDialog({ canDelete: true, onRequestDelete });
+    expect(
+      screen.queryByRole('button', { name: /Supprimer la série/i }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Supprimer la série/i }));
+    await user.click(screen.getByRole('button', { name: /^Supprimer$/i }));
+    expect(onRequestDelete).toHaveBeenCalledTimes(1);
+    expect(updateWorkoutSet).not.toHaveBeenCalled();
+  });
+
   it('permet de marquer une série comme échouée', async () => {
     const user = userEvent.setup();
     updateWorkoutSet.mockResolvedValue({

@@ -1651,13 +1651,34 @@ Réponse :
 
 La séance doit être `ACTIVE`. Une séance `PAUSED`, `COMPLETED` ou `CANCELLED` retourne `WORKOUT_NOT_EDITABLE`. Une version obsolète retourne `409 WORKOUT_VERSION_CONFLICT`.
 
-### 21.3 Supprimer
+### 21.3 Supprimer une série
 
 ```text
-DELETE /api/v1/workout-sets/:workoutSetId
+DELETE /api/v1/workouts/:workoutSessionId/exercises/:sessionExerciseId/sets/:workoutSetId
 ```
 
-La suppression peut devenir un statut `CANCELLED` si la série a déjà été synchronisée.
+Suppression **physique** d’un `WorkoutSet` sur une séance `ACTIVE`, puis recompactage des `position` (0..n-1).
+
+Requête :
+
+```json
+{
+  "expectedVersion": 6
+}
+```
+
+Réponse : `WorkoutSessionDetail` (même forme que l’ajout de série).
+
+Règles V1 :
+
+- auth JWT ; propriétaire uniquement ;
+- séance `ACTIVE` (sinon `WORKOUT_NOT_EDITABLE`) ;
+- `expectedVersion` obligatoire (`409 WORKOUT_VERSION_CONFLICT`) ;
+- au moins une série restante sur l’exercice (`400 WORKOUT_SET_LAST_REMAINING`) ;
+- online only (hors file IndexedDB V1) ;
+- n’écrit pas `CANCELLED` et n’ajoute pas de statut Prisma.
+
+`SKIPPED` reste le moyen de marquer une série non réalisée **sans** la retirer.
 
 ## 22. Synchronisation hors ligne
 
@@ -3117,6 +3138,7 @@ WORKOUT_SET_DUPLICATE_COMMAND
 WORKOUT_SET_COMMAND_CONFLICT
 WORKOUT_OFFLINE_CONFLICT
 WORKOUT_SESSION_EXERCISE_NOT_FOUND
+WORKOUT_SET_LAST_REMAINING
 WORKOUT_EXERCISE_ALREADY_IN_SESSION
 WORKOUT_EXERCISE_HAS_RECORDED_SETS
 WORKOUT_EXERCISE_MEASUREMENT_INCOMPATIBLE

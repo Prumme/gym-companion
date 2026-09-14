@@ -18,6 +18,9 @@ type WorkoutHistoryRowProps = {
   pendingSync?: boolean;
   showDayHeading?: boolean;
   dayHeading?: string;
+  selectMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 };
 
 function formatListDuration(item: WorkoutHistoryListItem): string | null {
@@ -68,6 +71,9 @@ export function WorkoutHistoryRow({
   pendingSync = false,
   showDayHeading = false,
   dayHeading,
+  selectMode = false,
+  selected = false,
+  onToggleSelect,
 }: WorkoutHistoryRowProps) {
   const state: WorkoutHistoryNavigationState = {
     fromHistory: true,
@@ -82,6 +88,49 @@ export function WorkoutHistoryRow({
           {dayHeading}
         </p>
       ) : null}
+      {selectMode ? (
+        <button
+          type="button"
+          onClick={onToggleSelect}
+          aria-pressed={selected}
+          aria-label={`${selected ? 'Désélectionner' : 'Sélectionner'} ${item.name} du ${item.localDate}`}
+          className={cn(
+            'flex min-h-14 w-full items-center justify-between gap-3 py-2.5 text-left outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]',
+          )}
+        >
+          <span
+            className={cn(
+              'flex size-5 shrink-0 items-center justify-center rounded border',
+              selected
+                ? 'border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]'
+                : 'border-[var(--border)]',
+            )}
+            aria-hidden="true"
+          >
+            {selected ? '✓' : ''}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <p className="truncate text-sm font-semibold text-[var(--foreground)]">
+                {item.name}
+              </p>
+              <span
+                className={cn(
+                  'shrink-0 text-[0.6875rem] font-semibold tracking-wide uppercase',
+                  item.status === 'CANCELLED'
+                    ? 'text-[var(--danger)]'
+                    : 'text-[var(--muted)]',
+                )}
+              >
+                {getWorkoutStatusLabel(item.status)}
+              </span>
+            </div>
+            {meta ? (
+              <p className="mt-0.5 truncate text-sm text-[var(--muted)]">{meta}</p>
+            ) : null}
+          </div>
+        </button>
+      ) : (
       <Link
         to={`/workouts/${item.id}`}
         state={state}
@@ -120,6 +169,7 @@ export function WorkoutHistoryRow({
           aria-hidden="true"
         />
       </Link>
+      )}
     </li>
   );
 }

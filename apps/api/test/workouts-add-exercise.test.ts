@@ -434,6 +434,77 @@ describe('Add workout session exercise / set API', () => {
     expect(response.body.error.code).toBe('WORKOUT_SESSION_EXERCISE_NOT_FOUND');
   });
 
+  it('deletes a set, recompacts positions and refuses the last remaining set', async () => {
+    const before = await getActive();
+    const adHoc = before.exercises.find(
+      (exercise) => exercise.sourceExerciseId === legExtensionId,
+    );
+    expect(adHoc).toBeDefined();
+    expect(adHoc!.sets.length).toBeGreaterThanOrEqual(2);
+    const removedId = adHoc!.sets[0]!.id as string;
+    const remainingIds = adHoc!.sets.slice(1).map((set) => set.id);
+
+    const deleted = await request(app.getHttpServer())
+      .delete(
+        `/api/v1/workouts/${sessionId}/exercises/${adHoc!.id}/sets/${removedId}`,
+      )
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ expectedVersion: before.version })
+      .expect(200);
+
+    expect(deleted.body.data.version).toBe(before.version + 1);
+    const after = deleted.body.data.exercises.find(
+      (exercise: { id: string }) => exercise.id === adHoc!.id,
+    );
+    expect(after.sets.map((set: { id: string }) => set.id)).toEqual(remainingIds);
+    expect(after.sets.map((set: { position: number }) => set.position)).toEqual(
+      remainingIds.map((_, index) => index),
+    );
+    expect(
+      await prisma.workoutSet.findUnique({ where: { id: removedId } }),
+    ).toBeNull();
+
+    const bench = after
+      ? deleted.body.data.exercises.find(
+          (exercise: { sourceExerciseId: string }) =>
+            exercise.sourceExerciseId === benchId,
+        )
+      : null;
+    expect(bench).toBeDefined();
+    expect(bench.sets).toHaveLength(1);
+    const last = await request(app.getHttpServer())
+      .delete(
+        `/api/v1/workouts/${sessionId}/exercises/${bench.id}/sets/${bench.sets[0].id}`,
+      )
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ expectedVersion: deleted.body.data.version })
+      .expect(400);
+    expect(last.body.error.code).toBe('WORKOUT_SET_LAST_REMAINING');
+  });
+
+  it('requires auth and isolates delete to the owner', async () => {
+    const active = await getActive();
+    const adHoc = active.exercises.find(
+      (exercise) => exercise.sourceExerciseId === legExtensionId,
+    );
+    const setId = adHoc!.sets[0]!.id;
+    await request(app.getHttpServer())
+      .delete(
+        `/api/v1/workouts/${sessionId}/exercises/${adHoc!.id}/sets/${setId}`,
+      )
+      .send({ expectedVersion: active.version })
+      .expect(401);
+
+    const foreign = await request(app.getHttpServer())
+      .delete(
+        `/api/v1/workouts/${sessionId}/exercises/${adHoc!.id}/sets/${setId}`,
+      )
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ expectedVersion: active.version })
+      .expect(404);
+    expect(foreign.body.error.code).toBe('WORKOUT_NOT_FOUND');
+  });
+
   it('does not mutate the source template or program', async () => {
     const program = await request(app.getHttpServer())
       .get(`/api/v1/programs/${programId}`)

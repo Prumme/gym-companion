@@ -8,6 +8,7 @@ import { ActiveExercisePanel } from '../components/ActiveExercisePanel';
 import { createWorkoutSessionDetail, createWorkoutSet } from './fixtures';
 
 const addWorkoutSessionSet = vi.fn();
+const deleteWorkoutSessionSet = vi.fn();
 const listExercises = vi.fn();
 
 vi.mock('../api/workout-api', async () => {
@@ -17,6 +18,8 @@ vi.mock('../api/workout-api', async () => {
   return {
     ...actual,
     addWorkoutSessionSet: (...args: unknown[]) => addWorkoutSessionSet(...args),
+    deleteWorkoutSessionSet: (...args: unknown[]) =>
+      deleteWorkoutSessionSet(...args),
     addWorkoutSessionExercise: vi.fn(),
     replaceWorkoutSessionExercise: vi.fn(),
   };
@@ -85,6 +88,7 @@ function renderPanel() {
 describe('Ajouter une série (Active Workout)', () => {
   beforeEach(() => {
     addWorkoutSessionSet.mockReset();
+    deleteWorkoutSessionSet.mockReset();
     listExercises.mockResolvedValue({
       data: [],
       pagination: { nextCursor: null, hasMore: false },
@@ -251,5 +255,78 @@ describe('Ajouter une série (Active Workout)', () => {
 
     expect(screen.queryByText(/Record/)).not.toBeInTheDocument();
     expect(screen.queryByText('0 kg')).not.toBeInTheDocument();
+  });
+
+  it('supprime une série via confirmation et met à jour la liste', async () => {
+    const user = userEvent.setup();
+    const session = createWorkoutSessionDetail({
+      status: 'ACTIVE',
+      version: 3,
+      exercises: [
+        {
+          id: 'se-1',
+          position: 0,
+          sourceExerciseId: 'ex-press',
+          exerciseName: 'Presse à cuisses',
+          measurementType: 'WEIGHT_REPS',
+          primaryMuscleGroupName: 'Quadriceps',
+          sourceExerciseArchivedAtCreation: false,
+          equipment: { id: 'eq-1', code: 'MACHINE', name: 'Machine' },
+          notes: null,
+          restSeconds: 90,
+          sets: [
+            createWorkoutSet({ id: 'ws-1', position: 0, status: 'PENDING' }),
+            createWorkoutSet({ id: 'ws-2', position: 1, status: 'PENDING' }),
+          ],
+        },
+      ],
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    queryClient.setQueryData(['me'], { data: { id: 'u1' } });
+    deleteWorkoutSessionSet.mockResolvedValue({
+      ...session,
+      version: 4,
+      exercises: [
+        {
+          ...session.exercises[0]!,
+          sets: [createWorkoutSet({ id: 'ws-2', position: 0, status: 'PENDING' })],
+        },
+      ],
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <ActiveExercisePanel
+            session={session}
+            exercise={session.exercises[0]!}
+            effortTrackingMode="RIR"
+            canRecordSets
+            nextPendingSetId="ws-1"
+            exerciseIndex={0}
+            totalExercises={1}
+            hasNextExercise={false}
+            onVersionConflict={vi.fn()}
+            onSetRecorded={vi.fn()}
+            loadCuesReady
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await user.click(screen.getByRole('button', { name: /Enregistrer la série/i }));
+    await user.click(screen.getByRole('button', { name: /Supprimer la série/i }));
+    await user.click(screen.getByRole('button', { name: /^Supprimer$/i }));
+
+    await waitFor(() => {
+      expect(deleteWorkoutSessionSet).toHaveBeenCalledWith(
+        session.id,
+        'se-1',
+        'ws-1',
+        { expectedVersion: 3 },
+      );
+    });
   });
 });

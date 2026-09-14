@@ -41,6 +41,9 @@ type WorkoutSetFormDialogProps = {
   onClose: () => void;
   onVersionConflict: () => void;
   onRecorded?: (status: WorkoutSetStatus) => void;
+  canDelete?: boolean;
+  onRequestDelete?: () => void;
+  deletePending?: boolean;
 };
 
 function emptyActuals(): Pick<
@@ -143,10 +146,14 @@ export function WorkoutSetFormDialog({
   onClose,
   onVersionConflict,
   onRecorded,
+  canDelete = false,
+  onRequestDelete,
+  deletePending = false,
 }: WorkoutSetFormDialogProps) {
   const titleId = useId();
   const mutation = useUpdateWorkoutSetMutation(workoutSessionId);
   const [confirmClose, setConfirmClose] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const defaults = useMemo(
     () => buildDefaults(set, effortTrackingMode, expectedVersion, initialStatus),
@@ -169,6 +176,7 @@ export function WorkoutSetFormDialog({
     if (open) {
       reset(buildDefaults(set, effortTrackingMode, expectedVersion, initialStatus));
       setConfirmClose(false);
+      setConfirmDelete(false);
       setMoreOpen(false);
     }
   }, [open, set, effortTrackingMode, expectedVersion, initialStatus, reset]);
@@ -536,8 +544,51 @@ export function WorkoutSetFormDialog({
                 Ignorer la série
               </button>
             </div>
+            {canDelete && onRequestDelete ? (
+              <button
+                type="button"
+                className="mt-1 min-h-11 w-full px-1 text-sm text-[var(--danger)] hover:underline disabled:opacity-50"
+                disabled={mutation.isPending || deletePending}
+                onClick={() => setConfirmDelete(true)}
+              >
+                Supprimer la série
+              </button>
+            ) : null}
           </div>
         </form>
+
+        {confirmDelete ? (
+          <div
+            className="absolute inset-x-0 bottom-0 z-10 border-t border-[var(--border)] bg-[var(--card)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg"
+            role="alertdialog"
+            aria-label="Confirmer la suppression de la série"
+          >
+            <p className="text-sm">
+              Cette série sera retirée de la séance. Pour une série non réalisée
+              que tu veux conserver dans l’historique, utilise plutôt Ignorer.
+            </p>
+            <div className="mt-2 flex gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                className="flex-1"
+                onClick={() => setConfirmDelete(false)}
+              >
+                Annuler
+              </Button>
+              <Button
+                type="button"
+                className="flex-1"
+                disabled={deletePending}
+                onClick={() => {
+                  onRequestDelete?.();
+                }}
+              >
+                {deletePending ? 'Suppression…' : 'Supprimer'}
+              </Button>
+            </div>
+          </div>
+        ) : null}
 
         {confirmClose ? (
           <div

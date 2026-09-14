@@ -177,6 +177,8 @@ Règles V1 :
 - `sourceTemplateExerciseId` est `null` pour un exercice ajouté pendant la séance ;
 - un même `sourceExerciseId` ne peut pas apparaître deux fois dans la séance ;
 - des `WorkoutSet` WORKING supplémentaires (sans cibles) peuvent être ajoutés pendant une séance `ACTIVE` ;
+- une série peut être **supprimée physiquement** pendant une séance `ACTIVE` (recompactage des `position`) ; au moins une série doit rester sur l’exercice ;
+- **Ignorer** (`SKIPPED`) n’est pas une suppression : la série reste dans l’historique comme non réalisée ;
 - une fois la séance `COMPLETED`, historique, records, progression et e1RM traitent ces lignes comme n’importe quel autre snapshot (`sourceExerciseId`).
 
 Active Workout peut afficher en lecture seule les Personal Records existants (`MAX_WEIGHT` pour les types avec charge) et un lien vers l’historique d’exercice. Le libellé est **Record**, jamais « charge conseillée ».
@@ -826,7 +828,7 @@ Ces lignes :
 - n’écrivent jamais dans `WorkoutTemplateExercise` / `Program` ;
 - restent dans l’historique une fois la séance terminée.
 
-Des séries ad hoc (`WorkoutSet` WORKING, cibles `null`) peuvent être ajoutées sur n’importe quel exercice de la séance `ACTIVE`.
+Des séries ad hoc (`WorkoutSet` WORKING, cibles `null`) peuvent être ajoutées sur n’importe quel exercice de la séance `ACTIVE`. Une série peut aussi être retirée (delete physique + positions recompactées) tant qu’il en reste au moins une sur l’exercice.
 
 ## 17. Fonctionnement hors ligne
 

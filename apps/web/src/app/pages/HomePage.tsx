@@ -10,9 +10,12 @@ import { ButtonLink } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useAuthStore } from '@/stores/auth-store';
 
+import { getMe } from '@/features/profile/api/profile-api';
 import { activeProgramQueryOptions } from '@/features/programs/api/program-query-options';
 import { formatStartedOn } from '@/features/programs/lib/format';
 import { countScheduledSessions } from '@/features/programs/lib/schedule-utils';
+import { ActiveWorkoutResumeCard } from '@/features/workouts/components/ActiveWorkoutResumeCard';
+import { activeWorkoutQueryOptions } from '@/features/workouts/api/workout-query-options';
 
 function ActiveProgramSummaryCard({ active }: { active: ActiveProgramSummary }) {
   const sessionCount = countScheduledSessions(
@@ -45,9 +48,20 @@ function ActiveProgramSummaryCard({ active }: { active: ActiveProgramSummary }) 
 export function HomePage() {
   const authStatus = useAuthStore((state) => state.authStatus);
   const isAuthenticated = authStatus === 'authenticated';
+  const meQuery = useQuery({
+    queryKey: ['me'],
+    queryFn: getMe,
+    staleTime: 60_000,
+    enabled: isAuthenticated,
+  });
+  const userId = meQuery.data?.data.id ?? null;
   const activeQuery = useQuery({
     ...activeProgramQueryOptions(),
     enabled: isAuthenticated,
+  });
+  const activeWorkoutQuery = useQuery({
+    ...activeWorkoutQueryOptions(() => userId),
+    enabled: isAuthenticated && (meQuery.isSuccess || meQuery.isError),
   });
 
   if (authStatus === 'initializing') {
@@ -69,6 +83,10 @@ export function HomePage() {
   }
 
   const active = activeQuery.data;
+  const inProgressWorkout = activeWorkoutQuery.data;
+  const showInProgress =
+    inProgressWorkout?.status === 'ACTIVE' ||
+    inProgressWorkout?.status === 'PAUSED';
 
   return (
     <main className="flex flex-1 flex-col gap-[var(--space-6)]">
@@ -85,6 +103,10 @@ export function HomePage() {
           </Link>
         }
       />
+
+      {showInProgress && inProgressWorkout ? (
+        <ActiveWorkoutResumeCard session={inProgressWorkout} />
+      ) : null}
 
       {activeQuery.isLoading ? (
         <p className="text-sm text-[var(--muted-foreground)]">

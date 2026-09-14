@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -181,6 +182,29 @@ export class WorkoutsController {
       user.id,
       workoutSessionId,
       sessionExerciseId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Delete(':workoutSessionId/exercises/:sessionExerciseId/sets/:workoutSetId')
+  @HttpCode(200)
+  @ApiOperation({
+    summary:
+      'Supprimer une série d’un exercice de séance ACTIVE (recompacte les positions)',
+  })
+  async deleteSet(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('workoutSessionId', ParseUUIDPipe) workoutSessionId: string,
+    @Param('sessionExerciseId', ParseUUIDPipe) sessionExerciseId: string,
+    @Param('workoutSetId', ParseUUIDPipe) workoutSetId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.workoutsService.deleteSet(
+      user.id,
+      workoutSessionId,
+      sessionExerciseId,
+      workoutSetId,
       body,
     );
     return createSuccessResponse(data);

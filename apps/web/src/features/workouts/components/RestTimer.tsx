@@ -16,8 +16,6 @@ type RestTimerProps = {
   onStop: () => void;
   onAdd: (delta: number) => void;
   onDismissExpired: () => void;
-  onManualStart?: () => void;
-  canManualStart?: boolean;
   nextSetHint?: string | null;
   /** CTA prioritaire pendant le repos (ex. Exercice suivant). */
   primaryActionLabel?: string | null;
@@ -37,8 +35,6 @@ export function RestTimer({
   onStop,
   onAdd,
   onDismissExpired,
-  onManualStart,
-  canManualStart = false,
   nextSetHint = null,
   primaryActionLabel = null,
   onPrimaryAction,
@@ -84,23 +80,7 @@ export function RestTimer({
   }
 
   if (!isRunning && !isPaused) {
-    if (!canManualStart || !onManualStart) {
-      return null;
-    }
-    return (
-      <div className={shellClass} data-testid="rest-timer">
-        <div className="mx-auto w-full max-w-md">
-          <Button
-            type="button"
-            variant="secondary"
-            className="w-full"
-            onClick={onManualStart}
-          >
-            Démarrer le repos
-          </Button>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (

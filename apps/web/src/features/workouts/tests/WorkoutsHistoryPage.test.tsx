@@ -197,6 +197,39 @@ describe('WorkoutsHistoryPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('exporte les séances sélectionnées en JSON copiable', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    listWorkoutHistory.mockResolvedValue({
+      data: [historyItem()],
+      pagination: { nextCursor: null, hasMore: false },
+    });
+    getWorkoutSessionDetail.mockResolvedValue(
+      createWorkoutSessionDetail({
+        id: 'hist-1',
+        name: 'Séance Push',
+        status: 'COMPLETED',
+      }),
+    );
+    renderHistory();
+    await user.click(await screen.findByRole('button', { name: 'Exporter' }));
+    await user.click(
+      screen.getByRole('button', {
+        name: /Sélectionner Séance Push du 2026-08-03/i,
+      }),
+    );
+    await user.click(screen.getByRole('button', { name: /Copier le JSON/i }));
+    await waitFor(() => expect(writeText).toHaveBeenCalled());
+    const copied = JSON.parse(writeText.mock.calls[0]?.[0] as string);
+    expect(copied.schemaVersion).toBe(1);
+    expect(copied.workouts[0].name).toBe('Séance Push');
+    expect(copied.workouts[0]).not.toHaveProperty('id');
+  });
+
   it('affiche les cartes terminées et annulées', async () => {
     listWorkoutHistory.mockResolvedValue({
       data: [

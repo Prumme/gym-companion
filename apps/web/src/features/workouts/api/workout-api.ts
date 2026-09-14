@@ -10,6 +10,7 @@ import type {
   CancelWorkoutSessionInput,
   CompleteWorkoutSessionInput,
   CreateWorkoutSessionInput,
+  DeleteWorkoutSessionSetInput,
   PauseWorkoutSessionInput,
   ReplaceWorkoutSessionExerciseInput,
   ResumeWorkoutSessionInput,
@@ -142,6 +143,22 @@ export async function addWorkoutSessionSet(
     `/api/v1/workouts/${encodeURIComponent(workoutSessionId)}/exercises/${encodeURIComponent(sessionExerciseId)}/sets`,
     {
       method: 'POST',
+      body: JSON.stringify(input),
+    },
+  );
+  return response.data;
+}
+
+export async function deleteWorkoutSessionSet(
+  workoutSessionId: string,
+  sessionExerciseId: string,
+  workoutSetId: string,
+  input: DeleteWorkoutSessionSetInput,
+): Promise<WorkoutSessionDetail> {
+  const response = await apiFetch<{ data: WorkoutSessionDetail }>(
+    `/api/v1/workouts/${encodeURIComponent(workoutSessionId)}/exercises/${encodeURIComponent(sessionExerciseId)}/sets/${encodeURIComponent(workoutSetId)}`,
+    {
+      method: 'DELETE',
       body: JSON.stringify(input),
     },
   );

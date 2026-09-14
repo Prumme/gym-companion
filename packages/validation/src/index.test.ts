@@ -38,6 +38,7 @@ import {
   replaceWorkoutSessionExerciseSchema,
   addWorkoutSessionExerciseSchema,
   addWorkoutSessionSetSchema,
+  deleteWorkoutSessionSetSchema,
   updateWorkoutSetSchema,
   utcDateToLocalDateString,
   validateProgramScheduleEntries,
@@ -936,6 +937,27 @@ describe('addWorkoutSessionSetSchema', () => {
         expectedVersion: 4,
         setType: 'WORKING',
         targetWeightKg: 60,
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('deleteWorkoutSessionSetSchema', () => {
+  it('accepte expectedVersion seul', () => {
+    expect(
+      deleteWorkoutSessionSetSchema.safeParse({ expectedVersion: 2 }).success,
+    ).toBe(true);
+  });
+
+  it('refuse expectedVersion manquant', () => {
+    expect(deleteWorkoutSessionSetSchema.safeParse({}).success).toBe(false);
+  });
+
+  it('refuse les propriétés inconnues', () => {
+    expect(
+      deleteWorkoutSessionSetSchema.safeParse({
+        expectedVersion: 2,
+        extra: true,
       }).success,
     ).toBe(false);
   });

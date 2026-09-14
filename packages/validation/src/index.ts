@@ -1303,6 +1303,17 @@ export type AddWorkoutSessionSetInput = z.infer<
   typeof addWorkoutSessionSetSchema
 >;
 
+/** Suppression d’une série de séance ACTIVE. Online only. */
+export const deleteWorkoutSessionSetSchema = z
+  .object({
+    expectedVersion: z.number().int().min(1).max(1_000_000_000),
+  })
+  .strict();
+
+export type DeleteWorkoutSessionSetInput = z.infer<
+  typeof deleteWorkoutSessionSetSchema
+>;
+
 export type WorkoutSetActualFields = {
   status: z.infer<typeof workoutSetStatusSchema>;
   actualWeightKg: number | null;

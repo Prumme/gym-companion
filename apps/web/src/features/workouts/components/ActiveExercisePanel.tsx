@@ -17,6 +17,7 @@ import { getApiErrorMessage } from '@/lib/api/client';
 
 import {
   useAddWorkoutSessionSetMutation,
+  useDeleteWorkoutSessionSetMutation,
   useReplaceWorkoutSessionExerciseMutation,
 } from '../hooks/use-workout-mutations';
 import { findPreviousSetInExercise } from '../lib/copy-previous-set';
@@ -129,10 +130,13 @@ export function ActiveExercisePanel({
   const [replaceFeedback, setReplaceFeedback] = useState<string | null>(null);
   const [replaceError, setReplaceError] = useState<string | null>(null);
   const [addSetError, setAddSetError] = useState<string | null>(null);
+  const [deleteSetError, setDeleteSetError] = useState<string | null>(null);
   const menuId = useId();
   const menuRef = useRef<HTMLDivElement>(null);
   const replaceMutation = useReplaceWorkoutSessionExerciseMutation(session.id);
   const addSetMutation = useAddWorkoutSessionSetMutation(session.id);
+  const deleteSetMutation = useDeleteWorkoutSessionSetMutation(session.id);
+  const canDeleteSet = canRecordSets && exercise.sets.length > 1 && !browserOffline;
 
   const treated = isExerciseTreated(exercise);
   const hasRecordedSets = exercise.sets.some((set) => set.status !== 'PENDING');
@@ -304,6 +308,11 @@ export function ActiveExercisePanel({
             {addSetError}
           </p>
         ) : null}
+        {deleteSetError ? (
+          <p className="mt-2 text-sm text-[var(--danger)]" role="alert">
+            {deleteSetError}
+          </p>
+        ) : null}
         <Button
           type="button"
           variant="secondary"
@@ -411,6 +420,48 @@ export function ActiveExercisePanel({
               set: editing.set,
               exercise,
             });
+          }}
+          canDelete={canDeleteSet}
+          deletePending={deleteSetMutation.isPending}
+          onRequestDelete={() => {
+            const target = editing.set;
+            setDeleteSetError(null);
+            deleteSetMutation.mutate(
+              {
+                sessionExerciseId: exercise.id,
+                workoutSetId: target.id,
+                expectedVersion: session.version,
+              },
+              {
+                onSuccess: () => {
+                  setEditing(null);
+                },
+                onError: (error) => {
+                  const code =
+                    error &&
+                    typeof error === 'object' &&
+                    'code' in error &&
+                    typeof (error as { code: unknown }).code === 'string'
+                      ? (error as { code: string }).code
+                      : null;
+                  if (code === 'WORKOUT_VERSION_CONFLICT') {
+                    onVersionConflict();
+                  }
+                  if (code === 'OFFLINE' || (error as { status?: number }).status === 0) {
+                    setDeleteSetError(
+                      'Connexion nécessaire pour supprimer une série.',
+                    );
+                    return;
+                  }
+                  setDeleteSetError(
+                    getApiErrorMessage(
+                      error,
+                      'Impossible de supprimer cette série.',
+                    ),
+                  );
+                },
+              },
+            );
           }}
         />
       ) : null}

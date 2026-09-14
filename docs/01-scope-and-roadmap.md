@@ -321,14 +321,14 @@ Ces éléments restent explicitement hors livraison de la phase 3 :
 - démarrage de séance hors ligne ;
 - affichage / copie de la dernière performance *(repère **Record** + **Dernière fois** en lecture seule sur Active Workout — livré, sans nouveau moteur Records)* ;
 - modification des cibles pendant la séance ;
-- ajout ou suppression d’exercices pendant la séance *(ajout ad hoc à la WorkoutSession ACTIVE livré ; ne mute pas Program/Template ; suppression hors V1)* ;
-- ajout ou suppression de séries pendant la séance *(ajout de série WORKING sans cible livré)* ;
+- ajout ou suppression d’exercices pendant la séance *(ajout ad hoc à la WorkoutSession ACTIVE livré ; ne mute pas Program/Template ; suppression d’exercice hors V1)* ;
+- ajout ou suppression de séries pendant la séance *(ajout de série WORKING sans cible livré ; suppression physique d’une série sur séance ACTIVE livrée, online only)* ;
 - réordonnancement du snapshot ;
 - remplacement d’exercice hors ligne / file de sync ;
 - copie ou duplication d’une séance ;
 - durée active nette (historique complet des pauses) ;
 - volume officiel, records, statistiques, progression, graphiques ;
-- export des données d’entraînement ;
+- export des données d’entraînement *(export JSON des séances d’historique / détail livré, sans appel LLM ; export compte/nutrition hors V1)* ;
 - WebSocket / Background Sync garanti ;
 - séance collaborative, nutrition, coach IA.
 

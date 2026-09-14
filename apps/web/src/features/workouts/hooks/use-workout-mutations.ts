@@ -23,6 +23,7 @@ import {
   cancelWorkoutSession,
   completeWorkoutSession,
   createWorkoutSession,
+  deleteWorkoutSessionSet,
   pauseWorkoutSession,
   replaceWorkoutSessionExercise,
   resumeWorkoutSession,
@@ -479,6 +480,41 @@ export function useAddWorkoutSessionSetMutation(workoutSessionId: string) {
             expectedVersion: args.expectedVersion,
             clientCommandId: createClientCommandId(),
           }),
+      ),
+    onSuccess: (detail) => {
+      queryClient.setQueryData(workoutQueryKeys.active(), detail);
+      queryClient.setQueryData(workoutQueryKeys.detail(detail.id), detail);
+      void queryClient.invalidateQueries({
+        queryKey: sharedWorkoutRoomQueryKeys.all,
+      });
+    },
+  });
+}
+
+/**
+ * Suppression de série — online only (hors file offline V1).
+ */
+export function useDeleteWorkoutSessionSetMutation(
+  workoutSessionId: string,
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (args: {
+      sessionExerciseId: string;
+      workoutSetId: string;
+      expectedVersion: number;
+    }) =>
+      persistOnlineSessionMutation(
+        queryClient,
+        'Connexion nécessaire pour supprimer une série.',
+        () =>
+          deleteWorkoutSessionSet(
+            workoutSessionId,
+            args.sessionExerciseId,
+            args.workoutSetId,
+            { expectedVersion: args.expectedVersion },
+          ),
       ),
     onSuccess: (detail) => {
       queryClient.setQueryData(workoutQueryKeys.active(), detail);

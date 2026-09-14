@@ -47,7 +47,7 @@ générique ni un outil administratif.
 
 | Domaine | Hub | Contenu |
 |---------|-----|---------|
-| Accueil | `/` | Programme courant / empty state |
+| Accueil | `/` | Programme courant, empty state, reprise de séance ACTIVE/PAUSED |
 | Entraînement | `/training` | Planning, programmes, historique |
 | Progression | `/progress` | Vue d’ensemble, records |
 | Plus | sheet groupé / sidebar | Entraînement · Coaching · Compte |
@@ -410,7 +410,7 @@ Toujours une seule action dominante :
 | Exercice terminé + suivant | `Exercice suivant` |
 | Dernier exercice terminé | `Terminer la séance` |
 
-Le CTA respecte `safe-area-inset-bottom`. Pendant le repos, le timer occupe le bas de l’écran.
+Le CTA respecte `safe-area-inset-bottom`. Pendant le repos, le timer occupe le bas de l’écran. Le repos **démarre automatiquement** après `Enregistrer la série` lorsque c’est pertinent. Il n’y a plus de CTA primaire « Démarrer le repos » (trop facile à déclencher par erreur).
 
 ### 15.3 Séries
 

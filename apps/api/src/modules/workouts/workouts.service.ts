@@ -15,6 +15,7 @@ import {
   createWorkoutSessionSchema,
   addWorkoutSessionExerciseSchema,
   addWorkoutSessionSetSchema,
+  deleteWorkoutSessionSetSchema,
   decodeWorkoutHistoryCursor,
   encodeWorkoutHistoryCursor,
   localDateStringToUtcDate,
@@ -195,6 +196,7 @@ export class WorkoutsService {
         ownerUserId: userId,
         status: { in: ['ACTIVE', 'PAUSED'] },
       },
+      orderBy: { startedAt: 'desc' },
       include: sessionDetailInclude,
     });
     if (!row) {
@@ -1347,6 +1349,116 @@ export class WorkoutsService {
       }
       throw error;
     }
+  }
+
+  /**
+   * Supprime physiquement une série d’un exercice de séance ACTIVE et recompacte
+   * les positions. Au moins une série doit rester sur l’exercice.
+   */
+  async deleteSet(
+    userId: string,
+    workoutSessionId: string,
+    sessionExerciseId: string,
+    workoutSetId: string,
+    input: unknown,
+  ): Promise<WorkoutSessionDetail> {
+    const data = deleteWorkoutSessionSetSchema.parse(input);
+
+    const detail = await this.prisma.$transaction(async (tx) => {
+      const session = await tx.workoutSession.findFirst({
+        where: { id: workoutSessionId, ownerUserId: userId },
+        select: {
+          id: true,
+          status: true,
+          version: true,
+        },
+      });
+
+      if (!session) {
+        throw new NotFoundException({
+          code: 'WORKOUT_NOT_FOUND',
+          message: 'Séance introuvable.',
+        });
+      }
+
+      this.assertSessionActiveForStructuralEdit(session.status);
+
+      if (session.version !== data.expectedVersion) {
+        throw new ConflictException({
+          code: 'WORKOUT_VERSION_CONFLICT',
+          message:
+            'La séance a été modifiée depuis un autre onglet ou appareil.',
+          details: { currentVersion: session.version },
+        });
+      }
+
+      const sessionExercise = await tx.workoutSessionExercise.findFirst({
+        where: {
+          id: sessionExerciseId,
+          workoutSessionId: session.id,
+        },
+        include: {
+          sets: {
+            select: { id: true, position: true },
+            orderBy: { position: 'asc' },
+          },
+        },
+      });
+
+      if (!sessionExercise) {
+        throw new NotFoundException({
+          code: 'WORKOUT_SESSION_EXERCISE_NOT_FOUND',
+          message: 'Exercice de séance introuvable.',
+        });
+      }
+
+      const target = sessionExercise.sets.find((set) => set.id === workoutSetId);
+      if (!target) {
+        throw new NotFoundException({
+          code: 'WORKOUT_SET_NOT_FOUND',
+          message: 'Série introuvable.',
+        });
+      }
+
+      const remaining = sessionExercise.sets.filter(
+        (set) => set.id !== workoutSetId,
+      );
+      if (remaining.length === 0) {
+        throw new BadRequestException({
+          code: 'WORKOUT_SET_LAST_REMAINING',
+          message:
+            'Impossible de supprimer la dernière série de cet exercice. Ignore-la si tu ne la réalises pas.',
+        });
+      }
+
+      await tx.workoutSet.delete({ where: { id: workoutSetId } });
+
+      for (const [index, set] of remaining.entries()) {
+        await tx.workoutSet.update({
+          where: { id: set.id },
+          data: { position: -(index + 1) },
+        });
+      }
+      for (const [index, set] of remaining.entries()) {
+        await tx.workoutSet.update({
+          where: { id: set.id },
+          data: { position: index },
+        });
+      }
+
+      const updatedSession = await tx.workoutSession.update({
+        where: { id: session.id },
+        data: { version: { increment: 1 } },
+        include: sessionDetailInclude,
+      });
+
+      return toWorkoutSessionDetail(
+        updatedSession as WorkoutSessionSnapshotRow,
+      );
+    });
+
+    await this.sharedSessionLinkNotifier.notifyIfLinked(workoutSessionId);
+    return detail;
   }
 
   private assertSessionActiveForStructuralEdit(status: string): void {

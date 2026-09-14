@@ -198,14 +198,6 @@ function ActiveWorkoutSessionView({
     return next ? formatWorkoutSetTargetCompact(next) : null;
   }, [selectedExercise, nextPending, exerciseCompleteWithNext]);
 
-  const manualRestSeconds =
-    selectedExercise != null
-      ? selectedExercise.restSeconds != null && selectedExercise.restSeconds > 0
-        ? selectedExercise.restSeconds
-        : selectedExercise.sets.find((set) => set.targetRestSeconds != null)
-            ?.targetRestSeconds ?? null
-      : null;
-
   const showDiscreteSync =
     offlineSync.browserOffline ||
     offlineSync.status === 'SYNCING' ||
@@ -546,19 +538,6 @@ function ActiveWorkoutSessionView({
           }
           onPrimaryAction={
             exerciseCompleteWithNext ? navigation.goToNext : undefined
-          }
-          canManualStart={
-            session.status === 'ACTIVE' &&
-            !restTimer.isRunning &&
-            !restTimer.isPaused &&
-            !restTimer.justExpired &&
-            manualRestSeconds != null &&
-            manualRestSeconds > 0
-          }
-          onManualStart={
-            manualRestSeconds
-              ? () => restTimer.start(manualRestSeconds, null)
-              : undefined
           }
         />
       ) : null}

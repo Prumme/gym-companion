@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 
 import { PageHeader } from '@/components/layout/PageHeader';
-import { ButtonLink } from '@/components/ui/button';
+import { Button, ButtonLink } from '@/components/ui/button';
 import { getMe } from '@/features/profile/api/profile-api';
 import { cn } from '@/lib/utils';
 import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
@@ -19,6 +19,12 @@ import {
 import { resolveHistoryBackPath } from '../lib/workout-history-filters';
 import { getWorkoutStatusLabel } from '../lib/workout-labels';
 import { computeWorkoutProgress } from '../lib/workout-progress';
+import {
+  buildWorkoutExportDocument,
+  copyJsonText,
+  downloadJsonFile,
+  workoutExportFilename,
+} from '../lib/workout-export';
 
 function formatSessionDate(localDate: string): string {
   const [year, month, day] = localDate.split('-').map(Number);
@@ -49,6 +55,7 @@ export function WorkoutSessionDetailPage() {
   const location = useLocation();
   const backPath = resolveHistoryBackPath(location.state);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [exportMessage, setExportMessage] = useState<string | null>(null);
   const meQuery = useQuery({
     queryKey: ['me'],
     queryFn: getMe,
@@ -238,6 +245,36 @@ export function WorkoutSessionDetailPage() {
           </dl>
         ) : null}
       </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={async () => {
+            const payload = buildWorkoutExportDocument([session]);
+            const ok = await copyJsonText(payload);
+            setExportMessage(ok ? 'JSON copié' : 'Impossible de copier le JSON.');
+          }}
+        >
+          Copier le JSON
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => {
+            const payload = buildWorkoutExportDocument([session]);
+            downloadJsonFile(workoutExportFilename([session]), payload);
+            setExportMessage('JSON téléchargé');
+          }}
+        >
+          Télécharger le JSON
+        </Button>
+      </div>
+      {exportMessage ? (
+        <p className="text-sm text-[var(--muted)]" role="status">
+          {exportMessage}
+        </p>
+      ) : null}
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <ButtonLink to={backPath} variant="secondary">

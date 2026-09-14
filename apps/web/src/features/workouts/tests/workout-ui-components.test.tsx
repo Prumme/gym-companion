@@ -280,6 +280,26 @@ describe('composants séance (UX-2)', () => {
     expect(onStop).toHaveBeenCalled();
   });
 
+  it('n’affiche pas Démarrer le repos à l’arrêt', () => {
+    const { container } = render(
+      <RestTimer
+        remainingSeconds={90}
+        isRunning={false}
+        isPaused={false}
+        justExpired={false}
+        onPause={() => undefined}
+        onResume={() => undefined}
+        onStop={() => undefined}
+        onAdd={() => undefined}
+        onDismissExpired={() => undefined}
+      />,
+    );
+    expect(container).toBeEmptyDOMElement();
+    expect(
+      screen.queryByRole('button', { name: /Démarrer le repos/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it('affiche Repos terminé', () => {
     render(
       <RestTimer

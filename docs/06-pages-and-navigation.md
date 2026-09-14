@@ -140,7 +140,7 @@ Les deep links historiques restent valides. Pendant `/workouts/active` : **mode 
 ### 4.1 Accueil / Entraînement
 
 Hub Entraînement (`/training`) → Planning, Programmes, Historique.
-Accueil : programme courant ou empty state (créer / choisir un programme).
+Accueil : programme courant ou empty state (créer / choisir un programme). Si une séance `ACTIVE` ou `PAUSED` existe, un bloc **Séance en cours** (ou en pause) avec **Reprendre la séance** s’affiche en premier (`GET /api/v1/workouts/active`).
 
 ### 4.2 Historique
 
@@ -711,7 +711,8 @@ Interface dédiée ; la barre de navigation principale peut rester visible ou ê
 - indication d’échec musculaire ;
 - statut ;
 - validation / ignore / échec ;
-- **Ajouter une série** (WORKING vide, sans cible — online only V1).
+- **Ajouter une série** (WORKING vide, sans cible — online only V1) ;
+- **Supprimer une série** (delete physique + recompactage des positions — online only V1, au moins une série restante par exercice). Distinct de **Ignorer** (`SKIPPED`).
 
 ### Repères de charge
 
@@ -776,7 +777,8 @@ L’utilisateur peut sélectionner directement un exercice.
 - header résumé (nom · date · durée · programme/modèle · statut) — pas de dump `Label : valeur` ;
 - synthèse compacte (compteurs non nuls + barre de progression) ;
 - liste d’exercices compacte → séries read-only (`WorkoutSetCard`) ;
-- métadonnées secondaires (timestamps, notes, motif) dans une section « Détails » repliable.
+- métadonnées secondaires (timestamps, notes, motif) dans une section « Détails » repliable ;
+- export JSON de la séance (**Copier le JSON** / **Télécharger**) pour un agent IA externe — aucun appel LLM.
 
 ### Hors périmètre actuel
 
@@ -802,7 +804,8 @@ L’utilisateur peut sélectionner directement un exercice.
 - timeline groupée (Aujourd’hui / Hier / mois) en lignes compactes ;
 - pagination « Charger plus » ;
 - lien vers le détail `/workouts/:workoutSessionId` (filtres conservés au retour) ;
-- badge local « En attente de synchronisation » pour une fin/annulation hors ligne non confirmée.
+- badge local « En attente de synchronisation » pour une fin/annulation hors ligne non confirmée ;
+- **Exporter** : sélection d’une ou plusieurs séances, copie ou téléchargement d’un JSON `schemaVersion: 1` (détail via `GET /workouts/:id`).
 
 ### Hors périmètre actuel
 

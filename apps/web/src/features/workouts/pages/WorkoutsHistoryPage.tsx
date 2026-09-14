@@ -1,4 +1,4 @@
-import type { WorkoutHistoryListItem } from '@gym-companion/shared';
+import type { WorkoutHistoryListItem, WorkoutSessionDetail } from '@gym-companion/shared';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -13,6 +13,7 @@ import {
   pendingTerminalLocalQueryOptions,
   workoutHistoryInfiniteQueryOptions,
 } from '../api/workout-query-options';
+import { getWorkoutSessionDetail } from '../api/workout-api';
 import { WorkoutHistoryRow } from '../components/WorkoutHistoryCard';
 import { WorkoutHistoryFiltersBar } from '../components/WorkoutHistoryFilters';
 import {
@@ -27,6 +28,13 @@ import {
   type WorkoutHistoryUrlFilters,
 } from '../lib/workout-history-filters';
 import { computeWorkoutProgress } from '../lib/workout-progress';
+import {
+  buildWorkoutExportDocument,
+  copyJsonText,
+  downloadJsonFile,
+  workoutExportFilename,
+} from '../lib/workout-export';
+import { getSnapshot } from '../offline/store';
 import type { StoredWorkoutSnapshot } from '../offline/types';
 
 function dedupeHistoryItems(
@@ -99,6 +107,11 @@ export function WorkoutsHistoryPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = parseWorkoutHistorySearchParams(searchParams);
   const [draft, setDraft] = useState<WorkoutHistoryUrlFilters>(filters);
+  const [exportMode, setExportMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportMessage, setExportMessage] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const apiFilters = toWorkoutHistoryApiFilters(filters);
   const historySearch = searchParams.toString()
     ? `?${searchParams.toString()}`
@@ -184,12 +197,80 @@ export function WorkoutsHistoryPage() {
     setSearchParams(new URLSearchParams(), { replace: true });
   }
 
+  function toggleExportMode() {
+    setExportMode((current) => !current);
+    setSelectedIds([]);
+    setExportError(null);
+    setExportMessage(null);
+  }
+
+  function toggleSelected(id: string) {
+    setSelectedIds((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
+    );
+  }
+
+  async function loadSessionsForExport() {
+    const sessions: WorkoutSessionDetail[] = [];
+    for (const id of selectedIds) {
+      const pending = pendingLocalItems.find((item) => item.id === id);
+      if (pending && userId) {
+        const snapshot = await getSnapshot(userId, id);
+        if (snapshot) {
+          sessions.push(snapshot.data);
+          continue;
+        }
+      }
+      sessions.push(await getWorkoutSessionDetail(id));
+    }
+    return sessions;
+  }
+
+  async function handleExport(mode: 'download' | 'copy') {
+    if (selectedIds.length === 0 || exportBusy) {
+      return;
+    }
+    setExportBusy(true);
+    setExportError(null);
+    setExportMessage(null);
+    try {
+      const sessions = await loadSessionsForExport();
+      const payload = buildWorkoutExportDocument(sessions);
+      if (mode === 'copy') {
+        const ok = await copyJsonText(payload);
+        setExportMessage(ok ? 'JSON copié' : 'Impossible de copier le JSON.');
+      } else {
+        downloadJsonFile(workoutExportFilename(sessions), payload);
+        setExportMessage('JSON téléchargé');
+      }
+    } catch (error) {
+      setExportError(
+        getApiErrorMessage(error, 'Impossible d’exporter ces séances.'),
+      );
+    } finally {
+      setExportBusy(false);
+    }
+  }
+
   return (
     <main className="flex flex-1 flex-col gap-5">
       <PageHeader
         title="Historique"
         description="Tes séances passées"
         className="mb-0"
+        actions={
+          totalLoaded > 0 ? (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={toggleExportMode}
+            >
+              {exportMode ? 'Annuler' : 'Exporter'}
+            </Button>
+          ) : undefined
+        }
       />
 
       <WorkoutHistoryFiltersBar
@@ -218,6 +299,42 @@ export function WorkoutsHistoryPage() {
           </button>
         ) : null}
       </div>
+
+      {exportMode ? (
+        <div className="flex flex-col gap-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-3">
+          <p className="text-sm">
+            {selectedIds.length} séance{selectedIds.length === 1 ? '' : 's'}{' '}
+            sélectionnée{selectedIds.length === 1 ? '' : 's'}
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button
+              type="button"
+              disabled={selectedIds.length === 0 || exportBusy}
+              onClick={() => void handleExport('copy')}
+            >
+              {exportBusy ? 'Export…' : 'Copier le JSON'}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={selectedIds.length === 0 || exportBusy}
+              onClick={() => void handleExport('download')}
+            >
+              Télécharger
+            </Button>
+          </div>
+          {exportMessage ? (
+            <p className="text-sm text-[var(--muted)]" role="status">
+              {exportMessage}
+            </p>
+          ) : null}
+          {exportError ? (
+            <p className="text-sm text-[var(--danger)]" role="alert">
+              {exportError}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {listQuery.isError && !listQuery.data ? (
         <div
@@ -302,6 +419,9 @@ export function WorkoutsHistoryPage() {
                             ? formatHistoryDayHeading(item.localDate)
                             : undefined
                         }
+                        selectMode={exportMode}
+                        selected={selectedIds.includes(item.id)}
+                        onToggleSelect={() => toggleSelected(item.id)}
                       />
                     );
                   })}
