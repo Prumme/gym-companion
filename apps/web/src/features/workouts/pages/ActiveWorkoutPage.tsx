@@ -14,6 +14,7 @@ import { ActiveExercisePanel } from '../components/ActiveExercisePanel';
 import { ActiveWorkoutHeader } from '../components/ActiveWorkoutHeader';
 import { AddSessionExerciseSheet } from '../components/AddSessionExerciseSheet';
 import { ExerciseNavigator } from '../components/ExerciseNavigator';
+import { ExerciseSwipeSurface } from '../components/ExerciseSwipeSurface';
 import { RestTimer } from '../components/RestTimer';
 import { WorkoutConflictPanel } from '../components/WorkoutConflictPanel';
 import { WorkoutLifecycleActions } from '../components/WorkoutLifecycleActions';
@@ -344,6 +345,14 @@ function ActiveWorkoutSessionView({
         </div>
       ) : null}
 
+      <ExerciseSwipeSurface
+        enabled={session.exercises.length > 1}
+        hasPrevious={navigation.hasPrevious}
+        hasNext={navigation.hasNext}
+        onPrevious={navigation.goToPrevious}
+        onNext={navigation.goToNext}
+        exerciseKey={navigation.selectedExerciseId ?? 'none'}
+      >
       <ExerciseNavigator
         exercises={session.exercises}
         selectedExerciseId={navigation.selectedExerciseId}
@@ -404,6 +413,7 @@ function ActiveWorkoutSessionView({
           }}
         />
       ) : null}
+      </ExerciseSwipeSurface>
 
       <div className="flex flex-col gap-2">
         {addExerciseError ? (
