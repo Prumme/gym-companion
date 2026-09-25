@@ -188,6 +188,8 @@ describe('template exercise defaults', () => {
       source: 'SYSTEM',
       name: 'Squat',
       measurementType: 'WEIGHT_REPS',
+      category: 'STRENGTH',
+      cardioType: null,
       primaryMuscleGroup: {
         id: 'm',
         code: 'quads',

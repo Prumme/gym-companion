@@ -96,6 +96,8 @@ const catalogExercise: ExerciseListItem = {
   source: 'SYSTEM',
   name: 'Rowing barre',
   measurementType: 'WEIGHT_REPS',
+  category: 'STRENGTH',
+  cardioType: null,
   primaryMuscleGroup: {
     id: 'mg-back',
     code: 'back',

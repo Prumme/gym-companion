@@ -203,11 +203,12 @@ export function ExerciseForm({
               onChange: (event) => {
                 const next = event.target.value;
                 if (next === 'CARDIO') {
-                  const type = getValues('cardioType') || 'RUNNING';
-                  if (!getValues('cardioType')) {
+                  const current = getValues('cardioType');
+                  const type = current === '' ? 'RUNNING' : current;
+                  if (current === '') {
                     setValue('cardioType', 'RUNNING');
                   }
-                  setValue('measurementType', suggestedCardioMeasurement(type === '' ? 'RUNNING' : type));
+                  setValue('measurementType', suggestedCardioMeasurement(type));
                 } else {
                   setValue('cardioType', '');
                   if (CARDIO_MEASUREMENT_TYPES.includes(getValues('measurementType'))) {

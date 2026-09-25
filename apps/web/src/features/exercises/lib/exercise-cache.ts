@@ -65,6 +65,8 @@ export function detailToListItem(detail: ExerciseDetail): ExerciseListItem {
     source: detail.source,
     name: detail.name,
     measurementType: detail.measurementType,
+    category: detail.category,
+    cardioType: detail.cardioType,
     primaryMuscleGroup: detail.primaryMuscleGroup,
     defaultEquipmentType: detail.defaultEquipmentType,
     defaultRestSeconds: detail.defaultRestSeconds,

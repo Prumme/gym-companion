@@ -28,6 +28,8 @@ function createDetail(overrides: Partial<ExerciseDetail> = {}): ExerciseDetail {
     source: 'USER',
     name: 'Curl personnalisé',
     measurementType: 'WEIGHT_REPS',
+    category: 'STRENGTH',
+    cardioType: null,
     primaryMuscleGroup: {
       id: MUSCLE_CHEST,
       code: 'chest',
