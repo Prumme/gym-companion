@@ -15,7 +15,7 @@ import { ExerciseManagementSection } from '../components/ExerciseManagementSecti
 import { ExercisePreferenceSection } from '../components/ExercisePreferenceSection';
 import { ExerciseSourceBadge } from '../components/ExerciseSourceBadge';
 import { useUpdateExercisePreferenceMutation } from '../hooks/use-exercise-preference-mutations';
-import { getMeasurementTypeLabel } from '../lib/exercise-labels';
+import { CARDIO_TYPE_LABELS, getMeasurementTypeLabel } from '../lib/exercise-labels';
 import { preferenceToUpdateInput } from '../lib/exercise-preference';
 
 type DetailLocationState = {
@@ -136,6 +136,9 @@ export function ExerciseDetailPage() {
           {exercise.primaryMuscleGroup.name} · {equipmentName}
         </p>
         <p className="text-sm text-[var(--muted-foreground)]">
+          {exercise.category === 'CARDIO' && exercise.cardioType
+            ? `${CARDIO_TYPE_LABELS[exercise.cardioType]} · `
+            : ''}
           {getMeasurementTypeLabel(exercise.measurementType)}
           {restSeconds != null ? ` · Repos conseillé : ${restSeconds} s` : null}
         </p>

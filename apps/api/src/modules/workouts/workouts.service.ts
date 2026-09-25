@@ -380,12 +380,19 @@ export class WorkoutsService {
   ): Promise<WorkoutLifecycleResult> {
     const data = completeWorkoutSessionSchema.parse(input);
     const notes = normalizeOptionalPlainText(data.notes);
+    const fingerprintPayload: Record<string, unknown> = {};
+    if (notes !== undefined) {
+      fingerprintPayload.notes = notes;
+    }
+    if (data.sessionRpe !== undefined) {
+      fingerprintPayload.sessionRpe = data.sessionRpe;
+    }
     return this.transitionLifecycle(
       userId,
       workoutSessionId,
       'COMPLETE',
       { ...data, notes },
-      notes === undefined ? {} : { notes },
+      fingerprintPayload,
     );
   }
 
@@ -623,6 +630,12 @@ export class WorkoutsService {
             actualReps: normalized.actualReps,
             actualDurationSeconds: normalized.actualDurationSeconds,
             actualDistanceMeters: normalized.actualDistanceMeters,
+            averageHeartRate: normalized.averageHeartRate ?? null,
+            inclinePercent: normalized.inclinePercent ?? null,
+            resistanceLevel: normalized.resistanceLevel ?? null,
+            machineLevel: normalized.machineLevel ?? null,
+            floorsClimbed: normalized.floorsClimbed ?? null,
+            cadenceSpm: normalized.cadenceSpm ?? null,
             actualRir: normalized.actualRir,
             actualRpe: normalized.actualRpe,
             reachedFailure: normalized.reachedFailure,
@@ -709,6 +722,7 @@ export class WorkoutsService {
       expectedVersion: number;
       clientCommandId?: string;
       notes?: string | null;
+      sessionRpe?: number | null;
       reason?: string | null;
     },
     fingerprintPayload: Record<string, unknown>,
@@ -832,6 +846,9 @@ export class WorkoutsService {
           updateData.cancellationReason = null;
           if (data.notes !== undefined) {
             updateData.notes = data.notes;
+          }
+          if (data.sessionRpe !== undefined) {
+            updateData.sessionRpe = data.sessionRpe;
           }
         } else if (action === 'CANCEL') {
           updateData.cancelledAt = now;

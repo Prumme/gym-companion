@@ -42,6 +42,9 @@ export function WorkoutLifecycleActions({
   const [uncontrolledComplete, setUncontrolledComplete] = useState(false);
   const [uncontrolledCancel, setUncontrolledCancel] = useState(false);
   const [completeNotes, setCompleteNotes] = useState(session.notes ?? '');
+  const [sessionRpe, setSessionRpe] = useState(
+    session.sessionRpe != null ? String(session.sessionRpe) : '',
+  );
   const [cancelReason, setCancelReason] = useState('');
   const notesId = useId();
   const reasonId = useId();
@@ -66,8 +69,9 @@ export function WorkoutLifecycleActions({
   useEffect(() => {
     if (completeOpen) {
       setCompleteNotes(session.notes ?? '');
+      setSessionRpe(session.sessionRpe != null ? String(session.sessionRpe) : '');
     }
-  }, [completeOpen, session.notes]);
+  }, [completeOpen, session.notes, session.sessionRpe]);
 
   useEffect(() => {
     if (cancelOpen) {
@@ -125,6 +129,7 @@ export function WorkoutLifecycleActions({
       const result = await completeMutation.mutateAsync({
         expectedVersion: session.version,
         notes: completeNotes.trim() === '' ? null : completeNotes.trim(),
+        sessionRpe: sessionRpe.trim() === '' ? null : Number(sessionRpe),
       });
       setCompleteOpen(false);
       onTerminated?.();
@@ -276,6 +281,19 @@ export function WorkoutLifecycleActions({
                 Aucune série n’a encore été enregistrée.
               </p>
             ) : null}
+            <label className="mt-3 flex flex-col gap-1 text-sm" htmlFor={`${notesId}-rpe`}>
+              <span className="font-medium">Difficulté générale (1–10)</span>
+              <input
+                id={`${notesId}-rpe`}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={10}
+                value={sessionRpe}
+                onChange={(event) => setSessionRpe(event.target.value)}
+                className="min-h-12 w-24 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--background)] px-3 text-base tabular-nums"
+              />
+            </label>
             <label
               className="mt-3 flex flex-col gap-1 text-sm"
               htmlFor={notesId}

@@ -204,8 +204,25 @@ enum ExerciseMeasurementType {
   ASSISTED_BODYWEIGHT_REPS
   REPS_ONLY
   DURATION
+  DISTANCE
   DISTANCE_DURATION
   WEIGHT_DURATION
+}
+
+enum ExerciseCategory {
+  STRENGTH
+  CARDIO
+}
+
+enum CardioType {
+  RUNNING
+  WALKING
+  TREADMILL
+  CYCLING
+  ROWING
+  STAIR_CLIMBING
+  ELLIPTICAL
+  OTHER
 }
 
 model Exercise {
@@ -217,6 +234,8 @@ model Exercise {
   slug                   String?                  @unique
   primaryMuscleGroupId   String                   @db.Uuid
   measurementType        ExerciseMeasurementType
+  category               ExerciseCategory         @default(STRENGTH)
+  cardioType             CardioType?
   defaultEquipmentTypeId String?                  @db.Uuid
   defaultRestSeconds     Int?
   instructions           String?
@@ -488,6 +507,7 @@ model WorkoutSession {
   cancelledAt                 DateTime?
   cancellationReason          String?
   notes                       String?
+  sessionRpe                  Int?
   version                     Int           @default(1)
   createdAt                   DateTime      @default(now())
   updatedAt                   DateTime      @updatedAt
@@ -600,6 +620,12 @@ model WorkoutSet {
   actualReps                Int?
   actualDurationSeconds     Int?
   actualDistanceMeters      Decimal?          @db.Decimal(10, 2)
+  averageHeartRate          Int?
+  inclinePercent            Decimal?          @db.Decimal(5, 2)
+  resistanceLevel           Int?
+  machineLevel              Int?
+  floorsClimbed             Int?
+  cadenceSpm                Int?
   actualRir                 Int?
   actualRpe                 Decimal?          @db.Decimal(4, 1)
   reachedFailure            Boolean           @default(false)

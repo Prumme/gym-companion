@@ -8,6 +8,7 @@ import type {
   EstimatedStrengthPoint,
   ExerciseProgressMetric,
   ExerciseProgressPoint,
+  CardioHistoryResponse,
   ExerciseProgressResponse,
   ExerciseStrengthResponse,
   LastWorkingSetCue,
@@ -20,6 +21,7 @@ import {
   MIN_E1RM_REPS,
   ONE_REP_MAX_FORMULA,
   PROGRESS_OVERVIEW_RECENT_RECORDS_LIMIT,
+  buildCardioHistoryEntries,
   buildProgressOverviewTimeline,
   compareExerciseProgressPointsAsc,
   compareStrengthPointsAsc,
@@ -31,6 +33,7 @@ import {
   computeProgressOverviewComparison,
   computeProgressOverviewTotals,
   computeProgressTopExercises,
+  isCardioMeasurementType,
   isStrengthSupportedForMeasurement,
   localDateStringToUtcDate,
   parseExerciseProgressQuery,
@@ -74,6 +77,7 @@ const MEASUREMENT_TYPES = new Set<string>([
   'ASSISTED_BODYWEIGHT_REPS',
   'REPS_ONLY',
   'DURATION',
+  'DISTANCE',
   'DISTANCE_DURATION',
   'WEIGHT_DURATION',
 ]);
@@ -680,6 +684,65 @@ export class ProgressService {
     };
   }
 
+  async getCardioHistory(
+    userId: string,
+    exerciseId: string,
+  ): Promise<CardioHistoryResponse> {
+    const exercise = await this.findAccessibleExerciseOrThrow(userId, exerciseId);
+    const supported =
+      exercise.category === 'CARDIO' &&
+      isCardioMeasurementType(exercise.measurementType);
+    if (!supported) {
+      return { exerciseId, supported: false, entries: [] };
+    }
+
+    const rows = await this.prisma.workoutSession.findMany({
+      where: {
+        ownerUserId: userId,
+        status: 'COMPLETED',
+        exercises: { some: { sourceExerciseId: exerciseId } },
+      },
+      orderBy: [{ localDate: 'desc' }, { startedAt: 'desc' }],
+      take: 100,
+      select: {
+        id: true,
+        localDate: true,
+        notes: true,
+        sessionRpe: true,
+        exercises: {
+          where: { sourceExerciseId: exerciseId },
+          select: {
+            sets: {
+              select: {
+                status: true,
+                actualDurationSeconds: true,
+                actualDistanceMeters: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const entries = buildCardioHistoryEntries(
+      rows.map((row) => ({
+        workoutSessionId: row.id,
+        localDate: utcDateToLocalDateString(row.localDate),
+        sessionRpe: row.sessionRpe,
+        notes: row.notes,
+        sets: row.exercises.flatMap((exerciseRow) =>
+          exerciseRow.sets.map((set) => ({
+            status: set.status,
+            actualDurationSeconds: set.actualDurationSeconds,
+            actualDistanceMeters: decimalToNumber(set.actualDistanceMeters),
+          })),
+        ),
+      })),
+    );
+
+    return { exerciseId, supported: true, entries };
+  }
+
   private async findAccessibleExerciseOrThrow(userId: string, exerciseId: string) {
     const row = await this.prisma.exercise.findFirst({
       where: {
@@ -690,6 +753,7 @@ export class ProgressService {
         id: true,
         name: true,
         measurementType: true,
+        category: true,
         archivedAt: true,
       },
     });

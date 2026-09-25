@@ -119,8 +119,21 @@ Les modes de mesure initiaux sont :
 - `ASSISTED_BODYWEIGHT_REPS` : assistance et répétitions ;
 - `REPS_ONLY` : répétitions sans charge enregistrée ;
 - `DURATION` : durée ;
+- `DISTANCE` : distance seule ;
 - `DISTANCE_DURATION` : distance et durée ;
 - `WEIGHT_DURATION` : charge et durée.
+
+Un exercice a aussi une catégorie `STRENGTH` (défaut, y compris les données existantes) ou `CARDIO`.
+
+`cardioType` n’est renseigné que pour `CARDIO`. Un exercice cardio utilise `DURATION`, `DISTANCE` ou `DISTANCE_DURATION`. La musculation conserve les types existants, y compris `WEIGHT_REPS`.
+
+Les métriques facultatives (fréquence cardiaque, inclinaison, résistance, niveau, étages, cadence) sont des résultats de série, jamais obligatoires. L’allure et la vitesse sont calculées, pas stockées.
+
+Le RPE global de séance (`sessionRpe`, 1–10) et les notes de séance sont distincts du RPE de série.
+
+### 4.1.1 Blocs de séance — V1.1
+
+La V1 cardio reste une liste ordonnée d’exercices (`WorkoutTemplateExercise`), chacun avec ses séries cibles. Le fractionné (`INTERVAL`), les supersets et les circuits ne sont pas modélisés : la contrainte d’unicité `(workoutTemplateId, exerciseId)` empêche de répéter le même exercice, et introduire un `WorkoutTemplateBlock` (`SINGLE | INTERVAL | SUPERSET | CIRCUIT`) demanderait de réordonner exercices, snapshots de séance, remplacement et import. V1.1 pourra insérer cette entité entre `WorkoutTemplate` et `WorkoutTemplateExercise` sans changer le catalogue d’exercices.
 
 ### 4.2 Groupes musculaires
 

@@ -8,7 +8,12 @@ import { Controller, useForm } from 'react-hook-form';
 
 import { Button, ButtonLink } from '@/components/ui/button';
 
-import { MEASUREMENT_TYPE_OPTIONS } from '../lib/exercise-labels';
+import {
+  CARDIO_MEASUREMENT_TYPES,
+  CARDIO_TYPE_LABELS,
+  MEASUREMENT_TYPE_OPTIONS,
+  suggestedCardioMeasurement,
+} from '../lib/exercise-labels';
 import {
   EMPTY_EXERCISE_FORM_VALUES,
   exerciseFormSchema,
@@ -75,6 +80,13 @@ export function ExerciseForm({
     initializedRef.current = true;
   }, [initialValues, mode, reset]);
 
+  const category = watch('category');
+  const measurementOptions =
+    category === 'CARDIO'
+      ? MEASUREMENT_TYPE_OPTIONS.filter((option) =>
+          CARDIO_MEASUREMENT_TYPES.includes(option.value),
+        )
+      : MEASUREMENT_TYPE_OPTIONS.filter((option) => option.value !== 'DISTANCE');
   const primaryMuscleGroupId = watch('primaryMuscleGroupId');
   const secondaryMuscleGroupIds = watch('secondaryMuscleGroupIds');
   const defaultEquipmentTypeId = watch('defaultEquipmentTypeId');
@@ -180,6 +192,68 @@ export function ExerciseForm({
       <section className="flex flex-col gap-4">
         <h2 className="section-title">Mesure</h2>
         <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium" htmlFor="exercise-category">
+            Catégorie
+          </label>
+          <select
+            id="exercise-category"
+            className="min-h-11 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm"
+            disabled={pending}
+            {...register('category', {
+              onChange: (event) => {
+                const next = event.target.value;
+                if (next === 'CARDIO') {
+                  const type = getValues('cardioType') || 'RUNNING';
+                  if (!getValues('cardioType')) {
+                    setValue('cardioType', 'RUNNING');
+                  }
+                  setValue('measurementType', suggestedCardioMeasurement(type === '' ? 'RUNNING' : type));
+                } else {
+                  setValue('cardioType', '');
+                  if (CARDIO_MEASUREMENT_TYPES.includes(getValues('measurementType'))) {
+                    setValue('measurementType', 'WEIGHT_REPS');
+                  }
+                }
+              },
+            })}
+          >
+            <option value="STRENGTH">Musculation</option>
+            <option value="CARDIO">Cardio</option>
+          </select>
+        </div>
+        {category === 'CARDIO' ? (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium" htmlFor="cardio-type">
+              Type de cardio <span className="text-[var(--danger)]">*</span>
+            </label>
+            <select
+              id="cardio-type"
+              className="min-h-11 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm"
+              disabled={pending}
+              {...register('cardioType', {
+                onChange: (event) => {
+                  const type = event.target.value;
+                  if (type) {
+                    setValue('measurementType', suggestedCardioMeasurement(type));
+                  }
+                },
+              })}
+            >
+              <option value="">Choisir</option>
+              {Object.entries(CARDIO_TYPE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            {errors.cardioType ? (
+              <p className="text-xs text-[var(--danger)]" role="alert">
+                {errors.cardioType.message}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+        <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium" htmlFor="measurement-type">
             Type de mesure <span className="text-[var(--danger)]">*</span>
           </label>
@@ -189,7 +263,7 @@ export function ExerciseForm({
             disabled={pending}
             {...register('measurementType')}
           >
-            {MEASUREMENT_TYPE_OPTIONS.map((option) => (
+            {measurementOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>

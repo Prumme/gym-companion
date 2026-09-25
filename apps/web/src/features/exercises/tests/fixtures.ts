@@ -8,6 +8,8 @@ export function createExerciseListItem(
     source: 'SYSTEM',
     name: 'Développé couché à la barre',
     measurementType: 'WEIGHT_REPS',
+    category: 'STRENGTH',
+    cardioType: null,
     primaryMuscleGroup: {
       id: 'muscle-chest',
       code: 'chest',

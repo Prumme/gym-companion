@@ -32,6 +32,11 @@ const DURATION_TYPES: ReadonlySet<ExerciseMeasurementType> = new Set([
   'WEIGHT_DURATION',
 ]);
 
+const DISTANCE_TYPES: ReadonlySet<ExerciseMeasurementType> = new Set([
+  'DISTANCE',
+  'DISTANCE_DURATION',
+]);
+
 export function getWorkoutSetActualFieldVisibility(
   measurementType: ExerciseMeasurementType,
 ): WorkoutSetActualFieldVisibility {
@@ -39,7 +44,7 @@ export function getWorkoutSetActualFieldVisibility(
     reps: REPS_TYPES.has(measurementType),
     weight: WEIGHT_TYPES.has(measurementType),
     duration: DURATION_TYPES.has(measurementType),
-    distance: measurementType === 'DISTANCE_DURATION',
+    distance: DISTANCE_TYPES.has(measurementType),
   };
 }
 

@@ -35,6 +35,12 @@ export type WorkoutSetSnapshotRow = {
   actualReps: number | null;
   actualDurationSeconds: number | null;
   actualDistanceMeters: unknown;
+  averageHeartRate: number | null;
+  inclinePercent: unknown;
+  resistanceLevel: number | null;
+  machineLevel: number | null;
+  floorsClimbed: number | null;
+  cadenceSpm: number | null;
   actualRir: number | null;
   actualRpe: unknown;
   reachedFailure: boolean;
@@ -71,6 +77,7 @@ export type WorkoutSessionSnapshotRow = {
   cancelledAt: Date | null;
   cancellationReason: string | null;
   notes: string | null;
+  sessionRpe: number | null;
   version: number;
   sourceProgramId: string | null;
   sourceWorkoutTemplateId: string | null;
@@ -166,6 +173,12 @@ export function toWorkoutSetDetail(row: WorkoutSetSnapshotRow): WorkoutSessionSe
     actualReps: row.actualReps,
     actualDurationSeconds: row.actualDurationSeconds,
     actualDistanceMeters: decimalToNumber(row.actualDistanceMeters),
+    averageHeartRate: row.averageHeartRate,
+    inclinePercent: decimalToNumber(row.inclinePercent),
+    resistanceLevel: row.resistanceLevel,
+    machineLevel: row.machineLevel,
+    floorsClimbed: row.floorsClimbed,
+    cadenceSpm: row.cadenceSpm,
     actualRir: row.actualRir,
     actualRpe: decimalToNumber(row.actualRpe),
     reachedFailure: row.reachedFailure,
@@ -270,6 +283,7 @@ export function toWorkoutSessionDetail(
     cancelledAt: row.cancelledAt?.toISOString() ?? null,
     cancellationReason: row.cancellationReason,
     notes: row.notes,
+    sessionRpe: row.sessionRpe,
     version: row.version,
     source: {
       programId: row.sourceProgramId,

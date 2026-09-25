@@ -83,8 +83,21 @@ export type ExerciseMeasurementType =
   | 'ASSISTED_BODYWEIGHT_REPS'
   | 'REPS_ONLY'
   | 'DURATION'
+  | 'DISTANCE'
   | 'DISTANCE_DURATION'
   | 'WEIGHT_DURATION';
+
+export type ExerciseCategory = 'STRENGTH' | 'CARDIO';
+
+export type CardioType =
+  | 'RUNNING'
+  | 'WALKING'
+  | 'TREADMILL'
+  | 'CYCLING'
+  | 'ROWING'
+  | 'STAIR_CLIMBING'
+  | 'ELLIPTICAL'
+  | 'OTHER';
 
 export type ExercisePermissions = {
   canEdit: boolean;
@@ -111,6 +124,8 @@ export type ExerciseListItem = {
   source: ExerciseSource;
   name: string;
   measurementType: ExerciseMeasurementType;
+  category: ExerciseCategory;
+  cardioType: CardioType | null;
   primaryMuscleGroup: MuscleGroupReference;
   defaultEquipmentType: EquipmentTypeReference | null;
   defaultRestSeconds: number | null;
@@ -121,11 +136,30 @@ export type ExerciseListItem = {
 
 export type ExerciseListResponse = ApiCursorListResponse<ExerciseListItem>;
 
+export type CardioHistoryEntry = {
+  workoutSessionId: string;
+  localDate: string;
+  durationSeconds: number | null;
+  distanceMeters: number | null;
+  averagePaceSecondsPerKm: number | null;
+  averageSpeedKmh: number | null;
+  sessionRpe: number | null;
+  notes: string | null;
+};
+
+export type CardioHistoryResponse = {
+  exerciseId: string;
+  supported: boolean;
+  entries: CardioHistoryEntry[];
+};
+
 export type ExerciseDetail = {
   id: string;
   source: ExerciseSource;
   name: string;
   measurementType: ExerciseMeasurementType;
+  category: ExerciseCategory;
+  cardioType: CardioType | null;
   primaryMuscleGroup: MuscleGroupReference;
   secondaryMuscleGroups: MuscleGroupReference[];
   defaultEquipmentType: EquipmentTypeReference | null;
@@ -337,6 +371,12 @@ export type WorkoutSessionSetDetail = {
   actualReps: number | null;
   actualDurationSeconds: number | null;
   actualDistanceMeters: number | null;
+  averageHeartRate: number | null;
+  inclinePercent: number | null;
+  resistanceLevel: number | null;
+  machineLevel: number | null;
+  floorsClimbed: number | null;
+  cadenceSpm: number | null;
   actualRir: number | null;
   actualRpe: number | null;
 
@@ -389,6 +429,7 @@ export type WorkoutSessionDetail = {
   cancelledAt: string | null;
   cancellationReason: string | null;
   notes: string | null;
+  sessionRpe: number | null;
   version: number;
   source: {
     programId: string | null;

@@ -1,4 +1,6 @@
 import type {
+  CardioType,
+  ExerciseCategory,
   ExerciseDetail,
   ExerciseMeasurementType,
   ExercisePermissions,
@@ -21,6 +23,8 @@ export type ExerciseFormValues = {
   primaryMuscleGroupId: string;
   secondaryMuscleGroupIds: string[];
   measurementType: ExerciseMeasurementType;
+  category: ExerciseCategory;
+  cardioType: CardioType | '';
   /** Chaîne vide = aucun équipement par défaut (`null` côté API). */
   defaultEquipmentTypeId: string;
   compatibleEquipmentTypes: CompatibleEquipmentFormValue[];
@@ -35,6 +39,8 @@ export const EMPTY_EXERCISE_FORM_VALUES: ExerciseFormValues = {
   primaryMuscleGroupId: '',
   secondaryMuscleGroupIds: [],
   measurementType: 'WEIGHT_REPS',
+  category: 'STRENGTH',
+  cardioType: '',
   defaultEquipmentTypeId: '',
   compatibleEquipmentTypes: [],
   defaultRestSeconds: '',
@@ -53,6 +59,8 @@ export function detailToFormValues(detail: ExerciseDetail): ExerciseFormValues {
     primaryMuscleGroupId: detail.primaryMuscleGroup.id,
     secondaryMuscleGroupIds: detail.secondaryMuscleGroups.map((item) => item.id),
     measurementType: detail.measurementType,
+    category: detail.category,
+    cardioType: detail.cardioType ?? '',
     defaultEquipmentTypeId: detail.defaultEquipmentType?.id ?? '',
     compatibleEquipmentTypes: detail.compatibleEquipmentTypes.map((item) => ({
       equipmentTypeId: item.equipmentType.id,
@@ -135,6 +143,8 @@ function normalizeForCompare(values: ExerciseFormValues) {
     primaryMuscleGroupId: values.primaryMuscleGroupId,
     secondaryMuscleGroupIds: [...values.secondaryMuscleGroupIds].sort(),
     measurementType: values.measurementType,
+    category: values.category,
+    cardioType: values.cardioType,
     defaultEquipmentTypeId: values.defaultEquipmentTypeId,
     compatibleEquipmentTypes: [...values.compatibleEquipmentTypes]
       .map((item) => ({
@@ -185,6 +195,8 @@ export function formValuesToCreatePayload(
     primaryMuscleGroupId: values.primaryMuscleGroupId,
     secondaryMuscleGroupIds,
     measurementType: values.measurementType,
+    category: values.category,
+    cardioType: values.category === 'CARDIO' ? values.cardioType : null,
     defaultEquipmentTypeId,
     compatibleEquipmentTypes,
     defaultRestSeconds: restRaw === '' ? null : Number(restRaw),
@@ -215,8 +227,21 @@ export const exerciseFormSchema = z
       'ASSISTED_BODYWEIGHT_REPS',
       'REPS_ONLY',
       'DURATION',
+      'DISTANCE',
       'DISTANCE_DURATION',
       'WEIGHT_DURATION',
+    ]),
+    category: z.enum(['STRENGTH', 'CARDIO']),
+    cardioType: z.enum([
+      'RUNNING',
+      'WALKING',
+      'TREADMILL',
+      'CYCLING',
+      'ROWING',
+      'STAIR_CLIMBING',
+      'ELLIPTICAL',
+      'OTHER',
+      '',
     ]),
     defaultEquipmentTypeId: z.string(),
     compatibleEquipmentTypes: z.array(
@@ -246,6 +271,23 @@ export const exerciseFormSchema = z
       .max(4000, 'Les instructions ne peuvent pas dépasser 4000 caractères.'),
   })
   .superRefine((data, ctx) => {
+    if (data.category === 'CARDIO' && data.cardioType === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['cardioType'],
+        message: 'Choisis un type de cardio.',
+      });
+    }
+    if (
+      data.category === 'CARDIO' &&
+      !['DURATION', 'DISTANCE', 'DISTANCE_DURATION'].includes(data.measurementType)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['measurementType'],
+        message: 'Choisis une durée, une distance, ou les deux.',
+      });
+    }
     const secondary = data.secondaryMuscleGroupIds;
     if (new Set(secondary).size !== secondary.length) {
       ctx.addIssue({

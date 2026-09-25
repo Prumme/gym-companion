@@ -96,6 +96,8 @@ function shortMeasurementLabel(type: ExerciseMeasurementType): string {
       return 'Répétitions';
     case 'DURATION':
       return 'Durée';
+    case 'DISTANCE':
+      return 'Distance';
     case 'DISTANCE_DURATION':
       return 'Distance';
     case 'WEIGHT_DURATION':

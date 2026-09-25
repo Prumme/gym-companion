@@ -37,6 +37,7 @@ export type ExerciseMeasurementTypeForRecords =
   | 'ASSISTED_BODYWEIGHT_REPS'
   | 'REPS_ONLY'
   | 'DURATION'
+  | 'DISTANCE'
   | 'DISTANCE_DURATION'
   | 'WEIGHT_DURATION';
 
@@ -61,6 +62,7 @@ export function resolveRecordTypesForMeasurement(
       return ['MAX_REPS'];
     case 'DURATION':
       return ['MAX_DURATION'];
+    case 'DISTANCE':
     case 'DISTANCE_DURATION':
       return ['MAX_DISTANCE'];
     case 'WEIGHT_DURATION':

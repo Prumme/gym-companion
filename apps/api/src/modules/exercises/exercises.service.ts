@@ -326,6 +326,8 @@ export class ExercisesService {
           slug: null,
           primaryMuscleGroupId: data.primaryMuscleGroupId,
           measurementType: data.measurementType,
+          category: data.category,
+          cardioType: data.category === 'CARDIO' ? data.cardioType ?? null : null,
           defaultEquipmentTypeId: data.defaultEquipmentTypeId ?? null,
           defaultRestSeconds: data.defaultRestSeconds ?? null,
           instructions: data.instructions ?? null,
@@ -364,6 +366,9 @@ export class ExercisesService {
         data.secondaryMuscleGroupIds ??
         existing.secondaryMuscles.map((item) => item.muscleGroupId),
       measurementType: data.measurementType ?? existing.measurementType,
+      category: data.category ?? existing.category,
+      cardioType:
+        data.cardioType !== undefined ? data.cardioType : existing.cardioType,
       defaultEquipmentTypeId:
         data.defaultEquipmentTypeId !== undefined
           ? data.defaultEquipmentTypeId
@@ -397,6 +402,9 @@ export class ExercisesService {
           normalizedName: normalizeExerciseName(validated.name),
           primaryMuscleGroupId: validated.primaryMuscleGroupId,
           measurementType: validated.measurementType,
+          category: validated.category,
+          cardioType:
+            validated.category === 'CARDIO' ? validated.cardioType ?? null : null,
           defaultEquipmentTypeId: validated.defaultEquipmentTypeId ?? null,
           defaultRestSeconds: validated.defaultRestSeconds ?? null,
           instructions: validated.instructions ?? null,

@@ -218,8 +218,22 @@ export const exerciseMeasurementTypeSchema = z.enum([
   'ASSISTED_BODYWEIGHT_REPS',
   'REPS_ONLY',
   'DURATION',
+  'DISTANCE',
   'DISTANCE_DURATION',
   'WEIGHT_DURATION',
+]);
+
+export const exerciseCategorySchema = z.enum(['STRENGTH', 'CARDIO']);
+
+export const cardioTypeSchema = z.enum([
+  'RUNNING',
+  'WALKING',
+  'TREADMILL',
+  'CYCLING',
+  'ROWING',
+  'STAIR_CLIMBING',
+  'ELLIPTICAL',
+  'OTHER',
 ]);
 
 const emptyToNull = (value: string | null | undefined) => {
@@ -249,6 +263,8 @@ const createExerciseObjectSchema = z.object({
   primaryMuscleGroupId: z.string().uuid(),
   secondaryMuscleGroupIds: z.array(z.string().uuid()).default([]),
   measurementType: exerciseMeasurementTypeSchema,
+  category: exerciseCategorySchema.default('STRENGTH'),
+  cardioType: cardioTypeSchema.nullable().optional(),
   defaultEquipmentTypeId: z.string().uuid().nullable().optional(),
   compatibleEquipmentTypes: z.array(compatibleEquipmentInputSchema).default([]),
   defaultRestSeconds: z.number().int().min(0).max(3600).nullable().optional(),
@@ -260,10 +276,19 @@ const createExerciseObjectSchema = z.object({
     .transform((value) => (value === undefined ? undefined : emptyToNull(value) ?? null)),
 });
 
+const CARDIO_MEASUREMENTS = new Set([
+  'DURATION',
+  'DISTANCE',
+  'DISTANCE_DURATION',
+]);
+
 function refineExercisePayload(
   data: {
     primaryMuscleGroupId?: string;
     secondaryMuscleGroupIds?: string[];
+    measurementType?: string;
+    category?: 'STRENGTH' | 'CARDIO';
+    cardioType?: string | null;
     defaultEquipmentTypeId?: string | null;
     compatibleEquipmentTypes?: Array<{
       equipmentTypeId: string;
@@ -273,6 +298,30 @@ function refineExercisePayload(
   },
   ctx: z.RefinementCtx,
 ) {
+  const category = data.category ?? 'STRENGTH';
+  if (category === 'CARDIO') {
+    if (!data.cardioType) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['cardioType'],
+        message: 'Un type de cardio est requis.',
+      });
+    }
+    if (data.measurementType && !CARDIO_MEASUREMENTS.has(data.measurementType)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['measurementType'],
+        message:
+          'Un exercice cardio utilise une durée, une distance, ou les deux.',
+      });
+    }
+  } else if (data.cardioType) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['cardioType'],
+      message: 'Le type de cardio ne s’applique qu’aux exercices cardio.',
+    });
+  }
   const secondary = data.secondaryMuscleGroupIds ?? [];
   if (new Set(secondary).size !== secondary.length) {
     ctx.addIssue({
@@ -896,6 +945,7 @@ export function validateWorkoutTemplateSetTargets(
     | 'ASSISTED_BODYWEIGHT_REPS'
     | 'REPS_ONLY'
     | 'DURATION'
+    | 'DISTANCE'
     | 'DISTANCE_DURATION'
     | 'WEIGHT_DURATION',
   targets: WorkoutTemplateSetTargetFields,
@@ -959,6 +1009,22 @@ export function validateWorkoutTemplateSetTargets(
           ok: false,
           code: 'WORKOUT_TEMPLATE_SET_INVALID_TARGET',
           message: 'Répétitions et distance ne s’appliquent pas à ce type de mesure.',
+        };
+      }
+      break;
+    case 'DISTANCE':
+      if (!hasDistance) {
+        return {
+          ok: false,
+          code: 'WORKOUT_TEMPLATE_SET_INVALID_TARGET',
+          message: 'Une distance cible est requise pour ce type de mesure.',
+        };
+      }
+      if (hasReps || hasDuration) {
+        return {
+          ok: false,
+          code: 'WORKOUT_TEMPLATE_SET_INVALID_TARGET',
+          message: 'Répétitions et durée ne s’appliquent pas à ce type de mesure.',
         };
       }
       break;
@@ -1224,6 +1290,11 @@ const actualDurationSchema = z.number().int().min(0).max(86_400).nullable();
 const actualDistanceSchema = z.number().finite().min(0).max(1_000_000).nullable();
 const actualRirSchema = z.number().int().min(0).max(10).nullable();
 const actualRpeSchema = z.number().finite().min(1).max(10).nullable();
+const heartRateSchema = z.number().int().min(1).max(250).nullable();
+const inclinePercentSchema = z.number().finite().min(-15).max(40).nullable();
+const machineLevelSchema = z.number().int().min(1).max(50).nullable();
+const floorsClimbedSchema = z.number().int().min(0).max(10_000).nullable();
+const cadenceSchema = z.number().int().min(1).max(250).nullable();
 
 const setNotesSchema = z.string().max(2000).nullable();
 
@@ -1234,6 +1305,12 @@ export const updateWorkoutSetSchema = z
     actualReps: actualRepsSchema,
     actualDurationSeconds: actualDurationSchema,
     actualDistanceMeters: actualDistanceSchema,
+    averageHeartRate: heartRateSchema.optional(),
+    inclinePercent: inclinePercentSchema.optional(),
+    resistanceLevel: machineLevelSchema.optional(),
+    machineLevel: machineLevelSchema.optional(),
+    floorsClimbed: floorsClimbedSchema.optional(),
+    cadenceSpm: cadenceSchema.optional(),
     actualRir: actualRirSchema,
     actualRpe: actualRpeSchema,
     reachedFailure: z.boolean(),
@@ -1320,6 +1397,12 @@ export type WorkoutSetActualFields = {
   actualReps: number | null;
   actualDurationSeconds: number | null;
   actualDistanceMeters: number | null;
+  averageHeartRate?: number | null;
+  inclinePercent?: number | null;
+  resistanceLevel?: number | null;
+  machineLevel?: number | null;
+  floorsClimbed?: number | null;
+  cadenceSpm?: number | null;
   actualRir: number | null;
   actualRpe: number | null;
   reachedFailure: boolean;
@@ -1344,8 +1427,39 @@ type MeasurementType =
   | 'ASSISTED_BODYWEIGHT_REPS'
   | 'REPS_ONLY'
   | 'DURATION'
+  | 'DISTANCE'
   | 'DISTANCE_DURATION'
   | 'WEIGHT_DURATION';
+
+function hasCardioMetrics(values: WorkoutSetActualFields): boolean {
+  return (
+    values.averageHeartRate != null ||
+    values.inclinePercent != null ||
+    values.resistanceLevel != null ||
+    values.machineLevel != null ||
+    values.floorsClimbed != null ||
+    values.cadenceSpm != null
+  );
+}
+
+function clearedCardioMetrics(): Pick<
+  WorkoutSetActualFields,
+  | 'averageHeartRate'
+  | 'inclinePercent'
+  | 'resistanceLevel'
+  | 'machineLevel'
+  | 'floorsClimbed'
+  | 'cadenceSpm'
+> {
+  return {
+    averageHeartRate: null,
+    inclinePercent: null,
+    resistanceLevel: null,
+    machineLevel: null,
+    floorsClimbed: null,
+    cadenceSpm: null,
+  };
+}
 
 function hasPrincipalValue(
   measurementType: MeasurementType,
@@ -1360,8 +1474,12 @@ function hasPrincipalValue(
     case 'DURATION':
     case 'WEIGHT_DURATION':
       return values.actualDurationSeconds != null;
-    case 'DISTANCE_DURATION':
+    case 'DISTANCE':
       return values.actualDistanceMeters != null;
+    case 'DISTANCE_DURATION':
+      return (
+        values.actualDistanceMeters != null || values.actualDurationSeconds != null
+      );
     default:
       return false;
   }
@@ -1381,6 +1499,19 @@ function forbidExtras(
     }
     return null;
   };
+
+  if (
+    measurementType !== 'DURATION' &&
+    measurementType !== 'DISTANCE' &&
+    measurementType !== 'DISTANCE_DURATION' &&
+    hasCardioMetrics(values)
+  ) {
+    return {
+      ok: false,
+      code: 'WORKOUT_SET_MEASUREMENT_MISMATCH',
+      message: 'Les métriques cardio ne s’appliquent pas à ce type de mesure.',
+    };
+  }
 
   switch (measurementType) {
     case 'WEIGHT_REPS':
@@ -1434,6 +1565,21 @@ function forbidExtras(
         forbid(
           values.actualDistanceMeters != null,
           'Une série durée ne doit pas avoir de distance réelle.',
+        )
+      );
+    case 'DISTANCE':
+      return (
+        forbid(
+          values.actualReps != null,
+          'Une série distance ne doit pas avoir de répétitions réelles.',
+        ) ??
+        forbid(
+          values.actualWeightKg != null,
+          'Une série distance ne doit pas avoir de charge réelle.',
+        ) ??
+        forbid(
+          values.actualDurationSeconds != null,
+          'Une série distance ne doit pas avoir de durée réelle.',
         )
       );
     case 'DISTANCE_DURATION':
@@ -1496,7 +1642,8 @@ export function validateWorkoutSetActuals(
       input.actualDurationSeconds != null ||
       input.actualDistanceMeters != null ||
       input.actualRir != null ||
-      input.actualRpe != null
+      input.actualRpe != null ||
+      hasCardioMetrics(input)
     ) {
       return {
         ok: false,
@@ -1515,6 +1662,7 @@ export function validateWorkoutSetActuals(
         actualReps: null,
         actualDurationSeconds: null,
         actualDistanceMeters: null,
+        ...clearedCardioMetrics(),
         actualRir: null,
         actualRpe: null,
         reachedFailure: false,
@@ -1560,6 +1708,15 @@ export function validateWorkoutSetActuals(
           ok: false,
           code: 'WORKOUT_SET_INVALID',
           message: 'La durée réelle est requise.',
+        };
+      }
+      break;
+    case 'DISTANCE':
+      if (input.actualDistanceMeters == null) {
+        return {
+          ok: false,
+          code: 'WORKOUT_SET_INVALID',
+          message: 'La distance réelle est requise.',
         };
       }
       break;
@@ -1612,6 +1769,7 @@ export const completeWorkoutSessionSchema = z
     expectedVersion: expectedVersionSchema,
     clientCommandId: workoutClientCommandIdSchema,
     notes: z.string().max(2000).nullable().optional(),
+    sessionRpe: z.number().int().min(1).max(10).nullable().optional(),
   })
   .strict();
 
@@ -1754,6 +1912,12 @@ export function buildWorkoutSetCommandFingerprint(payload: {
   actualRpe: number | null;
   reachedFailure: boolean;
   notes: string | null;
+  averageHeartRate?: number | null;
+  inclinePercent?: number | null;
+  resistanceLevel?: number | null;
+  machineLevel?: number | null;
+  floorsClimbed?: number | null;
+  cadenceSpm?: number | null;
 }): string {
   return JSON.stringify({
     status: payload.status,
@@ -1761,6 +1925,12 @@ export function buildWorkoutSetCommandFingerprint(payload: {
     actualReps: payload.actualReps,
     actualDurationSeconds: payload.actualDurationSeconds,
     actualDistanceMeters: payload.actualDistanceMeters,
+    averageHeartRate: payload.averageHeartRate ?? null,
+    inclinePercent: payload.inclinePercent ?? null,
+    resistanceLevel: payload.resistanceLevel ?? null,
+    machineLevel: payload.machineLevel ?? null,
+    floorsClimbed: payload.floorsClimbed ?? null,
+    cadenceSpm: payload.cadenceSpm ?? null,
     actualRir: payload.actualRir,
     actualRpe: payload.actualRpe,
     reachedFailure: payload.reachedFailure,
@@ -2479,6 +2649,29 @@ export type {
   SharedProgressSetInput,
   SharedWorkoutProgressSummary,
 } from './shared-workout-progress';
+
+export {
+  buildCardioHistoryEntries,
+  computeAveragePaceSecondsPerKm,
+  computeAverageSpeedKmh,
+  computeCardioDerivedMetrics,
+  formatDistanceMeters,
+  formatDuration,
+  formatPace,
+  formatSpeedKmh,
+  isCardioMeasurementType,
+  kilometersToMeters,
+  metersToKilometers,
+  parseDurationParts,
+  splitDuration,
+} from './cardio-metrics';
+export type {
+  CardioDerivedMetrics,
+  CardioHistoryEntry,
+  CardioHistorySessionInput,
+  CardioHistorySetInput,
+  CardioMeasurementType,
+} from './cardio-metrics';
 
 export {
   TRAINING_SHARE_LIFETIME_MS,

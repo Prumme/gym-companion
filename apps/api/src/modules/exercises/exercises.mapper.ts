@@ -34,6 +34,8 @@ export type ExerciseListRow = {
   source: ExerciseSource;
   name: string;
   measurementType: ExerciseDetail['measurementType'];
+  category: ExerciseDetail['category'];
+  cardioType: ExerciseDetail['cardioType'];
   defaultRestSeconds: number | null;
   archivedAt: Date | null;
   ownerUserId: string | null;
@@ -128,6 +130,8 @@ export function toExerciseListItem(
     source: row.source,
     name: row.name,
     measurementType: row.measurementType,
+    category: row.category,
+    cardioType: row.cardioType,
     primaryMuscleGroup: toMuscleGroupReference(row.primaryMuscleGroup),
     defaultEquipmentType: row.defaultEquipmentType
       ? toEquipmentTypeReference(row.defaultEquipmentType)
@@ -157,6 +161,8 @@ export function toExerciseDetail(row: ExerciseRow, viewerUserId: string): Exerci
     source: row.source,
     name: row.name,
     measurementType: row.measurementType,
+    category: row.category,
+    cardioType: row.cardioType,
     primaryMuscleGroup: toMuscleGroupReference(row.primaryMuscleGroup),
     secondaryMuscleGroups: row.secondaryMuscles.map((item) =>
       toMuscleGroupReference(item.muscleGroup),

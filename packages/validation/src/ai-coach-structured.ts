@@ -77,6 +77,7 @@ export function sanitizeCoachProposalSetForMeasurement(
     | 'ASSISTED_BODYWEIGHT_REPS'
     | 'REPS_ONLY'
     | 'DURATION'
+    | 'DISTANCE'
     | 'DISTANCE_DURATION'
     | 'WEIGHT_DURATION',
   set: CoachProposalSet,
@@ -104,6 +105,14 @@ export function sanitizeCoachProposalSetForMeasurement(
         targetRepMin: null,
         targetRepMax: null,
         targetDistanceMeters: null,
+      };
+      break;
+    case 'DISTANCE':
+      next = {
+        ...next,
+        targetRepMin: null,
+        targetRepMax: null,
+        targetDurationSeconds: null,
       };
       break;
     case 'DISTANCE_DURATION':

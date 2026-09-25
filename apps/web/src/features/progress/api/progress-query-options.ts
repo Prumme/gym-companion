@@ -1,6 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 
 import {
+  getCardioHistory,
   getExerciseProgress,
   getExerciseStrength,
   getLastWorkingSets,
@@ -18,6 +19,14 @@ export function exerciseProgressQueryOptions(
   return queryOptions({
     queryKey: progressQueryKeys.exercise(exerciseId, filters),
     queryFn: () => getExerciseProgress(exerciseId, filters),
+    enabled: Boolean(exerciseId),
+  });
+}
+
+export function cardioHistoryQueryOptions(exerciseId: string) {
+  return queryOptions({
+    queryKey: progressQueryKeys.cardioHistory(exerciseId),
+    queryFn: () => getCardioHistory(exerciseId),
     enabled: Boolean(exerciseId),
   });
 }

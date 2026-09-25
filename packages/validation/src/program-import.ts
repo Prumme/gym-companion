@@ -157,6 +157,7 @@ export type ProgramImportExerciseCatalogEntry = {
     | 'ASSISTED_BODYWEIGHT_REPS'
     | 'REPS_ONLY'
     | 'DURATION'
+    | 'DISTANCE'
     | 'DISTANCE_DURATION'
     | 'WEIGHT_DURATION';
 };
@@ -465,6 +466,29 @@ export function validateProgramImportSetForMeasurement(
           path: `${setPath}.durationSeconds`,
           code: 'INCOMPATIBLE_MEASUREMENT',
           message: `Une durée cible est requise pour un exercice ${measurementType}.`,
+        });
+      }
+      break;
+    case 'DISTANCE':
+      if (hasReps) {
+        errors.push({
+          path: `${setPath}.repsMin`,
+          code: 'INCOMPATIBLE_MEASUREMENT',
+          message: `repsMin n'est pas compatible avec un exercice ${measurementType}.`,
+        });
+      }
+      if (hasDuration) {
+        errors.push({
+          path: `${setPath}.durationSeconds`,
+          code: 'INCOMPATIBLE_MEASUREMENT',
+          message: `durationSeconds n'est pas compatible avec un exercice ${measurementType}.`,
+        });
+      }
+      if (!hasDistance) {
+        errors.push({
+          path: `${setPath}.distanceMeters`,
+          code: 'INCOMPATIBLE_MEASUREMENT',
+          message: `Une distance cible est requise pour un exercice ${measurementType}.`,
         });
       }
       break;

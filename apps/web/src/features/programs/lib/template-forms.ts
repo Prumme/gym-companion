@@ -368,11 +368,15 @@ export function measurementNeedsReps(type: ExerciseMeasurementType): boolean {
 }
 
 export function measurementNeedsDuration(type: ExerciseMeasurementType): boolean {
-  return type === 'DURATION' || type === 'WEIGHT_DURATION' || type === 'DISTANCE_DURATION';
+  return (
+    type === 'DURATION' ||
+    type === 'WEIGHT_DURATION' ||
+    type === 'DISTANCE_DURATION'
+  );
 }
 
 export function measurementNeedsDistance(type: ExerciseMeasurementType): boolean {
-  return type === 'DISTANCE_DURATION';
+  return type === 'DISTANCE' || type === 'DISTANCE_DURATION';
 }
 
 export function measurementNeedsWeight(type: ExerciseMeasurementType): boolean {

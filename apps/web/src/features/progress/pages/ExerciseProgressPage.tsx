@@ -13,9 +13,11 @@ import { getMeasurementTypeLabel } from '@/features/exercises/lib/exercise-label
 import { exerciseDetailQueryOptions } from '@/features/exercises/api/exercise-query-options';
 
 import {
+  cardioHistoryQueryOptions,
   exerciseProgressQueryOptions,
   exerciseStrengthQueryOptions,
 } from '../api/progress-query-options';
+import { CardioHistoryList } from '../components/CardioHistoryList';
 import { EstimatedStrengthSection } from '../components/EstimatedStrengthSection';
 import { ExerciseProgressChart } from '../components/ExerciseProgressChart';
 import {
@@ -71,6 +73,11 @@ export function ExerciseProgressPage() {
   const exerciseQuery = useQuery({
     ...exerciseDetailQueryOptions(exerciseId),
     enabled: Boolean(exerciseId),
+  });
+
+  const cardioHistoryQuery = useQuery({
+    ...cardioHistoryQueryOptions(exerciseId),
+    enabled: Boolean(exerciseId) && exerciseQuery.data?.category === 'CARDIO',
   });
 
   const strengthQuery = useQuery({
@@ -226,6 +233,10 @@ export function ExerciseProgressPage() {
           <p className="mt-1 text-sm text-amber-800">Exercice archivé</p>
         ) : null}
       </header>
+
+      {detail?.category === 'CARDIO' && cardioHistoryQuery.data?.supported ? (
+        <CardioHistoryList entries={cardioHistoryQuery.data.entries} />
+      ) : null}
 
       <ProgressControls
         availableMetrics={data.availableMetrics}

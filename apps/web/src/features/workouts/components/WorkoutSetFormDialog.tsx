@@ -23,6 +23,14 @@ import {
   type CopyableActualKey,
 } from '../lib/copy-previous-set';
 import { formatWorkoutSetTargetCompact, getWorkoutSetTypeLabelSafe } from '../lib/workout-labels';
+import { DurationSecondsField } from './DurationSecondsField';
+import {
+  computeCardioDerivedMetrics,
+  formatDistanceMeters,
+  formatPace,
+  formatSpeedKmh,
+  isCardioMeasurementType,
+} from '@gym-companion/validation';
 
 const formSchema = updateWorkoutSetSchema;
 
@@ -182,6 +190,15 @@ export function WorkoutSetFormDialog({
   }, [open, set, effortTrackingMode, expectedVersion, initialStatus, reset]);
 
   const status = watch('status');
+  const durationValue = watch('actualDurationSeconds');
+  const distanceValue = watch('actualDistanceMeters');
+  const cardio = isCardioMeasurementType(measurementType);
+  const derived = cardio
+    ? computeCardioDerivedMetrics(distanceValue, durationValue)
+    : null;
+  const paceLabel = derived ? formatPace(derived.averagePaceSecondsPerKm) : null;
+  const speedLabel = derived ? formatSpeedKmh(derived.averageSpeedKmh) : null;
+  const distanceLabel = formatDistanceMeters(distanceValue);
 
   if (!open) {
     return null;
@@ -245,6 +262,12 @@ export function WorkoutSetFormDialog({
       payload = {
         ...payload,
         ...emptyActuals(),
+        averageHeartRate: null,
+        inclinePercent: null,
+        resistanceLevel: null,
+        machineLevel: null,
+        floorsClimbed: null,
+        cadenceSpm: null,
         reachedFailure: false,
       };
     }
@@ -363,23 +386,23 @@ export function WorkoutSetFormDialog({
                   )}
 
                   {showDuration ? (
-                    <label className="flex flex-col gap-1 text-sm">
-                      <span className="font-medium">Durée (secondes)</span>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        min={0}
-                        className={fieldClass}
-                        {...register('actualDurationSeconds', {
-                          setValueAs: nullableNumber,
-                        })}
+                    <div className="flex flex-col gap-1">
+                      <DurationSecondsField
+                        id="actual-duration"
+                        value={watch('actualDurationSeconds')}
+                        onChange={(seconds) =>
+                          setValue('actualDurationSeconds', seconds, {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          })
+                        }
                       />
                       {errors.actualDurationSeconds ? (
                         <span className="text-[var(--danger)]" role="alert">
                           {errors.actualDurationSeconds.message}
                         </span>
                       ) : null}
-                    </label>
+                    </div>
                   ) : null}
 
                   {showDistance ? (
@@ -399,7 +422,16 @@ export function WorkoutSetFormDialog({
                           {errors.actualDistanceMeters.message}
                         </span>
                       ) : null}
+                      {distanceLabel ? (
+                        <span className="text-sm text-[var(--muted)]">{distanceLabel}</span>
+                      ) : null}
                     </label>
+                  ) : null}
+
+                  {paceLabel || speedLabel ? (
+                    <p className="text-sm text-[var(--muted)]" aria-live="polite">
+                      {[paceLabel, speedLabel].filter(Boolean).join(' · ')}
+                    </p>
                   ) : null}
 
                   {showCopyPrevious ? (
@@ -492,6 +524,71 @@ export function WorkoutSetFormDialog({
                     </span>
                   ) : null}
                 </label>
+
+                {cardio && status !== 'SKIPPED' && status !== 'PENDING' ? (
+                  <div className="flex flex-col gap-3">
+                    <p className="text-sm font-medium">Plus de détails</p>
+                    <label className="flex flex-col gap-1 text-sm">
+                      <span>Fréquence cardiaque (bpm)</span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        className={fieldClass}
+                        {...register('averageHeartRate', { setValueAs: nullableNumber })}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-sm">
+                      <span>Inclinaison (%)</span>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        className={fieldClass}
+                        {...register('inclinePercent', { setValueAs: nullableNumber })}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-sm">
+                      <span>Résistance</span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        className={fieldClass}
+                        {...register('resistanceLevel', { setValueAs: nullableNumber })}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-sm">
+                      <span>Niveau machine</span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        className={fieldClass}
+                        {...register('machineLevel', { setValueAs: nullableNumber })}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-sm">
+                      <span>Étages</span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        className={fieldClass}
+                        {...register('floorsClimbed', { setValueAs: nullableNumber })}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-sm">
+                      <span>Cadence</span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        className={fieldClass}
+                        {...register('cadenceSpm', { setValueAs: nullableNumber })}
+                      />
+                    </label>
+                  </div>
+                ) : null}
 
                 {status !== 'SKIPPED' && status !== 'PENDING' ? (
                   <label className="flex flex-col gap-1 text-sm">

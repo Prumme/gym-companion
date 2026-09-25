@@ -1,4 +1,5 @@
 import type {
+  CardioHistoryResponse,
   ExerciseProgressMetric,
   ExerciseProgressResponse,
   ExerciseStrengthResponse,
@@ -47,6 +48,15 @@ export async function getExerciseProgress(
   const suffix = toSearchParams(filters);
   const response = await apiFetch<{ data: ExerciseProgressResponse }>(
     `/api/v1/progress/exercises/${exerciseId}${suffix ? `?${suffix}` : ''}`,
+  );
+  return response.data;
+}
+
+export async function getCardioHistory(
+  exerciseId: string,
+): Promise<CardioHistoryResponse> {
+  const response = await apiFetch<{ data: CardioHistoryResponse }>(
+    `/api/v1/progress/exercises/${exerciseId}/cardio-history`,
   );
   return response.data;
 }

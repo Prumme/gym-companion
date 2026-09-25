@@ -67,6 +67,19 @@ export class ProgressController {
     return createSuccessResponse(data);
   }
 
+  @Get('api/v1/progress/exercises/:exerciseId/cardio-history')
+  @ApiOperation({
+    summary:
+      'Historique cardio d’un exercice (durée, distance, allure, RPE de séance)',
+  })
+  async getCardioHistory(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
+  ) {
+    const data = await this.progressService.getCardioHistory(user.id, exerciseId);
+    return createSuccessResponse(data);
+  }
+
   @Get('api/v1/progress/exercises/:exerciseId')
   @ApiOperation({
     summary:

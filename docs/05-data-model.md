@@ -84,8 +84,21 @@ type ExerciseMeasurementType =
   | "ASSISTED_BODYWEIGHT_REPS"
   | "REPS_ONLY"
   | "DURATION"
+  | "DISTANCE"
   | "DISTANCE_DURATION"
   | "WEIGHT_DURATION";
+
+type ExerciseCategory = "STRENGTH" | "CARDIO";
+
+type CardioType =
+  | "RUNNING"
+  | "WALKING"
+  | "TREADMILL"
+  | "CYCLING"
+  | "ROWING"
+  | "STAIR_CLIMBING"
+  | "ELLIPTICAL"
+  | "OTHER";
 
 type WorkoutStatus =
   | "PLANNED"

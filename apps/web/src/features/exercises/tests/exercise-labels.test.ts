@@ -18,6 +18,6 @@ describe('exercise measurement labels', () => {
     expect(getMeasurementTypeLabel('DURATION')).toBe('Durée');
     expect(getMeasurementTypeLabel('DISTANCE_DURATION')).toBe('Distance et durée');
     expect(getMeasurementTypeLabel('WEIGHT_DURATION')).toBe('Poids et durée');
-    expect(Object.keys(MEASUREMENT_TYPE_LABELS)).toHaveLength(7);
+    expect(Object.keys(MEASUREMENT_TYPE_LABELS)).toHaveLength(8);
   });
 });

@@ -7,7 +7,7 @@ import { getApiErrorMessage } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 
 import { useUpdateExercisePreferenceMutation } from '../hooks/use-exercise-preference-mutations';
-import { getMeasurementTypeLabel } from '../lib/exercise-labels';
+import { CARDIO_TYPE_LABELS, getMeasurementTypeLabel } from '../lib/exercise-labels';
 import { preferenceToUpdateInput } from '../lib/exercise-preference';
 import { ExerciseFavoriteButton } from './ExerciseFavoriteButton';
 import { ExerciseSourceBadge } from './ExerciseSourceBadge';
@@ -81,6 +81,9 @@ export function ExerciseCard({ exercise, onFeedback }: ExerciseCardProps) {
                 {exercise.primaryMuscleGroup.name} · {equipmentName}
               </p>
               <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
+                {exercise.category === 'CARDIO' && exercise.cardioType
+                  ? `${CARDIO_TYPE_LABELS[exercise.cardioType]} · `
+                  : ''}
                 {getMeasurementTypeLabel(exercise.measurementType)}
               </p>
             </div>

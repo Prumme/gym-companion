@@ -63,6 +63,7 @@ export type ExerciseMeasurementTypeForProgress =
   | 'ASSISTED_BODYWEIGHT_REPS'
   | 'REPS_ONLY'
   | 'DURATION'
+  | 'DISTANCE'
   | 'DISTANCE_DURATION'
   | 'WEIGHT_DURATION';
 
@@ -105,6 +106,8 @@ export function resolveAvailableProgressMetrics(
       return ['MAX_REPS', 'TOTAL_REPS'];
     case 'DURATION':
       return ['MAX_DURATION', 'TOTAL_DURATION'];
+    case 'DISTANCE':
+      return ['MAX_DISTANCE', 'TOTAL_DISTANCE'];
     case 'DISTANCE_DURATION':
       return [
         'MAX_DISTANCE',
@@ -135,6 +138,7 @@ export function resolveDefaultProgressMetric(
       return 'MAX_REPS';
     case 'DURATION':
       return 'MAX_DURATION';
+    case 'DISTANCE':
     case 'DISTANCE_DURATION':
       return 'MAX_DISTANCE';
     default: {
