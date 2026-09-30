@@ -74,6 +74,7 @@ function renderPanel(
     ...render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
+          <div data-testid="exercise-host" style={{ transform: 'translateX(0px)' }}>
           <ActiveExercisePanel
           session={session}
           exercise={exercise}
@@ -87,6 +88,7 @@ function renderPanel(
           onSetRecorded={vi.fn()}
           {...overrides}
         />
+          </div>
         </MemoryRouter>
       </QueryClientProvider>,
     ),
@@ -267,6 +269,25 @@ describe('Replace session exercise UI', () => {
     expect(
       screen.getByRole('menuitem', { name: 'Remplacer l’exercice' }),
     ).toBeDisabled();
+  });
+
+  it('affiche le remplacement hors du cadre transformé du swipe', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Actions de l’exercice' }),
+    );
+    await user.click(
+      screen.getByRole('menuitem', { name: 'Remplacer l’exercice' }),
+    );
+
+    const dialog = await screen.findByRole('dialog');
+    const host = screen.getByTestId('exercise-host');
+    expect(host.contains(dialog)).toBe(false);
+    expect(document.body.contains(dialog)).toBe(true);
+    const replaceButton = within(dialog).getByRole('button', { name: 'Remplacer' });
+    expect(replaceButton).toBeVisible();
   });
 
   it('désactive le remplacement hors ligne', async () => {

@@ -1,6 +1,4 @@
-import { useRef, useState, type PointerEvent, type ReactNode } from 'react';
-
-import { cn } from '@/lib/utils';
+import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 
 import {
   isInteractiveSwipeTarget,
@@ -95,6 +93,15 @@ export function ExerciseSwipeSurface({
     if (!enabled || event.button > 0) {
       return;
     }
+    // Les portails React (remplacement, saisie de série) remontent l’événement
+    // dans l’arbre React. Ils ne font pas partie de la surface : le swipe ne
+    // doit pas changer d’exercice pendant ces vues.
+    if (
+      !(event.currentTarget instanceof HTMLElement) ||
+      !event.currentTarget.contains(event.target as Node)
+    ) {
+      return;
+    }
     if (isInteractiveSwipeTarget(event.target)) {
       return;
     }
@@ -164,6 +171,15 @@ export function ExerciseSwipeSurface({
   }
 
   const reduced = prefersReducedMotion();
+  const transformActive = !reduced && (dragging || offsetX !== 0 || enterFrom != null);
+
+  useEffect(() => {
+    if (dragging || offsetX !== 0 || enterFrom == null) {
+      return;
+    }
+    const timeoutId = window.setTimeout(() => setEnterFrom(null), MOTION_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [dragging, offsetX, enterFrom]);
 
   return (
     <div
@@ -176,11 +192,12 @@ export function ExerciseSwipeSurface({
     >
       <div
         key={exerciseKey}
-        className={cn('flex flex-col gap-4', enterFrom && 'will-change-transform')}
+        className="flex flex-col gap-4"
+        data-exercise-swipe-transform={transformActive ? 'true' : 'false'}
         style={{
-          transform: reduced ? undefined : `translateX(${offsetX}px)`,
+          transform: transformActive ? `translateX(${offsetX}px)` : undefined,
           transition:
-            reduced || dragging
+            reduced || dragging || !transformActive
               ? 'none'
               : `transform ${MOTION_MS}ms ease`,
         }}

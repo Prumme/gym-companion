@@ -1,4 +1,5 @@
 import { act, render, screen } from '@testing-library/react';
+import { createPortal } from 'react-dom';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -137,6 +138,40 @@ describe('ExerciseSwipeSurface', () => {
     swipe(screen.getByLabelText('Charge'), -120, 4);
     expect(onNext).not.toHaveBeenCalled();
     expect(screen.getByLabelText('Charge')).toHaveValue('50');
+  });
+
+  it('ignore un swipe parti d’une vue portée hors de la surface', () => {
+    const onNext = vi.fn();
+    const onPrevious = vi.fn();
+    render(
+      <ExerciseSwipeSurface
+        hasPrevious
+        hasNext
+        onPrevious={onPrevious}
+        onNext={onNext}
+        exerciseKey="wse-1"
+      >
+        <p>50 kg × 10</p>
+        {createPortal(
+          <button type="button">Remplacer</button>,
+          document.body,
+        )}
+      </ExerciseSwipeSurface>,
+    );
+
+    swipe(screen.getByRole('button', { name: 'Remplacer' }), -140, 4);
+    expect(onNext).not.toHaveBeenCalled();
+    expect(onPrevious).not.toHaveBeenCalled();
+  });
+
+  it('n’applique pas de transform au repos, pour ne pas piéger les overlays', () => {
+    renderSurface();
+    expect(
+      document.querySelector('[data-exercise-swipe-transform="false"]'),
+    ).not.toBeNull();
+    expect(
+      document.querySelector('[data-exercise-swipe-transform="true"]'),
+    ).toBeNull();
   });
 
   it('ne change pas d’exercice au bord de la liste', () => {

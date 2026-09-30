@@ -3,6 +3,6 @@ import nodeConfig from '@gym-companion/config/eslint/node';
 export default [
   ...nodeConfig,
   {
-    ignores: ['dist/**', 'scripts/**', 'prisma/seed.cjs'],
+    ignores: ['dist/**', 'scripts/**', 'prisma/seed.cjs', 'prisma/seed-ux.cjs'],
   },
 ];

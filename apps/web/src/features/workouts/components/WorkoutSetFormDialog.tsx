@@ -11,6 +11,7 @@ import { updateWorkoutSetSchema, type UpdateWorkoutSetInput } from '@gym-compani
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
+import { ViewportPortal } from '@/components/ui/viewport-portal';
 import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 
@@ -302,6 +303,7 @@ export function WorkoutSetFormDialog({
       : null;
 
   return (
+    <ViewportPortal>
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
       role="presentation"
@@ -713,5 +715,6 @@ export function WorkoutSetFormDialog({
         ) : null}
       </div>
     </div>
+    </ViewportPortal>
   );
 }

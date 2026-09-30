@@ -8,6 +8,7 @@ import { ArrowLeftRight, Search, X } from 'lucide-react';
 import { useEffect, useId, useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { ViewportPortal } from '@/components/ui/viewport-portal';
 import { getApiErrorMessage } from '@/lib/api/client';
 import {
   exerciseDetailQueryOptions,
@@ -110,6 +111,7 @@ export function ReplaceSessionExerciseSheet({
   }
 
   return (
+    <ViewportPortal>
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
       role="presentation"
@@ -246,6 +248,7 @@ export function ReplaceSessionExerciseSheet({
         </div>
       </div>
     </div>
+    </ViewportPortal>
   );
 }
 
