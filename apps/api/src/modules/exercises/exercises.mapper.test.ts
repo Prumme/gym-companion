@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   computeExercisePermissions,
   DEFAULT_EXERCISE_USER_PREFERENCE,
+  toExerciseListItem,
   toExerciseUserPreference,
+  type ExerciseListRow,
 } from './exercises.mapper';
 
 describe('computeExercisePermissions', () => {
@@ -70,5 +72,36 @@ describe('toExerciseUserPreference', () => {
         name: 'Haltères',
       },
     });
+  });
+});
+
+describe('exercise media mapping', () => {
+  const baseRow: ExerciseListRow = {
+    id: 'exercise-1',
+    source: 'SYSTEM',
+    slug: 'squat-barre',
+    name: 'Squat barre',
+    measurementType: 'WEIGHT_REPS',
+    category: 'STRENGTH',
+    cardioType: null,
+    defaultRestSeconds: 120,
+    archivedAt: null,
+    ownerUserId: null,
+    primaryMuscleGroup: { id: 'm', code: 'quads', name: 'Quadriceps', parentId: null },
+    defaultEquipmentType: null,
+    userPreferences: [],
+  };
+
+  it('exposes the demonstration of a mapped system exercise', () => {
+    expect(toExerciseListItem(baseRow, 'user-1').media?.frames).toEqual([
+      '/exercise-media/barbell-squat/0.webp',
+      '/exercise-media/barbell-squat/1.webp',
+    ]);
+  });
+
+  it('never exposes a demonstration for a user exercise', () => {
+    expect(
+      toExerciseListItem({ ...baseRow, source: 'USER', ownerUserId: 'user-1' }, 'user-1').media,
+    ).toBeNull();
   });
 });

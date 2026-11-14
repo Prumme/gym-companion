@@ -1,0 +1,795 @@
+{
+  "source": {
+    "sourceName": "Free Exercise DB",
+    "sourceUrl": "https://github.com/yuhonas/free-exercise-db",
+    "license": "Unlicense"
+  },
+  "basePath": "/exercise-media",
+  "items": {
+    "developpe-couche-barre": {
+      "assetKey": "barbell-bench-press---medium-grip",
+      "sourceId": "Barbell_Bench_Press_-_Medium_Grip",
+      "frameCount": 2
+    },
+    "developpe-couche-halteres": {
+      "assetKey": "dumbbell-bench-press",
+      "sourceId": "Dumbbell_Bench_Press",
+      "frameCount": 2
+    },
+    "developpe-couche-smith": {
+      "assetKey": "smith-machine-bench-press",
+      "sourceId": "Smith_Machine_Bench_Press",
+      "frameCount": 2
+    },
+    "chest-press-machine": {
+      "assetKey": "machine-bench-press",
+      "sourceId": "Machine_Bench_Press",
+      "frameCount": 2
+    },
+    "developpe-incline-barre": {
+      "assetKey": "barbell-incline-bench-press---medium-grip",
+      "sourceId": "Barbell_Incline_Bench_Press_-_Medium_Grip",
+      "frameCount": 2
+    },
+    "developpe-incline-halteres": {
+      "assetKey": "incline-dumbbell-press",
+      "sourceId": "Incline_Dumbbell_Press",
+      "frameCount": 2
+    },
+    "developpe-incline-machine": {
+      "assetKey": "leverage-incline-chest-press",
+      "sourceId": "Leverage_Incline_Chest_Press",
+      "frameCount": 2
+    },
+    "developpe-incline-smith": {
+      "assetKey": "smith-machine-incline-bench-press",
+      "sourceId": "Smith_Machine_Incline_Bench_Press",
+      "frameCount": 2
+    },
+    "developpe-decline-barre": {
+      "assetKey": "decline-barbell-bench-press",
+      "sourceId": "Decline_Barbell_Bench_Press",
+      "frameCount": 2
+    },
+    "developpe-decline-halteres": {
+      "assetKey": "decline-dumbbell-bench-press",
+      "sourceId": "Decline_Dumbbell_Bench_Press",
+      "frameCount": 2
+    },
+    "developpe-decline-machine": {
+      "assetKey": "leverage-decline-chest-press",
+      "sourceId": "Leverage_Decline_Chest_Press",
+      "frameCount": 2
+    },
+    "pec-deck": {
+      "assetKey": "butterfly",
+      "sourceId": "Butterfly",
+      "frameCount": 2
+    },
+    "ecarte-halteres-couche": {
+      "assetKey": "dumbbell-flyes",
+      "sourceId": "Dumbbell_Flyes",
+      "frameCount": 2
+    },
+    "ecarte-halteres-incline": {
+      "assetKey": "incline-dumbbell-flyes",
+      "sourceId": "Incline_Dumbbell_Flyes",
+      "frameCount": 2
+    },
+    "ecarte-poulie-vis-a-vis": {
+      "assetKey": "cable-crossover",
+      "sourceId": "Cable_Crossover",
+      "frameCount": 2
+    },
+    "ecarte-poulie-basse-haute": {
+      "assetKey": "low-cable-crossover",
+      "sourceId": "Low_Cable_Crossover",
+      "frameCount": 2
+    },
+    "ecarte-poulie-haute-basse": {
+      "assetKey": "cable-crossover",
+      "sourceId": "Cable_Crossover",
+      "frameCount": 2
+    },
+    "pompes": {
+      "assetKey": "pushups",
+      "sourceId": "Pushups",
+      "frameCount": 2
+    },
+    "pompes-inclinees": {
+      "assetKey": "incline-push-up",
+      "sourceId": "Incline_Push-Up",
+      "frameCount": 2
+    },
+    "pompes-declinees": {
+      "assetKey": "decline-push-up",
+      "sourceId": "Decline_Push-Up",
+      "frameCount": 2
+    },
+    "dips-pectoraux": {
+      "assetKey": "dips---chest-version",
+      "sourceId": "Dips_-_Chest_Version",
+      "frameCount": 2
+    },
+    "tractions": {
+      "assetKey": "pullups",
+      "sourceId": "Pullups",
+      "frameCount": 2
+    },
+    "tractions-pronation": {
+      "assetKey": "pullups",
+      "sourceId": "Pullups",
+      "frameCount": 2
+    },
+    "tractions-supination": {
+      "assetKey": "chin-up",
+      "sourceId": "Chin-Up",
+      "frameCount": 2
+    },
+    "tractions-prise-neutre": {
+      "assetKey": "v-bar-pullup",
+      "sourceId": "V-Bar_Pullup",
+      "frameCount": 2
+    },
+    "tractions-assistees": {
+      "assetKey": "band-assisted-pull-up",
+      "sourceId": "Band_Assisted_Pull-Up",
+      "frameCount": 2
+    },
+    "tirage-vertical-poulie": {
+      "assetKey": "wide-grip-lat-pulldown",
+      "sourceId": "Wide-Grip_Lat_Pulldown",
+      "frameCount": 2
+    },
+    "tirage-vertical-prise-large": {
+      "assetKey": "wide-grip-lat-pulldown",
+      "sourceId": "Wide-Grip_Lat_Pulldown",
+      "frameCount": 2
+    },
+    "tirage-vertical-prise-neutre": {
+      "assetKey": "v-bar-pulldown",
+      "sourceId": "V-Bar_Pulldown",
+      "frameCount": 2
+    },
+    "tirage-vertical-prise-serree": {
+      "assetKey": "close-grip-front-lat-pulldown",
+      "sourceId": "Close-Grip_Front_Lat_Pulldown",
+      "frameCount": 2
+    },
+    "tirage-vertical-supination": {
+      "assetKey": "underhand-cable-pulldowns",
+      "sourceId": "Underhand_Cable_Pulldowns",
+      "frameCount": 2
+    },
+    "tirage-vertical-unilateral": {
+      "assetKey": "one-arm-lat-pulldown",
+      "sourceId": "One_Arm_Lat_Pulldown",
+      "frameCount": 2
+    },
+    "rowing-assis-poulie-neutre": {
+      "assetKey": "seated-cable-rows",
+      "sourceId": "Seated_Cable_Rows",
+      "frameCount": 2
+    },
+    "rowing-assis-poulie-large": {
+      "assetKey": "seated-cable-rows",
+      "sourceId": "Seated_Cable_Rows",
+      "frameCount": 2
+    },
+    "rowing-machine": {
+      "assetKey": "leverage-iso-row",
+      "sourceId": "Leverage_Iso_Row",
+      "frameCount": 2
+    },
+    "rowing-machine-unilateral": {
+      "assetKey": "leverage-iso-row",
+      "sourceId": "Leverage_Iso_Row",
+      "frameCount": 2
+    },
+    "rowing-barre": {
+      "assetKey": "bent-over-barbell-row",
+      "sourceId": "Bent_Over_Barbell_Row",
+      "frameCount": 2
+    },
+    "rowing-barre-en-t": {
+      "assetKey": "t-bar-row-with-handle",
+      "sourceId": "T-Bar_Row_with_Handle",
+      "frameCount": 2
+    },
+    "rowing-haltere-unilateral": {
+      "assetKey": "one-arm-dumbbell-row",
+      "sourceId": "One-Arm_Dumbbell_Row",
+      "frameCount": 2
+    },
+    "rowing-poitrine-appui-halteres": {
+      "assetKey": "dumbbell-incline-row",
+      "sourceId": "Dumbbell_Incline_Row",
+      "frameCount": 2
+    },
+    "rowing-poitrine-appui-machine": {
+      "assetKey": "lying-t-bar-row",
+      "sourceId": "Lying_T-Bar_Row",
+      "frameCount": 2
+    },
+    "rowing-smith": {
+      "assetKey": "smith-machine-bent-over-row",
+      "sourceId": "Smith_Machine_Bent_Over_Row",
+      "frameCount": 2
+    },
+    "tirage-horizontal-unilateral": {
+      "assetKey": "seated-one-arm-cable-pulley-rows",
+      "sourceId": "Seated_One-arm_Cable_Pulley_Rows",
+      "frameCount": 2
+    },
+    "pullover-poulie": {
+      "assetKey": "straight-arm-pulldown",
+      "sourceId": "Straight-Arm_Pulldown",
+      "frameCount": 2
+    },
+    "pullover-haltere": {
+      "assetKey": "straight-arm-dumbbell-pullover",
+      "sourceId": "Straight-Arm_Dumbbell_Pullover",
+      "frameCount": 2
+    },
+    "shrugs-barre": {
+      "assetKey": "barbell-shrug",
+      "sourceId": "Barbell_Shrug",
+      "frameCount": 2
+    },
+    "shrugs-halteres": {
+      "assetKey": "dumbbell-shrug",
+      "sourceId": "Dumbbell_Shrug",
+      "frameCount": 2
+    },
+    "shrugs-machine": {
+      "assetKey": "leverage-shrug",
+      "sourceId": "Leverage_Shrug",
+      "frameCount": 2
+    },
+    "developpe-militaire-barre": {
+      "assetKey": "standing-military-press",
+      "sourceId": "Standing_Military_Press",
+      "frameCount": 2
+    },
+    "developpe-epaules-halteres": {
+      "assetKey": "dumbbell-shoulder-press",
+      "sourceId": "Dumbbell_Shoulder_Press",
+      "frameCount": 2
+    },
+    "shoulder-press-machine": {
+      "assetKey": "machine-shoulder-military-press",
+      "sourceId": "Machine_Shoulder_Military_Press",
+      "frameCount": 2
+    },
+    "developpe-epaules-smith": {
+      "assetKey": "smith-machine-overhead-shoulder-press",
+      "sourceId": "Smith_Machine_Overhead_Shoulder_Press",
+      "frameCount": 2
+    },
+    "arnold-press": {
+      "assetKey": "arnold-dumbbell-press",
+      "sourceId": "Arnold_Dumbbell_Press",
+      "frameCount": 2
+    },
+    "elevations-laterales-halteres": {
+      "assetKey": "side-lateral-raise",
+      "sourceId": "Side_Lateral_Raise",
+      "frameCount": 2
+    },
+    "elevations-laterales-poulie": {
+      "assetKey": "standing-low-pulley-deltoid-raise",
+      "sourceId": "Standing_Low-Pulley_Deltoid_Raise",
+      "frameCount": 2
+    },
+    "elevation-laterale-unilaterale-poulie": {
+      "assetKey": "standing-low-pulley-deltoid-raise",
+      "sourceId": "Standing_Low-Pulley_Deltoid_Raise",
+      "frameCount": 2
+    },
+    "elevations-frontales-halteres": {
+      "assetKey": "front-dumbbell-raise",
+      "sourceId": "Front_Dumbbell_Raise",
+      "frameCount": 2
+    },
+    "elevations-frontales-poulie": {
+      "assetKey": "front-cable-raise",
+      "sourceId": "Front_Cable_Raise",
+      "frameCount": 2
+    },
+    "oiseau-halteres": {
+      "assetKey": "seated-bent-over-rear-delt-raise",
+      "sourceId": "Seated_Bent-Over_Rear_Delt_Raise",
+      "frameCount": 2
+    },
+    "oiseau-banc-incline": {
+      "assetKey": "reverse-flyes",
+      "sourceId": "Reverse_Flyes",
+      "frameCount": 2
+    },
+    "reverse-pec-deck": {
+      "assetKey": "reverse-machine-flyes",
+      "sourceId": "Reverse_Machine_Flyes",
+      "frameCount": 2
+    },
+    "face-pull": {
+      "assetKey": "face-pull",
+      "sourceId": "Face_Pull",
+      "frameCount": 2
+    },
+    "reverse-fly-machine": {
+      "assetKey": "reverse-machine-flyes",
+      "sourceId": "Reverse_Machine_Flyes",
+      "frameCount": 2
+    },
+    "reverse-fly-poulie": {
+      "assetKey": "cable-rear-delt-fly",
+      "sourceId": "Cable_Rear_Delt_Fly",
+      "frameCount": 2
+    },
+    "upright-row-barre": {
+      "assetKey": "upright-barbell-row",
+      "sourceId": "Upright_Barbell_Row",
+      "frameCount": 2
+    },
+    "upright-row-poulie": {
+      "assetKey": "upright-cable-row",
+      "sourceId": "Upright_Cable_Row",
+      "frameCount": 2
+    },
+    "curl-barre-droite": {
+      "assetKey": "barbell-curl",
+      "sourceId": "Barbell_Curl",
+      "frameCount": 2
+    },
+    "curl-barre-ez": {
+      "assetKey": "ez-bar-curl",
+      "sourceId": "EZ-Bar_Curl",
+      "frameCount": 2
+    },
+    "curl-halteres": {
+      "assetKey": "dumbbell-bicep-curl",
+      "sourceId": "Dumbbell_Bicep_Curl",
+      "frameCount": 2
+    },
+    "curl-alterne-halteres": {
+      "assetKey": "dumbbell-alternate-bicep-curl",
+      "sourceId": "Dumbbell_Alternate_Bicep_Curl",
+      "frameCount": 2
+    },
+    "curl-marteau": {
+      "assetKey": "hammer-curls",
+      "sourceId": "Hammer_Curls",
+      "frameCount": 2
+    },
+    "curl-marteau-croise": {
+      "assetKey": "cross-body-hammer-curl",
+      "sourceId": "Cross_Body_Hammer_Curl",
+      "frameCount": 2
+    },
+    "curl-incline-halteres": {
+      "assetKey": "incline-dumbbell-curl",
+      "sourceId": "Incline_Dumbbell_Curl",
+      "frameCount": 2
+    },
+    "curl-pupitre-barre-ez": {
+      "assetKey": "preacher-curl",
+      "sourceId": "Preacher_Curl",
+      "frameCount": 2
+    },
+    "curl-pupitre-haltere": {
+      "assetKey": "one-arm-dumbbell-preacher-curl",
+      "sourceId": "One_Arm_Dumbbell_Preacher_Curl",
+      "frameCount": 2
+    },
+    "curl-pupitre-machine": {
+      "assetKey": "machine-preacher-curls",
+      "sourceId": "Machine_Preacher_Curls",
+      "frameCount": 2
+    },
+    "curl-poulie-basse-barre": {
+      "assetKey": "standing-biceps-cable-curl",
+      "sourceId": "Standing_Biceps_Cable_Curl",
+      "frameCount": 2
+    },
+    "curl-poulie-basse-corde": {
+      "assetKey": "cable-hammer-curls---rope-attachment",
+      "sourceId": "Cable_Hammer_Curls_-_Rope_Attachment",
+      "frameCount": 2
+    },
+    "curl-unilateral-poulie": {
+      "assetKey": "standing-one-arm-cable-curl",
+      "sourceId": "Standing_One-Arm_Cable_Curl",
+      "frameCount": 2
+    },
+    "curl-machine": {
+      "assetKey": "machine-bicep-curl",
+      "sourceId": "Machine_Bicep_Curl",
+      "frameCount": 2
+    },
+    "curl-concentration": {
+      "assetKey": "concentration-curls",
+      "sourceId": "Concentration_Curls",
+      "frameCount": 2
+    },
+    "extension-triceps-poulie": {
+      "assetKey": "triceps-pushdown",
+      "sourceId": "Triceps_Pushdown",
+      "frameCount": 2
+    },
+    "extension-triceps-poulie-barre": {
+      "assetKey": "triceps-pushdown",
+      "sourceId": "Triceps_Pushdown",
+      "frameCount": 2
+    },
+    "extension-triceps-poulie-corde": {
+      "assetKey": "triceps-pushdown---rope-attachment",
+      "sourceId": "Triceps_Pushdown_-_Rope_Attachment",
+      "frameCount": 2
+    },
+    "extension-triceps-unilaterale-poulie": {
+      "assetKey": "cable-one-arm-tricep-extension",
+      "sourceId": "Cable_One_Arm_Tricep_Extension",
+      "frameCount": 2
+    },
+    "extension-triceps-overhead-corde": {
+      "assetKey": "cable-rope-overhead-triceps-extension",
+      "sourceId": "Cable_Rope_Overhead_Triceps_Extension",
+      "frameCount": 2
+    },
+    "extension-triceps-overhead-haltere": {
+      "assetKey": "standing-dumbbell-triceps-extension",
+      "sourceId": "Standing_Dumbbell_Triceps_Extension",
+      "frameCount": 2
+    },
+    "barre-au-front-ez": {
+      "assetKey": "ez-bar-skullcrusher",
+      "sourceId": "EZ-Bar_Skullcrusher",
+      "frameCount": 2
+    },
+    "barre-au-front-halteres": {
+      "assetKey": "lying-dumbbell-tricep-extension",
+      "sourceId": "Lying_Dumbbell_Tricep_Extension",
+      "frameCount": 2
+    },
+    "developpe-couche-prise-serree": {
+      "assetKey": "close-grip-barbell-bench-press",
+      "sourceId": "Close-Grip_Barbell_Bench_Press",
+      "frameCount": 2
+    },
+    "dips-triceps": {
+      "assetKey": "dips---triceps-version",
+      "sourceId": "Dips_-_Triceps_Version",
+      "frameCount": 2
+    },
+    "extension-triceps-machine": {
+      "assetKey": "machine-triceps-extension",
+      "sourceId": "Machine_Triceps_Extension",
+      "frameCount": 2
+    },
+    "kickback-haltere": {
+      "assetKey": "tricep-dumbbell-kickback",
+      "sourceId": "Tricep_Dumbbell_Kickback",
+      "frameCount": 2
+    },
+    "squat-barre": {
+      "assetKey": "barbell-squat",
+      "sourceId": "Barbell_Squat",
+      "frameCount": 2
+    },
+    "squat-barre-avant": {
+      "assetKey": "front-barbell-squat",
+      "sourceId": "Front_Barbell_Squat",
+      "frameCount": 2
+    },
+    "squat-smith": {
+      "assetKey": "smith-machine-squat",
+      "sourceId": "Smith_Machine_Squat",
+      "frameCount": 2
+    },
+    "goblet-squat": {
+      "assetKey": "goblet-squat",
+      "sourceId": "Goblet_Squat",
+      "frameCount": 2
+    },
+    "hack-squat-machine": {
+      "assetKey": "hack-squat",
+      "sourceId": "Hack_Squat",
+      "frameCount": 2
+    },
+    "presse-cuisses": {
+      "assetKey": "leg-press",
+      "sourceId": "Leg_Press",
+      "frameCount": 2
+    },
+    "presse-cuisses-45": {
+      "assetKey": "leg-press",
+      "sourceId": "Leg_Press",
+      "frameCount": 2
+    },
+    "leg-extension": {
+      "assetKey": "leg-extensions",
+      "sourceId": "Leg_Extensions",
+      "frameCount": 2
+    },
+    "leg-extension-unilateral": {
+      "assetKey": "single-leg-leg-extension",
+      "sourceId": "Single-Leg_Leg_Extension",
+      "frameCount": 2
+    },
+    "fentes-avant": {
+      "assetKey": "dumbbell-lunges",
+      "sourceId": "Dumbbell_Lunges",
+      "frameCount": 2
+    },
+    "fentes-arriere": {
+      "assetKey": "dumbbell-rear-lunge",
+      "sourceId": "Dumbbell_Rear_Lunge",
+      "frameCount": 2
+    },
+    "fentes-marchees": {
+      "assetKey": "bodyweight-walking-lunge",
+      "sourceId": "Bodyweight_Walking_Lunge",
+      "frameCount": 2
+    },
+    "split-squat": {
+      "assetKey": "split-squat-with-dumbbells",
+      "sourceId": "Split_Squat_with_Dumbbells",
+      "frameCount": 2
+    },
+    "bulgarian-split-squat": {
+      "assetKey": "one-leg-barbell-squat",
+      "sourceId": "One_Leg_Barbell_Squat",
+      "frameCount": 2
+    },
+    "step-up": {
+      "assetKey": "dumbbell-step-ups",
+      "sourceId": "Dumbbell_Step_Ups",
+      "frameCount": 2
+    },
+    "leg-curl-assis": {
+      "assetKey": "seated-leg-curl",
+      "sourceId": "Seated_Leg_Curl",
+      "frameCount": 2
+    },
+    "leg-curl-allonge": {
+      "assetKey": "lying-leg-curls",
+      "sourceId": "Lying_Leg_Curls",
+      "frameCount": 2
+    },
+    "leg-curl-debout": {
+      "assetKey": "standing-leg-curl",
+      "sourceId": "Standing_Leg_Curl",
+      "frameCount": 2
+    },
+    "leg-curl-unilateral": {
+      "assetKey": "standing-leg-curl",
+      "sourceId": "Standing_Leg_Curl",
+      "frameCount": 2
+    },
+    "souleve-de-terre-roumain-barre": {
+      "assetKey": "romanian-deadlift",
+      "sourceId": "Romanian_Deadlift",
+      "frameCount": 2
+    },
+    "souleve-de-terre-roumain-halteres": {
+      "assetKey": "stiff-legged-dumbbell-deadlift",
+      "sourceId": "Stiff-Legged_Dumbbell_Deadlift",
+      "frameCount": 2
+    },
+    "souleve-de-terre-roumain-smith": {
+      "assetKey": "smith-machine-stiff-legged-deadlift",
+      "sourceId": "Smith_Machine_Stiff-Legged_Deadlift",
+      "frameCount": 2
+    },
+    "souleve-de-terre-jambes-tendues": {
+      "assetKey": "stiff-legged-barbell-deadlift",
+      "sourceId": "Stiff-Legged_Barbell_Deadlift",
+      "frameCount": 2
+    },
+    "good-morning-barre": {
+      "assetKey": "good-morning",
+      "sourceId": "Good_Morning",
+      "frameCount": 2
+    },
+    "nordic-curl": {
+      "assetKey": "natural-glute-ham-raise",
+      "sourceId": "Natural_Glute_Ham_Raise",
+      "frameCount": 2
+    },
+    "hip-thrust-barre": {
+      "assetKey": "barbell-hip-thrust",
+      "sourceId": "Barbell_Hip_Thrust",
+      "frameCount": 2
+    },
+    "glute-bridge": {
+      "assetKey": "butt-lift-bridge",
+      "sourceId": "Butt_Lift_Bridge",
+      "frameCount": 2
+    },
+    "glute-bridge-barre": {
+      "assetKey": "barbell-glute-bridge",
+      "sourceId": "Barbell_Glute_Bridge",
+      "frameCount": 2
+    },
+    "kickback-fessier-poulie": {
+      "assetKey": "one-legged-cable-kickback",
+      "sourceId": "One-Legged_Cable_Kickback",
+      "frameCount": 2
+    },
+    "abduction-machine": {
+      "assetKey": "thigh-abductor",
+      "sourceId": "Thigh_Abductor",
+      "frameCount": 2
+    },
+    "adduction-machine": {
+      "assetKey": "thigh-adductor",
+      "sourceId": "Thigh_Adductor",
+      "frameCount": 2
+    },
+    "adduction-poulie": {
+      "assetKey": "cable-hip-adduction",
+      "sourceId": "Cable_Hip_Adduction",
+      "frameCount": 2
+    },
+    "pull-through-poulie": {
+      "assetKey": "pull-through",
+      "sourceId": "Pull_Through",
+      "frameCount": 2
+    },
+    "mollets-debout-machine": {
+      "assetKey": "standing-calf-raises",
+      "sourceId": "Standing_Calf_Raises",
+      "frameCount": 2
+    },
+    "mollets-assis-machine": {
+      "assetKey": "seated-calf-raise",
+      "sourceId": "Seated_Calf_Raise",
+      "frameCount": 2
+    },
+    "mollets-presse": {
+      "assetKey": "calf-press-on-the-leg-press-machine",
+      "sourceId": "Calf_Press_On_The_Leg_Press_Machine",
+      "frameCount": 2
+    },
+    "mollets-debout-smith": {
+      "assetKey": "smith-machine-calf-raise",
+      "sourceId": "Smith_Machine_Calf_Raise",
+      "frameCount": 2
+    },
+    "mollets-debout-halteres": {
+      "assetKey": "standing-dumbbell-calf-raise",
+      "sourceId": "Standing_Dumbbell_Calf_Raise",
+      "frameCount": 2
+    },
+    "crunch-sol": {
+      "assetKey": "crunches",
+      "sourceId": "Crunches",
+      "frameCount": 2
+    },
+    "crunch-machine": {
+      "assetKey": "ab-crunch-machine",
+      "sourceId": "Ab_Crunch_Machine",
+      "frameCount": 2
+    },
+    "crunch-poulie": {
+      "assetKey": "cable-crunch",
+      "sourceId": "Cable_Crunch",
+      "frameCount": 2
+    },
+    "releve-jambes-suspendu": {
+      "assetKey": "hanging-leg-raise",
+      "sourceId": "Hanging_Leg_Raise",
+      "frameCount": 2
+    },
+    "releve-jambes-sol": {
+      "assetKey": "flat-bench-lying-leg-raise",
+      "sourceId": "Flat_Bench_Lying_Leg_Raise",
+      "frameCount": 2
+    },
+    "releve-jambes-chaise-romaine": {
+      "assetKey": "knee-hip-raise-on-parallel-bars",
+      "sourceId": "Knee_Hip_Raise_On_Parallel_Bars",
+      "frameCount": 2
+    },
+    "sit-up": {
+      "assetKey": "sit-up",
+      "sourceId": "Sit-Up",
+      "frameCount": 2
+    },
+    "reverse-crunch": {
+      "assetKey": "reverse-crunch",
+      "sourceId": "Reverse_Crunch",
+      "frameCount": 2
+    },
+    "planche": {
+      "assetKey": "plank",
+      "sourceId": "Plank",
+      "frameCount": 2
+    },
+    "planche-laterale": {
+      "assetKey": "side-bridge",
+      "sourceId": "Side_Bridge",
+      "frameCount": 2
+    },
+    "dead-bug": {
+      "assetKey": "dead-bug",
+      "sourceId": "Dead_Bug",
+      "frameCount": 2
+    },
+    "pallof-press": {
+      "assetKey": "pallof-press",
+      "sourceId": "Pallof_Press",
+      "frameCount": 2
+    },
+    "woodchopper-haute-basse": {
+      "assetKey": "standing-cable-wood-chop",
+      "sourceId": "Standing_Cable_Wood_Chop",
+      "frameCount": 2
+    },
+    "woodchopper-basse-haute": {
+      "assetKey": "standing-cable-lift",
+      "sourceId": "Standing_Cable_Lift",
+      "frameCount": 2
+    },
+    "ab-wheel": {
+      "assetKey": "ab-roller",
+      "sourceId": "Ab_Roller",
+      "frameCount": 2
+    },
+    "russian-twist": {
+      "assetKey": "russian-twist",
+      "sourceId": "Russian_Twist",
+      "frameCount": 2
+    },
+    "extensions-lombaires-45": {
+      "assetKey": "hyperextensions-back-extensions",
+      "sourceId": "Hyperextensions_Back_Extensions",
+      "frameCount": 2
+    },
+    "souleve-de-terre": {
+      "assetKey": "barbell-deadlift",
+      "sourceId": "Barbell_Deadlift",
+      "frameCount": 2
+    },
+    "souleve-de-terre-sumo": {
+      "assetKey": "sumo-deadlift",
+      "sourceId": "Sumo_Deadlift",
+      "frameCount": 2
+    },
+    "kettlebell-swing": {
+      "assetKey": "one-arm-kettlebell-swings",
+      "sourceId": "One-Arm_Kettlebell_Swings",
+      "frameCount": 2
+    },
+    "farmer-carry": {
+      "assetKey": "farmers-walk",
+      "sourceId": "Farmers_Walk",
+      "frameCount": 2
+    },
+    "wrist-curl-barre": {
+      "assetKey": "palms-up-barbell-wrist-curl-over-a-bench",
+      "sourceId": "Palms-Up_Barbell_Wrist_Curl_Over_A_Bench",
+      "frameCount": 2
+    },
+    "wrist-curl-halteres": {
+      "assetKey": "palms-up-dumbbell-wrist-curl-over-a-bench",
+      "sourceId": "Palms-Up_Dumbbell_Wrist_Curl_Over_A_Bench",
+      "frameCount": 2
+    },
+    "reverse-wrist-curl": {
+      "assetKey": "palms-down-wrist-curl-over-a-bench",
+      "sourceId": "Palms-Down_Wrist_Curl_Over_A_Bench",
+      "frameCount": 2
+    },
+    "reverse-curl-barre-ez": {
+      "assetKey": "reverse-barbell-curl",
+      "sourceId": "Reverse_Barbell_Curl",
+      "frameCount": 2
+    },
+    "reverse-curl-poulie": {
+      "assetKey": "reverse-cable-curl",
+      "sourceId": "Reverse_Cable_Curl",
+      "frameCount": 2
+    }
+  }
+}

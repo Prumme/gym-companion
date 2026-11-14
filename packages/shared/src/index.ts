@@ -115,6 +115,21 @@ export type ExerciseUserPreference = {
   restSecondsOverride: number | null;
 };
 
+/**
+ * Démonstration visuelle d’un exercice système : séquence d’images
+ * (position de départ → position finale) animée côté client.
+ * `frames` contient des chemins d’assets statiques servis par l’app web.
+ */
+export type ExerciseMedia = {
+  kind: 'IMAGE_SEQUENCE';
+  frames: string[];
+  attribution: {
+    sourceName: string;
+    sourceUrl: string;
+    license: string;
+  };
+};
+
 export type ExerciseListItem = {
   id: string;
   source: ExerciseSource;
@@ -128,6 +143,8 @@ export type ExerciseListItem = {
   archivedAt: string | null;
   permissions: ExercisePermissions;
   userPreference: ExerciseUserPreference;
+  /** `null` lorsqu’aucune démonstration n’est disponible (exercices personnels inclus). */
+  media: ExerciseMedia | null;
 };
 
 export type ExerciseListResponse = ApiCursorListResponse<ExerciseListItem>;
@@ -167,6 +184,7 @@ export type ExerciseDetail = {
   updatedAt: string;
   permissions: ExercisePermissions;
   userPreference: ExerciseUserPreference;
+  media: ExerciseMedia | null;
 };
 
 export type ProgramStatus = 'DRAFT' | 'ACTIVE' | 'ARCHIVED';

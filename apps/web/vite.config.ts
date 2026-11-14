@@ -82,6 +82,19 @@ export default defineConfig({
             handler: 'NetworkOnly',
           },
           {
+            // Démonstrations d’exercices (assets statiques immuables) : non précachées
+            // (~6 Mo), mises en cache à la première consultation pour la salle hors ligne.
+            urlPattern: ({ url }) => url.pathname.startsWith('/exercise-media/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'exercise-media',
+              expiration: {
+                maxEntries: 400,
+                maxAgeSeconds: 60 * 60 * 24 * 90,
+              },
+            },
+          },
+          {
             urlPattern: ({ request }) => request.destination === 'document',
             handler: 'NetworkFirst',
             options: {

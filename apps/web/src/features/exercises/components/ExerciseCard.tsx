@@ -10,6 +10,7 @@ import { useUpdateExercisePreferenceMutation } from '../hooks/use-exercise-prefe
 import { CARDIO_TYPE_LABELS, getMeasurementTypeLabel } from '../lib/exercise-labels';
 import { preferenceToUpdateInput } from '../lib/exercise-preference';
 import { ExerciseFavoriteButton } from './ExerciseFavoriteButton';
+import { ExerciseMediaButton } from './ExerciseMediaButton';
 import { ExerciseSourceBadge } from './ExerciseSourceBadge';
 
 type ExerciseCardProps = {
@@ -89,6 +90,8 @@ export function ExerciseCard({ exercise, onFeedback }: ExerciseCardProps) {
             />
           </div>
         </Link>
+
+        <ExerciseMediaButton exerciseName={exercise.name} media={exercise.media} />
 
         <ExerciseFavoriteButton
           preference={exercise.userPreference}

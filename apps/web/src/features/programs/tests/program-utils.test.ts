@@ -200,6 +200,7 @@ describe('template exercise defaults', () => {
         preferredEquipmentType: null,
         restSecondsOverride: null,
       },
+      media: null,
       compatibleEquipmentTypes: [
         {
           equipmentType: { id: 'eq', code: 'bb', name: 'Barre' },

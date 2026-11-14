@@ -155,6 +155,16 @@ Un exercice est :
 
 Un utilisateur standard ne peut modifier que ses exercices personnels.
 
+### 4.3.1 Démonstration visuelle
+
+Un exercice `SYSTEM` peut exposer une démonstration visuelle (`media`) : une séquence d’images (position de départ → position finale) animée côté client et ouverte via une icône « œil » (catalogue, fiche exercice, séance active).
+
+- La démonstration est un **repère indicatif** : elle ne remplace ni un coach ni un avis médical, et l’équipement réel de la salle peut différer.
+- Elle est résolue de façon déterministe depuis le `slug` système via un manifeste versionné (`apps/api/src/modules/exercises/exercise-media-manifest.json`) ; aucune IA, aucun stockage en base.
+- Un exercice `USER` n’a pas de démonstration (`media = null`).
+- Un exercice système sans correspondance fiable n’a pas de démonstration : mieux vaut aucun visuel qu’un mouvement différent de celui pratiqué.
+- Source actuelle : Free Exercise DB (Unlicense) ; l’attribution est affichée sous chaque démonstration.
+
 ### 4.4 Archivage
 
 Un exercice archivé :

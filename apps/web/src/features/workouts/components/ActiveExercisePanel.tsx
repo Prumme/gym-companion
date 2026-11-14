@@ -28,6 +28,7 @@ import { PlateCalculatorSheet } from './PlateCalculatorSheet';
 import { formatWorkoutSetTargetCompact, getWorkoutSetTypeLabelSafe } from '../lib/workout-labels';
 import { findNextPendingSetInExercise, isExerciseTreated } from '../lib/workout-progress';
 import { ReplaceSessionExerciseSheet } from './ReplaceSessionExerciseSheet';
+import { SessionExerciseMediaButton } from './SessionExerciseMediaButton';
 import { ExerciseLoadCues } from './ExerciseLoadCues';
 import { WorkoutSetCard } from './WorkoutSetCard';
 import { WorkoutSetTargetsSheet } from './WorkoutSetTargetsSheet';
@@ -205,6 +206,11 @@ export function ActiveExercisePanel({
             <span className="pt-1 text-xs tabular-nums text-[var(--muted)]">
               {exerciseIndex + 1} / {totalExercises}
             </span>
+            <SessionExerciseMediaButton
+              sourceExerciseId={exercise.sourceExerciseId}
+              exerciseName={exercise.exerciseName}
+              browserOffline={browserOffline}
+            />
             <div className="relative" ref={menuRef}>
               <Button
                 type="button"

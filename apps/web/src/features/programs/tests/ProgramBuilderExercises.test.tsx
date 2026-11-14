@@ -103,6 +103,7 @@ const catalogExercise: ExerciseListItem = {
     },
     restSecondsOverride: 75,
   },
+  media: null,
 };
 
 const catalogDetail: ExerciseDetail = {

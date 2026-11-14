@@ -202,7 +202,7 @@ Créer les fondations métier du suivi d’entraînement.
 
 ### 4.4 Hors périmètre
 
-- Vidéos hébergées par l’application.
+- Vidéos hébergées par l’application. *(Une démonstration par images animées départ → fin, issue de Free Exercise DB, est livrée pour les exercices système qui ont une correspondance fiable (157/176). C’est une amélioration mineure compatible, voir `docs/04-business-rules.md` §4.3.1. Les vidéos restent en Phase 9.)*
 - Catalogue communautaire.
 - Commentaires.
 - Notation des exercices.

@@ -12,6 +12,7 @@ import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
 import { exerciseDetailQueryOptions } from '../api/exercise-query-options';
 import { ExerciseFavoriteButton } from '../components/ExerciseFavoriteButton';
 import { ExerciseManagementSection } from '../components/ExerciseManagementSection';
+import { ExerciseMediaButton } from '../components/ExerciseMediaButton';
 import { ExercisePreferenceSection } from '../components/ExercisePreferenceSection';
 import { ExerciseSourceBadge } from '../components/ExerciseSourceBadge';
 import { useUpdateExercisePreferenceMutation } from '../hooks/use-exercise-preference-mutations';
@@ -104,13 +105,16 @@ export function ExerciseDetailPage() {
         backLabel="Exercices"
         className="mb-0"
         actions={
-          <ExerciseFavoriteButton
-            preference={preference}
-            pending={favoritePending}
-            onToggle={() => {
-              void handleToggleFavorite();
-            }}
-          />
+          <div className="flex items-center gap-1">
+            <ExerciseMediaButton exerciseName={exercise.name} media={exercise.media} />
+            <ExerciseFavoriteButton
+              preference={preference}
+              pending={favoritePending}
+              onToggle={() => {
+                void handleToggleFavorite();
+              }}
+            />
+          </div>
         }
       />
 

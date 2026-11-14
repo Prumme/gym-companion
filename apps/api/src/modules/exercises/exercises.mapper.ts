@@ -9,6 +9,8 @@ import type {
   MuscleGroupReference,
 } from '@gym-companion/shared';
 
+import { resolveExerciseMedia } from './exercise-media';
+
 type MuscleRef = {
   id: string;
   code: string;
@@ -32,6 +34,7 @@ export type PreferenceRow = {
 export type ExerciseListRow = {
   id: string;
   source: ExerciseSource;
+  slug?: string | null;
   name: string;
   measurementType: ExerciseDetail['measurementType'];
   category: ExerciseDetail['category'];
@@ -142,6 +145,7 @@ export function toExerciseListItem(row: ExerciseListRow, viewerUserId: string): 
       row.ownerUserId,
     ),
     userPreference: preferenceFromExerciseRow(row),
+    media: resolveExerciseMedia(row.source, row.slug),
   };
 }
 
@@ -181,5 +185,6 @@ export function toExerciseDetail(row: ExerciseRow, viewerUserId: string): Exerci
       row.ownerUserId,
     ),
     userPreference: preferenceFromExerciseRow(row),
+    media: resolveExerciseMedia(row.source, row.slug),
   };
 }

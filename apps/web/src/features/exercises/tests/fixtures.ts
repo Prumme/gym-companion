@@ -34,6 +34,7 @@ export function createExerciseListItem(
       preferredEquipmentType: null,
       restSecondsOverride: null,
     },
+    media: null,
     ...overrides,
   };
 }
