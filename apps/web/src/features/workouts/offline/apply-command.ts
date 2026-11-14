@@ -11,8 +11,9 @@ import type {
   OfflineWorkoutCommandType,
   StoredWorkoutCommand,
   UpdateWorkoutSetCommandPayload,
+  UpdateWorkoutSetTargetsCommandPayload,
 } from './types';
-import { updateSetPayloadSchema } from './schemas';
+import { updateSetPayloadSchema, updateSetTargetsPayloadSchema } from './schemas';
 
 export function permissionsForStatus(status: WorkoutStatus): WorkoutSessionPermissions {
   switch (status) {
@@ -104,9 +105,50 @@ export function applyOptimisticSetUpdate(
   };
 }
 
+/** Application optimiste des cibles : série PENDING d’une séance ACTIVE uniquement. */
+export function applyOptimisticSetTargetsUpdate(
+  session: WorkoutSessionDetail,
+  payload: UpdateWorkoutSetTargetsCommandPayload,
+  nextVersion: number,
+): WorkoutSessionDetail | null {
+  if (session.status !== 'ACTIVE') {
+    return null;
+  }
+  let applicable = false;
+  const exercises = session.exercises.map((exercise) => {
+    if (exercise.id !== payload.sessionExerciseId) {
+      return exercise;
+    }
+    return {
+      ...exercise,
+      sets: exercise.sets.map((set) => {
+        if (set.id !== payload.workoutSetId || set.status !== 'PENDING') {
+          return set;
+        }
+        applicable = true;
+        return {
+          ...set,
+          ...(payload.targetWeightKg !== undefined
+            ? { targetWeightKg: payload.targetWeightKg }
+            : {}),
+          ...(payload.targetRepMin !== undefined ? { targetRepMin: payload.targetRepMin } : {}),
+          ...(payload.targetRepMax !== undefined ? { targetRepMax: payload.targetRepMax } : {}),
+          ...(payload.targetRestSeconds !== undefined
+            ? { targetRestSeconds: payload.targetRestSeconds }
+            : {}),
+        };
+      }),
+    };
+  });
+  if (!applicable) {
+    return null;
+  }
+  return { ...session, version: nextVersion, exercises };
+}
+
 export function applyOptimisticLifecycle(
   session: WorkoutSessionDetail,
-  type: Exclude<OfflineWorkoutCommandType, 'UPDATE_WORKOUT_SET'>,
+  type: Exclude<OfflineWorkoutCommandType, 'UPDATE_WORKOUT_SET' | 'UPDATE_WORKOUT_SET_TARGETS'>,
   payload: unknown,
   nextVersion: number,
 ): WorkoutSessionDetail | null {
@@ -193,6 +235,13 @@ export function applyCommandToSession(
       return null;
     }
     return applyOptimisticSetUpdate(session, parsed.data, nextVersion);
+  }
+  if (command.type === 'UPDATE_WORKOUT_SET_TARGETS') {
+    const parsed = updateSetTargetsPayloadSchema.safeParse(command.payload);
+    if (!parsed.success) {
+      return null;
+    }
+    return applyOptimisticSetTargetsUpdate(session, parsed.data, nextVersion);
   }
   return applyOptimisticLifecycle(session, command.type, command.payload, nextVersion);
 }

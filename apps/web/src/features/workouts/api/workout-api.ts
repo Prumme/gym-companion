@@ -7,13 +7,16 @@ import type {
 import type {
   AddWorkoutSessionExerciseInput,
   AddWorkoutSessionSetInput,
+  AddWorkoutSessionWarmupSetsInput,
   CancelWorkoutSessionInput,
   CompleteWorkoutSessionInput,
+  CreateFreeWorkoutSessionInput,
   CreateWorkoutSessionInput,
   DeleteWorkoutSessionSetInput,
   PauseWorkoutSessionInput,
   ReplaceWorkoutSessionExerciseInput,
   ResumeWorkoutSessionInput,
+  UpdateWorkoutSessionSetTargetsInput,
   UpdateWorkoutSetInput,
   WorkoutHistoryQuery,
 } from '@gym-companion/validation';
@@ -80,6 +83,17 @@ export async function createWorkoutSession(
   return response.data;
 }
 
+/** Séance libre : ACTIVE, sans modèle ni exercice (docs/09 §19.3). */
+export async function createFreeWorkoutSession(
+  input: CreateFreeWorkoutSessionInput,
+): Promise<WorkoutSessionDetail> {
+  const response = await apiFetch<{ data: WorkoutSessionDetail }>('/api/v1/workouts/free', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  return response.data;
+}
+
 export async function updateWorkoutSet(
   workoutSessionId: string,
   sessionExerciseId: string,
@@ -88,6 +102,23 @@ export async function updateWorkoutSet(
 ): Promise<UpdateWorkoutSetResult> {
   const response = await apiFetch<{ data: UpdateWorkoutSetResult }>(
     `/api/v1/workouts/${encodeURIComponent(workoutSessionId)}/exercises/${encodeURIComponent(sessionExerciseId)}/sets/${encodeURIComponent(workoutSetId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    },
+  );
+  return response.data;
+}
+
+/** Modifie les cibles d’une série PENDING (snapshot de séance uniquement). */
+export async function updateWorkoutSetTargets(
+  workoutSessionId: string,
+  sessionExerciseId: string,
+  workoutSetId: string,
+  input: UpdateWorkoutSessionSetTargetsInput,
+): Promise<UpdateWorkoutSetResult> {
+  const response = await apiFetch<{ data: UpdateWorkoutSetResult }>(
+    `/api/v1/workouts/${encodeURIComponent(workoutSessionId)}/exercises/${encodeURIComponent(sessionExerciseId)}/sets/${encodeURIComponent(workoutSetId)}/targets`,
     {
       method: 'PATCH',
       body: JSON.stringify(input),
@@ -132,6 +163,21 @@ export async function addWorkoutSessionSet(
 ): Promise<WorkoutSessionDetail> {
   const response = await apiFetch<{ data: WorkoutSessionDetail }>(
     `/api/v1/workouts/${encodeURIComponent(workoutSessionId)}/exercises/${encodeURIComponent(sessionExerciseId)}/sets`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+  );
+  return response.data;
+}
+
+export async function addWorkoutSessionWarmupSets(
+  workoutSessionId: string,
+  sessionExerciseId: string,
+  input: AddWorkoutSessionWarmupSetsInput,
+): Promise<WorkoutSessionDetail> {
+  const response = await apiFetch<{ data: WorkoutSessionDetail }>(
+    `/api/v1/workouts/${encodeURIComponent(workoutSessionId)}/exercises/${encodeURIComponent(sessionExerciseId)}/sets/warmup`,
     {
       method: 'POST',
       body: JSON.stringify(input),

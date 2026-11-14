@@ -13,8 +13,11 @@ import {
   cancelWorkoutSessionSchema,
   completeWorkoutSessionSchema,
   createWorkoutSessionSchema,
+  createFreeWorkoutSessionSchema,
+  FREE_WORKOUT_SESSION_NAME,
   addWorkoutSessionExerciseSchema,
   addWorkoutSessionSetSchema,
+  addWorkoutSessionWarmupSetsSchema,
   deleteWorkoutSessionSetSchema,
   decodeWorkoutHistoryCursor,
   encodeWorkoutHistoryCursor,
@@ -26,6 +29,9 @@ import {
   resolveWorkoutLifecycleTransition,
   resumeWorkoutSessionSchema,
   updateWorkoutSetSchema,
+  updateWorkoutSessionSetTargetsSchema,
+  validateWorkoutSessionSetTargetsPatch,
+  buildWorkoutSetTargetsCommandFingerprint,
   utcDateToLocalDateString,
   validateWorkoutSetActuals,
   type WorkoutLifecycleAction,
@@ -40,6 +46,7 @@ import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../database/prisma/prisma.service';
 import { SharedWorkoutSessionLinkNotifier } from '../shared-workouts/shared-workout-session-link.notifier';
+import { deriveBatchSetCommandId, planWarmupInsertion } from './workout-set-positions';
 import {
   buildWorkoutSessionSnapshotFromTemplate,
   type TemplateForSnapshot,
@@ -205,37 +212,87 @@ export class WorkoutsService {
       });
       return toWorkoutSessionDetail(created as WorkoutSessionSnapshotRow);
     } catch (error) {
-      if (
-        error instanceof ConflictException ||
-        error instanceof BadRequestException ||
-        error instanceof NotFoundException
-      ) {
-        throw error;
-      }
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'code' in error &&
-        (error as { code?: string }).code === 'P2002'
-      ) {
-        const active = await this.prisma.workoutSession.findFirst({
-          where: {
+      throw await this.mapCreateSessionError(userId, error);
+    }
+  }
+
+  /** Séance libre (docs/09 §19.3) : ACTIVE, sans source ni exercice. */
+  async createFree(userId: string, input: unknown): Promise<WorkoutSessionDetail> {
+    const data = createFreeWorkoutSessionSchema.parse(input);
+    try {
+      const created = await this.prisma.$transaction(async (tx) => {
+        await this.assertNoOpenSession(tx, userId);
+        return tx.workoutSession.create({
+          data: {
             ownerUserId: userId,
-            status: { in: ['ACTIVE', 'PAUSED'] },
+            sourceProgramId: null,
+            sourceWorkoutTemplateId: null,
+            programNameSnapshot: null,
+            workoutTemplateNameSnapshot: null,
+            name: FREE_WORKOUT_SESSION_NAME,
+            status: 'ACTIVE',
+            localDate: localDateStringToUtcDate(data.localDate),
+            timezone: data.timezone,
+            startedAt: new Date(),
+            version: 1,
           },
-          select: { id: true },
+          include: sessionDetailInclude,
         });
-        throw new ConflictException({
-          code: 'WORKOUT_ACTIVE_ALREADY_EXISTS',
-          message: 'Une séance est déjà en cours.',
-          details: active ? { activeWorkoutSessionId: active.id } : undefined,
-        });
-      }
-      throw new BadRequestException({
-        code: 'WORKOUT_SNAPSHOT_CREATION_FAILED',
-        message: 'La création du snapshot de séance a échoué.',
+      });
+      return toWorkoutSessionDetail(created as WorkoutSessionSnapshotRow);
+    } catch (error) {
+      throw await this.mapCreateSessionError(userId, error);
+    }
+  }
+
+  private async assertNoOpenSession(tx: Prisma.TransactionClient, userId: string): Promise<void> {
+    const existing = await tx.workoutSession.findFirst({
+      where: {
+        ownerUserId: userId,
+        status: { in: ['ACTIVE', 'PAUSED'] },
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new ConflictException({
+        code: 'WORKOUT_ACTIVE_ALREADY_EXISTS',
+        message: 'Une séance est déjà en cours.',
+        details: { activeWorkoutSessionId: existing.id },
       });
     }
+  }
+
+  private async mapCreateSessionError(userId: string, error: unknown): Promise<unknown> {
+    if (
+      error instanceof ConflictException ||
+      error instanceof BadRequestException ||
+      error instanceof NotFoundException
+    ) {
+      return error;
+    }
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as { code?: string }).code === 'P2002'
+    ) {
+      const active = await this.prisma.workoutSession.findFirst({
+        where: {
+          ownerUserId: userId,
+          status: { in: ['ACTIVE', 'PAUSED'] },
+        },
+        select: { id: true },
+      });
+      return new ConflictException({
+        code: 'WORKOUT_ACTIVE_ALREADY_EXISTS',
+        message: 'Une séance est déjà en cours.',
+        details: active ? { activeWorkoutSessionId: active.id } : undefined,
+      });
+    }
+    return new BadRequestException({
+      code: 'WORKOUT_SNAPSHOT_CREATION_FAILED',
+      message: 'La création du snapshot de séance a échoué.',
+    });
   }
 
   /**
@@ -265,20 +322,7 @@ export class WorkoutsService {
     const localDate = localDateStringToUtcDate(params.localDate);
     const startedAt = new Date();
 
-    const existing = await tx.workoutSession.findFirst({
-      where: {
-        ownerUserId: userId,
-        status: { in: ['ACTIVE', 'PAUSED'] },
-      },
-      select: { id: true },
-    });
-    if (existing) {
-      throw new ConflictException({
-        code: 'WORKOUT_ACTIVE_ALREADY_EXISTS',
-        message: 'Une séance est déjà en cours.',
-        details: { activeWorkoutSessionId: existing.id },
-      });
-    }
+    await this.assertNoOpenSession(tx, userId);
 
     return tx.workoutSession.create({
       data: {
@@ -1250,6 +1294,312 @@ export class WorkoutsService {
             targetRestSeconds: null,
             clientCommandId: data.clientCommandId ?? null,
           },
+        });
+
+        const updatedSession = await tx.workoutSession.update({
+          where: { id: session.id },
+          data: { version: { increment: 1 } },
+          include: sessionDetailInclude,
+        });
+
+        return toWorkoutSessionDetail(updatedSession as WorkoutSessionSnapshotRow);
+      });
+
+      await this.sharedSessionLinkNotifier.notifyIfLinked(workoutSessionId);
+      return detail;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException({
+          code: 'WORKOUT_DUPLICATE_COMMAND',
+          message: 'Identifiant de commande déjà utilisé.',
+        });
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Modifie les cibles (charge, reps, repos) d’une série PENDING de séance ACTIVE.
+   * Ne touche que le snapshot de séance. Idempotent via `WorkoutSetCommand`
+   * (empreinte préfixée `TARGETS:`), donc rejouable depuis la file hors ligne.
+   */
+  async updateSetTargets(
+    userId: string,
+    workoutSessionId: string,
+    sessionExerciseId: string,
+    workoutSetId: string,
+    input: unknown,
+  ): Promise<UpdateWorkoutSetResult> {
+    const data = updateWorkoutSessionSetTargetsSchema.parse(input);
+    const patch = {
+      targetWeightKg: data.targetWeightKg,
+      targetRepMin: data.targetRepMin,
+      targetRepMax: data.targetRepMax,
+      targetRestSeconds: data.targetRestSeconds,
+    };
+    const fingerprint = buildWorkoutSetTargetsCommandFingerprint(patch);
+
+    try {
+      const detail = await this.prisma.$transaction(async (tx) => {
+        const session = await tx.workoutSession.findFirst({
+          where: { id: workoutSessionId, ownerUserId: userId },
+          select: { id: true, status: true, version: true },
+        });
+
+        if (!session) {
+          throw new NotFoundException({
+            code: 'WORKOUT_NOT_FOUND',
+            message: 'Séance introuvable.',
+          });
+        }
+
+        // Idempotence avant contrôle de version / statut (rejeu après perte de réponse).
+        if (data.clientCommandId) {
+          const receipt = await tx.workoutSetCommand.findFirst({
+            where: { ownerUserId: userId, clientCommandId: data.clientCommandId },
+          });
+          if (receipt) {
+            if (
+              receipt.workoutSessionId !== session.id ||
+              receipt.workoutSetId !== workoutSetId ||
+              receipt.payloadFingerprint !== fingerprint
+            ) {
+              throw new ConflictException({
+                code: 'WORKOUT_SET_COMMAND_CONFLICT',
+                message:
+                  'Cet identifiant de commande est déjà utilisé pour une autre modification.',
+              });
+            }
+            const existingSet = await tx.workoutSet.findFirst({
+              where: { id: workoutSetId, ownerUserId: userId },
+            });
+            if (!existingSet) {
+              throw new NotFoundException({
+                code: 'WORKOUT_SET_NOT_FOUND',
+                message: 'Série introuvable.',
+              });
+            }
+            return {
+              workoutSet: toWorkoutSetDetail(existingSet as WorkoutSetSnapshotRow),
+              workoutSessionVersion: receipt.appliedVersion,
+              replay: true as const,
+            };
+          }
+        }
+
+        if (session.status !== 'ACTIVE') {
+          throw new BadRequestException({
+            code: 'WORKOUT_NOT_EDITABLE',
+            message:
+              session.status === 'PAUSED'
+                ? 'La séance est en pause : les séries ne sont pas modifiables.'
+                : 'Cette séance n’est plus modifiable.',
+          });
+        }
+
+        if (session.version !== data.expectedVersion) {
+          throw new ConflictException({
+            code: 'WORKOUT_VERSION_CONFLICT',
+            message: 'La séance a été modifiée depuis un autre onglet ou appareil.',
+            details: { currentVersion: session.version },
+          });
+        }
+
+        const set = await tx.workoutSet.findFirst({
+          where: {
+            id: workoutSetId,
+            ownerUserId: userId,
+            workoutSessionExerciseId: sessionExerciseId,
+            workoutSessionExercise: { workoutSessionId: session.id },
+          },
+          include: { workoutSessionExercise: { select: { measurementTypeSnapshot: true } } },
+        });
+
+        if (!set) {
+          throw new NotFoundException({
+            code: 'WORKOUT_SET_NOT_FOUND',
+            message: 'Série introuvable.',
+          });
+        }
+
+        if (set.status !== 'PENDING') {
+          throw new BadRequestException({
+            code: 'WORKOUT_SET_NOT_PENDING',
+            message: 'Seules les cibles d’une série à faire peuvent être modifiées.',
+          });
+        }
+
+        const validation = validateWorkoutSessionSetTargetsPatch(
+          set.workoutSessionExercise.measurementTypeSnapshot,
+          patch,
+        );
+        if (!validation.ok) {
+          throw new BadRequestException({ code: validation.code, message: validation.message });
+        }
+
+        const updatedSet = await tx.workoutSet.update({
+          where: { id: set.id },
+          data: {
+            ...(patch.targetWeightKg !== undefined ? { targetWeightKg: patch.targetWeightKg } : {}),
+            ...(patch.targetRepMin !== undefined ? { targetRepMin: patch.targetRepMin } : {}),
+            ...(patch.targetRepMax !== undefined ? { targetRepMax: patch.targetRepMax } : {}),
+            ...(patch.targetRestSeconds !== undefined
+              ? { targetRestSeconds: patch.targetRestSeconds }
+              : {}),
+          },
+        });
+
+        const updatedSession = await tx.workoutSession.update({
+          where: { id: session.id },
+          data: { version: { increment: 1 } },
+          select: { version: true },
+        });
+
+        if (data.clientCommandId) {
+          await tx.workoutSetCommand.create({
+            data: {
+              ownerUserId: userId,
+              workoutSessionId: session.id,
+              workoutSetId: set.id,
+              clientCommandId: data.clientCommandId,
+              payloadFingerprint: fingerprint,
+              appliedVersion: updatedSession.version,
+            },
+          });
+        }
+
+        return {
+          workoutSet: toWorkoutSetDetail(updatedSet as WorkoutSetSnapshotRow),
+          workoutSessionVersion: updatedSession.version,
+          replay: false as const,
+        };
+      });
+
+      if (!detail.replay) {
+        await this.sharedSessionLinkNotifier.notifyIfLinked(workoutSessionId);
+      }
+      return { workoutSet: detail.workoutSet, workoutSessionVersion: detail.workoutSessionVersion };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException({
+          code: 'WORKOUT_SET_DUPLICATE_COMMAND',
+          message: 'Identifiant de commande déjà utilisé.',
+        });
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Ajoute en une commande des séries WARMUP (rampe d’échauffement, docs/04 §5.6)
+   * avec leurs cibles, insérées avant la première série non-WARMUP. Exercice
+   * WEIGHT_REPS uniquement. Idempotent : chaque série porte un `clientCommandId`
+   * dérivé de celui de la commande ; un rejeu renvoie le snapshot courant.
+   */
+  async addWarmupSets(
+    userId: string,
+    workoutSessionId: string,
+    sessionExerciseId: string,
+    input: unknown,
+  ): Promise<WorkoutSessionDetail> {
+    const data = addWorkoutSessionWarmupSetsSchema.parse(input);
+
+    try {
+      const detail = await this.prisma.$transaction(async (tx) => {
+        const session = await tx.workoutSession.findFirst({
+          where: { id: workoutSessionId, ownerUserId: userId },
+          select: { id: true, status: true, version: true },
+        });
+
+        if (!session) {
+          throw new NotFoundException({
+            code: 'WORKOUT_NOT_FOUND',
+            message: 'Séance introuvable.',
+          });
+        }
+
+        // Idempotence avant contrôle de version / statut (rejeu après perte de réponse).
+        const existingSet = await tx.workoutSet.findFirst({
+          where: { ownerUserId: userId, clientCommandId: data.clientCommandId },
+          select: { workoutSessionExerciseId: true },
+        });
+        if (existingSet) {
+          if (existingSet.workoutSessionExerciseId !== sessionExerciseId) {
+            throw new ConflictException({
+              code: 'WORKOUT_SET_COMMAND_CONFLICT',
+              message: 'Cet identifiant de commande est déjà utilisé pour une autre série.',
+            });
+          }
+          const replayed = await tx.workoutSession.findFirstOrThrow({
+            where: { id: session.id },
+            include: sessionDetailInclude,
+          });
+          return toWorkoutSessionDetail(replayed as WorkoutSessionSnapshotRow);
+        }
+
+        this.assertSessionActiveForStructuralEdit(session.status);
+
+        if (session.version !== data.expectedVersion) {
+          throw new ConflictException({
+            code: 'WORKOUT_VERSION_CONFLICT',
+            message: 'La séance a été modifiée depuis un autre onglet ou appareil.',
+            details: { currentVersion: session.version },
+          });
+        }
+
+        const sessionExercise = await tx.workoutSessionExercise.findFirst({
+          where: { id: sessionExerciseId, workoutSessionId: session.id },
+          select: {
+            id: true,
+            measurementTypeSnapshot: true,
+            sets: { select: { id: true, position: true, setType: true } },
+          },
+        });
+
+        if (!sessionExercise) {
+          throw new NotFoundException({
+            code: 'WORKOUT_SESSION_EXERCISE_NOT_FOUND',
+            message: 'Exercice de séance introuvable.',
+          });
+        }
+
+        if (sessionExercise.measurementTypeSnapshot !== 'WEIGHT_REPS') {
+          throw new BadRequestException({
+            code: 'WORKOUT_WARMUP_NOT_SUPPORTED',
+            message:
+              'Les séries d’échauffement ne sont proposées que pour un exercice charge × reps.',
+          });
+        }
+
+        const plan = planWarmupInsertion(sessionExercise.sets, data.sets.length);
+
+        // Deux passes pour respecter l’unicité (exercice, position).
+        for (const [index, set] of plan.existing.entries()) {
+          await tx.workoutSet.update({
+            where: { id: set.id },
+            data: { position: -(index + 1) },
+          });
+        }
+        for (const set of plan.existing) {
+          await tx.workoutSet.update({
+            where: { id: set.id },
+            data: { position: set.position },
+          });
+        }
+
+        await tx.workoutSet.createMany({
+          data: data.sets.map((set, index) => ({
+            workoutSessionExerciseId: sessionExercise.id,
+            ownerUserId: userId,
+            sourceTemplateSetId: null,
+            position: plan.newPositions[index]!,
+            setType: 'WARMUP' as const,
+            status: 'PENDING' as const,
+            targetWeightKg: new Prisma.Decimal(set.targetWeightKg),
+            targetRepMin: set.targetReps,
+            targetRepMax: set.targetReps,
+            clientCommandId: deriveBatchSetCommandId(data.clientCommandId, index),
+          })),
         });
 
         const updatedSession = await tx.workoutSession.update({

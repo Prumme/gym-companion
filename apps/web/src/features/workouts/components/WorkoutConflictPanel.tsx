@@ -6,6 +6,7 @@ import type { StoredWorkoutCommand } from '../offline/types';
 
 const COMMAND_LABELS: Record<StoredWorkoutCommand['type'], string> = {
   UPDATE_WORKOUT_SET: 'Mise à jour de série',
+  UPDATE_WORKOUT_SET_TARGETS: 'Modification de cible',
   PAUSE_WORKOUT: 'Mise en pause',
   RESUME_WORKOUT: 'Reprise',
   COMPLETE_WORKOUT: 'Fin de séance',

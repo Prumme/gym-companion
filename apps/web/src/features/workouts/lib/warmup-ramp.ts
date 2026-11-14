@@ -81,3 +81,16 @@ export function computeWarmupRamp(input: WarmupRampInput): WarmupRampResult {
 
   return { status: 'OK', steps };
 }
+
+export type WarmupSetDraft = { targetWeightKg: number; targetReps: number };
+
+/**
+ * Convertit une rampe calculée en séries WARMUP à enregistrer (cibles charge + reps).
+ * Liste vide si la rampe n’est pas applicable.
+ */
+export function toWarmupSetDrafts(result: WarmupRampResult): WarmupSetDraft[] {
+  if (result.status !== 'OK') {
+    return [];
+  }
+  return result.steps.map((step) => ({ targetWeightKg: step.loadKg, targetReps: step.reps }));
+}

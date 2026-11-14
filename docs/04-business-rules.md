@@ -183,6 +183,8 @@ L’utilisateur pourra éventuellement, plus tard, choisir de reporter le change
 
 Une `WorkoutSession` peut contenir des exercices absents du `WorkoutTemplate` source.
 
+Une **séance libre** n’a pas de modèle : elle démarre `ACTIVE` sans exercice, nommée « Séance libre », sans `sourceProgramId` ni `sourceWorkoutTemplateId`. Tous ses exercices sont ad hoc. La règle « une seule séance en cours » s’applique, et la terminer sans série enregistrée demande la confirmation du §16.3.
+
 Règles V1 :
 
 - l’ajout n’affecte que la `WorkoutSession` courante ;
@@ -191,6 +193,7 @@ Règles V1 :
 - un même `sourceExerciseId` ne peut pas apparaître deux fois dans la séance ;
 - des `WorkoutSet` WORKING supplémentaires (sans cibles) peuvent être ajoutés pendant une séance `ACTIVE` ;
 - une série peut être **supprimée physiquement** pendant une séance `ACTIVE` (recompactage des `position`) ; au moins une série doit rester sur l’exercice ;
+- les **cibles** d’une série `PENDING` (charge, reps min/max, repos) peuvent être modifiées pendant une séance `ACTIVE` : seul le snapshot de séance change, jamais le `WorkoutTemplateSet` ni le programme ; une série déjà enregistrée garde ses cibles (`WORKOUT_SET_NOT_PENDING`) ; une cible sans objet pour le type de mesure est refusée (`WORKOUT_SET_TARGET_NOT_APPLICABLE` : charge seulement pour les types avec charge, reps seulement pour les types à répétitions) ; la modification passe par la file hors ligne comme l’enregistrement d’une série ;
 - **Ignorer** (`SKIPPED`) n’est pas une suppression : la série reste dans l’historique comme non réalisée ;
 - une fois la séance `COMPLETED`, historique, records, progression et e1RM traitent ces lignes comme n’importe quel autre snapshot (`sourceExerciseId`).
 
@@ -261,7 +264,8 @@ Suggestion calculée, en lecture seule, à partir de la charge de travail cible 
 - Chaque pourcentage est calculé en grammes (arrondi inférieur), puis ramené à la charge chargeable inférieure par le calculateur §5.5.
 - Un palier est retiré s’il est inférieur ou égal à la barre, s’il ne dépasse pas le palier précédent, ou s’il atteint la charge de travail.
 - Aucune rampe si la charge de travail est absente ou ne dépasse pas la barre.
-- Les paliers ne créent aucune série `WARMUP` (évolution : docs/01 §6.3).
+- Le calcul seul n’enregistre rien. Sur une séance `ACTIVE` et en ligne, l’action explicite « Ajouter ces séries d’échauffement » crée une série `WARMUP` `PENDING` par palier (cibles : charge du palier, reps min = max = reps du palier), insérées avant la première série qui n’est pas `WARMUP`. Exercice `WEIGHT_REPS` uniquement.
+- Une fois réalisées, ces séries suivent les règles `WARMUP` : hors records (§14), hors e1RM (§11) et hors volume de travail (§10.3, comptées seulement dans le volume total détaillé).
 
 ## 6. Maximal et référence de performance
 

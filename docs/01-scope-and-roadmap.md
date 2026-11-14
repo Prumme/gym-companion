@@ -317,13 +317,13 @@ Permettre à l’utilisateur d’exécuter et d’enregistrer une séance compl�
 
 Ces éléments restent explicitement hors livraison de la phase 3 :
 
-- séance vide (sans modèle) ;
+- séance vide (sans modèle) *(« Séance libre » livrée : `POST /api/v1/workouts/free`, docs/09 §19.3, séance `ACTIVE` sans exercice puis ajout ad hoc ; en ligne seulement ; reste : sauvegarder la séance comme modèle, docs/02 §12 étape 6)* ;
 - démarrage de séance hors ligne ;
 - affichage / copie de la dernière performance *(repère **Record** + **Dernière fois** en lecture seule sur Active Workout — livré, sans nouveau moteur Records ; action « Reprendre la dernière fois » dans la saisie de série livrée : pré-remplit poids et reps sans enregistrer)* ;
 - signal de fin de repos *(vibration + bip WebAudio facultatifs, réglables localement depuis le minuteur, jamais rejoués au rechargement — livré ; Web Push hors V1, cf. Phase 7)* ;
 - calculateur de disques *(barre `WEIGHT_REPS`, kg uniquement, réglages barre/disques par appareil — livré, docs/04 §5.5 ; reste : préférence de profil synchronisée, ce qui demande une migration, et la prise en charge des lb)* ;
-- rampe d’échauffement *(suggestion calculée en lecture seule — livrée, docs/04 §5.6 ; reste : « ajouter ces séries `WARMUP` » à la séance, ce qui demande d’étendre l’API d’ajout de série avec `setType` et des cibles, en ajout groupé idempotent `expectedVersion` + `clientCommandId`, d’abord en ligne seulement)* ;
-- modification des cibles pendant la séance ;
+- rampe d’échauffement *(suggestion calculée — livrée, docs/04 §5.6 ; action « Ajouter ces séries d’échauffement » livrée : ajout groupé idempotent `POST …/sets/warmup`, docs/09 §21.1bis, en ligne seulement ; reste : file hors ligne)* ;
+- modification des cibles pendant la séance *(charge, reps min/max et repos d’une série `PENDING` sur séance `ACTIVE` — livré : `PATCH …/sets/:id/targets`, docs/09 §21.1ter, snapshot de séance uniquement, disponible hors ligne via la file `UPDATE_WORKOUT_SET_TARGETS`)* ;
 - ajout ou suppression d’exercices pendant la séance *(ajout ad hoc à la WorkoutSession ACTIVE livré ; ne mute pas Program/Template ; suppression d’exercice hors V1)* ;
 - ajout ou suppression de séries pendant la séance *(ajout de série WORKING sans cible livré ; suppression physique d’une série sur séance ACTIVE livrée, online only)* ;
 - réordonnancement du snapshot ;

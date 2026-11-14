@@ -6,12 +6,15 @@ import type {
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type {
   AddWorkoutSessionExerciseInput,
+  AddWorkoutSessionWarmupSetsInput,
   CancelWorkoutSessionInput,
   CompleteWorkoutSessionInput,
+  CreateFreeWorkoutSessionInput,
   CreateWorkoutSessionInput,
   PauseWorkoutSessionInput,
   ReplaceWorkoutSessionExerciseInput,
   ResumeWorkoutSessionInput,
+  UpdateWorkoutSessionSetTargetsInput,
   UpdateWorkoutSetInput,
 } from '@gym-companion/validation';
 
@@ -20,14 +23,17 @@ import type { ApiRequestError } from '@/lib/api/client';
 import {
   addWorkoutSessionExercise,
   addWorkoutSessionSet,
+  addWorkoutSessionWarmupSets,
   cancelWorkoutSession,
   completeWorkoutSession,
+  createFreeWorkoutSession,
   createWorkoutSession,
   deleteWorkoutSessionSet,
   pauseWorkoutSession,
   replaceWorkoutSessionExercise,
   resumeWorkoutSession,
   updateWorkoutSet,
+  updateWorkoutSetTargets,
 } from '../api/workout-api';
 import { workoutQueryKeys } from '../api/workout-query-keys';
 import { personalRecordQueryKeys } from '@/features/personal-records/api/personal-record-query-keys';
@@ -45,7 +51,10 @@ import {
 } from '../offline/network';
 import { persistServerSnapshot } from '../offline/store';
 import { scheduleWorkoutSync } from '../offline/sync-engine';
-import type { UpdateWorkoutSetCommandPayload } from '../offline/types';
+import type {
+  UpdateWorkoutSetCommandPayload,
+  UpdateWorkoutSetTargetsCommandPayload,
+} from '../offline/types';
 
 function applyLifecycleToCache(
   queryClient: ReturnType<typeof useQueryClient>,
@@ -109,7 +118,11 @@ export function useCreateWorkoutSessionMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: CreateWorkoutSessionInput) => createWorkoutSession(input),
+    /** Avec `sourceWorkoutTemplateId` : snapshot du modèle ; sans : séance libre. */
+    mutationFn: (input: CreateWorkoutSessionInput | CreateFreeWorkoutSessionInput) =>
+      'sourceWorkoutTemplateId' in input
+        ? createWorkoutSession(input)
+        : createFreeWorkoutSession(input),
     onSuccess: async (detail: WorkoutSessionDetail) => {
       queryClient.setQueryData(workoutQueryKeys.active(), detail);
       queryClient.setQueryData(workoutQueryKeys.detail(detail.id), detail);
@@ -215,6 +228,82 @@ export function useUpdateWorkoutSetMutation(workoutSessionId: string) {
         };
         queryClient.setQueryData(workoutQueryKeys.active(), patch);
         queryClient.setQueryData(workoutQueryKeys.detail(workoutSessionId), patch);
+        return;
+      }
+      applyLifecycleToCache(queryClient, value.snapshot.data);
+    },
+  });
+}
+
+/**
+ * Modifie les cibles d’une série PENDING. En ligne : PATCH …/targets ; hors ligne ou
+ * réseau coupé : commande `UPDATE_WORKOUT_SET_TARGETS` dans la file (même clientCommandId).
+ */
+export function useUpdateWorkoutSetTargetsMutation(workoutSessionId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (args: {
+      sessionExerciseId: string;
+      workoutSetId: string;
+      input: Omit<UpdateWorkoutSessionSetTargetsInput, 'clientCommandId'>;
+    }) => {
+      const userId = await resolveUserId(queryClient);
+      const clientCommandId = createClientCommandId();
+
+      try {
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+          throw Object.assign(new Error('offline'), { status: 0 });
+        }
+        const result = await updateWorkoutSetTargets(
+          workoutSessionId,
+          args.sessionExerciseId,
+          args.workoutSetId,
+          { ...args.input, clientCommandId },
+        );
+        return { kind: 'server' as const, result, userId };
+      } catch (error) {
+        if (!shouldEnqueueOffline(error)) {
+          throw error;
+        }
+        const { expectedVersion: _expectedVersion, ...targets } = args.input;
+        const payload: UpdateWorkoutSetTargetsCommandPayload = {
+          sessionExerciseId: args.sessionExerciseId,
+          workoutSetId: args.workoutSetId,
+          ...targets,
+        };
+        const current =
+          queryClient.getQueryData<WorkoutSessionDetail | null>(workoutQueryKeys.active()) ??
+          queryClient.getQueryData<WorkoutSessionDetail>(workoutQueryKeys.detail(workoutSessionId));
+        const { snapshot } = await enqueueWorkoutCommand({
+          userId,
+          workoutSessionId,
+          type: 'UPDATE_WORKOUT_SET_TARGETS',
+          payload,
+          baseSession: current ?? undefined,
+        });
+        scheduleWorkoutSync(userId, workoutSessionId, {
+          onSessionUpdated: (session) => {
+            if (session) applyLifecycleToCache(queryClient, session);
+          },
+        });
+        return { kind: 'offline' as const, snapshot };
+      }
+    },
+    onSuccess: (value) => {
+      if (value.kind === 'server') {
+        const patch = (current: WorkoutSessionDetail | null | undefined) => {
+          if (!current) return current;
+          return applyUpdateWorkoutSetResult(current, value.result);
+        };
+        queryClient.setQueryData(workoutQueryKeys.active(), patch);
+        queryClient.setQueryData(workoutQueryKeys.detail(workoutSessionId), patch);
+        const patched = queryClient.getQueryData<WorkoutSessionDetail | null>(
+          workoutQueryKeys.active(),
+        );
+        if (patched) {
+          void persistServerSnapshot(value.userId, patched);
+        }
         return;
       }
       applyLifecycleToCache(queryClient, value.snapshot.data);
@@ -446,6 +535,41 @@ export function useAddWorkoutSessionSetMutation(workoutSessionId: string) {
             clientCommandId: createClientCommandId(),
           }),
       ),
+    onSuccess: (detail) => {
+      queryClient.setQueryData(workoutQueryKeys.active(), detail);
+      queryClient.setQueryData(workoutQueryKeys.detail(detail.id), detail);
+      void queryClient.invalidateQueries({
+        queryKey: sharedWorkoutRoomQueryKeys.all,
+      });
+    },
+  });
+}
+
+/**
+ * Ajout groupé de séries WARMUP (rampe d’échauffement) — online only.
+ * Un seul `clientCommandId` par action : le serveur rejoue la commande sans doublon.
+ */
+export function useAddWorkoutSessionWarmupSetsMutation(workoutSessionId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (args: {
+      sessionExerciseId: string;
+      expectedVersion: number;
+      sets: AddWorkoutSessionWarmupSetsInput['sets'];
+    }) => {
+      const clientCommandId = createClientCommandId();
+      return persistOnlineSessionMutation(
+        queryClient,
+        'Connexion nécessaire pour ajouter les séries d’échauffement.',
+        () =>
+          addWorkoutSessionWarmupSets(workoutSessionId, args.sessionExerciseId, {
+            expectedVersion: args.expectedVersion,
+            clientCommandId,
+            sets: args.sets,
+          }),
+      );
+    },
     onSuccess: (detail) => {
       queryClient.setQueryData(workoutQueryKeys.active(), detail);
       queryClient.setQueryData(workoutQueryKeys.detail(detail.id), detail);

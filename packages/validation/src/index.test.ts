@@ -14,6 +14,8 @@ import {
   createWorkoutTemplateSchema,
   createWorkoutTemplateSetSchema,
   createWorkoutSessionSchema,
+  createFreeWorkoutSessionSchema,
+  FREE_WORKOUT_SESSION_NAME,
   decodeExerciseCursor,
   decodeWorkoutHistoryCursor,
   encodeExerciseCursor,
@@ -38,7 +40,13 @@ import {
   replaceWorkoutSessionExerciseSchema,
   addWorkoutSessionExerciseSchema,
   addWorkoutSessionSetSchema,
+  addWorkoutSessionWarmupSetsSchema,
+  MAX_WARMUP_SETS_PER_COMMAND,
   deleteWorkoutSessionSetSchema,
+  updateWorkoutSessionSetTargetsSchema,
+  getEditableSessionSetTargets,
+  validateWorkoutSessionSetTargetsPatch,
+  buildWorkoutSetTargetsCommandFingerprint,
   updateWorkoutSetSchema,
   utcDateToLocalDateString,
   validateProgramScheduleEntries,
@@ -742,6 +750,29 @@ describe('local dates and program schedule validation', () => {
   });
 });
 
+describe('createFreeWorkoutSessionSchema', () => {
+  const today = new Date().toISOString().slice(0, 10);
+
+  it('accepte date locale et fuseau, sans modèle', () => {
+    expect(
+      createFreeWorkoutSessionSchema.safeParse({ localDate: today, timezone: 'Europe/Paris' })
+        .success,
+    ).toBe(true);
+    expect(FREE_WORKOUT_SESSION_NAME).toBe('Séance libre');
+  });
+
+  it('refuse un modèle, une clé inconnue ou une date absente', () => {
+    expect(
+      createFreeWorkoutSessionSchema.safeParse({
+        localDate: today,
+        timezone: 'UTC',
+        sourceWorkoutTemplateId: '11111111-1111-4111-8111-111111111111',
+      }).success,
+    ).toBe(false);
+    expect(createFreeWorkoutSessionSchema.safeParse({ timezone: 'UTC' }).success).toBe(false);
+  });
+});
+
 describe('createWorkoutSessionSchema', () => {
   const valid = {
     sourceWorkoutTemplateId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
@@ -915,6 +946,170 @@ describe('addWorkoutSessionSetSchema', () => {
         targetWeightKg: 60,
       }).success,
     ).toBe(false);
+  });
+});
+
+describe('addWorkoutSessionWarmupSetsSchema', () => {
+  const valid = {
+    expectedVersion: 3,
+    clientCommandId: 'cmd-warmup-1',
+    sets: [
+      { targetWeightKg: 20, targetReps: 10 },
+      { targetWeightKg: 40, targetReps: 5 },
+    ],
+  };
+
+  it('accepte une rampe valide', () => {
+    expect(addWorkoutSessionWarmupSetsSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it('exige clientCommandId et au moins une série', () => {
+    expect(
+      addWorkoutSessionWarmupSetsSchema.safeParse({
+        expectedVersion: valid.expectedVersion,
+        sets: valid.sets,
+      }).success,
+    ).toBe(false);
+    expect(addWorkoutSessionWarmupSetsSchema.safeParse({ ...valid, sets: [] }).success).toBe(false);
+  });
+
+  it(`refuse plus de ${MAX_WARMUP_SETS_PER_COMMAND} séries`, () => {
+    const sets = Array.from({ length: MAX_WARMUP_SETS_PER_COMMAND + 1 }, () => ({
+      targetWeightKg: 20,
+      targetReps: 5,
+    }));
+    expect(addWorkoutSessionWarmupSetsSchema.safeParse({ ...valid, sets }).success).toBe(false);
+  });
+
+  it('refuse setType, reps nulles ou charge négative', () => {
+    expect(
+      addWorkoutSessionWarmupSetsSchema.safeParse({
+        ...valid,
+        sets: [{ targetWeightKg: 20, targetReps: 10, setType: 'WORKING' }],
+      }).success,
+    ).toBe(false);
+    expect(
+      addWorkoutSessionWarmupSetsSchema.safeParse({
+        ...valid,
+        sets: [{ targetWeightKg: 20, targetReps: 0 }],
+      }).success,
+    ).toBe(false);
+    expect(
+      addWorkoutSessionWarmupSetsSchema.safeParse({
+        ...valid,
+        sets: [{ targetWeightKg: -1, targetReps: 5 }],
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('updateWorkoutSessionSetTargetsSchema', () => {
+  it('accepte une modification partielle', () => {
+    expect(
+      updateWorkoutSessionSetTargetsSchema.safeParse({ expectedVersion: 2, targetWeightKg: 62.5 })
+        .success,
+    ).toBe(true);
+    expect(
+      updateWorkoutSessionSetTargetsSchema.safeParse({
+        expectedVersion: 2,
+        clientCommandId: 'cmd-targets-1',
+        targetRepMin: 6,
+        targetRepMax: 8,
+        targetRestSeconds: null,
+      }).success,
+    ).toBe(true);
+  });
+
+  it('refuse une commande sans cible', () => {
+    expect(updateWorkoutSessionSetTargetsSchema.safeParse({ expectedVersion: 2 }).success).toBe(
+      false,
+    );
+  });
+
+  it('exige reps min et max ensemble, dans le bon ordre', () => {
+    expect(
+      updateWorkoutSessionSetTargetsSchema.safeParse({ expectedVersion: 2, targetRepMin: 8 })
+        .success,
+    ).toBe(false);
+    expect(
+      updateWorkoutSessionSetTargetsSchema.safeParse({
+        expectedVersion: 2,
+        targetRepMin: 10,
+        targetRepMax: 8,
+      }).success,
+    ).toBe(false);
+    expect(
+      updateWorkoutSessionSetTargetsSchema.safeParse({
+        expectedVersion: 2,
+        targetRepMin: 8,
+        targetRepMax: null,
+      }).success,
+    ).toBe(false);
+    expect(
+      updateWorkoutSessionSetTargetsSchema.safeParse({
+        expectedVersion: 2,
+        targetRepMin: null,
+        targetRepMax: null,
+      }).success,
+    ).toBe(true);
+  });
+
+  it('refuse les champs hors cibles (statut, type, RIR)', () => {
+    for (const extra of [{ status: 'COMPLETED' }, { setType: 'WARMUP' }, { targetRir: 2 }]) {
+      expect(
+        updateWorkoutSessionSetTargetsSchema.safeParse({
+          expectedVersion: 2,
+          targetWeightKg: 50,
+          ...extra,
+        }).success,
+      ).toBe(false);
+    }
+  });
+});
+
+describe('cibles de séance modifiables', () => {
+  it('ouvre charge et reps selon le type de mesure', () => {
+    expect(getEditableSessionSetTargets('WEIGHT_REPS')).toEqual({
+      weight: true,
+      reps: true,
+      rest: true,
+    });
+    expect(getEditableSessionSetTargets('REPS_ONLY')).toEqual({
+      weight: false,
+      reps: true,
+      rest: true,
+    });
+    expect(getEditableSessionSetTargets('DURATION')).toEqual({
+      weight: false,
+      reps: false,
+      rest: true,
+    });
+    expect(getEditableSessionSetTargets('WEIGHT_DURATION').weight).toBe(true);
+  });
+
+  it('refuse une cible non applicable, accepte son effacement', () => {
+    expect(validateWorkoutSessionSetTargetsPatch('DURATION', { targetWeightKg: 20 }).ok).toBe(
+      false,
+    );
+    expect(
+      validateWorkoutSessionSetTargetsPatch('DURATION', { targetRepMin: 5, targetRepMax: 5 }).ok,
+    ).toBe(false);
+    expect(validateWorkoutSessionSetTargetsPatch('DURATION', { targetWeightKg: null }).ok).toBe(
+      true,
+    );
+    expect(validateWorkoutSessionSetTargetsPatch('DURATION', { targetRestSeconds: 60 }).ok).toBe(
+      true,
+    );
+  });
+
+  it('distingue clé absente et null dans l’empreinte', () => {
+    expect(buildWorkoutSetTargetsCommandFingerprint({ targetWeightKg: 50 })).toBe(
+      buildWorkoutSetTargetsCommandFingerprint({ targetWeightKg: 50 }),
+    );
+    expect(buildWorkoutSetTargetsCommandFingerprint({ targetRestSeconds: null })).not.toBe(
+      buildWorkoutSetTargetsCommandFingerprint({}),
+    );
+    expect(buildWorkoutSetTargetsCommandFingerprint({ targetWeightKg: 50 })).toMatch(/^TARGETS:/);
   });
 });
 

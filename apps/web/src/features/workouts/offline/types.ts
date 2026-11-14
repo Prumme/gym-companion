@@ -1,7 +1,12 @@
 import type { WorkoutSessionDetail, WorkoutSetStatus } from '@gym-companion/shared';
 
 export type OfflineWorkoutCommandType =
-  'UPDATE_WORKOUT_SET' | 'PAUSE_WORKOUT' | 'RESUME_WORKOUT' | 'COMPLETE_WORKOUT' | 'CANCEL_WORKOUT';
+  | 'UPDATE_WORKOUT_SET'
+  | 'UPDATE_WORKOUT_SET_TARGETS'
+  | 'PAUSE_WORKOUT'
+  | 'RESUME_WORKOUT'
+  | 'COMPLETE_WORKOUT'
+  | 'CANCEL_WORKOUT';
 
 export type OfflineCommandStatus = 'PENDING' | 'SYNCING' | 'APPLIED' | 'CONFLICT' | 'REJECTED';
 
@@ -19,6 +24,16 @@ export type UpdateWorkoutSetCommandPayload = {
   actualRpe: number | null;
   reachedFailure: boolean;
   notes: string | null;
+};
+
+/** Cibles d’une série PENDING ; une clé absente reste inchangée, `null` efface. */
+export type UpdateWorkoutSetTargetsCommandPayload = {
+  sessionExerciseId: string;
+  workoutSetId: string;
+  targetWeightKg?: number | null;
+  targetRepMin?: number | null;
+  targetRepMax?: number | null;
+  targetRestSeconds?: number | null;
 };
 
 export type CompleteWorkoutCommandPayload = {

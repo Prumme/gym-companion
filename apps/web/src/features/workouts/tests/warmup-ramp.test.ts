@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_BAR_WEIGHT_KG, DEFAULT_PLATES_KG } from '../lib/plate-calculator';
-import { computeWarmupRamp, DEFAULT_WARMUP_STEPS } from '../lib/warmup-ramp';
+import { computeWarmupRamp, DEFAULT_WARMUP_STEPS, toWarmupSetDrafts } from '../lib/warmup-ramp';
 
 const base = { barKg: DEFAULT_BAR_WEIGHT_KG, platesKg: DEFAULT_PLATES_KG };
 
@@ -88,5 +88,27 @@ describe('computeWarmupRamp', () => {
         }
       }
     }
+  });
+});
+
+describe('toWarmupSetDrafts', () => {
+  it('convertit chaque palier en cible charge + reps, dans l’ordre', () => {
+    const ramp = computeWarmupRamp({
+      workingKg: 100,
+      barKg: DEFAULT_BAR_WEIGHT_KG,
+      platesKg: DEFAULT_PLATES_KG,
+    });
+    expect(toWarmupSetDrafts(ramp)).toEqual(
+      ramp.steps.map((step) => ({ targetWeightKg: step.loadKg, targetReps: step.reps })),
+    );
+    expect(toWarmupSetDrafts(ramp)[0]).toEqual({ targetWeightKg: 20, targetReps: 10 });
+  });
+
+  it('renvoie une liste vide si la rampe n’est pas applicable', () => {
+    expect(
+      toWarmupSetDrafts(
+        computeWarmupRamp({ workingKg: 15, barKg: 20, platesKg: DEFAULT_PLATES_KG }),
+      ),
+    ).toEqual([]);
   });
 });
