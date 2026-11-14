@@ -101,32 +101,21 @@ describe('personal records eligibility', () => {
 
 describe('resolveRecordTypesForMeasurement', () => {
   it('WEIGHT_REPS → MAX_WEIGHT + MAX_REPS', () => {
-    expect(resolveRecordTypesForMeasurement('WEIGHT_REPS')).toEqual([
-      'MAX_WEIGHT',
-      'MAX_REPS',
-    ]);
+    expect(resolveRecordTypesForMeasurement('WEIGHT_REPS')).toEqual(['MAX_WEIGHT', 'MAX_REPS']);
   });
 
   it('BODYWEIGHT / ASSISTED / REPS_ONLY → MAX_REPS seulement', () => {
-    expect(resolveRecordTypesForMeasurement('BODYWEIGHT_REPS')).toEqual([
-      'MAX_REPS',
-    ]);
-    expect(
-      resolveRecordTypesForMeasurement('ASSISTED_BODYWEIGHT_REPS'),
-    ).toEqual(['MAX_REPS']);
+    expect(resolveRecordTypesForMeasurement('BODYWEIGHT_REPS')).toEqual(['MAX_REPS']);
+    expect(resolveRecordTypesForMeasurement('ASSISTED_BODYWEIGHT_REPS')).toEqual(['MAX_REPS']);
     expect(resolveRecordTypesForMeasurement('REPS_ONLY')).toEqual(['MAX_REPS']);
   });
 
   it('DURATION → MAX_DURATION', () => {
-    expect(resolveRecordTypesForMeasurement('DURATION')).toEqual([
-      'MAX_DURATION',
-    ]);
+    expect(resolveRecordTypesForMeasurement('DURATION')).toEqual(['MAX_DURATION']);
   });
 
   it('DISTANCE_DURATION → MAX_DISTANCE', () => {
-    expect(resolveRecordTypesForMeasurement('DISTANCE_DURATION')).toEqual([
-      'MAX_DISTANCE',
-    ]);
+    expect(resolveRecordTypesForMeasurement('DISTANCE_DURATION')).toEqual(['MAX_DISTANCE']);
   });
 
   it('WEIGHT_DURATION → MAX_WEIGHT + MAX_DURATION', () => {
@@ -142,8 +131,18 @@ describe('compare / select records', () => {
     expect(
       comparePersonalRecordPrimary(
         'MAX_WEIGHT',
-        { actualWeightKg: 100, actualReps: 8, actualDurationSeconds: null, actualDistanceMeters: null },
-        { actualWeightKg: 100, actualReps: 5, actualDurationSeconds: null, actualDistanceMeters: null },
+        {
+          actualWeightKg: 100,
+          actualReps: 8,
+          actualDurationSeconds: null,
+          actualDistanceMeters: null,
+        },
+        {
+          actualWeightKg: 100,
+          actualReps: 5,
+          actualDurationSeconds: null,
+          actualDistanceMeters: null,
+        },
       ),
     ).toBe(1);
   });
@@ -203,9 +202,7 @@ describe('compare / select records', () => {
       actualReps: 8,
       achievedOn: '2026-08-10',
     });
-    expect(isBetterPersonalRecordCandidate('MAX_WEIGHT', earlier, later)).toBe(
-      true,
-    );
+    expect(isBetterPersonalRecordCandidate('MAX_WEIGHT', earlier, later)).toBe(true);
   });
 
   it('ignore valeur principale null', () => {
@@ -309,23 +306,20 @@ describe('compare / select records', () => {
       assisted,
       weightDur,
     ]);
-    expect(
-      selected.find((e) => e.candidate.workoutSetId === 'set-dur')?.recordType,
-    ).toBe('MAX_DURATION');
-    expect(
-      selected.find((e) => e.candidate.workoutSetId === 'set-dist')?.recordType,
-    ).toBe('MAX_DISTANCE');
-    expect(
-      selected.find((e) => e.candidate.workoutSetId === 'set-bw')?.recordType,
-    ).toBe('MAX_REPS');
-    expect(
-      selected.find((e) => e.candidate.workoutSetId === 'set-as')?.recordType,
-    ).toBe('MAX_REPS');
-    const farm = selected.filter((e) => e.candidate.workoutSetId === 'set-wd');
-    expect(farm.map((e) => e.recordType).sort()).toEqual([
+    expect(selected.find((e) => e.candidate.workoutSetId === 'set-dur')?.recordType).toBe(
       'MAX_DURATION',
-      'MAX_WEIGHT',
-    ]);
+    );
+    expect(selected.find((e) => e.candidate.workoutSetId === 'set-dist')?.recordType).toBe(
+      'MAX_DISTANCE',
+    );
+    expect(selected.find((e) => e.candidate.workoutSetId === 'set-bw')?.recordType).toBe(
+      'MAX_REPS',
+    );
+    expect(selected.find((e) => e.candidate.workoutSetId === 'set-as')?.recordType).toBe(
+      'MAX_REPS',
+    );
+    const farm = selected.filter((e) => e.candidate.workoutSetId === 'set-wd');
+    expect(farm.map((e) => e.recordType).sort()).toEqual(['MAX_DURATION', 'MAX_WEIGHT']);
   });
 
   it('n’invente pas de règle d’assistance (ASSISTED : reps seulement)', () => {
@@ -345,10 +339,7 @@ describe('compare / select records', () => {
       actualReps: 8,
       achievedOn: '2026-08-02',
     });
-    const selected = selectCurrentPersonalRecordsWithType([
-      moreAssist,
-      lessAssist,
-    ]);
+    const selected = selectCurrentPersonalRecordsWithType([moreAssist, lessAssist]);
     expect(selected).toHaveLength(1);
     expect(selected[0]?.candidate.workoutSetId).toBe('set-more');
   });

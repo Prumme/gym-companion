@@ -141,11 +141,7 @@ describe('exercise-form helpers', () => {
 
   it('removes primary from secondary muscle groups', () => {
     expect(
-      normalizeSecondaryMuscleGroups(MUSCLE_CHEST, [
-        MUSCLE_CHEST,
-        MUSCLE_BACK,
-        MUSCLE_BACK,
-      ]),
+      normalizeSecondaryMuscleGroups(MUSCLE_CHEST, [MUSCLE_CHEST, MUSCLE_BACK, MUSCLE_BACK]),
     ).toEqual([MUSCLE_BACK]);
   });
 
@@ -187,9 +183,7 @@ describe('exercise-form helpers', () => {
       EQ_DUMBBELL,
     );
     expect(result.filter((item) => item.isPreferred)).toHaveLength(1);
-    expect(result.find((item) => item.isPreferred)?.equipmentTypeId).toBe(
-      EQ_DUMBBELL,
-    );
+    expect(result.find((item) => item.isPreferred)?.equipmentTypeId).toBe(EQ_DUMBBELL);
   });
 
   it('preserves equipment notes through payload transform', () => {
@@ -211,9 +205,7 @@ describe('exercise-form helpers', () => {
   it('detects form dirtiness', () => {
     const initial = detailToFormValues(createDetail());
     expect(isExerciseFormDirty(initial, initial)).toBe(false);
-    expect(
-      isExerciseFormDirty({ ...initial, name: 'Autre nom' }, initial),
-    ).toBe(true);
+    expect(isExerciseFormDirty({ ...initial, name: 'Autre nom' }, initial)).toBe(true);
   });
 
   it('reconciles incompatible default equipment to empty', () => {
@@ -222,17 +214,9 @@ describe('exercise-form helpers', () => {
   });
 
   it('computes permissions for system, personal and archived exercises', () => {
-    expect(
-      canEditExercise({ canEdit: false, canArchive: false, canRestore: false }),
-    ).toBe(false);
-    expect(
-      canArchiveExercise({ canEdit: true, canArchive: true, canRestore: false }),
-    ).toBe(true);
-    expect(
-      canRestoreExercise({ canEdit: false, canArchive: false, canRestore: true }),
-    ).toBe(true);
-    expect(
-      canEditExercise({ canEdit: false, canArchive: false, canRestore: true }),
-    ).toBe(false);
+    expect(canEditExercise({ canEdit: false, canArchive: false, canRestore: false })).toBe(false);
+    expect(canArchiveExercise({ canEdit: true, canArchive: true, canRestore: false })).toBe(true);
+    expect(canRestoreExercise({ canEdit: false, canArchive: false, canRestore: true })).toBe(true);
+    expect(canEditExercise({ canEdit: false, canArchive: false, canRestore: true })).toBe(false);
   });
 });

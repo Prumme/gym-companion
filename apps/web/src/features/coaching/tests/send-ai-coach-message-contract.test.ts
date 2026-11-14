@@ -32,16 +32,10 @@ describe('sendAiCoachMessage contract', () => {
       clientCommandId: '22222222-2222-2222-2222-222222222222',
       conversationId: '11111111-1111-1111-1111-111111111111',
     };
-    await sendAiCoachMessage(
-      '11111111-1111-1111-1111-111111111111',
-      leakyCallerPayload,
-    );
+    await sendAiCoachMessage('11111111-1111-1111-1111-111111111111', leakyCallerPayload);
 
     expect(apiFetch).toHaveBeenCalledTimes(1);
-    const [url, init] = apiFetch.mock.calls[0] as [
-      string,
-      { method: string; body: string },
-    ];
+    const [url, init] = apiFetch.mock.calls[0] as [string, { method: string; body: string }];
     expect(url).toContain(
       '/api/v1/coaching/conversations/11111111-1111-1111-1111-111111111111/messages',
     );

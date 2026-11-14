@@ -11,10 +11,7 @@ import {
   shouldSuppressRestAfterSet,
   willExerciseBeTreatedAfterSet,
 } from '../lib/workout-progress';
-import {
-  createWorkoutSessionDetail,
-  createWorkoutSet,
-} from './fixtures';
+import { createWorkoutSessionDetail, createWorkoutSet } from './fixtures';
 
 function multiExerciseSession() {
   return createWorkoutSessionDetail({
@@ -134,22 +131,13 @@ describe('workout-progress', () => {
 
   it('résout le repos snapshot série puis exercice', () => {
     expect(
-      resolveRestSeconds(
-        createWorkoutSet({ targetRestSeconds: 120 }),
-        { restSeconds: 90 },
-      ),
+      resolveRestSeconds(createWorkoutSet({ targetRestSeconds: 120 }), { restSeconds: 90 }),
     ).toBe(120);
     expect(
-      resolveRestSeconds(
-        createWorkoutSet({ targetRestSeconds: null }),
-        { restSeconds: 90 },
-      ),
+      resolveRestSeconds(createWorkoutSet({ targetRestSeconds: null }), { restSeconds: 90 }),
     ).toBe(90);
     expect(
-      resolveRestSeconds(
-        createWorkoutSet({ targetRestSeconds: 0 }),
-        { restSeconds: null },
-      ),
+      resolveRestSeconds(createWorkoutSet({ targetRestSeconds: 0 }), { restSeconds: null }),
     ).toBeNull();
   });
 
@@ -200,8 +188,6 @@ describe('workout-progress', () => {
         status: 'COMPLETED',
       }),
     ).toBe(false);
-    expect(
-      willExerciseBeTreatedAfterSet(multi.exercises[0]!, 'ws-1', 'COMPLETED'),
-    ).toBe(false);
+    expect(willExerciseBeTreatedAfterSet(multi.exercises[0]!, 'ws-1', 'COMPLETED')).toBe(false);
   });
 });

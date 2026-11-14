@@ -1,6 +1,7 @@
 import type {
   EffortTrackingMode,
   ExerciseMeasurementType,
+  LastWorkingSetCue,
   WorkoutSessionSetDetail,
   WorkoutSetStatus,
 } from '@gym-companion/shared';
@@ -22,7 +23,13 @@ import {
   hasCopyableActuals,
   pickCopyableActuals,
   type CopyableActualKey,
+  type CopyableActuals,
 } from '../lib/copy-previous-set';
+import {
+  getLastTimeCopyDisabledReason,
+  pickLastTimeActuals,
+  supportsLastTimeCopy,
+} from '../lib/copy-last-time';
 import { formatWorkoutSetTargetCompact, getWorkoutSetTypeLabelSafe } from '../lib/workout-labels';
 import { DurationSecondsField } from './DurationSecondsField';
 import {
@@ -46,6 +53,8 @@ type WorkoutSetFormDialogProps = {
   expectedVersion: number;
   set: WorkoutSessionSetDetail;
   previousSet?: WorkoutSessionSetDetail | null;
+  /** Repère « Dernière fois » de l’exercice (séances précédentes). */
+  lastWorkingSet?: LastWorkingSetCue | null;
   initialStatus?: WorkoutSetStatus;
   onClose: () => void;
   onVersionConflict: () => void;
@@ -151,6 +160,7 @@ export function WorkoutSetFormDialog({
   expectedVersion,
   set,
   previousSet = null,
+  lastWorkingSet = null,
   initialStatus,
   onClose,
   onVersionConflict,
@@ -194,9 +204,7 @@ export function WorkoutSetFormDialog({
   const durationValue = watch('actualDurationSeconds');
   const distanceValue = watch('actualDistanceMeters');
   const cardio = isCardioMeasurementType(measurementType);
-  const derived = cardio
-    ? computeCardioDerivedMetrics(distanceValue, durationValue)
-    : null;
+  const derived = cardio ? computeCardioDerivedMetrics(distanceValue, durationValue) : null;
   const paceLabel = derived ? formatPace(derived.averagePaceSecondsPerKm) : null;
   const speedLabel = derived ? formatSpeedKmh(derived.averageSpeedKmh) : null;
   const distanceLabel = formatDistanceMeters(distanceValue);
@@ -219,6 +227,11 @@ export function WorkoutSetFormDialog({
       : mutation.isPending
         ? 'Enregistrement en cours.'
         : null;
+  const showLastTime =
+    supportsLastTimeCopy(measurementType) && status !== 'SKIPPED' && status !== 'PENDING';
+  const lastTimeDisabledReason =
+    getLastTimeCopyDisabledReason(lastWorkingSet, measurementType, set.status) ??
+    (mutation.isPending ? 'Enregistrement en cours.' : null);
   const weightLabel =
     measurementType === 'ASSISTED_BODYWEIGHT_REPS'
       ? 'Assistance (kg)'
@@ -239,17 +252,28 @@ export function WorkoutSetFormDialog({
     onClose();
   }
 
-  function copyPreviousSet() {
-    if (!previousSet || copyDisabledReason) {
-      return;
-    }
-    const copied = pickCopyableActuals(previousSet, measurementType);
+  /** Pré-remplit le formulaire ; rien n’est enregistré tant que l’utilisateur ne valide pas. */
+  function applyCopiedActuals(copied: CopyableActuals) {
     (Object.keys(copied) as CopyableActualKey[]).forEach((key) => {
       const value = copied[key];
       if (value != null) {
         setValue(key, value, { shouldDirty: true, shouldValidate: true });
       }
     });
+  }
+
+  function copyPreviousSet() {
+    if (!previousSet || copyDisabledReason) {
+      return;
+    }
+    applyCopiedActuals(pickCopyableActuals(previousSet, measurementType));
+  }
+
+  function copyLastTime() {
+    if (lastTimeDisabledReason) {
+      return;
+    }
+    applyCopiedActuals(pickLastTimeActuals(lastWorkingSet, measurementType));
   }
 
   async function submit(values: FormValues) {
@@ -304,417 +328,436 @@ export function WorkoutSetFormDialog({
 
   return (
     <ViewportPortal>
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
-      role="presentation"
-      onClick={requestClose}
-    >
       <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[1rem] border border-[var(--border)] bg-[var(--card)] shadow-lg sm:rounded-[var(--radius)]"
-        onClick={(event) => event.stopPropagation()}
+        className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
+        role="presentation"
+        onClick={requestClose}
       >
-        <div className="shrink-0 border-b border-[var(--border)] px-4 pb-3 pt-3">
-          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[var(--border)] sm:hidden" />
-          <h3 id={titleId} className="text-lg font-semibold">
-            Série {set.position + 1}
-          </h3>
-          <p className="mt-0.5 text-sm text-[var(--muted)]">
-            {typeLabel}
-            {compactTarget ? ` · ${compactTarget}` : ''}
-          </p>
-        </div>
-
-        <form
-          className="flex min-h-0 flex-1 flex-col"
-          onSubmit={(event) => {
-            void handleSubmit(submit)(event);
-          }}
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[1rem] border border-[var(--border)] bg-[var(--card)] shadow-lg sm:rounded-[var(--radius)]"
+          onClick={(event) => event.stopPropagation()}
         >
-          <div className="flex-1 overflow-y-auto px-4 py-4">
-            <div className="flex flex-col gap-3">
-              {status !== 'SKIPPED' && status !== 'PENDING' ? (
-                <>
-                  {(showWeight || showReps) && (
-                    <div
-                      className={cn(
-                        'grid gap-3',
-                        showWeight && showReps ? 'grid-cols-2' : 'grid-cols-1',
-                      )}
-                    >
-                      {showWeight ? (
-                        <label className="flex flex-col gap-1 text-sm">
-                          <span className="font-medium">{weightLabel}</span>
-                          <input
-                            type="number"
-                            inputMode="decimal"
-                            step="0.5"
-                            min={0}
-                            className={fieldClass}
-                            {...register('actualWeightKg', {
-                              setValueAs: nullableNumber,
-                            })}
-                          />
-                          {errors.actualWeightKg ? (
-                            <span className="text-[var(--danger)]" role="alert">
-                              {errors.actualWeightKg.message}
-                            </span>
-                          ) : null}
-                        </label>
-                      ) : null}
+          <div className="shrink-0 border-b border-[var(--border)] px-4 pb-3 pt-3">
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[var(--border)] sm:hidden" />
+            <h3 id={titleId} className="text-lg font-semibold">
+              Série {set.position + 1}
+            </h3>
+            <p className="mt-0.5 text-sm text-[var(--muted)]">
+              {typeLabel}
+              {compactTarget ? ` · ${compactTarget}` : ''}
+            </p>
+          </div>
 
-                      {showReps ? (
-                        <label className="flex flex-col gap-1 text-sm">
-                          <span className="font-medium">Répétitions</span>
-                          <input
-                            type="number"
-                            inputMode="numeric"
-                            min={0}
-                            className={fieldClass}
-                            {...register('actualReps', {
-                              setValueAs: nullableNumber,
-                            })}
-                          />
-                          {errors.actualReps ? (
-                            <span className="text-[var(--danger)]" role="alert">
-                              {errors.actualReps.message}
-                            </span>
-                          ) : null}
-                        </label>
-                      ) : null}
-                    </div>
-                  )}
+          <form
+            className="flex min-h-0 flex-1 flex-col"
+            onSubmit={(event) => {
+              void handleSubmit(submit)(event);
+            }}
+          >
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              <div className="flex flex-col gap-3">
+                {status !== 'SKIPPED' && status !== 'PENDING' ? (
+                  <>
+                    {(showWeight || showReps) && (
+                      <div
+                        className={cn(
+                          'grid gap-3',
+                          showWeight && showReps ? 'grid-cols-2' : 'grid-cols-1',
+                        )}
+                      >
+                        {showWeight ? (
+                          <label className="flex flex-col gap-1 text-sm">
+                            <span className="font-medium">{weightLabel}</span>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              step="0.5"
+                              min={0}
+                              className={fieldClass}
+                              {...register('actualWeightKg', {
+                                setValueAs: nullableNumber,
+                              })}
+                            />
+                            {errors.actualWeightKg ? (
+                              <span className="text-[var(--danger)]" role="alert">
+                                {errors.actualWeightKg.message}
+                              </span>
+                            ) : null}
+                          </label>
+                        ) : null}
 
-                  {showDuration ? (
-                    <div className="flex flex-col gap-1">
-                      <DurationSecondsField
-                        id="actual-duration"
-                        value={watch('actualDurationSeconds')}
-                        onChange={(seconds) =>
-                          setValue('actualDurationSeconds', seconds, {
-                            shouldDirty: true,
-                            shouldValidate: true,
-                          })
+                        {showReps ? (
+                          <label className="flex flex-col gap-1 text-sm">
+                            <span className="font-medium">Répétitions</span>
+                            <input
+                              type="number"
+                              inputMode="numeric"
+                              min={0}
+                              className={fieldClass}
+                              {...register('actualReps', {
+                                setValueAs: nullableNumber,
+                              })}
+                            />
+                            {errors.actualReps ? (
+                              <span className="text-[var(--danger)]" role="alert">
+                                {errors.actualReps.message}
+                              </span>
+                            ) : null}
+                          </label>
+                        ) : null}
+                      </div>
+                    )}
+
+                    {showDuration ? (
+                      <div className="flex flex-col gap-1">
+                        <DurationSecondsField
+                          id="actual-duration"
+                          value={watch('actualDurationSeconds')}
+                          onChange={(seconds) =>
+                            setValue('actualDurationSeconds', seconds, {
+                              shouldDirty: true,
+                              shouldValidate: true,
+                            })
+                          }
+                        />
+                        {errors.actualDurationSeconds ? (
+                          <span className="text-[var(--danger)]" role="alert">
+                            {errors.actualDurationSeconds.message}
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {showDistance ? (
+                      <label className="flex flex-col gap-1 text-sm">
+                        <span className="font-medium">Distance (mètres)</span>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          className={fieldClass}
+                          {...register('actualDistanceMeters', {
+                            setValueAs: nullableNumber,
+                          })}
+                        />
+                        {errors.actualDistanceMeters ? (
+                          <span className="text-[var(--danger)]" role="alert">
+                            {errors.actualDistanceMeters.message}
+                          </span>
+                        ) : null}
+                        {distanceLabel ? (
+                          <span className="text-sm text-[var(--muted)]">{distanceLabel}</span>
+                        ) : null}
+                      </label>
+                    ) : null}
+
+                    {paceLabel || speedLabel ? (
+                      <p className="text-sm text-[var(--muted)]" aria-live="polite">
+                        {[paceLabel, speedLabel].filter(Boolean).join(' · ')}
+                      </p>
+                    ) : null}
+
+                    {showCopyPrevious ? (
+                      <button
+                        type="button"
+                        className="min-h-11 self-start px-1 text-sm text-[var(--primary)] underline-offset-4 hover:underline disabled:pointer-events-none disabled:opacity-50"
+                        disabled={copyDisabledReason != null}
+                        title={copyDisabledReason ?? undefined}
+                        aria-label={
+                          copyDisabledReason
+                            ? `Copier la série précédente. ${copyDisabledReason}`
+                            : 'Copier la série précédente'
                         }
-                      />
-                      {errors.actualDurationSeconds ? (
-                        <span className="text-[var(--danger)]" role="alert">
-                          {errors.actualDurationSeconds.message}
-                        </span>
-                      ) : null}
-                    </div>
-                  ) : null}
+                        onClick={copyPreviousSet}
+                      >
+                        Copier la série précédente
+                      </button>
+                    ) : null}
 
-                  {showDistance ? (
-                    <label className="flex flex-col gap-1 text-sm">
-                      <span className="font-medium">Distance (mètres)</span>
+                    {showLastTime ? (
+                      <button
+                        type="button"
+                        className="min-h-11 self-start px-1 text-sm text-[var(--primary)] underline-offset-4 hover:underline disabled:pointer-events-none disabled:opacity-50"
+                        disabled={lastTimeDisabledReason != null}
+                        title={lastTimeDisabledReason ?? undefined}
+                        aria-label={
+                          lastTimeDisabledReason
+                            ? `Reprendre la dernière fois. ${lastTimeDisabledReason}`
+                            : 'Reprendre la dernière fois'
+                        }
+                        onClick={copyLastTime}
+                      >
+                        Reprendre la dernière fois
+                      </button>
+                    ) : null}
+
+                    {effortTrackingMode === 'RIR' ? (
+                      <label className="flex flex-col gap-1 text-sm">
+                        <span className="font-medium">RIR</span>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          max={10}
+                          className={fieldClass}
+                          {...register('actualRir', {
+                            setValueAs: nullableNumber,
+                          })}
+                        />
+                      </label>
+                    ) : null}
+
+                    {effortTrackingMode === 'RPE' ? (
+                      <label className="flex flex-col gap-1 text-sm">
+                        <span className="font-medium">RPE</span>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          min={1}
+                          max={10}
+                          step="0.5"
+                          className={fieldClass}
+                          {...register('actualRpe', {
+                            setValueAs: nullableNumber,
+                          })}
+                        />
+                      </label>
+                    ) : null}
+
+                    <label className="flex min-h-12 items-center justify-between gap-3 rounded-[var(--radius-control)] border border-[var(--border)] px-3 text-sm">
+                      <span className="font-medium">Échec musculaire</span>
                       <input
-                        type="number"
-                        inputMode="decimal"
-                        min={0}
-                        className={fieldClass}
-                        {...register('actualDistanceMeters', {
-                          setValueAs: nullableNumber,
-                        })}
-                      />
-                      {errors.actualDistanceMeters ? (
-                        <span className="text-[var(--danger)]" role="alert">
-                          {errors.actualDistanceMeters.message}
-                        </span>
-                      ) : null}
-                      {distanceLabel ? (
-                        <span className="text-sm text-[var(--muted)]">{distanceLabel}</span>
-                      ) : null}
-                    </label>
-                  ) : null}
-
-                  {paceLabel || speedLabel ? (
-                    <p className="text-sm text-[var(--muted)]" aria-live="polite">
-                      {[paceLabel, speedLabel].filter(Boolean).join(' · ')}
-                    </p>
-                  ) : null}
-
-                  {showCopyPrevious ? (
-                    <button
-                      type="button"
-                      className="min-h-11 self-start px-1 text-sm text-[var(--primary)] underline-offset-4 hover:underline disabled:pointer-events-none disabled:opacity-50"
-                      disabled={copyDisabledReason != null}
-                      title={copyDisabledReason ?? undefined}
-                      aria-label={
-                        copyDisabledReason
-                          ? `Copier la série précédente. ${copyDisabledReason}`
-                          : 'Copier la série précédente'
-                      }
-                      onClick={copyPreviousSet}
-                    >
-                      Copier la série précédente
-                    </button>
-                  ) : null}
-
-                  {effortTrackingMode === 'RIR' ? (
-                    <label className="flex flex-col gap-1 text-sm">
-                      <span className="font-medium">RIR</span>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        min={0}
-                        max={10}
-                        className={fieldClass}
-                        {...register('actualRir', {
-                          setValueAs: nullableNumber,
-                        })}
+                        type="checkbox"
+                        className="size-5 accent-[var(--primary)]"
+                        {...register('reachedFailure')}
                       />
                     </label>
-                  ) : null}
-
-                  {effortTrackingMode === 'RPE' ? (
-                    <label className="flex flex-col gap-1 text-sm">
-                      <span className="font-medium">RPE</span>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        min={1}
-                        max={10}
-                        step="0.5"
-                        className={fieldClass}
-                        {...register('actualRpe', {
-                          setValueAs: nullableNumber,
-                        })}
-                      />
-                    </label>
-                  ) : null}
-
-                  <label className="flex min-h-12 items-center justify-between gap-3 rounded-[var(--radius-control)] border border-[var(--border)] px-3 text-sm">
-                    <span className="font-medium">Échec musculaire</span>
-                    <input
-                      type="checkbox"
-                      className="size-5 accent-[var(--primary)]"
-                      {...register('reachedFailure')}
-                    />
-                  </label>
-                </>
-              ) : null}
-
-              <button
-                type="button"
-                className="self-start text-sm text-[var(--muted)] underline-offset-4 hover:text-[var(--foreground)] hover:underline"
-                onClick={() => setMoreOpen((value) => !value)}
-                aria-expanded={moreOpen}
-              >
-                {moreOpen ? 'Masquer les options' : 'Plus d’options'}
-              </button>
-
-              <div
-                className={
-                  moreOpen ? 'flex flex-col gap-3 border-t border-[var(--border)] pt-3' : 'sr-only'
-                }
-              >
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium">Statut</span>
-                  <select className={cn(fieldClass, 'text-sm')} {...register('status')}>
-                    <option value="COMPLETED">Terminée</option>
-                    <option value="PARTIAL">Partielle</option>
-                    <option value="FAILED">Échouée</option>
-                    <option value="SKIPPED">Ignorée</option>
-                    <option value="PENDING">À faire</option>
-                  </select>
-                  {errors.status ? (
-                    <span className="text-[var(--danger)]" role="alert">
-                      {errors.status.message}
-                    </span>
-                  ) : null}
-                </label>
-
-                {cardio && status !== 'SKIPPED' && status !== 'PENDING' ? (
-                  <div className="flex flex-col gap-3">
-                    <p className="text-sm font-medium">Plus de détails</p>
-                    <label className="flex flex-col gap-1 text-sm">
-                      <span>Fréquence cardiaque (bpm)</span>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        min={1}
-                        className={fieldClass}
-                        {...register('averageHeartRate', { setValueAs: nullableNumber })}
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1 text-sm">
-                      <span>Inclinaison (%)</span>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        className={fieldClass}
-                        {...register('inclinePercent', { setValueAs: nullableNumber })}
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1 text-sm">
-                      <span>Résistance</span>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        min={1}
-                        className={fieldClass}
-                        {...register('resistanceLevel', { setValueAs: nullableNumber })}
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1 text-sm">
-                      <span>Niveau machine</span>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        min={1}
-                        className={fieldClass}
-                        {...register('machineLevel', { setValueAs: nullableNumber })}
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1 text-sm">
-                      <span>Étages</span>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        min={0}
-                        className={fieldClass}
-                        {...register('floorsClimbed', { setValueAs: nullableNumber })}
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1 text-sm">
-                      <span>Cadence</span>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        min={1}
-                        className={fieldClass}
-                        {...register('cadenceSpm', { setValueAs: nullableNumber })}
-                      />
-                    </label>
-                  </div>
+                  </>
                 ) : null}
 
-                {status !== 'SKIPPED' && status !== 'PENDING' ? (
+                <button
+                  type="button"
+                  className="self-start text-sm text-[var(--muted)] underline-offset-4 hover:text-[var(--foreground)] hover:underline"
+                  onClick={() => setMoreOpen((value) => !value)}
+                  aria-expanded={moreOpen}
+                >
+                  {moreOpen ? 'Masquer les options' : 'Plus d’options'}
+                </button>
+
+                <div
+                  className={
+                    moreOpen
+                      ? 'flex flex-col gap-3 border-t border-[var(--border)] pt-3'
+                      : 'sr-only'
+                  }
+                >
                   <label className="flex flex-col gap-1 text-sm">
-                    <span className="font-medium">Notes</span>
-                    <textarea
-                      rows={2}
-                      className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
-                      {...register('notes')}
-                    />
+                    <span className="font-medium">Statut</span>
+                    <select className={cn(fieldClass, 'text-sm')} {...register('status')}>
+                      <option value="COMPLETED">Terminée</option>
+                      <option value="PARTIAL">Partielle</option>
+                      <option value="FAILED">Échouée</option>
+                      <option value="SKIPPED">Ignorée</option>
+                      <option value="PENDING">À faire</option>
+                    </select>
+                    {errors.status ? (
+                      <span className="text-[var(--danger)]" role="alert">
+                        {errors.status.message}
+                      </span>
+                    ) : null}
                   </label>
+
+                  {cardio && status !== 'SKIPPED' && status !== 'PENDING' ? (
+                    <div className="flex flex-col gap-3">
+                      <p className="text-sm font-medium">Plus de détails</p>
+                      <label className="flex flex-col gap-1 text-sm">
+                        <span>Fréquence cardiaque (bpm)</span>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          className={fieldClass}
+                          {...register('averageHeartRate', { setValueAs: nullableNumber })}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1 text-sm">
+                        <span>Inclinaison (%)</span>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          className={fieldClass}
+                          {...register('inclinePercent', { setValueAs: nullableNumber })}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1 text-sm">
+                        <span>Résistance</span>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          className={fieldClass}
+                          {...register('resistanceLevel', { setValueAs: nullableNumber })}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1 text-sm">
+                        <span>Niveau machine</span>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          className={fieldClass}
+                          {...register('machineLevel', { setValueAs: nullableNumber })}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1 text-sm">
+                        <span>Étages</span>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          className={fieldClass}
+                          {...register('floorsClimbed', { setValueAs: nullableNumber })}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1 text-sm">
+                        <span>Cadence</span>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          className={fieldClass}
+                          {...register('cadenceSpm', { setValueAs: nullableNumber })}
+                        />
+                      </label>
+                    </div>
+                  ) : null}
+
+                  {status !== 'SKIPPED' && status !== 'PENDING' ? (
+                    <label className="flex flex-col gap-1 text-sm">
+                      <span className="font-medium">Notes</span>
+                      <textarea
+                        rows={2}
+                        className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
+                        {...register('notes')}
+                      />
+                    </label>
+                  ) : null}
+                </div>
+
+                {apiError ? (
+                  <p className="text-sm text-[var(--danger)]" role="alert">
+                    {apiError}
+                  </p>
+                ) : null}
+                {(mutation.error as ApiRequestError | null)?.code === 'WORKOUT_VERSION_CONFLICT' ? (
+                  <p className="text-sm text-[var(--danger)]" role="alert">
+                    La séance a été modifiée depuis un autre onglet ou appareil. Les dernières
+                    données ont été rechargées.
+                  </p>
                 ) : null}
               </div>
+            </div>
 
-              {apiError ? (
-                <p className="text-sm text-[var(--danger)]" role="alert">
-                  {apiError}
-                </p>
+            <div className="shrink-0 border-t border-[var(--border)] bg-[var(--card)] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <Button type="submit" className="w-full" disabled={mutation.isPending}>
+                {mutation.isPending ? 'Enregistrement…' : 'Enregistrer'}
+              </Button>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  className="min-h-11 px-1 text-sm text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-50"
+                  disabled={mutation.isPending}
+                  onClick={requestClose}
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  className="min-h-11 px-1 text-sm text-[var(--danger)] hover:underline disabled:opacity-50"
+                  disabled={mutation.isPending}
+                  onClick={() => {
+                    setValue('status', 'SKIPPED');
+                    void handleSubmit(submit)();
+                  }}
+                >
+                  Ignorer la série
+                </button>
+              </div>
+              {canDelete && onRequestDelete ? (
+                <button
+                  type="button"
+                  className="mt-1 min-h-11 w-full px-1 text-sm text-[var(--danger)] hover:underline disabled:opacity-50"
+                  disabled={mutation.isPending || deletePending}
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  Supprimer la série
+                </button>
               ) : null}
-              {(mutation.error as ApiRequestError | null)?.code === 'WORKOUT_VERSION_CONFLICT' ? (
-                <p className="text-sm text-[var(--danger)]" role="alert">
-                  La séance a été modifiée depuis un autre onglet ou appareil. Les dernières données
-                  ont été rechargées.
-                </p>
-              ) : null}
             </div>
-          </div>
+          </form>
 
-          <div className="shrink-0 border-t border-[var(--border)] bg-[var(--card)] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-            <Button type="submit" className="w-full" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Enregistrement…' : 'Enregistrer'}
-            </Button>
-            <div className="mt-2 flex items-center justify-between gap-3">
-              <button
-                type="button"
-                className="min-h-11 px-1 text-sm text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-50"
-                disabled={mutation.isPending}
-                onClick={requestClose}
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                className="min-h-11 px-1 text-sm text-[var(--danger)] hover:underline disabled:opacity-50"
-                disabled={mutation.isPending}
-                onClick={() => {
-                  setValue('status', 'SKIPPED');
-                  void handleSubmit(submit)();
-                }}
-              >
-                Ignorer la série
-              </button>
+          {confirmDelete ? (
+            <div
+              className="absolute inset-x-0 bottom-0 z-10 border-t border-[var(--border)] bg-[var(--card)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg"
+              role="alertdialog"
+              aria-label="Confirmer la suppression de la série"
+            >
+              <p className="text-sm">
+                Cette série sera retirée de la séance. Pour une série non réalisée que tu veux
+                conserver dans l’historique, utilise plutôt Ignorer.
+              </p>
+              <div className="mt-2 flex gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() => setConfirmDelete(false)}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  type="button"
+                  className="flex-1"
+                  disabled={deletePending}
+                  onClick={() => {
+                    onRequestDelete?.();
+                  }}
+                >
+                  {deletePending ? 'Suppression…' : 'Supprimer'}
+                </Button>
+              </div>
             </div>
-            {canDelete && onRequestDelete ? (
-              <button
-                type="button"
-                className="mt-1 min-h-11 w-full px-1 text-sm text-[var(--danger)] hover:underline disabled:opacity-50"
-                disabled={mutation.isPending || deletePending}
-                onClick={() => setConfirmDelete(true)}
-              >
-                Supprimer la série
-              </button>
-            ) : null}
-          </div>
-        </form>
+          ) : null}
 
-        {confirmDelete ? (
-          <div
-            className="absolute inset-x-0 bottom-0 z-10 border-t border-[var(--border)] bg-[var(--card)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg"
-            role="alertdialog"
-            aria-label="Confirmer la suppression de la série"
-          >
-            <p className="text-sm">
-              Cette série sera retirée de la séance. Pour une série non réalisée
-              que tu veux conserver dans l’historique, utilise plutôt Ignorer.
-            </p>
-            <div className="mt-2 flex gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                className="flex-1"
-                onClick={() => setConfirmDelete(false)}
-              >
-                Annuler
-              </Button>
-              <Button
-                type="button"
-                className="flex-1"
-                disabled={deletePending}
-                onClick={() => {
-                  onRequestDelete?.();
-                }}
-              >
-                {deletePending ? 'Suppression…' : 'Supprimer'}
-              </Button>
+          {confirmClose ? (
+            <div
+              className="absolute inset-x-0 bottom-0 z-10 border-t border-[var(--border)] bg-[var(--card)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg"
+              role="alertdialog"
+              aria-label="Modifications non enregistrées"
+            >
+              <p className="text-sm">
+                Des modifications non enregistrées seront perdues. Fermer quand même ?
+              </p>
+              <div className="mt-2 flex gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() => setConfirmClose(false)}
+                >
+                  Continuer la saisie
+                </Button>
+                <Button type="button" className="flex-1" onClick={onClose}>
+                  Fermer
+                </Button>
+              </div>
             </div>
-          </div>
-        ) : null}
-
-        {confirmClose ? (
-          <div
-            className="absolute inset-x-0 bottom-0 z-10 border-t border-[var(--border)] bg-[var(--card)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg"
-            role="alertdialog"
-            aria-label="Modifications non enregistrées"
-          >
-            <p className="text-sm">
-              Des modifications non enregistrées seront perdues. Fermer quand même ?
-            </p>
-            <div className="mt-2 flex gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                className="flex-1"
-                onClick={() => setConfirmClose(false)}
-              >
-                Continuer la saisie
-              </Button>
-              <Button type="button" className="flex-1" onClick={onClose}>
-                Fermer
-              </Button>
-            </div>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </div>
-    </div>
     </ViewportPortal>
   );
 }

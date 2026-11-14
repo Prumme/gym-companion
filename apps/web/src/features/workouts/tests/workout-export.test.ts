@@ -48,8 +48,6 @@ describe('workout JSON export', () => {
     const document = buildWorkoutExportDocument([session], '2026-09-14T10:00:00.000Z');
     expect(document.schemaVersion).toBe(1);
     expect(document.workouts).toHaveLength(1);
-    expect(workoutExportFilename([session])).toBe(
-      'gym-companion-seance-2026-09-14.json',
-    );
+    expect(workoutExportFilename([session])).toBe('gym-companion-seance-2026-09-14.json');
   });
 });

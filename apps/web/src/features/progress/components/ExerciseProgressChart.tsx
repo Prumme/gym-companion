@@ -1,7 +1,4 @@
-import type {
-  ExerciseProgressMetric,
-  ExerciseProgressPoint,
-} from '@gym-companion/shared';
+import type { ExerciseProgressMetric, ExerciseProgressPoint } from '@gym-companion/shared';
 import {
   CartesianGrid,
   Line,
@@ -54,9 +51,7 @@ function ProgressTooltip({
   const contextLines: string[] = [];
 
   if (metric === 'MAX_WEIGHT' && point.context.maxReps != null) {
-    contextLines.push(
-      `${point.context.maxReps} répétition${point.context.maxReps > 1 ? 's' : ''}`,
-    );
+    contextLines.push(`${point.context.maxReps} répétition${point.context.maxReps > 1 ? 's' : ''}`);
   }
   if (metric === 'MAX_REPS' && point.context.maxWeightKg != null) {
     contextLines.push(formatProgressMetricValue('MAX_WEIGHT', point.context.maxWeightKg));
@@ -83,11 +78,7 @@ function ProgressTooltip({
   );
 }
 
-export function ExerciseProgressChart({
-  points,
-  metric,
-  longRange,
-}: ProgressChartProps) {
+export function ExerciseProgressChart({ points, metric, longRange }: ProgressChartProps) {
   const mode = longRange ? 'month' : 'short';
   const axisLabels = buildProgressChartAxisLabels(points, mode);
   const tickFormatter = createDedupedAxisTickFormatter();
@@ -113,10 +104,7 @@ export function ExerciseProgressChart({
       aria-label={`Graphique de ${getExerciseProgressMetricLabel(metric)}`}
     >
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart
-          data={data}
-          margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
-        >
+        <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
           <XAxis
             dataKey="label"
@@ -132,9 +120,7 @@ export function ExerciseProgressChart({
             tickLine={false}
             axisLine={false}
             width={48}
-            tickFormatter={(value: number) =>
-              formatProgressAxisTick(metric, value)
-            }
+            tickFormatter={(value: number) => formatProgressAxisTick(metric, value)}
           />
           <Tooltip
             content={<ProgressTooltip metric={metric} />}

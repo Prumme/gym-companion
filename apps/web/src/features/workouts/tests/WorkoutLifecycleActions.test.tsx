@@ -18,16 +18,13 @@ const updateWorkoutSet = vi.fn();
 const getMe = vi.fn();
 
 vi.mock('../api/workout-api', () => ({
-  getActiveWorkoutSession: (...args: unknown[]) =>
-    getActiveWorkoutSession(...args),
-  getWorkoutSessionDetail: (...args: unknown[]) =>
-    getWorkoutSessionDetail(...args),
+  getActiveWorkoutSession: (...args: unknown[]) => getActiveWorkoutSession(...args),
+  getWorkoutSessionDetail: (...args: unknown[]) => getWorkoutSessionDetail(...args),
   createWorkoutSession: vi.fn(),
   updateWorkoutSet: (...args: unknown[]) => updateWorkoutSet(...args),
   pauseWorkoutSession: (...args: unknown[]) => pauseWorkoutSession(...args),
   resumeWorkoutSession: (...args: unknown[]) => resumeWorkoutSession(...args),
-  completeWorkoutSession: (...args: unknown[]) =>
-    completeWorkoutSession(...args),
+  completeWorkoutSession: (...args: unknown[]) => completeWorkoutSession(...args),
   cancelWorkoutSession: (...args: unknown[]) => cancelWorkoutSession(...args),
 }));
 
@@ -71,10 +68,7 @@ function renderActive(client?: QueryClient) {
       <MemoryRouter initialEntries={['/workouts/active']}>
         <Routes>
           <Route path="/workouts/active" element={<ActiveWorkoutPage />} />
-          <Route
-            path="/workouts/:workoutSessionId"
-            element={<WorkoutSessionDetailPage />}
-          />
+          <Route path="/workouts/:workoutSessionId" element={<WorkoutSessionDetailPage />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -143,31 +137,17 @@ describe('Workout lifecycle UI (3.3)', () => {
     });
 
     renderActive();
-    await user.click(
-      await screen.findByRole('button', { name: /Actions de séance/i }),
-    );
-    expect(
-      screen.getByRole('menuitem', { name: /Mettre en pause/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitem', { name: /Terminer la séance/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitem', { name: /Annuler la séance/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /Reprendre la séance/i }),
-    ).not.toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: /Actions de séance/i }));
+    expect(screen.getByRole('menuitem', { name: /Mettre en pause/i })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Terminer la séance/i })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Annuler la séance/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Reprendre la séance/i })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('menuitem', { name: /Mettre en pause/i }));
     await waitFor(() => expect(pauseWorkoutSession).toHaveBeenCalledTimes(1));
     expect(await screen.findByText(/Séance en pause/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/Saisie des séries désactivée pendant la pause/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /Enregistrer la série/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText(/Saisie des séries désactivée pendant la pause/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Enregistrer la série/i })).not.toBeInTheDocument();
   });
 
   it('reprend une séance en pause', async () => {
@@ -192,9 +172,7 @@ describe('Workout lifecycle UI (3.3)', () => {
     });
 
     renderActive();
-    await user.click(
-      await screen.findByRole('button', { name: /Reprendre la séance/i }),
-    );
+    await user.click(await screen.findByRole('button', { name: /Reprendre la séance/i }));
     await waitFor(() => expect(resumeWorkoutSession).toHaveBeenCalledTimes(1));
     expect(
       await screen.findByRole('button', { name: /Enregistrer la série/i }),
@@ -242,28 +220,18 @@ describe('Workout lifecycle UI (3.3)', () => {
       workoutSessionVersion: 2,
     });
     getWorkoutSessionDetail.mockResolvedValue(completed);
-    getActiveWorkoutSession
-      .mockResolvedValueOnce(active)
-      .mockResolvedValue(null);
+    getActiveWorkoutSession.mockResolvedValueOnce(active).mockResolvedValue(null);
 
     const client = renderActive();
-    await user.click(
-      await screen.findByRole('button', { name: /Actions de séance/i }),
-    );
-    await user.click(
-      screen.getByRole('menuitem', { name: /Terminer la séance/i }),
-    );
+    await user.click(await screen.findByRole('button', { name: /Actions de séance/i }));
+    await user.click(screen.getByRole('menuitem', { name: /Terminer la séance/i }));
     const dialog = await screen.findByRole('dialog');
-    expect(
-      within(dialog).getByText(/Certaines séries sont encore à faire/i),
-    ).toBeInTheDocument();
+    expect(within(dialog).getByText(/Certaines séries sont encore à faire/i)).toBeInTheDocument();
     expect(
       within(dialog).getByText(/Aucune série n’a encore été enregistrée/i),
     ).toBeInTheDocument();
     await user.type(within(dialog).getByLabelText(/Notes/i), 'Fin');
-    await user.click(
-      within(dialog).getByRole('button', { name: /Terminer quand même/i }),
-    );
+    await user.click(within(dialog).getByRole('button', { name: /Terminer quand même/i }));
 
     await waitFor(() => expect(completeWorkoutSession).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('Terminée')).toBeInTheDocument();
@@ -320,17 +288,11 @@ describe('Workout lifecycle UI (3.3)', () => {
     getWorkoutSessionDetail.mockResolvedValue(cancelled);
 
     renderActive();
-    await user.click(
-      await screen.findByRole('button', { name: /Actions de séance/i }),
-    );
-    await user.click(
-      screen.getByRole('menuitem', { name: /^Annuler la séance$/i }),
-    );
+    await user.click(await screen.findByRole('button', { name: /Actions de séance/i }));
+    await user.click(screen.getByRole('menuitem', { name: /^Annuler la séance$/i }));
     const dialog = await screen.findByRole('alertdialog');
     await user.type(within(dialog).getByLabelText(/Motif/i), 'Fatigue');
-    await user.click(
-      within(dialog).getByRole('button', { name: /^Annuler la séance$/i }),
-    );
+    await user.click(within(dialog).getByRole('button', { name: /^Annuler la séance$/i }));
 
     await waitFor(() => expect(cancelWorkoutSession).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('Annulée')).toBeInTheDocument();
@@ -356,16 +318,10 @@ describe('Workout lifecycle UI (3.3)', () => {
     );
 
     renderActive();
-    await user.click(
-      await screen.findByRole('button', { name: /Actions de séance/i }),
-    );
-    await user.click(
-      screen.getByRole('menuitem', { name: /Mettre en pause/i }),
-    );
+    await user.click(await screen.findByRole('button', { name: /Actions de séance/i }));
+    await user.click(screen.getByRole('menuitem', { name: /Mettre en pause/i }));
     expect(
-      await screen.findByText(
-        /La séance a été modifiée depuis un autre onglet ou appareil/i,
-      ),
+      await screen.findByText(/La séance a été modifiée depuis un autre onglet ou appareil/i),
     ).toBeInTheDocument();
   });
 
@@ -386,26 +342,17 @@ describe('Workout lifecycle UI (3.3)', () => {
           })
         }
       >
-        <MemoryRouter
-          initialEntries={[`/workouts/${active.id}`]}
-        >
+        <MemoryRouter initialEntries={[`/workouts/${active.id}`]}>
           <Routes>
             <Route path="/workouts/active" element={<ActiveWorkoutPage />} />
-            <Route
-              path="/workouts/:workoutSessionId"
-              element={<WorkoutSessionDetailPage />}
-            />
+            <Route path="/workouts/:workoutSessionId" element={<WorkoutSessionDetailPage />} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>,
     );
 
     expect(await screen.findByText('Séance Push')).toBeInTheDocument();
-    await user.click(
-      screen.getByRole('button', { name: /Actions de séance/i }),
-    );
-    expect(
-      screen.getByRole('menuitem', { name: /Mettre en pause/i }),
-    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Actions de séance/i }));
+    expect(screen.getByRole('menuitem', { name: /Mettre en pause/i })).toBeInTheDocument();
   });
 });

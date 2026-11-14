@@ -1,7 +1,4 @@
-import type {
-  ExerciseProgressResponse,
-  ExerciseStrengthResponse,
-} from '@gym-companion/shared';
+import type { ExerciseProgressResponse, ExerciseStrengthResponse } from '@gym-companion/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -20,9 +17,9 @@ vi.mock('../api/progress-api', () => ({
 }));
 
 vi.mock('@/features/exercises/api/exercise-api', async () => {
-  const actual = await vi.importActual<
-    typeof import('@/features/exercises/api/exercise-api')
-  >('@/features/exercises/api/exercise-api');
+  const actual = await vi.importActual<typeof import('@/features/exercises/api/exercise-api')>(
+    '@/features/exercises/api/exercise-api',
+  );
   return {
     ...actual,
     getExercise: (...args: unknown[]) => getExercise(...args),
@@ -54,12 +51,7 @@ function emptyProgress(
       name: 'Développé couché',
       archived: false,
     },
-    availableMetrics: [
-      'MAX_WEIGHT',
-      'MAX_REPS',
-      'WORKING_EXTERNAL_VOLUME',
-      'TOTAL_REPS',
-    ],
+    availableMetrics: ['MAX_WEIGHT', 'MAX_REPS', 'WORKING_EXTERNAL_VOLUME', 'TOTAL_REPS'],
     selectedMetric: 'MAX_WEIGHT',
     range: { from: '2026-05-10', to: '2026-08-10' },
     summary: null,
@@ -118,10 +110,7 @@ function renderPage(initialEntry = '/progress/exercises/exercise-1') {
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
-          <Route
-            path="/progress/exercises/:exerciseId"
-            element={<ExerciseProgressPage />}
-          />
+          <Route path="/progress/exercises/:exerciseId" element={<ExerciseProgressPage />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -300,9 +289,7 @@ describe('ExerciseProgressPage — force estimée (4.5)', () => {
     );
 
     renderPage();
-    expect(
-      await screen.findByText('1RM estimé actuel'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('1RM estimé actuel')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Force estimée' })).toBeInTheDocument();
     expect(screen.getByText('Meilleure estimation')).toBeInTheDocument();
     expect(screen.getByText(/Variation :/)).toBeInTheDocument();
@@ -321,9 +308,7 @@ describe('ExerciseProgressPage — force estimée (4.5)', () => {
     getExerciseStrength.mockRejectedValue(new Error('network'));
     renderPage();
     expect(await screen.findByText('Exercice archivé')).toBeInTheDocument();
-    expect(
-      await screen.findByText('Impossible de charger la force estimée.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Impossible de charger la force estimée.')).toBeInTheDocument();
   });
 
   it('change de période invalide aussi la requête strength', async () => {
@@ -356,10 +341,7 @@ describe('ExerciseProgressPage — force estimée (4.5)', () => {
       from: undefined,
       to: undefined,
     });
-    expect(screen.getByRole('button', { name: 'Tout' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(screen.getByRole('button', { name: 'Tout' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('reste lisible à 320 px', async () => {

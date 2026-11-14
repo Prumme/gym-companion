@@ -1,29 +1,11 @@
-import type {
-  WorkoutSessionDetail,
-  WorkoutSetStatus,
-} from '@gym-companion/shared';
+import type { WorkoutSessionDetail, WorkoutSetStatus } from '@gym-companion/shared';
 
 export type OfflineWorkoutCommandType =
-  | 'UPDATE_WORKOUT_SET'
-  | 'PAUSE_WORKOUT'
-  | 'RESUME_WORKOUT'
-  | 'COMPLETE_WORKOUT'
-  | 'CANCEL_WORKOUT';
+  'UPDATE_WORKOUT_SET' | 'PAUSE_WORKOUT' | 'RESUME_WORKOUT' | 'COMPLETE_WORKOUT' | 'CANCEL_WORKOUT';
 
-export type OfflineCommandStatus =
-  | 'PENDING'
-  | 'SYNCING'
-  | 'APPLIED'
-  | 'CONFLICT'
-  | 'REJECTED';
+export type OfflineCommandStatus = 'PENDING' | 'SYNCING' | 'APPLIED' | 'CONFLICT' | 'REJECTED';
 
-export type WorkoutSyncStatus =
-  | 'IDLE'
-  | 'OFFLINE'
-  | 'PENDING'
-  | 'SYNCING'
-  | 'CONFLICT'
-  | 'ERROR';
+export type WorkoutSyncStatus = 'IDLE' | 'OFFLINE' | 'PENDING' | 'SYNCING' | 'CONFLICT' | 'ERROR';
 
 export type UpdateWorkoutSetCommandPayload = {
   sessionExerciseId: string;
@@ -97,9 +79,6 @@ export type StoredWorkoutSyncState = {
   updatedAt: string;
 };
 
-export function snapshotStorageKey(
-  userId: string,
-  workoutSessionId: string,
-): string {
+export function snapshotStorageKey(userId: string, workoutSessionId: string): string {
   return `${userId}:${workoutSessionId}`;
 }

@@ -9,21 +9,11 @@ import {
 export class DisabledAiCoachProvider implements AiCoachProvider {
   readonly name = 'disabled';
 
-  async explainExerciseCoachSummary(
-    _request: AiCoachProviderRequest,
-  ): Promise<never> {
-    throw new AiCoachProviderError(
-      'AI_COACH_UNAVAILABLE',
-      'Fournisseur IA non configuré.',
-    );
+  async explainExerciseCoachSummary(_request: AiCoachProviderRequest): Promise<never> {
+    throw new AiCoachProviderError('AI_COACH_UNAVAILABLE', 'Fournisseur IA non configuré.');
   }
 
-  async generateConversationTurn(
-    _request: AiCoachConversationProviderRequest,
-  ): Promise<never> {
-    throw new AiCoachProviderError(
-      'AI_COACH_UNAVAILABLE',
-      'Fournisseur IA non configuré.',
-    );
+  async generateConversationTurn(_request: AiCoachConversationProviderRequest): Promise<never> {
+    throw new AiCoachProviderError('AI_COACH_UNAVAILABLE', 'Fournisseur IA non configuré.');
   }
 }

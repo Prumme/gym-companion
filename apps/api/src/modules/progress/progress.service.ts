@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type {
   EstimatedStrengthPoint,
   ExerciseProgressMetric,
@@ -82,9 +77,7 @@ const MEASUREMENT_TYPES = new Set<string>([
   'WEIGHT_DURATION',
 ]);
 
-function asMeasurementType(
-  value: string,
-): ExerciseMeasurementTypeForProgress | null {
+function asMeasurementType(value: string): ExerciseMeasurementTypeForProgress | null {
   if (!MEASUREMENT_TYPES.has(value)) {
     return null;
   }
@@ -218,40 +211,26 @@ export class ProgressService {
     }
 
     const bucket =
-      timelineFrom && timelineTo
-        ? resolveProgressOverviewBucket(timelineFrom, timelineTo)
-        : 'DAY';
+      timelineFrom && timelineTo ? resolveProgressOverviewBucket(timelineFrom, timelineTo) : 'DAY';
     const points =
       timelineFrom && timelineTo
-        ? buildProgressOverviewTimeline(
-            sessionInputs,
-            timelineFrom,
-            timelineTo,
-            bucket,
-          )
+        ? buildProgressOverviewTimeline(sessionInputs, timelineFrom, timelineTo, bucket)
         : [];
 
     const availableMetrics = resolveAvailableOverviewMetrics(totals);
-    const selectedMetric = resolveDefaultOverviewMetric(
-      availableMetrics,
-      query.metric,
-    );
+    const selectedMetric = resolveDefaultOverviewMetric(availableMetrics, query.metric);
 
     let comparison: ProgressOverviewResponse['comparison'] = null;
     if (rangeFrom && rangeTo) {
       const previousRange = resolvePreviousRange(rangeFrom, rangeTo);
-      const previousSessions = await this.loadCompletedSessionsForOverview(
-        userId,
-        previousRange,
-      );
+      const previousSessions = await this.loadCompletedSessionsForOverview(userId, previousRange);
       const previousTotals = computeProgressOverviewTotals(
         this.mapOverviewSessions(previousSessions),
       );
       comparison = computeProgressOverviewComparison(totals, previousTotals);
     }
 
-    const allRecords =
-      await this.personalRecordsService.listCurrentRecords(userId);
+    const allRecords = await this.personalRecordsService.listCurrentRecords(userId);
     const recentRecords = allRecords
       .filter((record) => {
         if (rangeFrom && record.achievedOn < rangeFrom) {
@@ -360,9 +339,7 @@ export class ProgressService {
         actualDurationSeconds: row.actualDurationSeconds,
         actualDistanceMeters: decimalToNumber(row.actualDistanceMeters),
         setType: row.setType as WorkoutSetType,
-        localDate: utcDateToLocalDateString(
-          row.workoutSessionExercise.workoutSession.localDate,
-        ),
+        localDate: utcDateToLocalDateString(row.workoutSessionExercise.workoutSession.localDate),
         workoutSessionId: row.workoutSessionExercise.workoutSession.id,
         workoutSetId: row.id,
       });
@@ -443,9 +420,7 @@ export class ProgressService {
     const catalogType = asMeasurementType(exercise.measurementType);
     const availableMetrics =
       measurementTypesPresent.size > 0
-        ? resolveAvailableProgressMetricsFromTypes([
-            ...measurementTypesPresent,
-          ])
+        ? resolveAvailableProgressMetricsFromTypes([...measurementTypesPresent])
         : catalogType
           ? resolveAvailableProgressMetrics(catalogType)
           : [];
@@ -453,16 +428,12 @@ export class ProgressService {
     const defaultMetric =
       catalogType != null
         ? resolveDefaultProgressMetric(catalogType)
-        : availableMetrics[0] ?? null;
+        : (availableMetrics[0] ?? null);
 
-    let selectedMetric: ExerciseProgressMetric | null =
-      query.metric ?? defaultMetric;
+    let selectedMetric: ExerciseProgressMetric | null = query.metric ?? defaultMetric;
 
     if (query.metric != null) {
-      if (
-        availableMetrics.length > 0 &&
-        !availableMetrics.includes(query.metric)
-      ) {
+      if (availableMetrics.length > 0 && !availableMetrics.includes(query.metric)) {
         throw new BadRequestException({
           code: 'PROGRESS_METRIC_NOT_SUPPORTED',
           message:
@@ -536,9 +507,7 @@ export class ProgressService {
     }
 
     const summary =
-      points.length === 0
-        ? null
-        : computeExerciseProgressSummary(points, selectedMetric);
+      points.length === 0 ? null : computeExerciseProgressSummary(points, selectedMetric);
 
     this.logger.debug(
       `progress exercise=${exerciseId} metric=${selectedMetric} points=${points.length}`,
@@ -653,8 +622,7 @@ export class ProgressService {
             latestSource: summaryComputed.latestSource
               ? {
                   ...summaryComputed.latestSource,
-                  setType: summaryComputed.latestSource
-                    .setType as WorkoutSetType,
+                  setType: summaryComputed.latestSource.setType as WorkoutSetType,
                 }
               : null,
             bestSource: summaryComputed.bestSource
@@ -665,9 +633,7 @@ export class ProgressService {
               : null,
           };
 
-    this.logger.debug(
-      `strength exercise=${exerciseId} points=${points.length}`,
-    );
+    this.logger.debug(`strength exercise=${exerciseId} points=${points.length}`);
 
     return {
       exercise: {
@@ -684,14 +650,10 @@ export class ProgressService {
     };
   }
 
-  async getCardioHistory(
-    userId: string,
-    exerciseId: string,
-  ): Promise<CardioHistoryResponse> {
+  async getCardioHistory(userId: string, exerciseId: string): Promise<CardioHistoryResponse> {
     const exercise = await this.findAccessibleExerciseOrThrow(userId, exerciseId);
     const supported =
-      exercise.category === 'CARDIO' &&
-      isCardioMeasurementType(exercise.measurementType);
+      exercise.category === 'CARDIO' && isCardioMeasurementType(exercise.measurementType);
     if (!supported) {
       return { exerciseId, supported: false, entries: [] };
     }
@@ -909,9 +871,7 @@ export class ProgressService {
     return rows as StrengthExerciseRow[];
   }
 
-  private groupStrengthRowsBySession(
-    rows: StrengthExerciseRow[],
-  ): StrengthSessionInput[] {
+  private groupStrengthRowsBySession(rows: StrengthExerciseRow[]): StrengthSessionInput[] {
     const bySession = new Map<string, StrengthSessionInput>();
 
     for (const row of rows) {
@@ -952,9 +912,7 @@ export class ProgressService {
     return [...bySession.values()];
   }
 
-  private groupRowsBySession(
-    rows: SessionExerciseRow[],
-  ): ExerciseProgressSessionInput[] {
+  private groupRowsBySession(rows: SessionExerciseRow[]): ExerciseProgressSessionInput[] {
     const bySession = new Map<string, ExerciseProgressSessionInput>();
 
     for (const row of rows) {
@@ -1047,9 +1005,7 @@ export class ProgressService {
     return rows as OverviewSessionRow[];
   }
 
-  private mapOverviewSessions(
-    rows: OverviewSessionRow[],
-  ): ProgressOverviewSessionInput[] {
+  private mapOverviewSessions(rows: OverviewSessionRow[]): ProgressOverviewSessionInput[] {
     return rows.map((row) => ({
       workoutSessionId: row.id,
       localDate: utcDateToLocalDateString(row.localDate),

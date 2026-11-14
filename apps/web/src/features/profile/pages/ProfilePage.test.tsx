@@ -101,9 +101,7 @@ describe('ProfilePage', () => {
       });
     });
 
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Profil enregistré avec succès.',
-    );
+    expect(await screen.findByRole('status')).toHaveTextContent('Profil enregistré avec succès.');
     expect(screen.getByText('Nouveau nom')).toBeInTheDocument();
   });
 

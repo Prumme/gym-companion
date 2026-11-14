@@ -27,8 +27,7 @@ export function ExerciseCard({ exercise, onFeedback }: ExerciseCardProps) {
     exercise.defaultEquipmentType?.name ??
     'Sans équipement';
   const isArchived = exercise.archivedAt !== null;
-  const isPending =
-    mutation.isPending && mutation.variables?.exerciseId === exercise.id;
+  const isPending = mutation.isPending && mutation.variables?.exerciseId === exercise.id;
 
   async function handleToggleFavorite() {
     setLocalError(null);
@@ -46,10 +45,7 @@ export function ExerciseCard({ exercise, onFeedback }: ExerciseCardProps) {
         },
       });
     } catch (error) {
-      const message = getApiErrorMessage(
-        error,
-        'Impossible de modifier ce favori. Réessaie.',
-      );
+      const message = getApiErrorMessage(error, 'Impossible de modifier ce favori. Réessaie.');
       setLocalError(message);
       onFeedback?.(message);
     }

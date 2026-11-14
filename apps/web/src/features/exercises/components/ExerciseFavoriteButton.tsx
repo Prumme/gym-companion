@@ -42,10 +42,7 @@ export function ExerciseFavoriteButton({
         onToggle();
       }}
     >
-      <Star
-        className={cn('size-5', isFavorite && 'fill-current')}
-        aria-hidden="true"
-      />
+      <Star className={cn('size-5', isFavorite && 'fill-current')} aria-hidden="true" />
     </button>
   );
 }

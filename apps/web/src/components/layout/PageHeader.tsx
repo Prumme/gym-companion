@@ -49,14 +49,10 @@ export function PageHeader({
           </p>
         ) : null}
         <h1 className="page-title truncate">{title}</h1>
-        {description ? (
-          <p className="secondary-text mt-[var(--space-2)]">{description}</p>
-        ) : null}
+        {description ? <p className="secondary-text mt-[var(--space-2)]">{description}</p> : null}
       </div>
       {actions ? (
-        <div className="flex shrink-0 items-center gap-[var(--space-2)]">
-          {actions}
-        </div>
+        <div className="flex shrink-0 items-center gap-[var(--space-2)]">{actions}</div>
       ) : null}
     </header>
   );

@@ -52,9 +52,7 @@ export type WorkoutMetricsDisplayFlags = {
  * Décide quelles métriques de performance sont pertinentes à afficher.
  * Les compteurs généraux (exercices / séries) restent toujours affichés.
  */
-export function getWorkoutMetricsDisplayFlags(
-  metrics: WorkoutMetrics,
-): WorkoutMetricsDisplayFlags {
+export function getWorkoutMetricsDisplayFlags(metrics: WorkoutMetrics): WorkoutMetricsDisplayFlags {
   const { performance, elapsedDurationSeconds } = metrics;
   return {
     showReps: performance.totalReps > 0,

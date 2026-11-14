@@ -12,10 +12,7 @@ import { workoutDetailQueryOptions } from '../api/workout-query-options';
 import { workoutQueryKeys } from '../api/workout-query-keys';
 import { WorkoutSessionExerciseList } from '../components/WorkoutSessionExerciseList';
 import { WorkoutSessionSummary } from '../components/WorkoutSessionSummary';
-import {
-  computeElapsedDurationMs,
-  formatElapsedDuration,
-} from '../lib/workout-elapsed-duration';
+import { computeElapsedDurationMs, formatElapsedDuration } from '../lib/workout-elapsed-duration';
 import { resolveHistoryBackPath } from '../lib/workout-history-filters';
 import { getWorkoutStatusLabel } from '../lib/workout-labels';
 import { computeWorkoutProgress } from '../lib/workout-progress';
@@ -75,16 +72,9 @@ export function WorkoutSessionDetailPage() {
     }).data === true;
 
   const session = query.data;
-  const progress = useMemo(
-    () => (session ? computeWorkoutProgress(session) : null),
-    [session],
-  );
-  const elapsedMs = useMemo(
-    () => (session ? computeElapsedDurationMs(session) : null),
-    [session],
-  );
-  const elapsedLabel =
-    elapsedMs != null ? formatElapsedDuration(elapsedMs) : null;
+  const progress = useMemo(() => (session ? computeWorkoutProgress(session) : null), [session]);
+  const elapsedMs = useMemo(() => (session ? computeElapsedDurationMs(session) : null), [session]);
+  const elapsedLabel = elapsedMs != null ? formatElapsedDuration(elapsedMs) : null;
 
   if (query.isLoading) {
     return (
@@ -104,10 +94,7 @@ export function WorkoutSessionDetailPage() {
         <p className="text-sm text-[var(--danger)]" role="alert">
           {status === 404
             ? 'Séance introuvable.'
-            : getApiErrorMessage(
-                query.error,
-                'Impossible de charger cette séance.',
-              )}
+            : getApiErrorMessage(query.error, 'Impossible de charger cette séance.')}
         </p>
         <ButtonLink to={backPath} variant="secondary">
           Retour à l’historique
@@ -124,10 +111,9 @@ export function WorkoutSessionDetailPage() {
     return <Navigate to="/workouts/active" replace />;
   }
 
-  const sourceBits = [
-    session.source.programName,
-    session.source.workoutTemplateName,
-  ].filter(Boolean);
+  const sourceBits = [session.source.programName, session.source.workoutTemplateName].filter(
+    Boolean,
+  );
 
   return (
     <section className="flex flex-col gap-6">
@@ -156,9 +142,7 @@ export function WorkoutSessionDetailPage() {
         <p
           className={cn(
             'text-[0.6875rem] font-semibold tracking-[0.12em] uppercase',
-            session.status === 'CANCELLED'
-              ? 'text-[var(--danger)]'
-              : 'text-[var(--muted)]',
+            session.status === 'CANCELLED' ? 'text-[var(--danger)]' : 'text-[var(--muted)]',
           )}
         >
           {getWorkoutStatusLabel(session.status)}
@@ -167,11 +151,7 @@ export function WorkoutSessionDetailPage() {
 
       <WorkoutSessionSummary
         progress={progress}
-        metrics={
-          session.status === 'COMPLETED' && session.metrics
-            ? session.metrics
-            : null
-        }
+        metrics={session.status === 'COMPLETED' && session.metrics ? session.metrics : null}
         elapsedLabel={elapsedLabel}
       />
 
@@ -204,24 +184,18 @@ export function WorkoutSessionDetailPage() {
           <dl className="mt-2 flex flex-col gap-1.5 text-sm text-[var(--muted)]">
             <div>
               <dt className="inline">Démarrée : </dt>
-              <dd className="inline">
-                {formatDateTime(session.startedAt, session.timezone)}
-              </dd>
+              <dd className="inline">{formatDateTime(session.startedAt, session.timezone)}</dd>
             </div>
             {session.completedAt ? (
               <div>
                 <dt className="inline">Terminée : </dt>
-                <dd className="inline">
-                  {formatDateTime(session.completedAt, session.timezone)}
-                </dd>
+                <dd className="inline">{formatDateTime(session.completedAt, session.timezone)}</dd>
               </div>
             ) : null}
             {session.cancelledAt ? (
               <div>
                 <dt className="inline">Annulée : </dt>
-                <dd className="inline">
-                  {formatDateTime(session.cancelledAt, session.timezone)}
-                </dd>
+                <dd className="inline">{formatDateTime(session.cancelledAt, session.timezone)}</dd>
               </div>
             ) : null}
             {elapsedLabel ? (

@@ -11,12 +11,7 @@ type CardProps = PropsWithChildren<
 >;
 
 /** Surface légère — à utiliser seulement quand une vraie surface aide la lecture. */
-export function Card({
-  children,
-  className,
-  as: Component = 'div',
-  ...props
-}: CardProps) {
+export function Card({ children, className, as: Component = 'div', ...props }: CardProps) {
   return (
     <Component
       className={cn(
@@ -36,12 +31,7 @@ type CardLinkProps = PropsWithChildren<{
   'aria-label'?: string;
 }>;
 
-export function CardLink({
-  to,
-  children,
-  className,
-  ...props
-}: CardLinkProps) {
+export function CardLink({ to, children, className, ...props }: CardLinkProps) {
   return (
     <Link
       to={to}

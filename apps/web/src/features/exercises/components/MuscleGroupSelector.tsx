@@ -87,9 +87,7 @@ export function SecondaryMuscleGroupSelector({
   error,
   disabled = false,
 }: SecondaryMuscleGroupSelectorProps) {
-  const options = muscleGroups.filter(
-    (group) => group.id !== primaryMuscleGroupId,
-  );
+  const options = muscleGroups.filter((group) => group.id !== primaryMuscleGroupId);
   const selected = muscleGroups.filter((group) => value.includes(group.id));
 
   function toggle(id: string) {
@@ -158,12 +156,7 @@ export function SecondaryMuscleGroupSelector({
       ) : null}
 
       {selected.length > 0 ? (
-        <Button
-          type="button"
-          variant="ghost"
-          className="w-fit px-0"
-          onClick={() => onChange([])}
-        >
+        <Button type="button" variant="ghost" className="w-fit px-0" onClick={() => onChange([])}>
           Tout retirer
         </Button>
       ) : null}

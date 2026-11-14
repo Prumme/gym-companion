@@ -1,13 +1,6 @@
-import {
-  useMutation,
-  useQueryClient,
-  type QueryKey,
-} from '@tanstack/react-query';
+import { useMutation, useQueryClient, type QueryKey } from '@tanstack/react-query';
 import type { ExerciseDetail } from '@gym-companion/shared';
-import type {
-  CreateExerciseInput,
-  UpdateExerciseInput,
-} from '@gym-companion/validation';
+import type { CreateExerciseInput, UpdateExerciseInput } from '@gym-companion/validation';
 
 import {
   archiveExercise,
@@ -32,10 +25,7 @@ function readListFilters(queryKey: QueryKey): ExerciseListFilters | undefined {
   return undefined;
 }
 
-function setExerciseDetail(
-  queryClient: ReturnType<typeof useQueryClient>,
-  detail: ExerciseDetail,
-) {
+function setExerciseDetail(queryClient: ReturnType<typeof useQueryClient>, detail: ExerciseDetail) {
   queryClient.setQueryData(exerciseQueryKeys.detail(detail.id), detail);
 }
 
@@ -84,13 +74,8 @@ export function useUpdateExerciseMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      exerciseId,
-      input,
-    }: {
-      exerciseId: string;
-      input: UpdateExerciseInput;
-    }) => updateExercise(exerciseId, input),
+    mutationFn: ({ exerciseId, input }: { exerciseId: string; input: UpdateExerciseInput }) =>
+      updateExercise(exerciseId, input),
     onSuccess: (detail) => {
       setExerciseDetail(queryClient, detail);
       patchListsAfterArchiveOrUpdate(queryClient, detail, 'update');

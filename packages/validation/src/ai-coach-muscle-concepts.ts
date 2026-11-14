@@ -2,9 +2,7 @@
  * Concepts utilisateur → codes MuscleGroup du référentiel (pas d’UUID).
  * Un label exact déjà présent en BDD (ex. « Dos », « Biceps ») n’utilise pas cette table.
  */
-export const AI_COACH_MUSCLE_CONCEPT_ALIASES: Readonly<
-  Record<string, readonly string[]>
-> = {
+export const AI_COACH_MUSCLE_CONCEPT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   bras: ['biceps', 'triceps'],
   arms: ['biceps', 'triceps'],
   arm: ['biceps', 'triceps'],
@@ -43,21 +41,14 @@ export const AI_COACH_MUSCLE_CONCEPT_ALIASES: Readonly<
 };
 
 function normalizeConceptLabel(label: string): string {
-  return label
-    .trim()
-    .replace(/\s+/g, ' ')
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-    .toLowerCase();
+  return label.trim().replace(/\s+/g, ' ').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 }
 
 /**
  * Si `label` est un concept composite (ou alias), retourne les codes MuscleGroup
  * à résoudre côté backend. Sinon `null` (match exact attendu).
  */
-export function resolveAiCoachMuscleConcept(
-  label: string,
-): readonly string[] | null {
+export function resolveAiCoachMuscleConcept(label: string): readonly string[] | null {
   const needle = normalizeConceptLabel(label);
   if (!needle) return null;
   return AI_COACH_MUSCLE_CONCEPT_ALIASES[needle] ?? null;

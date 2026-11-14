@@ -1,16 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  computeProgramPermissions,
-  toProgramDetail,
-  toProgramListItem,
-} from './programs.mapper';
+import { computeProgramPermissions, toProgramDetail, toProgramListItem } from './programs.mapper';
 
 describe('programs.mapper', () => {
   it('computes permissions for a non-current program', () => {
-    expect(
-      computeProgramPermissions({ archivedAt: null, isCurrent: false }),
-    ).toEqual({
+    expect(computeProgramPermissions({ archivedAt: null, isCurrent: false })).toEqual({
       canEdit: true,
       canArchive: true,
       canRestore: false,
@@ -21,9 +15,7 @@ describe('programs.mapper', () => {
   });
 
   it('computes permissions for the current program', () => {
-    expect(
-      computeProgramPermissions({ archivedAt: null, isCurrent: true }),
-    ).toEqual({
+    expect(computeProgramPermissions({ archivedAt: null, isCurrent: true })).toEqual({
       canEdit: true,
       canArchive: false,
       canRestore: false,
@@ -123,12 +115,8 @@ describe('programs.mapper', () => {
     expect(detail.isCurrent).toBe(false);
     expect(detail.workoutTemplates[0]?.exerciseCount).toBe(1);
     expect(detail.workoutTemplates[0]?.exercises[0]?.exercise.name).toBe('Squat');
-    expect(detail.workoutTemplates[0]?.exercises[0]?.sets[0]?.targetWeightKg).toBe(
-      100,
-    );
-    expect(detail.workoutTemplates[0]?.exercises[0]?.permissions.canEdit).toBe(
-      true,
-    );
+    expect(detail.workoutTemplates[0]?.exercises[0]?.sets[0]?.targetWeightKg).toBe(100);
+    expect(detail.workoutTemplates[0]?.exercises[0]?.permissions.canEdit).toBe(true);
     expect(toProgramListItem(row, false).permissions.canActivate).toBe(true);
   });
 });

@@ -50,9 +50,7 @@ export function WorkoutConflictPanel({
         <dl className="mt-3 grid gap-1 text-sm">
           <div>
             <dt className="inline font-medium">Type : </dt>
-            <dd className="inline">
-              {COMMAND_LABELS[conflictCommand.type]}
-            </dd>
+            <dd className="inline">{COMMAND_LABELS[conflictCommand.type]}</dd>
           </div>
           <div>
             <dt className="inline font-medium">Date locale : </dt>
@@ -104,8 +102,8 @@ export function WorkoutConflictPanel({
           </Button>
         ) : (
           <p className="text-sm text-[var(--muted)]">
-            La séance est terminée ou annulée à distance. Seule la conservation
-            de la version serveur est possible.
+            La séance est terminée ou annulée à distance. Seule la conservation de la version
+            serveur est possible.
           </p>
         )}
       </div>
@@ -123,15 +121,10 @@ export function WorkoutConflictPanel({
             onClick={(event) => event.stopPropagation()}
           >
             <p className="text-sm">
-              Les modifications non synchronisées de cette séance seront
-              abandonnées.
+              Les modifications non synchronisées de cette séance seront abandonnées.
             </p>
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setConfirmKeep(false)}
-              >
+              <Button type="button" variant="secondary" onClick={() => setConfirmKeep(false)}>
                 Annuler
               </Button>
               <Button

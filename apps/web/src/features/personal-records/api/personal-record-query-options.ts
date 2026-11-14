@@ -7,9 +7,7 @@ import {
 } from './personal-records-api';
 import { personalRecordQueryKeys } from './personal-record-query-keys';
 
-export function personalRecordsInfiniteQueryOptions(
-  filters: PersonalRecordsListQuery = {},
-) {
+export function personalRecordsInfiniteQueryOptions(filters: PersonalRecordsListQuery = {}) {
   return infiniteQueryOptions({
     queryKey: personalRecordQueryKeys.list(filters),
     queryFn: ({ pageParam }) =>

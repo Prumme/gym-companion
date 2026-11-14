@@ -11,9 +11,7 @@ import {
 } from './shared-workouts-api';
 import { sharedWorkoutRoomQueryKeys } from './shared-workout-query-keys';
 
-export function sharedWorkoutRoomsListQueryOptions(
-  filters: SharedWorkoutRoomListFilters = {},
-) {
+export function sharedWorkoutRoomsListQueryOptions(filters: SharedWorkoutRoomListFilters = {}) {
   return queryOptions({
     queryKey: sharedWorkoutRoomQueryKeys.list({
       status: filters.status,
@@ -38,12 +36,9 @@ export function mySharedWorkoutSessionQueryOptions(roomId: string) {
   });
 }
 
-export function sharedWorkoutSessionContextQueryOptions(
-  workoutSessionId: string,
-) {
+export function sharedWorkoutSessionContextQueryOptions(workoutSessionId: string) {
   return queryOptions({
-    queryKey:
-      sharedWorkoutRoomQueryKeys.workoutSessionContext(workoutSessionId),
+    queryKey: sharedWorkoutRoomQueryKeys.workoutSessionContext(workoutSessionId),
     queryFn: () => getSharedWorkoutSessionContext(workoutSessionId),
     enabled: Boolean(workoutSessionId),
   });

@@ -3,10 +3,7 @@ import type {
   PersonalRecord,
   WorkoutSetType,
 } from '@gym-companion/shared';
-import type {
-  PersonalRecordCandidate,
-  PersonalRecordType,
-} from '@gym-companion/validation';
+import type { PersonalRecordCandidate, PersonalRecordType } from '@gym-companion/validation';
 import { getPersonalRecordPrincipalValue } from '@gym-companion/validation';
 
 export type CatalogExerciseInfo = {

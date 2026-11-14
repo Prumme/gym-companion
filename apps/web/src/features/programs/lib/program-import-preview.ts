@@ -29,11 +29,7 @@ function setKey(set: ProgramImportSetPreview): string {
 function formatOneSet(set: ProgramImportSetPreview): string {
   const parts: string[] = [];
   if (set.repsMin != null && set.repsMax != null) {
-    parts.push(
-      set.repsMin === set.repsMax
-        ? `${set.repsMin}`
-        : `${set.repsMin}–${set.repsMax}`,
-    );
+    parts.push(set.repsMin === set.repsMax ? `${set.repsMin}` : `${set.repsMin}–${set.repsMax}`);
   }
   if (set.durationSeconds != null) {
     parts.push(`${set.durationSeconds} s`);
@@ -56,9 +52,7 @@ function formatOneSet(set: ProgramImportSetPreview): string {
   return parts.join(' · ');
 }
 
-export function formatGroupedSetSummaries(
-  sets: ProgramImportSetPreview[],
-): string[] {
+export function formatGroupedSetSummaries(sets: ProgramImportSetPreview[]): string[] {
   if (sets.length === 0) {
     return [];
   }

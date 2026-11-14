@@ -46,9 +46,7 @@ export function ProgramDangerZone({
       await restoreMutation.mutateAsync(programId);
       onStatus('Programme restauré.');
     } catch (err) {
-      setError(
-        getApiErrorMessage(err, 'Impossible de restaurer ce programme.'),
-      );
+      setError(getApiErrorMessage(err, 'Impossible de restaurer ce programme.'));
     }
   }
 
@@ -101,9 +99,7 @@ export function ProgramDangerZone({
             disabled={restoreMutation.isPending}
             onClick={() => void handleRestore()}
           >
-            {restoreMutation.isPending
-              ? 'Restauration…'
-              : 'Restaurer le programme'}
+            {restoreMutation.isPending ? 'Restauration…' : 'Restaurer le programme'}
           </Button>
           {error ? (
             <p className="mt-2 text-sm text-[var(--danger)]" role="alert">

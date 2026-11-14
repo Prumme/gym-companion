@@ -33,8 +33,7 @@ export function EditProgramPage() {
   );
 
   const isArchived =
-    detailQuery.data?.status === 'ARCHIVED' ||
-    detailQuery.data?.archivedAt != null;
+    detailQuery.data?.status === 'ARCHIVED' || detailQuery.data?.archivedAt != null;
 
   async function handleSubmit(values: ProgramFormValues) {
     setSubmitError(null);
@@ -66,10 +65,7 @@ export function EditProgramPage() {
     const message =
       status === 404
         ? 'Ce programme est introuvable ou inaccessible.'
-        : getApiErrorMessage(
-            detailQuery.error,
-            'Impossible de charger ce programme.',
-          );
+        : getApiErrorMessage(detailQuery.error, 'Impossible de charger ce programme.');
 
     return (
       <main className="flex flex-1 flex-col gap-4">
@@ -77,10 +73,7 @@ export function EditProgramPage() {
           <ArrowLeft className="size-4" aria-hidden="true" />
           Retour aux programmes
         </ButtonLink>
-        <div
-          className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4"
-          role="alert"
-        >
+        <div className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4" role="alert">
           <p className="text-sm text-[var(--danger)]">{message}</p>
         </div>
       </main>
@@ -90,11 +83,7 @@ export function EditProgramPage() {
   if (isArchived || !detailQuery.data.permissions.canEdit) {
     return (
       <main className="flex flex-1 flex-col gap-4">
-        <ButtonLink
-          to={`/programs/${programId}`}
-          variant="ghost"
-          className="w-fit gap-2 px-0"
-        >
+        <ButtonLink to={`/programs/${programId}`} variant="ghost" className="w-fit gap-2 px-0">
           <ArrowLeft className="size-4" aria-hidden="true" />
           Retour au programme
         </ButtonLink>
@@ -103,8 +92,7 @@ export function EditProgramPage() {
           role="status"
         >
           <p className="text-sm text-amber-950">
-            Ce programme est archivé ou non modifiable. Restaure-le pour éditer
-            ses informations.
+            Ce programme est archivé ou non modifiable. Restaure-le pour éditer ses informations.
           </p>
           <Button
             type="button"
@@ -122,17 +110,11 @@ export function EditProgramPage() {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6">
       <div>
-        <ButtonLink
-          to={`/programs/${programId}`}
-          variant="ghost"
-          className="mb-3 w-fit gap-2 px-0"
-        >
+        <ButtonLink to={`/programs/${programId}`} variant="ghost" className="mb-3 w-fit gap-2 px-0">
           <ArrowLeft className="size-4" aria-hidden="true" />
           Retour au programme
         </ButtonLink>
-        <h1 className="text-2xl font-bold tracking-tight">
-          Modifier les informations
-        </h1>
+        <h1 className="text-2xl font-bold tracking-tight">Modifier les informations</h1>
         <p className="mt-1 text-sm text-[var(--muted)]">
           Nom, description et objectif du programme.
         </p>

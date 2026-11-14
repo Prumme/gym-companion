@@ -20,9 +20,7 @@ export function CreateProgramPage() {
   async function handleSubmit(values: ProgramFormValues) {
     setSubmitError(null);
     try {
-      const detail = await createMutation.mutateAsync(
-        programFormToCreatePayload(values),
-      );
+      const detail = await createMutation.mutateAsync(programFormToCreatePayload(values));
       void navigate(`/programs/${detail.id}`, {
         replace: true,
         state: { flash: 'Programme créé.' },
@@ -48,9 +46,7 @@ export function CreateProgramPage() {
           <ArrowLeft className="size-5" aria-hidden="true" />
         </Link>
         <div className="min-w-0 flex-1 pt-2">
-          <h1 className="text-xl font-semibold tracking-tight">
-            Créer un programme
-          </h1>
+          <h1 className="text-xl font-semibold tracking-tight">Créer un programme</h1>
         </div>
       </header>
 

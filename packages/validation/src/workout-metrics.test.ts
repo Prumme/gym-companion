@@ -20,9 +20,7 @@ function session(
   };
 }
 
-function weightSet(
-  overrides: Partial<WorkoutMetricsSessionInput['exercises'][0]['sets'][0]> = {},
-) {
+function weightSet(overrides: Partial<WorkoutMetricsSessionInput['exercises'][0]['sets'][0]> = {}) {
   return {
     setType: 'WORKING',
     status: 'COMPLETED',

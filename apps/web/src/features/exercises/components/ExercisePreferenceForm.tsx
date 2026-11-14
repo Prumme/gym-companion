@@ -1,7 +1,4 @@
-import type {
-  ExerciseCompatibleEquipment,
-  ExerciseUserPreference,
-} from '@gym-companion/shared';
+import type { ExerciseCompatibleEquipment, ExerciseUserPreference } from '@gym-companion/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -90,8 +87,8 @@ export function ExercisePreferenceForm({
           <span>
             Ne pas proposer automatiquement cet exercice
             <span className="mt-1 block text-xs text-[var(--muted)]">
-              L’exercice restera visible dans le catalogue et pourra toujours être
-              sélectionné manuellement.
+              L’exercice restera visible dans le catalogue et pourra toujours être sélectionné
+              manuellement.
             </span>
           </span>
         </label>

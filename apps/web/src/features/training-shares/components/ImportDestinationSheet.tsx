@@ -29,9 +29,7 @@ export function ImportDestinationSheet({
 }: ImportDestinationSheetProps) {
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
-  const [mode, setMode] = useState<'NEW_PROGRAM' | 'EXISTING_PROGRAM'>(
-    'NEW_PROGRAM',
-  );
+  const [mode, setMode] = useState<'NEW_PROGRAM' | 'EXISTING_PROGRAM'>('NEW_PROGRAM');
   const [programName, setProgramName] = useState(
     suggestProgramNameFromWorkoutTemplate(workoutName),
   );
@@ -76,10 +74,7 @@ export function ImportDestinationSheet({
   if (!open) return null;
 
   const canSubmit =
-    !busy &&
-    (mode === 'NEW_PROGRAM'
-      ? programName.trim().length > 0
-      : Boolean(selectedProgramId));
+    !busy && (mode === 'NEW_PROGRAM' ? programName.trim().length > 0 : Boolean(selectedProgramId));
 
   return (
     <div className="fixed inset-0 z-50" role="presentation">
@@ -140,9 +135,7 @@ export function ImportDestinationSheet({
               className="mt-1"
             />
             <span>
-              <span className="block text-sm font-medium">
-                Programme existant
-              </span>
+              <span className="block text-sm font-medium">Programme existant</span>
               <span className="mt-0.5 block text-xs text-[var(--muted)]">
                 Ajoute la séance à un programme déjà créé
               </span>
@@ -213,11 +206,7 @@ export function ImportDestinationSheet({
               }
             }}
           >
-            {busy
-              ? 'Ajout…'
-              : mode === 'NEW_PROGRAM'
-                ? 'Créer et ajouter la séance'
-                : 'Ajouter'}
+            {busy ? 'Ajout…' : mode === 'NEW_PROGRAM' ? 'Créer et ajouter la séance' : 'Ajouter'}
           </Button>
           <Button
             type="button"

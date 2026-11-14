@@ -7,18 +7,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CoachProposalCard } from '../components/CoachProposalCard';
 
-const { acceptAiCoachProposal, dismissAiCoachProposal, listPrograms } =
-  vi.hoisted(() => ({
-    acceptAiCoachProposal: vi.fn(),
-    dismissAiCoachProposal: vi.fn(),
-    listPrograms: vi.fn(),
-  }));
+const { acceptAiCoachProposal, dismissAiCoachProposal, listPrograms } = vi.hoisted(() => ({
+  acceptAiCoachProposal: vi.fn(),
+  dismissAiCoachProposal: vi.fn(),
+  listPrograms: vi.fn(),
+}));
 
 vi.mock('../api/coaching-api', () => ({
-  acceptAiCoachProposal: (...args: unknown[]) =>
-    acceptAiCoachProposal(...args),
-  dismissAiCoachProposal: (...args: unknown[]) =>
-    dismissAiCoachProposal(...args),
+  acceptAiCoachProposal: (...args: unknown[]) => acceptAiCoachProposal(...args),
+  dismissAiCoachProposal: (...args: unknown[]) => dismissAiCoachProposal(...args),
 }));
 
 vi.mock('@/features/programs/api/program-api', () => ({
@@ -138,19 +135,12 @@ describe('CoachProposalCard (jalon 8)', () => {
     renderCard(workoutProposal);
 
     await user.click(screen.getByRole('button', { name: /Accepter/i }));
-    expect(
-      await screen.findByText(/Ajouter cette séance à…/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Ajouter cette séance à…/i)).toBeInTheDocument();
     expect(acceptAiCoachProposal).not.toHaveBeenCalled();
 
     await screen.findByRole('option', { name: 'Force 3x/semaine' });
-    await user.selectOptions(
-      screen.getByLabelText('Programme cible'),
-      'program-1',
-    );
-    await user.click(
-      screen.getByRole('button', { name: /Ajouter la séance/i }),
-    );
+    await user.selectOptions(screen.getByLabelText('Programme cible'), 'program-1');
+    await user.click(screen.getByRole('button', { name: /Ajouter la séance/i }));
 
     await waitFor(() => {
       expect(acceptAiCoachProposal).toHaveBeenCalledWith('proposal-workout-1', {
@@ -169,9 +159,7 @@ describe('CoachProposalCard (jalon 8)', () => {
         name: 'Force complet',
         description: null,
         goal: 'STRENGTH',
-        workouts: [
-          { name: 'Séance A', estimatedDurationMinutes: 50, exercises: [] },
-        ],
+        workouts: [{ name: 'Séance A', estimatedDurationMinutes: 50, exercises: [] }],
         schedule: null,
       },
     },
@@ -192,23 +180,14 @@ describe('CoachProposalCard (jalon 8)', () => {
     await user.click(screen.getByRole('button', { name: /Accepter/i }));
 
     await waitFor(() => {
-      expect(acceptAiCoachProposal).toHaveBeenCalledWith(
-        'proposal-program-1',
-        {},
-      );
+      expect(acceptAiCoachProposal).toHaveBeenCalledWith('proposal-program-1', {});
     });
-    expect(
-      screen.queryByText(/Ajouter cette séance à…/i),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Ajouter cette séance à…/i)).not.toBeInTheDocument();
   });
 
   it('affiche un message clair pour une proposition devenue invalide', () => {
     renderCard({ ...workoutProposal, status: 'INVALID' });
-    expect(
-      screen.getByText(/n’est plus valide/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /Accepter/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText(/n’est plus valide/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Accepter/i })).not.toBeInTheDocument();
   });
 });

@@ -6,22 +6,13 @@ import {
   PROGRAM_IMPORT_V1_CONTRACT_TEXT,
 } from '@gym-companion/validation';
 
-export const EXPERIENCE_LEVELS = [
-  'BEGINNER',
-  'INTERMEDIATE',
-  'ADVANCED',
-] as const;
+export const EXPERIENCE_LEVELS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'] as const;
 
 export type ProgramImportExperienceLevel = (typeof EXPERIENCE_LEVELS)[number];
 
-export const EQUIPMENT_PREFERENCES = [
-  'machines',
-  'free-weights',
-  'mixed',
-] as const;
+export const EQUIPMENT_PREFERENCES = ['machines', 'free-weights', 'mixed'] as const;
 
-export type ProgramImportEquipmentPreference =
-  (typeof EQUIPMENT_PREFERENCES)[number];
+export type ProgramImportEquipmentPreference = (typeof EQUIPMENT_PREFERENCES)[number];
 
 export const DURATION_OPTIONS = [30, 45, 60, 75, 90] as const;
 
@@ -58,10 +49,7 @@ const LEVEL_PROMPT_LABELS: Record<ProgramImportExperienceLevel, string> = {
   ADVANCED: 'advanced (ADVANCED)',
 };
 
-const EQUIPMENT_PROMPT_LABELS: Record<
-  ProgramImportEquipmentPreference,
-  string
-> = {
+const EQUIPMENT_PROMPT_LABELS: Record<ProgramImportEquipmentPreference, string> = {
   machines: 'prefer machines when a comparable option exists',
   'free-weights': 'prefer free weights (barbell / dumbbell)',
   mixed: 'mixed equipment is fine',
@@ -81,9 +69,7 @@ export function buildProgramImportPrompt(
     .join(', ');
 
   const freeText =
-    brief.freeText.trim().length > 0
-      ? brief.freeText.trim()
-      : '(no additional details)';
+    brief.freeText.trim().length > 0 ? brief.freeText.trim() : '(no additional details)';
 
   return [
     'You are generating a gym strength-training program for import into Gym Companion.',
@@ -131,9 +117,7 @@ export function buildProgramImportCorrectionPrompt(input: {
   errors: ProgramImportError[];
   catalog: SystemExerciseCatalogItem[];
 }): string {
-  const includeCatalog = input.errors.some(
-    (error) => error.code === 'UNKNOWN_EXERCISE',
-  );
+  const includeCatalog = input.errors.some((error) => error.code === 'UNKNOWN_EXERCISE');
   const errorLines = input.errors.map((error) => {
     const suggestions =
       error.suggestions && error.suggestions.length > 0

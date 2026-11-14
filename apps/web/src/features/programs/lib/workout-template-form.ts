@@ -41,18 +41,13 @@ export const workoutTemplateFormSchema = z.object({
 });
 
 export function detailToWorkoutTemplateFormValues(
-  detail: Pick<
-    WorkoutTemplateDetail,
-    'name' | 'description' | 'estimatedDurationMinutes'
-  >,
+  detail: Pick<WorkoutTemplateDetail, 'name' | 'description' | 'estimatedDurationMinutes'>,
 ): WorkoutTemplateFormValues {
   return {
     name: detail.name,
     description: detail.description ?? '',
     estimatedDurationMinutes:
-      detail.estimatedDurationMinutes != null
-        ? String(detail.estimatedDurationMinutes)
-        : '',
+      detail.estimatedDurationMinutes != null ? String(detail.estimatedDurationMinutes) : '',
   };
 }
 
@@ -62,8 +57,7 @@ export function workoutTemplateFormToCreatePayload(
   const duration = values.estimatedDurationMinutes.trim();
   return createWorkoutTemplateSchema.parse({
     name: values.name,
-    description:
-      values.description.trim() === '' ? null : values.description.trim(),
+    description: values.description.trim() === '' ? null : values.description.trim(),
     estimatedDurationMinutes: duration === '' ? null : Number(duration),
   });
 }

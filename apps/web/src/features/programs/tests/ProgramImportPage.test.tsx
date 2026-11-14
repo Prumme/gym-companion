@@ -14,14 +14,13 @@ const validateProgramImport = vi.fn();
 const importProgramFromJson = vi.fn();
 
 vi.mock('@/features/exercises/api/exercise-api', async () => {
-  const actual = await vi.importActual<
-    typeof import('@/features/exercises/api/exercise-api')
-  >('@/features/exercises/api/exercise-api');
+  const actual = await vi.importActual<typeof import('@/features/exercises/api/exercise-api')>(
+    '@/features/exercises/api/exercise-api',
+  );
   return {
     ...actual,
     listMuscleGroups: (...args: unknown[]) => listMuscleGroups(...args),
-    listSystemExerciseCatalog: (...args: unknown[]) =>
-      listSystemExerciseCatalog(...args),
+    listSystemExerciseCatalog: (...args: unknown[]) => listSystemExerciseCatalog(...args),
   };
 });
 
@@ -79,10 +78,7 @@ function renderPage() {
       <MemoryRouter initialEntries={['/programs/import']}>
         <Routes>
           <Route path="/programs/import" element={children} />
-          <Route
-            path="/programs/:programId"
-            element={<div>Détail programme</div>}
-          />
+          <Route path="/programs/:programId" element={<div>Détail programme</div>} />
           <Route path="/programs" element={<div>Liste programmes</div>} />
         </Routes>
       </MemoryRouter>
@@ -127,31 +123,21 @@ describe('ProgramImportPage', () => {
       await screen.findByRole('heading', { name: /Importer avec une IA/i }),
     ).toBeInTheDocument();
 
-    expect(
-      await screen.findByRole('checkbox', { name: 'Pectoraux' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('checkbox', { name: 'Pectoraux' })).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText(/^Objectif/), 'HYPERTROPHY');
     await user.selectOptions(screen.getByLabelText(/Nombre de séances/), '3');
-    await user.selectOptions(
-      screen.getByLabelText(/Durée approximative par séance/),
-      '60',
-    );
+    await user.selectOptions(screen.getByLabelText(/Durée approximative par séance/), '60');
     await user.selectOptions(screen.getByLabelText(/^Niveau/), 'BEGINNER');
     await user.click(screen.getByRole('checkbox', { name: 'Pectoraux' }));
-    await user.selectOptions(
-      screen.getByLabelText(/Préférence matériel/),
-      'mixed',
-    );
+    await user.selectOptions(screen.getByLabelText(/Préférence matériel/), 'mixed');
     await user.type(
       screen.getByLabelText(/Décris plus précisément ce que tu souhaites/),
       'Je veux surtout développer le haut du corps.',
     );
 
     await waitFor(() =>
-      expect(
-        screen.getByRole('button', { name: /Générer le prompt/i }),
-      ).toBeEnabled(),
+      expect(screen.getByRole('button', { name: /Générer le prompt/i })).toBeEnabled(),
     );
 
     await user.click(screen.getByRole('button', { name: /Générer le prompt/i }));
@@ -231,23 +217,15 @@ describe('ProgramImportPage', () => {
     });
     await user.click(screen.getByRole('button', { name: /Vérifier le JSON/i }));
     expect(await screen.findByText(/1 erreur trouvée/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/Exercice inconnu : fake-chest-machine/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Exercice inconnu : fake-chest-machine/i)).toBeInTheDocument();
     expect(screen.getByText(/chest-press-machine/)).toBeInTheDocument();
-    expect(
-      screen.getByText('program.workouts[0].exercises[0].exerciseSlug'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('program.workouts[0].exercises[0].exerciseSlug')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /Importer ce programme/i }),
     ).not.toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole('button', { name: /Copier un prompt de correction/i }),
-    );
-    expect(
-      await screen.findByText('Prompt de correction copié'),
-    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Copier un prompt de correction/i }));
+    expect(await screen.findByText('Prompt de correction copié')).toBeInTheDocument();
   });
 
   it('prévisualise puis importe un JSON valide', async () => {
@@ -307,9 +285,7 @@ describe('ProgramImportPage', () => {
     expect(screen.getByText(/Développé couché à la barre/)).toBeInTheDocument();
     expect(screen.getByText(/1 × 8–10/)).toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole('button', { name: /Importer ce programme/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Importer ce programme/i }));
     await waitFor(() => expect(importProgramFromJson).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('Détail programme')).toBeInTheDocument();
   });

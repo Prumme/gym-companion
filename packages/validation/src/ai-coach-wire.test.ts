@@ -221,10 +221,7 @@ describe('ai-coach-wire', () => {
       fu: [],
     };
     const canonical = parseAiCoachOpenAiWireResponse(wire);
-    const savings = estimateWireSavingsChars(
-      JSON.stringify(canonical),
-      JSON.stringify(wire),
-    );
+    const savings = estimateWireSavingsChars(JSON.stringify(canonical), JSON.stringify(wire));
     expect(savings.wireChars).toBeLessThan(savings.canonicalChars);
     expect(savings.savedRatio).toBeGreaterThan(0.15);
   });

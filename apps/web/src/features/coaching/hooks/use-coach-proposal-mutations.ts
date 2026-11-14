@@ -20,13 +20,8 @@ function invalidateConversation(
 export function useAcceptAiCoachProposalMutation(conversationId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      proposalId,
-      programId,
-    }: {
-      proposalId: string;
-      programId?: string;
-    }) => acceptAiCoachProposal(proposalId, programId ? { programId } : {}),
+    mutationFn: ({ proposalId, programId }: { proposalId: string; programId?: string }) =>
+      acceptAiCoachProposal(proposalId, programId ? { programId } : {}),
     onSuccess: () => invalidateConversation(queryClient, conversationId),
   });
 }

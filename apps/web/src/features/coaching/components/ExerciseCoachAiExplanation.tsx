@@ -34,8 +34,7 @@ export function ExerciseCoachAiExplanation({
     typeof navigator !== 'undefined' ? !navigator.onLine : false,
   );
   const [focus, setFocus] = useState<AiCoachExplanationFocus>('GENERAL');
-  const [result, setResult] =
-    useState<ExerciseCoachExplanationResponse | null>(null);
+  const [result, setResult] = useState<ExerciseCoachExplanationResponse | null>(null);
 
   useEffect(() => {
     const onOnline = () => setOffline(false);
@@ -65,16 +64,14 @@ export function ExerciseCoachAiExplanation({
   }, [availableFocuses, focus]);
 
   const mutation = useMutation({
-    mutationFn: () =>
-      generateExerciseCoachExplanation(exerciseId, { focus }),
+    mutationFn: () => generateExerciseCoachExplanation(exerciseId, { focus }),
     onSuccess: (data) => {
       setResult(data);
     },
   });
 
   const isStale =
-    result != null &&
-    result.meta.coachSummaryFingerprint !== summary.coachSummaryFingerprint;
+    result != null && result.meta.coachSummaryFingerprint !== summary.coachSummaryFingerprint;
 
   return (
     <section
@@ -93,8 +90,7 @@ export function ExerciseCoachAiExplanation({
 
       {!aiAvailable ? (
         <p className="mt-3 text-sm text-[var(--muted-foreground)]">
-          Indisponible sur cet environnement. L’analyse Coach ci-dessus reste
-          disponible sans IA.
+          Indisponible sur cet environnement. L’analyse Coach ci-dessus reste disponible sans IA.
         </p>
       ) : (
         <>

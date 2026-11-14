@@ -14,9 +14,9 @@ const { getExercise, listExercisePersonalRecords } = vi.hoisted(() => ({
 }));
 
 vi.mock('@/features/exercises/api/exercise-api', async () => {
-  const actual = await vi.importActual<
-    typeof import('@/features/exercises/api/exercise-api')
-  >('@/features/exercises/api/exercise-api');
+  const actual = await vi.importActual<typeof import('@/features/exercises/api/exercise-api')>(
+    '@/features/exercises/api/exercise-api',
+  );
   return {
     ...actual,
     getExercise: (...args: unknown[]) => getExercise(...args),
@@ -28,8 +28,7 @@ vi.mock('@/features/exercises/api/exercise-api', async () => {
 });
 
 vi.mock('../api/personal-records-api', () => ({
-  listExercisePersonalRecords: (...args: unknown[]) =>
-    listExercisePersonalRecords(...args),
+  listExercisePersonalRecords: (...args: unknown[]) => listExercisePersonalRecords(...args),
   listPersonalRecords: vi.fn(),
 }));
 
@@ -116,9 +115,7 @@ describe('Exercise detail personal records section', () => {
       }),
     ]);
     renderDetail();
-    expect(
-      await screen.findByRole('heading', { name: 'Records personnels' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Records personnels' })).toBeInTheDocument();
     expect(await screen.findByText('Charge maximale')).toBeInTheDocument();
     expect(screen.getByText('Répétitions maximales')).toBeInTheDocument();
     expect(listExercisePersonalRecords).toHaveBeenCalledWith('exercise-1');
@@ -130,9 +127,10 @@ describe('Exercise detail personal records section', () => {
     expect(
       await screen.findByText('Aucun record enregistré pour cet exercice.'),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Voir ma progression' }),
-    ).toHaveAttribute('href', '/progress/exercises/exercise-1');
+    expect(screen.getByRole('link', { name: 'Voir ma progression' })).toHaveAttribute(
+      'href',
+      '/progress/exercises/exercise-1',
+    );
   });
 
   it('reste visible pour un exercice archivé', async () => {

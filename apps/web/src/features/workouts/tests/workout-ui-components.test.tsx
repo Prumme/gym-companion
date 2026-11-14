@@ -34,12 +34,8 @@ describe('composants séance (UX-2)', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/Statut : En cours/i)).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Actions de séance/i }));
-    expect(
-      screen.getByRole('menuitem', { name: /Mettre en pause/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitem', { name: /Détails de la séance/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Mettre en pause/i })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Détails de la séance/i })).toBeInTheDocument();
   });
 
   it('affiche la reprise en pause via le menu', async () => {
@@ -69,9 +65,7 @@ describe('composants séance (UX-2)', () => {
       </MemoryRouter>,
     );
     await user.click(screen.getByRole('button', { name: /Actions de séance/i }));
-    expect(
-      screen.getByRole('menuitem', { name: /Reprendre la séance/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Reprendre la séance/i })).toBeInTheDocument();
   });
 
   it('affiche la progression compacte', () => {
@@ -143,13 +137,9 @@ describe('composants séance (UX-2)', () => {
       />,
     );
 
-    expect(
-      screen.getByRole('button', { name: /Aller à l'exercice précédent/i }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Aller à l'exercice précédent/i })).toBeDisabled();
     expect(screen.getByText(/Exercice 1 \/ 2/i)).toBeInTheDocument();
-    await user.click(
-      screen.getByRole('button', { name: /Aller à l'exercice suivant/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Aller à l'exercice suivant/i }));
     expect(onNext).toHaveBeenCalled();
     await user.click(screen.getByRole('tab', { name: /Élévations/i }));
     expect(onSelect).toHaveBeenCalledWith('wse-2');
@@ -189,18 +179,11 @@ describe('composants séance (UX-2)', () => {
       </ul>,
     );
     expect(screen.getByText('Courante')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /série courante/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /série courante/i })).toBeInTheDocument();
 
     rerender(
       <ul>
-        <WorkoutSetCard
-          set={completed}
-          canRecord
-          isNext={false}
-          onEdit={() => undefined}
-        />
+        <WorkoutSetCard set={completed} canRecord isNext={false} onEdit={() => undefined} />
       </ul>,
     );
     expect(screen.getByRole('button', { name: /Terminée/i })).toBeInTheDocument();
@@ -208,38 +191,21 @@ describe('composants séance (UX-2)', () => {
 
     rerender(
       <ul>
-        <WorkoutSetCard
-          set={partial}
-          canRecord={false}
-          isNext={false}
-          onEdit={() => undefined}
-        />
+        <WorkoutSetCard set={partial} canRecord={false} isNext={false} onEdit={() => undefined} />
       </ul>,
     );
-    expect(
-      screen.getByRole('button', { name: /Partielle/i }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Partielle/i })).toBeDisabled();
 
     rerender(
       <ul>
-        <WorkoutSetCard
-          set={failed}
-          canRecord={false}
-          isNext={false}
-          onEdit={() => undefined}
-        />
+        <WorkoutSetCard set={failed} canRecord={false} isNext={false} onEdit={() => undefined} />
       </ul>,
     );
     expect(screen.getByRole('button', { name: /Échouée/i })).toBeDisabled();
 
     rerender(
       <ul>
-        <WorkoutSetCard
-          set={skipped}
-          canRecord={false}
-          isNext={false}
-          onEdit={() => undefined}
-        />
+        <WorkoutSetCard set={skipped} canRecord={false} isNext={false} onEdit={() => undefined} />
       </ul>,
     );
     expect(screen.getByRole('button', { name: /Ignorée/i })).toBeDisabled();
@@ -264,20 +230,50 @@ describe('composants séance (UX-2)', () => {
       />,
     );
     expect(screen.getByRole('timer')).toHaveTextContent('01:30');
-    await user.click(
-      screen.getByRole('button', { name: /Mettre le repos en pause/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Mettre le repos en pause/i }));
     expect(onPause).toHaveBeenCalled();
-    await user.click(
-      screen.getByRole('button', { name: /Ajouter 15 secondes/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Ajouter 15 secondes/i }));
     expect(onAdd).toHaveBeenCalledWith(15);
-    await user.click(
-      screen.getByRole('button', { name: /Retirer 15 secondes/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Retirer 15 secondes/i }));
     expect(onAdd).toHaveBeenCalledWith(-15);
     await user.click(screen.getByRole('button', { name: /Passer le repos/i }));
     expect(onStop).toHaveBeenCalled();
+  });
+
+  it('règle localement la vibration et le son de fin de repos', async () => {
+    const user = userEvent.setup();
+    const onSignalPreferenceChange = vi.fn();
+    render(
+      <RestTimer
+        remainingSeconds={60}
+        isRunning
+        isPaused={false}
+        justExpired={false}
+        onPause={() => undefined}
+        onResume={() => undefined}
+        onStop={() => undefined}
+        onAdd={() => undefined}
+        onDismissExpired={() => undefined}
+        signalPreferences={{ vibration: true, sound: false }}
+        onSignalPreferenceChange={onSignalPreferenceChange}
+        vibrationSupported={false}
+        soundSupported
+      />,
+    );
+    const toggle = screen.getByRole('button', { name: /Signal de fin/i });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+    const vibration = screen.getByRole('switch', { name: /Vibration/i });
+    expect(vibration).toBeChecked();
+    expect(vibration).toBeDisabled();
+    expect(screen.getByText(/Non disponible sur cet appareil/i)).toBeInTheDocument();
+
+    const sound = screen.getByRole('switch', { name: /^Son$/i });
+    expect(sound).not.toBeChecked();
+    await user.click(sound);
+    expect(onSignalPreferenceChange).toHaveBeenCalledWith('sound', true);
   });
 
   it('n’affiche pas Démarrer le repos à l’arrêt', () => {
@@ -295,9 +291,7 @@ describe('composants séance (UX-2)', () => {
       />,
     );
     expect(container).toBeEmptyDOMElement();
-    expect(
-      screen.queryByRole('button', { name: /Démarrer le repos/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Démarrer le repos/i })).not.toBeInTheDocument();
   });
 
   it('affiche Repos terminé', () => {
@@ -336,9 +330,7 @@ describe('composants séance (UX-2)', () => {
         onPrimaryAction={onPrimary}
       />,
     );
-    await user.click(
-      screen.getByRole('button', { name: /^Exercice suivant$/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /^Exercice suivant$/i }));
     expect(onPrimary).toHaveBeenCalled();
   });
 });

@@ -11,9 +11,7 @@ const getProgressOverview = vi.fn();
 const getMe = vi.fn();
 
 vi.mock('../api/progress-api', async () => {
-  const actual = await vi.importActual<typeof import('../api/progress-api')>(
-    '../api/progress-api',
-  );
+  const actual = await vi.importActual<typeof import('../api/progress-api')>('../api/progress-api');
   return {
     ...actual,
     getProgressOverview: (...args: unknown[]) => getProgressOverview(...args),
@@ -88,20 +86,14 @@ describe('ProgressOverviewPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Pas encore assez de données' }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Voir mes programmes' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Voir mes programmes' })).toBeInTheDocument();
   });
 
   it('affiche totaux, graphique, tops et change de période', async () => {
     const user = userEvent.setup();
     getProgressOverview.mockResolvedValue(
       emptyOverview({
-        availableMetrics: [
-          'WORKOUT_COUNT',
-          'PERFORMED_SETS',
-          'WORKING_EXTERNAL_VOLUME',
-        ],
+        availableMetrics: ['WORKOUT_COUNT', 'PERFORMED_SETS', 'WORKING_EXTERNAL_VOLUME'],
         totals: {
           workoutCount: 3,
           exerciseCount: 3,
@@ -157,16 +149,13 @@ describe('ProgressOverviewPage', () => {
     );
     renderPage();
     expect(await screen.findByRole('heading', { name: 'Progression' })).toBeInTheDocument();
-    expect(
-      await screen.findByText(/3 séances sur 2 jours actifs/),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/3 séances sur 2 jours actifs/)).toBeInTheDocument();
     expect(screen.getByText('Développé couché')).toBeInTheDocument();
-    expect(
-      screen.getByLabelText('Graphique de progression globale'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /Développé couché/i }),
-    ).toHaveAttribute('href', '/progress/exercises/ex-1');
+    expect(screen.getByLabelText('Graphique de progression globale')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Développé couché/i })).toHaveAttribute(
+      'href',
+      '/progress/exercises/ex-1',
+    );
     expect(screen.getByText('Volume')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '1 mois' }));
@@ -208,17 +197,11 @@ describe('ProgressOverviewPage', () => {
     expect(getProgressOverview).toHaveBeenCalledWith(
       expect.objectContaining({ from: undefined, to: undefined }),
     );
-    expect(screen.getByRole('button', { name: 'Tout' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(screen.getByRole('button', { name: 'Tout' })).toHaveAttribute('aria-pressed', 'true');
 
     renderPage('/progress?period=all');
     await screen.findByRole('heading', { name: 'Progression' });
-    expect(screen.getByRole('button', { name: 'Tout' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(screen.getByRole('button', { name: 'Tout' })).toHaveAttribute('aria-pressed', 'true');
     expect(getProgressOverview).toHaveBeenCalledWith(
       expect.objectContaining({ from: undefined, to: undefined }),
     );

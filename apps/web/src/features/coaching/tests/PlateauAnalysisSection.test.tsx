@@ -15,9 +15,7 @@ vi.mock('../api/coaching-api', () => ({
   getPlateauAnalysis: (...args: unknown[]) => getPlateauAnalysis(...args),
 }));
 
-function baseAnalysis(
-  overrides: Partial<PlateauAnalysis> = {},
-): PlateauAnalysis {
+function baseAnalysis(overrides: Partial<PlateauAnalysis> = {}): PlateauAnalysis {
   return {
     exerciseId: 'ex-1',
     supported: true,
@@ -74,10 +72,7 @@ function renderSection() {
       <MemoryRouter>{children}</MemoryRouter>
     </QueryClientProvider>
   );
-  return render(
-    <PlateauAnalysisSection exerciseId="ex-1" />,
-    { wrapper },
-  );
+  return render(<PlateauAnalysisSection exerciseId="ex-1" />, { wrapper });
 }
 
 describe('PlateauAnalysisSection (5.3)', () => {
@@ -96,9 +91,7 @@ describe('PlateauAnalysisSection (5.3)', () => {
     expect(screen.getByText('Chargement…')).toBeInTheDocument();
     resolveFn?.(baseAnalysis());
     await screen.findByText('Progression régulière');
-    expect(
-      screen.getByText(/Pas de stagnation détectée/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Pas de stagnation détectée/i)).toBeInTheDocument();
   });
 
   it('affiche WATCH et PLATEAU avec preuves', async () => {
@@ -121,9 +114,7 @@ describe('PlateauAnalysisSection (5.3)', () => {
     );
     renderSection();
     await screen.findByText('Stagnation possible');
-    expect(
-      screen.getByText(/évoluent peu sur la période analysée/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/évoluent peu sur la période analysée/i)).toBeInTheDocument();
   });
 
   it('affiche INSUFFICIENT et REVIEW', async () => {

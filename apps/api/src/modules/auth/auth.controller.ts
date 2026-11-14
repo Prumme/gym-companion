@@ -1,21 +1,10 @@
-import {
-  Body,
-  Controller,
-  HttpCode,
-  Post,
-  Req,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { createSuccessResponse } from '@gym-companion/shared';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import {
-  JwtAuthGuard,
-  type AuthenticatedUser,
-} from '../../common/guards/jwt-auth.guard';
+import { JwtAuthGuard, type AuthenticatedUser } from '../../common/guards/jwt-auth.guard';
 import { AuthService, REFRESH_COOKIE } from './auth.service';
 
 @Controller('api/v1/auth')
@@ -47,10 +36,7 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(200)
-  async refresh(
-    @Req() request: Request,
-    @Res({ passthrough: true }) response: Response,
-  ) {
+  async refresh(@Req() request: Request, @Res({ passthrough: true }) response: Response) {
     const refreshToken =
       (request.signedCookies?.[REFRESH_COOKIE] as string | undefined) ??
       (request.cookies?.[REFRESH_COOKIE] as string | undefined);

@@ -34,14 +34,10 @@ export function WorkoutMetricsSummary({ metrics }: WorkoutMetricsSummaryProps) {
     );
   }
   if (flags.showDistance) {
-    lines.push(
-      `Distance : ${formatWorkoutDistance(metrics.performance.totalDistanceMeters)}`,
-    );
+    lines.push(`Distance : ${formatWorkoutDistance(metrics.performance.totalDistanceMeters)}`);
   }
   if (flags.showElapsed && metrics.elapsedDurationSeconds != null) {
-    lines.push(
-      `Durée écoulée : ${formatWorkoutElapsedSeconds(metrics.elapsedDurationSeconds)}`,
-    );
+    lines.push(`Durée écoulée : ${formatWorkoutElapsedSeconds(metrics.elapsedDurationSeconds)}`);
   }
 
   return (
@@ -62,8 +58,8 @@ export function WorkoutMetricsSummary({ metrics }: WorkoutMetricsSummaryProps) {
       </ul>
       {flags.showVolume ? (
         <p className="mt-3 text-xs text-[var(--muted)]">
-          Volume de travail : somme des charges externes × répétitions
-          enregistrées (échauffements exclus).
+          Volume de travail : somme des charges externes × répétitions enregistrées (échauffements
+          exclus).
         </p>
       ) : null}
     </section>

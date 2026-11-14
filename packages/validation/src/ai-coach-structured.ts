@@ -5,10 +5,8 @@
 
 import { z } from 'zod';
 
-export const AI_COACH_STRUCTURED_SCHEMA_VERSION =
-  'AI_COACH_STRUCTURED_V1' as const;
-export const AI_COACH_STRUCTURED_PROMPT_VERSION =
-  'AI_COACH_STRUCTURED_PROMPT_V1' as const;
+export const AI_COACH_STRUCTURED_SCHEMA_VERSION = 'AI_COACH_STRUCTURED_V1' as const;
+export const AI_COACH_STRUCTURED_PROMPT_VERSION = 'AI_COACH_STRUCTURED_PROMPT_V1' as const;
 
 export const AI_COACH_PROPOSAL_TEXT_MAX = 280;
 export const AI_COACH_DISCUSSION_TEXT_MAX = 1800;
@@ -134,10 +132,7 @@ export const coachProposalExerciseSchema = z
     exerciseId: z.string().uuid(),
     equipmentTypeId: z.string().uuid().nullable(),
     notes: z.string().max(500).nullable(),
-    sets: z
-      .array(coachProposalSetSchema)
-      .min(1)
-      .max(AI_COACH_PROPOSAL_MAX_SETS_PER_EXERCISE),
+    sets: z.array(coachProposalSetSchema).min(1).max(AI_COACH_PROPOSAL_MAX_SETS_PER_EXERCISE),
   })
   .strict();
 
@@ -158,16 +153,12 @@ export type CoachWorkoutProposal = z.infer<typeof coachWorkoutProposalSchema>;
 
 export const coachProgramScheduleEntrySchema = z
   .object({
-    weekday: z.enum([
-      'MONDAY',
-      'TUESDAY',
-      'WEDNESDAY',
-      'THURSDAY',
-      'FRIDAY',
-      'SATURDAY',
-      'SUNDAY',
-    ]),
-    workoutIndex: z.number().int().min(0).max(AI_COACH_PROPOSAL_MAX_WORKOUTS_PER_PROGRAM - 1),
+    weekday: z.enum(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']),
+    workoutIndex: z
+      .number()
+      .int()
+      .min(0)
+      .max(AI_COACH_PROPOSAL_MAX_WORKOUTS_PER_PROGRAM - 1),
     position: z.number().int().min(0).max(100),
   })
   .strict();
@@ -230,10 +221,7 @@ export const coachStructuredResponseSchema = z
       )
       .max(8)
       .default([]),
-    suggestedFollowUps: z
-      .array(z.string().min(1).max(160))
-      .max(3)
-      .default([]),
+    suggestedFollowUps: z.array(z.string().min(1).max(160)).max(3).default([]),
   })
   .strict()
   .superRefine((value, ctx) => {
@@ -310,13 +298,9 @@ export const coachStructuredResponseSchema = z
     }
   });
 
-export type CoachStructuredResponse = z.infer<
-  typeof coachStructuredResponseSchema
->;
+export type CoachStructuredResponse = z.infer<typeof coachStructuredResponseSchema>;
 
-export function parseCoachStructuredResponse(
-  value: unknown,
-): CoachStructuredResponse {
+export function parseCoachStructuredResponse(value: unknown): CoachStructuredResponse {
   return coachStructuredResponseSchema.parse(value);
 }
 
@@ -333,6 +317,4 @@ export const acceptCoachProposalBodySchema = z
   })
   .strict();
 
-export type AcceptCoachProposalInput = z.infer<
-  typeof acceptCoachProposalBodySchema
->;
+export type AcceptCoachProposalInput = z.infer<typeof acceptCoachProposalBodySchema>;

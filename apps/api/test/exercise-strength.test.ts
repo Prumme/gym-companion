@@ -17,8 +17,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -28,11 +27,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -56,10 +51,7 @@ async function createStartableTemplate(
   token: string,
   prisma: PrismaService,
   name: string,
-  measurementType:
-    | 'WEIGHT_REPS'
-    | 'DURATION'
-    | 'BODYWEIGHT_REPS' = 'WEIGHT_REPS',
+  measurementType: 'WEIGHT_REPS' | 'DURATION' | 'BODYWEIGHT_REPS' = 'WEIGHT_REPS',
   exerciseOverrideId?: string,
   extraWarmup = false,
 ): Promise<Startable> {
@@ -88,9 +80,7 @@ async function createStartableTemplate(
     .expect(201);
   const templateId = tpl.body.data.workoutTemplates[0].id as string;
   const ex = await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       exerciseId: exercise.id,
@@ -103,9 +93,7 @@ async function createStartableTemplate(
 
   if (extraWarmup && measurementType === 'WEIGHT_REPS') {
     await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`,
-      )
+      .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`)
       .set('Authorization', `Bearer ${token}`)
       .send({
         setType: 'WARMUP',
@@ -123,9 +111,7 @@ async function createStartableTemplate(
   }
 
   await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       setType: 'WORKING',
@@ -193,9 +179,7 @@ async function patchSet(
     throw new Error('Missing set');
   }
   const response = await request(app.getHttpServer())
-    .patch(
-      `/api/v1/workouts/${session.id}/exercises/${exercise.id}/sets/${set.id}`,
-    )
+    .patch(`/api/v1/workouts/${session.id}/exercises/${exercise.id}/sets/${set.id}`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       ...actuals,
@@ -224,9 +208,9 @@ async function completeWorkout(
     .expect(200);
 }
 
-function workingSetIndex(
-  session: { exercises: Array<{ sets: Array<{ setType: string }> }> },
-): number {
+function workingSetIndex(session: {
+  exercises: Array<{ sets: Array<{ setType: string }> }>;
+}): number {
   const sets = session.exercises[0]?.sets ?? [];
   const index = sets.findIndex((set) => set.setType === 'WORKING');
   return index >= 0 ? index : 0;
@@ -258,13 +242,7 @@ describe('Exercise strength API (4.5)', () => {
 
     tokenA = await registerUser(app, `str-a-${stamp}@example.com`, 'Str A');
     tokenB = await registerUser(app, `str-b-${stamp}@example.com`, 'Str B');
-    weightTpl = await createStartableTemplate(
-      app,
-      tokenA,
-      prisma,
-      `SW-${stamp}`,
-      'WEIGHT_REPS',
-    );
+    weightTpl = await createStartableTemplate(app, tokenA, prisma, `SW-${stamp}`, 'WEIGHT_REPS');
     weightWarmupTpl = await createStartableTemplate(
       app,
       tokenA,
@@ -414,12 +392,7 @@ describe('Exercise strength API (4.5)', () => {
   });
 
   it('filtre dates + 100×8 ≈ 126.67 + warmup/partial exclus', async () => {
-    const s = await startWorkout(
-      app,
-      tokenA,
-      weightWarmupTpl.templateId,
-      '2026-08-01',
-    );
+    const s = await startWorkout(app, tokenA, weightWarmupTpl.templateId, '2026-08-01');
     const warmupIdx = s.exercises[0]!.sets.findIndex((set) => set.setType === 'WARMUP');
     const workIdx = workingSetIndex(s);
     await patchSet(
@@ -467,10 +440,7 @@ describe('Exercise strength API (4.5)', () => {
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     expect(inRange.body.data.points).toHaveLength(1);
-    expect(inRange.body.data.points[0].estimatedOneRepMaxKg).toBeCloseTo(
-      126.6666667,
-      5,
-    );
+    expect(inRange.body.data.points[0].estimatedOneRepMaxKg).toBeCloseTo(126.6666667, 5);
     expect(inRange.body.data.points[0].sourceSet.weightKg).toBe(100);
 
     const outRange = await request(app.getHttpServer())
@@ -483,12 +453,7 @@ describe('Exercise strength API (4.5)', () => {
   });
 
   it('partial / failed / reps>12 / séance active / annulée exclus', async () => {
-    const sPartial = await startWorkout(
-      app,
-      tokenA,
-      weightTpl.templateId,
-      '2026-08-05',
-    );
+    const sPartial = await startWorkout(app, tokenA, weightTpl.templateId, '2026-08-05');
     await patchSet(
       app,
       tokenA,
@@ -509,12 +474,7 @@ describe('Exercise strength API (4.5)', () => {
     );
     await completeWorkout(app, tokenA, sPartial, `str-cp-${stamp}`);
 
-    const sFailed = await startWorkout(
-      app,
-      tokenA,
-      weightTpl.templateId,
-      '2026-08-06',
-    );
+    const sFailed = await startWorkout(app, tokenA, weightTpl.templateId, '2026-08-06');
     await patchSet(
       app,
       tokenA,
@@ -535,12 +495,7 @@ describe('Exercise strength API (4.5)', () => {
     );
     await completeWorkout(app, tokenA, sFailed, `str-cf-${stamp}`);
 
-    const sHighReps = await startWorkout(
-      app,
-      tokenA,
-      weightTpl.templateId,
-      '2026-08-07',
-    );
+    const sHighReps = await startWorkout(app, tokenA, weightTpl.templateId, '2026-08-07');
     await patchSet(
       app,
       tokenA,
@@ -561,12 +516,7 @@ describe('Exercise strength API (4.5)', () => {
     );
     await completeWorkout(app, tokenA, sHighReps, `str-c13-${stamp}`);
 
-    const sActive = await startWorkout(
-      app,
-      tokenA,
-      weightTpl.templateId,
-      '2026-08-08',
-    );
+    const sActive = await startWorkout(app, tokenA, weightTpl.templateId, '2026-08-08');
     await patchSet(
       app,
       tokenA,
@@ -605,12 +555,7 @@ describe('Exercise strength API (4.5)', () => {
       })
       .expect(200);
 
-    const sCancel = await startWorkout(
-      app,
-      tokenA,
-      weightTpl.templateId,
-      '2026-08-09',
-    );
+    const sCancel = await startWorkout(app, tokenA, weightTpl.templateId, '2026-08-09');
     await patchSet(
       app,
       tokenA,
@@ -640,12 +585,7 @@ describe('Exercise strength API (4.5)', () => {
       })
       .expect(200);
 
-    const sDecimal = await startWorkout(
-      app,
-      tokenA,
-      weightTpl.templateId,
-      '2026-08-10',
-    );
+    const sDecimal = await startWorkout(app, tokenA, weightTpl.templateId, '2026-08-10');
     await patchSet(
       app,
       tokenA,
@@ -666,12 +606,7 @@ describe('Exercise strength API (4.5)', () => {
     );
     await completeWorkout(app, tokenA, sDecimal, `str-c225-${stamp}`);
 
-    const s12 = await startWorkout(
-      app,
-      tokenA,
-      weightTpl.templateId,
-      '2026-08-11',
-    );
+    const s12 = await startWorkout(app, tokenA, weightTpl.templateId, '2026-08-11');
     await patchSet(
       app,
       tokenA,
@@ -703,9 +638,7 @@ describe('Exercise strength API (4.5)', () => {
       (p: { estimatedOneRepMaxKg: number }) => p.estimatedOneRepMaxKg,
     );
     expect(values).not.toContain(200);
-    expect(values.some((v: number) => Math.abs(v - 140 * (1 + 5 / 30)) < 0.01)).toBe(
-      false,
-    );
+    expect(values.some((v: number) => Math.abs(v - 140 * (1 + 5 / 30)) < 0.01)).toBe(false);
     expect(values).toContain(28.5);
     expect(values).toContain(70);
   });
@@ -814,9 +747,6 @@ describe('Exercise strength API (4.5)', () => {
       .expect(200);
     expect(response.body.data.exercise.archived).toBe(true);
     expect(response.body.data.points).toHaveLength(1);
-    expect(response.body.data.points[0].estimatedOneRepMaxKg).toBeCloseTo(
-      93.333333,
-      4,
-    );
+    expect(response.body.data.points[0].estimatedOneRepMaxKg).toBeCloseTo(93.333333, 4);
   });
 });

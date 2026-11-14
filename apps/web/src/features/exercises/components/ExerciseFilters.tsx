@@ -73,9 +73,7 @@ export function ExerciseFilters({
         label="Groupe musculaire"
         value={value.muscleGroupId ?? ''}
         disabled={referencesLoading}
-        onChange={(next) =>
-          onChange({ ...value, muscleGroupId: next || undefined })
-        }
+        onChange={(next) => onChange({ ...value, muscleGroupId: next || undefined })}
       >
         <option value="">Tous les groupes</option>
         {muscleGroups.map((group) => (
@@ -90,9 +88,7 @@ export function ExerciseFilters({
         label="Type d’équipement"
         value={value.equipmentTypeId ?? ''}
         disabled={referencesLoading}
-        onChange={(next) =>
-          onChange({ ...value, equipmentTypeId: next || undefined })
-        }
+        onChange={(next) => onChange({ ...value, equipmentTypeId: next || undefined })}
       >
         <option value="">Tous les équipements</option>
         {equipmentTypes.map((item) => (

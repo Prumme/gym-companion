@@ -27,11 +27,7 @@ type Props = {
 /**
  * Coordination matériel — labels humains (pas de jargon FIFO/SQL).
  */
-export function SharedWorkoutEquipmentSection({
-  roomId,
-  offline,
-  enabled,
-}: Props) {
+export function SharedWorkoutEquipmentSection({ roomId, offline, enabled }: Props) {
   const coordinationQuery = useQuery({
     ...sharedWorkoutEquipmentCoordinationQueryOptions(roomId),
     enabled,
@@ -61,19 +57,14 @@ export function SharedWorkoutEquipmentSection({
 
   if (!enabled) return null;
 
-  const busy =
-    requestMutation.isPending ||
-    releaseMutation.isPending ||
-    cancelMutation.isPending;
+  const busy = requestMutation.isPending || releaseMutation.isPending || cancelMutation.isPending;
 
   async function onRequest() {
     setLocalError(null);
     try {
       await requestMutation.mutateAsync(createClientCommandId());
     } catch (error) {
-      setLocalError(
-        getApiErrorMessage(error, 'Impossible de demander l’équipement.'),
-      );
+      setLocalError(getApiErrorMessage(error, 'Impossible de demander l’équipement.'));
     }
   }
 
@@ -83,9 +74,7 @@ export function SharedWorkoutEquipmentSection({
       await releaseMutation.mutateAsync(createClientCommandId());
       setPromotedNotice(false);
     } catch (error) {
-      setLocalError(
-        getApiErrorMessage(error, 'Impossible de libérer l’équipement.'),
-      );
+      setLocalError(getApiErrorMessage(error, 'Impossible de libérer l’équipement.'));
     }
   }
 
@@ -94,9 +83,7 @@ export function SharedWorkoutEquipmentSection({
     try {
       await cancelMutation.mutateAsync(createClientCommandId());
     } catch (error) {
-      setLocalError(
-        getApiErrorMessage(error, 'Impossible de quitter la file.'),
-      );
+      setLocalError(getApiErrorMessage(error, 'Impossible de quitter la file.'));
     }
   }
 
@@ -131,12 +118,8 @@ export function SharedWorkoutEquipmentSection({
 
       {my && my.state === 'USING' && my.equipment ? (
         <div className="flex flex-col gap-2 border-b border-[var(--border)] py-3">
-          <p className="text-sm font-semibold uppercase tracking-wide">
-            {my.equipment.name}
-          </p>
-          <p className="text-sm text-[var(--muted)]">
-            Tu l’utilises actuellement
-          </p>
+          <p className="text-sm font-semibold uppercase tracking-wide">{my.equipment.name}</p>
+          <p className="text-sm text-[var(--muted)]">Tu l’utilises actuellement</p>
           <Button
             type="button"
             className="w-fit"
@@ -150,18 +133,14 @@ export function SharedWorkoutEquipmentSection({
 
       {my && my.state === 'WAITING' && my.equipment ? (
         <div className="flex flex-col gap-2 border-b border-[var(--border)] py-3">
-          <p className="text-sm font-semibold uppercase tracking-wide">
-            {my.equipment.name}
-          </p>
+          <p className="text-sm font-semibold uppercase tracking-wide">{my.equipment.name}</p>
           {my.occupiedBy ? (
             <p className="text-sm text-[var(--muted)]">
               Utilisée par {my.occupiedBy.displayName ?? 'un membre'}
             </p>
           ) : null}
           {my.queuePosition != null ? (
-            <p className="text-sm text-[var(--foreground)]">
-              Ta position : {my.queuePosition}
-            </p>
+            <p className="text-sm text-[var(--foreground)]">Ta position : {my.queuePosition}</p>
           ) : (
             <p className="text-sm text-[var(--muted)]">En attente</p>
           )}
@@ -179,9 +158,7 @@ export function SharedWorkoutEquipmentSection({
 
       {my && my.state === 'AVAILABLE' && my.equipment ? (
         <div className="flex flex-col gap-2 border-b border-[var(--border)] py-3">
-          <p className="text-sm font-semibold uppercase tracking-wide">
-            {my.equipment.name}
-          </p>
+          <p className="text-sm font-semibold uppercase tracking-wide">{my.equipment.name}</p>
           {!my.occupiedBy ? (
             <>
               <p className="text-sm text-[var(--muted)]">Disponible</p>
@@ -215,8 +192,7 @@ export function SharedWorkoutEquipmentSection({
 
       {(!my || my.state === 'NONE') && !coordinationQuery.isLoading ? (
         <p className="text-sm text-[var(--muted)]">
-          Sélectionne un exercice avec équipement dans ta séance pour
-          coordonner.
+          Sélectionne un exercice avec équipement dans ta séance pour coordonner.
         </p>
       ) : null}
 
@@ -233,9 +209,7 @@ export function SharedWorkoutEquipmentSection({
             if (isMyEquipment) return null;
             return (
               <li key={item.equipment.id} className="py-3 text-sm">
-                <p className="font-semibold uppercase tracking-wide">
-                  {item.equipment.name}
-                </p>
+                <p className="font-semibold uppercase tracking-wide">{item.equipment.name}</p>
                 <p className="mt-1 text-[var(--muted)]">
                   {item.using
                     ? `Utilisée par ${item.using.displayName ?? 'un membre'}`

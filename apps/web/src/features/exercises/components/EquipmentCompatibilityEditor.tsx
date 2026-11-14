@@ -5,19 +5,13 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 
 import type { CompatibleEquipmentFormValue } from '../lib/exercise-form';
-import {
-  ensureSinglePreferred,
-  reconcileDefaultEquipment,
-} from '../lib/exercise-form';
+import { ensureSinglePreferred, reconcileDefaultEquipment } from '../lib/exercise-form';
 
 type EquipmentCompatibilityEditorProps = {
   equipmentTypes: EquipmentTypeReference[];
   value: CompatibleEquipmentFormValue[];
   defaultEquipmentTypeId: string;
-  onChange: (
-    compatible: CompatibleEquipmentFormValue[],
-    defaultEquipmentTypeId: string,
-  ) => void;
+  onChange: (compatible: CompatibleEquipmentFormValue[], defaultEquipmentTypeId: string) => void;
   error?: string;
   defaultError?: string;
   disabled?: boolean;
@@ -58,10 +52,7 @@ export function EquipmentCompatibilityEditor({
     if (!pendingId || selectedIds.has(pendingId)) {
       return;
     }
-    emit([
-      ...value,
-      { equipmentTypeId: pendingId, isPreferred: false, notes: '' },
-    ]);
+    emit([...value, { equipmentTypeId: pendingId, isPreferred: false, notes: '' }]);
     setPendingId('');
   }
 
@@ -72,10 +63,7 @@ export function EquipmentCompatibilityEditor({
     );
   }
 
-  function updateItem(
-    equipmentTypeId: string,
-    patch: Partial<CompatibleEquipmentFormValue>,
-  ) {
+  function updateItem(equipmentTypeId: string, patch: Partial<CompatibleEquipmentFormValue>) {
     let next = value.map((item) =>
       item.equipmentTypeId === equipmentTypeId ? { ...item, ...patch } : item,
     );
@@ -155,9 +143,7 @@ export function EquipmentCompatibilityEditor({
                   className="size-4"
                   checked={item.isPreferred}
                   disabled={disabled}
-                  onChange={() =>
-                    updateItem(item.equipmentTypeId, { isPreferred: true })
-                  }
+                  onChange={() => updateItem(item.equipmentTypeId, { isPreferred: true })}
                 />
                 <span>Équipement recommandé pour cet exercice</span>
               </label>
@@ -192,9 +178,7 @@ export function EquipmentCompatibilityEditor({
           variant="ghost"
           className="w-fit px-0"
           disabled={disabled}
-          onClick={() =>
-            emit(value.map((item) => ({ ...item, isPreferred: false })))
-          }
+          onClick={() => emit(value.map((item) => ({ ...item, isPreferred: false })))}
         >
           Retirer la recommandation
         </Button>

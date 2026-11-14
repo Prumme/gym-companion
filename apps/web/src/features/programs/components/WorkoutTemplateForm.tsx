@@ -61,8 +61,7 @@ export function WorkoutTemplateForm({
   const dirty =
     current.name !== baselineRef.current.name ||
     current.description !== baselineRef.current.description ||
-    current.estimatedDurationMinutes !==
-      baselineRef.current.estimatedDurationMinutes;
+    current.estimatedDurationMinutes !== baselineRef.current.estimatedDurationMinutes;
 
   if (!open) {
     return null;
@@ -74,9 +73,7 @@ export function WorkoutTemplateForm({
     }
     if (
       dirty &&
-      !window.confirm(
-        'Des modifications non enregistrées seront perdues. Continuer ?',
-      )
+      !window.confirm('Des modifications non enregistrées seront perdues. Continuer ?')
     ) {
       return;
     }
@@ -123,10 +120,7 @@ export function WorkoutTemplateForm({
             ) : null}
           </label>
 
-          <label
-            className="flex flex-col gap-1.5 text-sm"
-            htmlFor="template-description"
-          >
+          <label className="flex flex-col gap-1.5 text-sm" htmlFor="template-description">
             <span className="font-medium">Description</span>
             <textarea
               id="template-description"
@@ -141,10 +135,7 @@ export function WorkoutTemplateForm({
             ) : null}
           </label>
 
-          <label
-            className="flex flex-col gap-1.5 text-sm"
-            htmlFor="template-duration"
-          >
+          <label className="flex flex-col gap-1.5 text-sm" htmlFor="template-duration">
             <span className="font-medium">Durée estimée (minutes)</span>
             <input
               id="template-duration"
@@ -169,12 +160,7 @@ export function WorkoutTemplateForm({
           ) : null}
 
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={pending}
-              onClick={requestClose}
-            >
+            <Button type="button" variant="secondary" disabled={pending} onClick={requestClose}>
               Annuler
             </Button>
             <Button type="submit" disabled={pending}>

@@ -41,9 +41,7 @@ function parseSyncState(raw: unknown): StoredWorkoutSyncState | null {
   return parsed.data;
 }
 
-export async function saveSnapshot(
-  snapshot: StoredWorkoutSnapshot,
-): Promise<void> {
+export async function saveSnapshot(snapshot: StoredWorkoutSnapshot): Promise<void> {
   const db = await getOfflineDb();
   await db.put('workoutSnapshots', snapshot);
 }
@@ -53,16 +51,11 @@ export async function getSnapshot(
   workoutSessionId: string,
 ): Promise<StoredWorkoutSnapshot | null> {
   const db = await getOfflineDb();
-  const raw = await db.get(
-    'workoutSnapshots',
-    snapshotStorageKey(userId, workoutSessionId),
-  );
+  const raw = await db.get('workoutSnapshots', snapshotStorageKey(userId, workoutSessionId));
   return parseSnapshot(raw);
 }
 
-export async function listSnapshotsForUser(
-  userId: string,
-): Promise<StoredWorkoutSnapshot[]> {
+export async function listSnapshotsForUser(userId: string): Promise<StoredWorkoutSnapshot[]> {
   const db = await getOfflineDb();
   const rows = await db.getAllFromIndex('workoutSnapshots', 'by-user', userId);
   return rows
@@ -75,10 +68,7 @@ export async function getLocalActiveSnapshot(
 ): Promise<StoredWorkoutSnapshot | null> {
   const snapshots = await listSnapshotsForUser(userId);
   const active = snapshots
-    .filter(
-      (snapshot) =>
-        snapshot.data.status === 'ACTIVE' || snapshot.data.status === 'PAUSED',
-    )
+    .filter((snapshot) => snapshot.data.status === 'ACTIVE' || snapshot.data.status === 'PAUSED')
     .sort((a, b) => b.savedAt.localeCompare(a.savedAt));
   return active[0] ?? null;
 }
@@ -106,7 +96,7 @@ export async function persistServerSnapshot(
     };
     await saveSnapshot(snapshot);
     const previousLease = existing
-      ? (await getSyncState(userId, detail.id))?.lease ?? null
+      ? ((await getSyncState(userId, detail.id))?.lease ?? null)
       : null;
     await putSyncState({
       key: snapshot.key,
@@ -140,9 +130,7 @@ export async function listOpenCommands(
   return rows
     .map((row) => parseCommand(row))
     .filter((row): row is StoredWorkoutCommand => row != null)
-    .filter((row) =>
-      ['PENDING', 'SYNCING', 'CONFLICT', 'REJECTED'].includes(row.status),
-    )
+    .filter((row) => ['PENDING', 'SYNCING', 'CONFLICT', 'REJECTED'].includes(row.status))
     .sort((a, b) => a.sequence - b.sequence);
 }
 
@@ -154,10 +142,7 @@ export async function listPendingCommands(
   return open.filter((command) => command.status === 'PENDING');
 }
 
-export async function nextSequence(
-  userId: string,
-  workoutSessionId: string,
-): Promise<number> {
+export async function nextSequence(userId: string, workoutSessionId: string): Promise<number> {
   const open = await listOpenCommands(userId, workoutSessionId);
   const db = await getOfflineDb();
   const all = await db.getAllFromIndex('workoutCommands', 'by-user-session', [
@@ -192,10 +177,7 @@ export async function deleteCommandsForSession(
     workoutSessionId,
   ]);
   const tx = db.transaction('workoutCommands', 'readwrite');
-  await Promise.all([
-    ...rows.map((row) => tx.store.delete(row.id)),
-    tx.done,
-  ]);
+  await Promise.all([...rows.map((row) => tx.store.delete(row.id)), tx.done]);
 }
 
 export async function getSyncState(
@@ -203,16 +185,11 @@ export async function getSyncState(
   workoutSessionId: string,
 ): Promise<StoredWorkoutSyncState | null> {
   const db = await getOfflineDb();
-  const raw = await db.get(
-    'workoutSyncState',
-    snapshotStorageKey(userId, workoutSessionId),
-  );
+  const raw = await db.get('workoutSyncState', snapshotStorageKey(userId, workoutSessionId));
   return parseSyncState(raw);
 }
 
-export async function putSyncState(
-  state: StoredWorkoutSyncState,
-): Promise<void> {
+export async function putSyncState(state: StoredWorkoutSyncState): Promise<void> {
   const db = await getOfflineDb();
   await db.put('workoutSyncState', state);
 }
@@ -235,14 +212,11 @@ export async function atomicEnqueue(args: {
   ]);
 }
 
-export async function hasPendingCommandsForUser(
-  userId: string,
-): Promise<boolean> {
+export async function hasPendingCommandsForUser(userId: string): Promise<boolean> {
   const all = await (await getOfflineDb()).getAll('workoutCommands');
   return all.some(
     (row) =>
-      row.userId === userId &&
-      ['PENDING', 'SYNCING', 'CONFLICT', 'REJECTED'].includes(row.status),
+      row.userId === userId && ['PENDING', 'SYNCING', 'CONFLICT', 'REJECTED'].includes(row.status),
   );
 }
 
@@ -267,20 +241,18 @@ export async function listPendingTerminalSnapshots(
   const snapshots = await listSnapshotsForUser(userId);
   const pending: StoredWorkoutSnapshot[] = [];
   for (const snapshot of snapshots) {
-    if (
-      snapshot.data.status !== 'COMPLETED' &&
-      snapshot.data.status !== 'CANCELLED'
-    ) {
+    if (snapshot.data.status !== 'COMPLETED' && snapshot.data.status !== 'CANCELLED') {
       continue;
     }
     if (await hasPendingTerminalCommand(userId, snapshot.workoutSessionId)) {
       pending.push(snapshot);
     }
   }
-  return pending.sort((a, b) =>
-    b.data.localDate.localeCompare(a.data.localDate) ||
-    b.data.startedAt.localeCompare(a.data.startedAt) ||
-    b.workoutSessionId.localeCompare(a.workoutSessionId),
+  return pending.sort(
+    (a, b) =>
+      b.data.localDate.localeCompare(a.data.localDate) ||
+      b.data.startedAt.localeCompare(a.data.startedAt) ||
+      b.workoutSessionId.localeCompare(a.workoutSessionId),
   );
 }
 
@@ -288,8 +260,7 @@ export async function countPendingForUser(userId: string): Promise<number> {
   const all = await (await getOfflineDb()).getAll('workoutCommands');
   return all.filter(
     (row) =>
-      row.userId === userId &&
-      ['PENDING', 'SYNCING', 'CONFLICT', 'REJECTED'].includes(row.status),
+      row.userId === userId && ['PENDING', 'SYNCING', 'CONFLICT', 'REJECTED'].includes(row.status),
   ).length;
 }
 
@@ -298,11 +269,7 @@ export async function clearAllForUser(userId: string): Promise<string[]> {
   const snapshots = await db.getAllFromIndex('workoutSnapshots', 'by-user', userId);
   const sessionIds = snapshots.map((s) => s.workoutSessionId);
   const commands = await db.getAll('workoutCommands');
-  const syncStates = await db.getAllFromIndex(
-    'workoutSyncState',
-    'by-user',
-    userId,
-  );
+  const syncStates = await db.getAllFromIndex('workoutSyncState', 'by-user', userId);
 
   const tx = db.transaction(
     ['workoutSnapshots', 'workoutCommands', 'workoutSyncState'],

@@ -71,10 +71,6 @@ describe('workout labels', () => {
         }),
       ),
     ).toBe('10 reps · 60 kg · RIR 2');
-    expect(
-      formatWorkoutSetActualCompact(
-        createWorkoutSet({ status: 'SKIPPED' }),
-      ),
-    ).toBe('Ignorée');
+    expect(formatWorkoutSetActualCompact(createWorkoutSet({ status: 'SKIPPED' }))).toBe('Ignorée');
   });
 });

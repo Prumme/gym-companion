@@ -20,6 +20,7 @@ import { WorkoutConflictPanel } from '../components/WorkoutConflictPanel';
 import { WorkoutLifecycleActions } from '../components/WorkoutLifecycleActions';
 import { WorkoutSyncBanner } from '../components/WorkoutSyncBanner';
 import { useRestTimer } from '../hooks/use-rest-timer';
+import { useRestEndSignal } from '../hooks/use-rest-end-signal';
 import { useScreenWakeLock } from '../hooks/use-screen-wake-lock';
 import { useWorkoutLifecycleControls } from '../hooks/use-workout-lifecycle-controls';
 import { useWorkoutOfflineSync } from '../hooks/use-workout-offline-sync';
@@ -73,10 +74,7 @@ export function ActiveWorkoutPage() {
       <section className="mx-auto flex w-full max-w-xl flex-col gap-4">
         <h1 className="text-2xl font-semibold">Séance en cours</h1>
         <p className="text-sm text-[var(--danger)]" role="alert">
-          {getApiErrorMessage(
-            query.error,
-            'Impossible de charger la séance en cours.',
-          )}
+          {getApiErrorMessage(query.error, 'Impossible de charger la séance en cours.')}
         </p>
       </section>
     );
@@ -142,20 +140,17 @@ function ActiveWorkoutSessionView({
     [session.exercises],
   );
   const loadCues = useActiveWorkoutLoadCues(catalogExerciseIds);
-  const sharedSync = useSyncSharedCurrentExercise(
-    session.id,
-    navigation.selectedExerciseId,
-  );
+  const sharedSync = useSyncSharedCurrentExercise(session.id, navigation.selectedExerciseId);
+  const restEndSignal = useRestEndSignal();
   const restTimer = useRestTimer({
     workoutSessionId: session.id,
     enabled: true,
+    onExpired: restEndSignal.signal,
   });
 
   // Wake lock uniquement tant que l’UI Active Workout affiche une séance
   // en cours (ACTIVE / PAUSED). Terminer / annuler / quitter la page → release.
-  useScreenWakeLock(
-    session.status === 'ACTIVE' || session.status === 'PAUSED',
-  );
+  useScreenWakeLock(session.status === 'ACTIVE' || session.status === 'PAUSED');
 
   const lifecycle = useWorkoutLifecycleControls(session, {
     onVersionConflict: onRefetch,
@@ -173,29 +168,23 @@ function ActiveWorkoutSessionView({
 
   const progress = useMemo(() => computeWorkoutProgress(session), [session]);
   const nextPending = useMemo(() => findNextPendingSet(session), [session]);
-  const effortTrackingMode =
-    meQuery.data?.data.profile.effortTrackingMode ?? 'NONE';
+  const effortTrackingMode = meQuery.data?.data.profile.effortTrackingMode ?? 'NONE';
   const selectedExercise = navigation.selectedExercise;
   const workoutFullyTreated =
     progress.totalExercises > 0 &&
     progress.treatedExercises === progress.totalExercises &&
     progress.pendingSets === 0;
   const restTimerActive =
-    !workoutFullyTreated &&
-    (restTimer.isRunning || restTimer.isPaused || restTimer.justExpired);
+    !workoutFullyTreated && (restTimer.isRunning || restTimer.isPaused || restTimer.justExpired);
 
   const exerciseCompleteWithNext =
-    Boolean(selectedExercise) &&
-    isExerciseTreated(selectedExercise!) &&
-    navigation.hasNext;
+    Boolean(selectedExercise) && isExerciseTreated(selectedExercise!) && navigation.hasNext;
 
   const nextSetHint = useMemo(() => {
     if (!selectedExercise || exerciseCompleteWithNext) return null;
     const next =
       findNextPendingSetInExercise(selectedExercise) ??
-      (nextPending?.exerciseId === selectedExercise.id
-        ? nextPending.set
-        : null);
+      (nextPending?.exerciseId === selectedExercise.id ? nextPending.set : null);
     return next ? formatWorkoutSetTargetCompact(next) : null;
   }, [selectedExercise, nextPending, exerciseCompleteWithNext]);
 
@@ -217,318 +206,297 @@ function ActiveWorkoutSessionView({
       data-rest-timer-active={restTimerActive ? 'true' : 'false'}
     >
       <div className="flex flex-col gap-4" data-active-workout-scroll>
-      {showDiscreteSync ||
-      offlineSync.status === 'CONFLICT' ||
-      offlineSync.status === 'ERROR' ? (
-        <WorkoutSyncBanner
-          label={offlineSync.label}
-          status={offlineSync.status}
-          pendingCount={offlineSync.pendingCount}
-          browserOffline={offlineSync.browserOffline}
-          fromLocalSnapshot={fromLocalSnapshot}
-          onSyncNow={() => {
-            void offlineSync.syncNow();
-          }}
-          syncDisabled={offlineSync.status === 'CONFLICT'}
-          compact
-        />
-      ) : null}
+        {showDiscreteSync || offlineSync.status === 'CONFLICT' || offlineSync.status === 'ERROR' ? (
+          <WorkoutSyncBanner
+            label={offlineSync.label}
+            status={offlineSync.status}
+            pendingCount={offlineSync.pendingCount}
+            browserOffline={offlineSync.browserOffline}
+            fromLocalSnapshot={fromLocalSnapshot}
+            onSyncNow={() => {
+              void offlineSync.syncNow();
+            }}
+            syncDisabled={offlineSync.status === 'CONFLICT'}
+            compact
+          />
+        ) : null}
 
-      {sharedSync.syncError ? (
-        <p className="text-sm text-[var(--danger)]" role="alert">
-          {sharedSync.syncError}
-        </p>
-      ) : null}
-
-      {offlineSync.status === 'CONFLICT' ||
-      (offlineSync.status === 'ERROR' && offlineSync.conflictCommand) ? (
-        <WorkoutConflictPanel
-          pendingCount={offlineSync.pendingCount}
-          conflictCommand={offlineSync.conflictCommand}
-          onKeepServer={offlineSync.keepServer}
-          onReapplyLocal={offlineSync.reapplyLocal}
-        />
-      ) : null}
-
-      <ActiveWorkoutHeader
-        session={session}
-        progress={progress}
-        currentExerciseIndex={Math.max(0, navigation.selectedIndex)}
-        totalExercises={session.exercises.length}
-        offline={false}
-        pausePending={lifecycle.pausePending}
-        resumePending={lifecycle.resumePending}
-        onPause={
-          session.permissions.canPause
-            ? () => {
-                void lifecycle.pause();
-              }
-            : undefined
-        }
-        onResume={
-          session.permissions.canResume
-            ? () => {
-                void lifecycle.resume();
-              }
-            : undefined
-        }
-        onOpenComplete={
-          session.permissions.canComplete
-            ? () => setCompleteOpen(true)
-            : undefined
-        }
-        onOpenCancel={
-          session.permissions.canCancel
-            ? () => setCancelOpen(true)
-            : undefined
-        }
-      />
-
-      {(lifecycle.pauseError as ApiRequestError | null)?.code ===
-        'WORKOUT_VERSION_CONFLICT' ||
-      (lifecycle.resumeError as ApiRequestError | null)?.code ===
-        'WORKOUT_VERSION_CONFLICT' ? (
-        <p className="text-sm text-[var(--danger)]" role="alert">
-          La séance a été modifiée depuis un autre onglet ou appareil.
-        </p>
-      ) : null}
-
-      {session.status === 'PAUSED' ? (
-        <div
-          className="flex flex-col gap-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-3 py-3"
-          role="status"
-        >
-          <p className="text-sm font-medium">Séance en pause</p>
-          <p className="text-sm text-[var(--muted)]">
-            Saisie des séries désactivée pendant la pause.
-          </p>
-          {session.permissions.canResume ? (
-            <Button
-              type="button"
-              disabled={lifecycle.resumePending}
-              onClick={() => {
-                void lifecycle.resume();
-              }}
-            >
-              {lifecycle.resumePending ? 'Reprise…' : 'Reprendre la séance'}
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
-
-      {resumeTimerPrompt && restTimer.isPaused ? (
-        <div
-          className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-3 py-3"
-          role="status"
-        >
-          <p className="text-sm">Reprendre la minuterie de repos locale ?</p>
-          <div className="mt-2 flex gap-2">
-            <Button
-              type="button"
-              className="flex-1"
-              onClick={() => {
-                restTimer.resume();
-                setResumeTimerPrompt(false);
-              }}
-            >
-              Reprendre le repos
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              className="flex-1"
-              onClick={() => setResumeTimerPrompt(false)}
-            >
-              Plus tard
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
-      <ExerciseSwipeSurface
-        enabled={session.exercises.length > 1}
-        hasPrevious={navigation.hasPrevious}
-        hasNext={navigation.hasNext}
-        onPrevious={navigation.goToPrevious}
-        onNext={navigation.goToNext}
-        exerciseKey={navigation.selectedExerciseId ?? 'none'}
-      >
-      <ExerciseNavigator
-        exercises={session.exercises}
-        selectedExerciseId={navigation.selectedExerciseId}
-        onSelect={navigation.selectExercise}
-        onPrevious={navigation.goToPrevious}
-        onNext={navigation.goToNext}
-        hasPrevious={navigation.hasPrevious}
-        hasNext={navigation.hasNext}
-      />
-
-      {selectedExercise ? (
-        <ActiveExercisePanel
-          session={session}
-          exercise={selectedExercise}
-          effortTrackingMode={effortTrackingMode}
-          canRecordSets={session.permissions.canRecordSets}
-          nextPendingSetId={nextPending?.setId ?? null}
-          exerciseIndex={Math.max(0, navigation.selectedIndex)}
-          totalExercises={session.exercises.length}
-          hasNextExercise={navigation.hasNext}
-          onGoToNextExercise={navigation.goToNext}
-          onOpenComplete={
-            session.permissions.canComplete
-              ? () => setCompleteOpen(true)
-              : undefined
-          }
-          restTimerActive={restTimerActive}
-          browserOffline={offlineSync.browserOffline}
-          loadRecords={loadCues.records}
-          lastWorkingSet={
-            selectedExercise.sourceExerciseId
-              ? loadCues.lastByExercise.get(selectedExercise.sourceExerciseId)
-              : undefined
-          }
-          loadCuesReady={loadCues.isFetched}
-          onVersionConflict={onRefetch}
-          onSetRecorded={({ status, setId, set, exercise }) => {
-            if (
-              shouldSuppressRestAfterSet({
-                session,
-                exercise,
-                setId,
-                status,
-              })
-            ) {
-              if (restTimer.isRunning || restTimer.isPaused || restTimer.justExpired) {
-                restTimer.stop();
-              }
-              return;
-            }
-            if (!shouldAutoStartRest(status)) {
-              return;
-            }
-            const rest = resolveRestSeconds(set, exercise);
-            if (rest != null && rest > 0) {
-              restTimer.start(rest, setId);
-            }
-          }}
-        />
-      ) : null}
-      </ExerciseSwipeSurface>
-
-      <div className="flex flex-col gap-2">
-        {addExerciseError ? (
+        {sharedSync.syncError ? (
           <p className="text-sm text-[var(--danger)]" role="alert">
-            {addExerciseError}
+            {sharedSync.syncError}
           </p>
         ) : null}
-        <Button
-          type="button"
-          variant="secondary"
-          className="w-full"
-          disabled={
-            session.status !== 'ACTIVE' ||
-            offlineSync.browserOffline ||
-            addExerciseMutation.isPending
-          }
-          title={
-            offlineSync.browserOffline
-              ? 'Connexion nécessaire pour ajouter un exercice.'
-              : session.status !== 'ACTIVE'
-                ? 'Reprenez la séance pour ajouter un exercice.'
-                : undefined
-          }
-          onClick={() => {
-            setAddExerciseError(null);
-            setAddExerciseOpen(true);
-          }}
-        >
-          <Plus className="size-4" aria-hidden="true" />
-          Ajouter un exercice
-        </Button>
-      </div>
 
-      <AddSessionExerciseSheet
-        open={addExerciseOpen}
-        presentExerciseIds={catalogExerciseIds}
-        pending={addExerciseMutation.isPending}
-        errorMessage={addExerciseError}
-        onClose={() => {
-          if (!addExerciseMutation.isPending) {
-            setAddExerciseOpen(false);
-            setAddExerciseError(null);
+        {offlineSync.status === 'CONFLICT' ||
+        (offlineSync.status === 'ERROR' && offlineSync.conflictCommand) ? (
+          <WorkoutConflictPanel
+            pendingCount={offlineSync.pendingCount}
+            conflictCommand={offlineSync.conflictCommand}
+            onKeepServer={offlineSync.keepServer}
+            onReapplyLocal={offlineSync.reapplyLocal}
+          />
+        ) : null}
+
+        <ActiveWorkoutHeader
+          session={session}
+          progress={progress}
+          currentExerciseIndex={Math.max(0, navigation.selectedIndex)}
+          totalExercises={session.exercises.length}
+          offline={false}
+          pausePending={lifecycle.pausePending}
+          resumePending={lifecycle.resumePending}
+          onPause={
+            session.permissions.canPause
+              ? () => {
+                  void lifecycle.pause();
+                }
+              : undefined
           }
-        }}
-        onAdd={(chosen) => {
-          setAddExerciseError(null);
-          addExerciseMutation.mutate(
-            {
-              exerciseId: chosen.id,
-              expectedVersion: session.version,
-            },
-            {
-              onSuccess: (detail) => {
-                setAddExerciseOpen(false);
-                const added = detail.exercises.find(
-                  (exercise) => exercise.sourceExerciseId === chosen.id,
-                );
-                if (added) {
-                  navigation.selectExercise(added.id);
+          onResume={
+            session.permissions.canResume
+              ? () => {
+                  void lifecycle.resume();
                 }
-              },
-              onError: (error) => {
-                const code =
-                  error &&
-                  typeof error === 'object' &&
-                  'code' in error &&
-                  typeof (error as { code: unknown }).code === 'string'
-                    ? (error as { code: string }).code
-                    : null;
-                if (code === 'WORKOUT_VERSION_CONFLICT') {
-                  onRefetch();
-                }
+              : undefined
+          }
+          onOpenComplete={session.permissions.canComplete ? () => setCompleteOpen(true) : undefined}
+          onOpenCancel={session.permissions.canCancel ? () => setCancelOpen(true) : undefined}
+        />
+
+        {(lifecycle.pauseError as ApiRequestError | null)?.code === 'WORKOUT_VERSION_CONFLICT' ||
+        (lifecycle.resumeError as ApiRequestError | null)?.code === 'WORKOUT_VERSION_CONFLICT' ? (
+          <p className="text-sm text-[var(--danger)]" role="alert">
+            La séance a été modifiée depuis un autre onglet ou appareil.
+          </p>
+        ) : null}
+
+        {session.status === 'PAUSED' ? (
+          <div
+            className="flex flex-col gap-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-3 py-3"
+            role="status"
+          >
+            <p className="text-sm font-medium">Séance en pause</p>
+            <p className="text-sm text-[var(--muted)]">
+              Saisie des séries désactivée pendant la pause.
+            </p>
+            {session.permissions.canResume ? (
+              <Button
+                type="button"
+                disabled={lifecycle.resumePending}
+                onClick={() => {
+                  void lifecycle.resume();
+                }}
+              >
+                {lifecycle.resumePending ? 'Reprise…' : 'Reprendre la séance'}
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {resumeTimerPrompt && restTimer.isPaused ? (
+          <div
+            className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-3 py-3"
+            role="status"
+          >
+            <p className="text-sm">Reprendre la minuterie de repos locale ?</p>
+            <div className="mt-2 flex gap-2">
+              <Button
+                type="button"
+                className="flex-1"
+                onClick={() => {
+                  restTimer.resume();
+                  setResumeTimerPrompt(false);
+                }}
+              >
+                Reprendre le repos
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="flex-1"
+                onClick={() => setResumeTimerPrompt(false)}
+              >
+                Plus tard
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        <ExerciseSwipeSurface
+          enabled={session.exercises.length > 1}
+          hasPrevious={navigation.hasPrevious}
+          hasNext={navigation.hasNext}
+          onPrevious={navigation.goToPrevious}
+          onNext={navigation.goToNext}
+          exerciseKey={navigation.selectedExerciseId ?? 'none'}
+        >
+          <ExerciseNavigator
+            exercises={session.exercises}
+            selectedExerciseId={navigation.selectedExerciseId}
+            onSelect={navigation.selectExercise}
+            onPrevious={navigation.goToPrevious}
+            onNext={navigation.goToNext}
+            hasPrevious={navigation.hasPrevious}
+            hasNext={navigation.hasNext}
+          />
+
+          {selectedExercise ? (
+            <ActiveExercisePanel
+              session={session}
+              exercise={selectedExercise}
+              effortTrackingMode={effortTrackingMode}
+              canRecordSets={session.permissions.canRecordSets}
+              nextPendingSetId={nextPending?.setId ?? null}
+              exerciseIndex={Math.max(0, navigation.selectedIndex)}
+              totalExercises={session.exercises.length}
+              hasNextExercise={navigation.hasNext}
+              onGoToNextExercise={navigation.goToNext}
+              onOpenComplete={
+                session.permissions.canComplete ? () => setCompleteOpen(true) : undefined
+              }
+              restTimerActive={restTimerActive}
+              browserOffline={offlineSync.browserOffline}
+              loadRecords={loadCues.records}
+              lastWorkingSet={
+                selectedExercise.sourceExerciseId
+                  ? loadCues.lastByExercise.get(selectedExercise.sourceExerciseId)
+                  : undefined
+              }
+              loadCuesReady={loadCues.isFetched}
+              weightUnit={meQuery.data?.data.profile.weightUnit ?? 'KG'}
+              onVersionConflict={onRefetch}
+              onSetRecorded={({ status, setId, set, exercise }) => {
                 if (
-                  code === 'OFFLINE' ||
-                  (error as { status?: number }).status === 0
+                  shouldSuppressRestAfterSet({
+                    session,
+                    exercise,
+                    setId,
+                    status,
+                  })
                 ) {
-                  setAddExerciseError(
-                    'Connexion nécessaire pour ajouter un exercice.',
-                  );
+                  if (restTimer.isRunning || restTimer.isPaused || restTimer.justExpired) {
+                    restTimer.stop();
+                  }
                   return;
                 }
-                setAddExerciseError(
-                  getApiErrorMessage(
-                    error,
-                    'Impossible d’ajouter cet exercice.',
-                  ),
-                );
-              },
-            },
-          );
-        }}
-      />
+                if (!shouldAutoStartRest(status)) {
+                  return;
+                }
+                const rest = resolveRestSeconds(set, exercise);
+                if (rest != null && rest > 0) {
+                  restTimer.start(rest, setId);
+                }
+              }}
+            />
+          ) : null}
+        </ExerciseSwipeSurface>
 
-      <WorkoutLifecycleActions
-        session={session}
-        showInlineButtons={false}
-        completeOpen={completeOpen}
-        cancelOpen={cancelOpen}
-        onCompleteOpenChange={setCompleteOpen}
-        onCancelOpenChange={setCancelOpen}
-        onVersionConflict={onRefetch}
-        onPaused={() => {
-          if (restTimer.isRunning) {
-            restTimer.pause();
-          }
-        }}
-        onResumed={() => {
-          if (restTimer.isPaused) {
-            setResumeTimerPrompt(true);
-          }
-        }}
-        onTerminated={() => {
-          restTimer.stop();
-        }}
-      />
+        <div className="flex flex-col gap-2">
+          {addExerciseError ? (
+            <p className="text-sm text-[var(--danger)]" role="alert">
+              {addExerciseError}
+            </p>
+          ) : null}
+          <Button
+            type="button"
+            variant="secondary"
+            className="w-full"
+            disabled={
+              session.status !== 'ACTIVE' ||
+              offlineSync.browserOffline ||
+              addExerciseMutation.isPending
+            }
+            title={
+              offlineSync.browserOffline
+                ? 'Connexion nécessaire pour ajouter un exercice.'
+                : session.status !== 'ACTIVE'
+                  ? 'Reprenez la séance pour ajouter un exercice.'
+                  : undefined
+            }
+            onClick={() => {
+              setAddExerciseError(null);
+              setAddExerciseOpen(true);
+            }}
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            Ajouter un exercice
+          </Button>
+        </div>
+
+        <AddSessionExerciseSheet
+          open={addExerciseOpen}
+          presentExerciseIds={catalogExerciseIds}
+          pending={addExerciseMutation.isPending}
+          errorMessage={addExerciseError}
+          onClose={() => {
+            if (!addExerciseMutation.isPending) {
+              setAddExerciseOpen(false);
+              setAddExerciseError(null);
+            }
+          }}
+          onAdd={(chosen) => {
+            setAddExerciseError(null);
+            addExerciseMutation.mutate(
+              {
+                exerciseId: chosen.id,
+                expectedVersion: session.version,
+              },
+              {
+                onSuccess: (detail) => {
+                  setAddExerciseOpen(false);
+                  const added = detail.exercises.find(
+                    (exercise) => exercise.sourceExerciseId === chosen.id,
+                  );
+                  if (added) {
+                    navigation.selectExercise(added.id);
+                  }
+                },
+                onError: (error) => {
+                  const code =
+                    error &&
+                    typeof error === 'object' &&
+                    'code' in error &&
+                    typeof (error as { code: unknown }).code === 'string'
+                      ? (error as { code: string }).code
+                      : null;
+                  if (code === 'WORKOUT_VERSION_CONFLICT') {
+                    onRefetch();
+                  }
+                  if (code === 'OFFLINE' || (error as { status?: number }).status === 0) {
+                    setAddExerciseError('Connexion nécessaire pour ajouter un exercice.');
+                    return;
+                  }
+                  setAddExerciseError(
+                    getApiErrorMessage(error, 'Impossible d’ajouter cet exercice.'),
+                  );
+                },
+              },
+            );
+          }}
+        />
+
+        <WorkoutLifecycleActions
+          session={session}
+          showInlineButtons={false}
+          completeOpen={completeOpen}
+          cancelOpen={cancelOpen}
+          onCompleteOpenChange={setCompleteOpen}
+          onCancelOpenChange={setCancelOpen}
+          onVersionConflict={onRefetch}
+          onPaused={() => {
+            if (restTimer.isRunning) {
+              restTimer.pause();
+            }
+          }}
+          onResumed={() => {
+            if (restTimer.isPaused) {
+              setResumeTimerPrompt(true);
+            }
+          }}
+          onTerminated={() => {
+            restTimer.stop();
+          }}
+        />
       </div>
 
       {!workoutFullyTreated ? (
@@ -542,13 +510,13 @@ function ActiveWorkoutSessionView({
           onStop={restTimer.stop}
           onAdd={restTimer.addSeconds}
           onDismissExpired={restTimer.clearExpiredBanner}
+          signalPreferences={restEndSignal.preferences}
+          onSignalPreferenceChange={restEndSignal.setPreference}
+          vibrationSupported={restEndSignal.vibrationSupported}
+          soundSupported={restEndSignal.soundSupported}
           nextSetHint={nextSetHint}
-          primaryActionLabel={
-            exerciseCompleteWithNext ? 'Exercice suivant' : null
-          }
-          onPrimaryAction={
-            exerciseCompleteWithNext ? navigation.goToNext : undefined
-          }
+          primaryActionLabel={exerciseCompleteWithNext ? 'Exercice suivant' : null}
+          onPrimaryAction={exerciseCompleteWithNext ? navigation.goToNext : undefined}
         />
       ) : null}
     </section>

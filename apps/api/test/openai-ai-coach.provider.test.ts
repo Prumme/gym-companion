@@ -55,9 +55,7 @@ describe('OpenAiCoachProvider (Responses API)', () => {
     expect(body.instructions).toBeTruthy();
     expect(Array.isArray(body.input)).toBe(true);
     expect(body.tools).toBeUndefined();
-    expect((body.text as { format: { type: string } }).format.type).toBe(
-      'json_schema',
-    );
+    expect((body.text as { format: { type: string } }).format.type).toBe('json_schema');
   });
 
   it('C — Structured Output wire compact strict', () => {
@@ -267,40 +265,37 @@ describe('OpenAiCoachProvider (Responses API)', () => {
     [401, 'AI_COACH_UNAVAILABLE'],
     [429, 'AI_COACH_RATE_LIMITED'],
     [500, 'AI_COACH_UNAVAILABLE'],
-  ] as const)(
-    'OpenAI HTTP %s → %s avec phase openai_request',
-    async (status, code) => {
-      fetchMock.mockResolvedValueOnce(
-        jsonResponse(
-          status,
-          {
-            error: {
-              message: `fail ${status}`,
-              type: 'invalid_request_error',
-              code: 'bad_schema',
-            },
+  ] as const)('OpenAI HTTP %s → %s avec phase openai_request', async (status, code) => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        status,
+        {
+          error: {
+            message: `fail ${status}`,
+            type: 'invalid_request_error',
+            code: 'bad_schema',
           },
-          { 'x-request-id': `req_${status}` },
-        ),
-      );
-      const p = provider();
-      await expect(
-        p.generateConversationTurn({
-          input: baseTurnInput,
-          tools: [],
-          timeoutMs: 10_000,
-          model: 'gpt-5.4-mini',
-          forceFinalAnswer: true,
-        }),
-      ).rejects.toMatchObject({
-        code,
-        phase: 'openai_request',
-        httpStatus: status,
-        openaiRequestId: `req_${status}`,
-        providerCode: 'bad_schema',
-      });
-    },
-  );
+        },
+        { 'x-request-id': `req_${status}` },
+      ),
+    );
+    const p = provider();
+    await expect(
+      p.generateConversationTurn({
+        input: baseTurnInput,
+        tools: [],
+        timeoutMs: 10_000,
+        model: 'gpt-5.4-mini',
+        forceFinalAnswer: true,
+      }),
+    ).rejects.toMatchObject({
+      code,
+      phase: 'openai_request',
+      httpStatus: status,
+      openaiRequestId: `req_${status}`,
+      providerCode: 'bad_schema',
+    });
+  });
 
   it('TURN 2 : historique assistant rejoué en wire JSON + text.format + tools + instructions', () => {
     const p = provider();
@@ -340,9 +335,7 @@ describe('OpenAiCoachProvider (Responses API)', () => {
     expect(parsed.t).toBe('d');
     expect(parsed.x).toContain('Bonjour');
     // Ne jamais envoyer un UUID interne Nest/Prisma comme previous_response_id
-    expect(JSON.stringify(body)).not.toMatch(
-      /"previous_response_id"\s*:\s*"[0-9a-f-]{36}"/i,
-    );
+    expect(JSON.stringify(body)).not.toMatch(/"previous_response_id"\s*:\s*"[0-9a-f-]{36}"/i);
   });
 
   it('multi-turn mock : Bonjour puis Peux-tu préciser', async () => {
@@ -403,9 +396,7 @@ describe('OpenAiCoachProvider (Responses API)', () => {
       expect(t2.answer.text).toContain('exercice');
     }
 
-    const secondBody = JSON.parse(
-      (fetchMock.mock.calls[1]?.[1] as { body: string }).body,
-    ) as {
+    const secondBody = JSON.parse((fetchMock.mock.calls[1]?.[1] as { body: string }).body) as {
       instructions: string;
       text: { format: { type: string } };
       tools: unknown[];

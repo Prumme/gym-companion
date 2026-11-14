@@ -54,9 +54,7 @@ export function LoadRecommendationCard({
 }: LoadRecommendationCardProps) {
   const queryClient = useQueryClient();
   const [detailOpen, setDetailOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState<
-    'apply' | 'adjust' | 'ignore' | null
-  >(null);
+  const [dialogMode, setDialogMode] = useState<'apply' | 'adjust' | 'ignore' | null>(null);
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [staleNotice, setStaleNotice] = useState<string | null>(null);
@@ -72,11 +70,8 @@ export function LoadRecommendationCard({
   });
 
   const decideMutation = useMutation({
-    mutationFn: ({
-      input,
-    }: {
-      input: Parameters<typeof decideLoadRecommendation>[1];
-    }) => decideLoadRecommendation(workoutTemplateExerciseId, input),
+    mutationFn: ({ input }: { input: Parameters<typeof decideLoadRecommendation>[1] }) =>
+      decideLoadRecommendation(workoutTemplateExerciseId, input),
     onSuccess: (result) => {
       queryClient.setQueryData(programQueryKeys.detail(programId), result.program);
       if (result.recommendation) {
@@ -86,15 +81,11 @@ export function LoadRecommendationCard({
         );
       } else {
         void queryClient.invalidateQueries({
-          queryKey: coachingQueryKeys.loadRecommendation(
-            workoutTemplateExerciseId,
-          ),
+          queryKey: coachingQueryKeys.loadRecommendation(workoutTemplateExerciseId),
         });
       }
       void queryClient.invalidateQueries({
-        queryKey: coachingQueryKeys.loadRecommendationDecisions(
-          workoutTemplateExerciseId,
-        ),
+        queryKey: coachingQueryKeys.loadRecommendationDecisions(workoutTemplateExerciseId),
       });
       void queryClient.invalidateQueries({
         queryKey: coachingQueryKeys.exerciseSummaries(),
@@ -123,9 +114,7 @@ export function LoadRecommendationCard({
   ) {
     if (!query.data) return;
     if (!navigator.onLine) {
-      setDialogError(
-        'Une connexion est nécessaire pour modifier ton programme.',
-      );
+      setDialogError('Une connexion est nécessaire pour modifier ton programme.');
       return;
     }
     setDialogError(null);
@@ -135,9 +124,7 @@ export function LoadRecommendationCard({
         input: {
           recommendationFingerprint: query.data.recommendationFingerprint,
           decision,
-          ...(extras.adjustedWeightKg != null
-            ? { adjustedWeightKg: extras.adjustedWeightKg }
-            : {}),
+          ...(extras.adjustedWeightKg != null ? { adjustedWeightKg: extras.adjustedWeightKg } : {}),
           userNote: extras.userNote,
           clientCommandId: createClientCommandId(),
         },
@@ -146,15 +133,11 @@ export function LoadRecommendationCard({
       const code = getErrorCode(error);
       if (code === 'LOAD_RECOMMENDATION_STALE') {
         setDialogMode(null);
-        setStaleNotice(
-          'Cette recommandation a changé depuis son affichage.',
-        );
+        setStaleNotice('Cette recommandation a changé depuis son affichage.');
         await query.refetch();
         return;
       }
-      setDialogError(
-        getApiErrorMessage(error, 'Impossible d’enregistrer cette décision.'),
-      );
+      setDialogError(getApiErrorMessage(error, 'Impossible d’enregistrer cette décision.'));
     }
   }
 
@@ -200,18 +183,12 @@ export function LoadRecommendationCard({
       );
     }
     return (
-      <div
-        className="mt-3 rounded-[var(--radius)] border border-[var(--border)] p-3"
-        role="alert"
-      >
+      <div className="mt-3 rounded-[var(--radius)] border border-[var(--border)] p-3" role="alert">
         <p className="text-xs font-medium text-[var(--muted)]">
           Suggestion pour la prochaine séance
         </p>
         <p className="mt-1 text-sm text-[var(--danger)]">
-          {getApiErrorMessage(
-            query.error,
-            'Impossible de charger la suggestion de charge.',
-          )}
+          {getApiErrorMessage(query.error, 'Impossible de charger la suggestion de charge.')}
         </p>
       </div>
     );
@@ -298,9 +275,7 @@ export function LoadRecommendationCard({
               setDialogError(null);
             }
           }}
-          onAccept={(userNote) =>
-            void submitDecision('ACCEPTED', { userNote })
-          }
+          onAccept={(userNote) => void submitDecision('ACCEPTED', { userNote })}
           onAdjust={(adjustedWeightKg, userNote) =>
             void submitDecision('ADJUSTED', { adjustedWeightKg, userNote })
           }
@@ -322,15 +297,11 @@ export function LoadRecommendationCard({
         <p className="mt-1 text-sm font-semibold">
           {getLoadRecommendationActionLabel(data.action)}
         </p>
-        {transition ? (
-          <p className="mt-1 text-sm tabular-nums">{transition}</p>
-        ) : null}
+        {transition ? <p className="mt-1 text-sm tabular-nums">{transition}</p> : null}
         <p className="mt-2 text-sm text-[var(--muted)]">
           {getPrimaryLoadRecommendationMessage(data)}
         </p>
-        {evidence ? (
-          <p className="mt-1 text-xs text-[var(--muted)]">{evidence}</p>
-        ) : null}
+        {evidence ? <p className="mt-1 text-xs text-[var(--muted)]">{evidence}</p> : null}
         {data.evidence.latestWorkoutDate ? (
           <p className="text-xs text-[var(--muted)]">
             Dernière séance : {data.evidence.latestWorkoutDate}
@@ -416,9 +387,7 @@ export function LoadRecommendationCard({
 
         {decisions.length > 0 ? (
           <details className="mt-3">
-            <summary className="cursor-pointer text-sm font-medium">
-              Décisions récentes
-            </summary>
+            <summary className="cursor-pointer text-sm font-medium">Décisions récentes</summary>
             <ul className="mt-2 space-y-2">
               {decisions.map((item) => (
                 <li
@@ -432,9 +401,7 @@ export function LoadRecommendationCard({
                       year: 'numeric',
                     }).format(new Date(item.createdAt))}
                   </p>
-                  <p className="mt-1">
-                    {formatDecisionHistoryLine(item)}
-                  </p>
+                  <p className="mt-1">{formatDecisionHistoryLine(item)}</p>
                 </li>
               ))}
             </ul>
@@ -460,9 +427,7 @@ export function LoadRecommendationCard({
             setDialogError(null);
           }
         }}
-        onAccept={(userNote) =>
-          void submitDecision('ACCEPTED', { userNote })
-        }
+        onAccept={(userNote) => void submitDecision('ACCEPTED', { userNote })}
         onAdjust={(adjustedWeightKg, userNote) =>
           void submitDecision('ADJUSTED', { adjustedWeightKg, userNote })
         }

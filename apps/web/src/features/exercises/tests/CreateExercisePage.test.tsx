@@ -12,9 +12,7 @@ const listEquipmentTypes = vi.fn();
 const createExercise = vi.fn();
 
 vi.mock('../api/exercise-api', async () => {
-  const actual = await vi.importActual<typeof import('../api/exercise-api')>(
-    '../api/exercise-api',
-  );
+  const actual = await vi.importActual<typeof import('../api/exercise-api')>('../api/exercise-api');
   return {
     ...actual,
     listMuscleGroups: (...args: unknown[]) => listMuscleGroups(...args),
@@ -54,9 +52,7 @@ describe('CreateExercisePage', () => {
     listMuscleGroups.mockResolvedValue([
       { id: MUSCLE_CHEST, code: 'chest', name: 'Pectoraux', parentId: null },
     ]);
-    listEquipmentTypes.mockResolvedValue([
-      { id: EQ_BARBELL, code: 'barbell', name: 'Barre' },
-    ]);
+    listEquipmentTypes.mockResolvedValue([{ id: EQ_BARBELL, code: 'barbell', name: 'Barre' }]);
   });
 
   it('loads references and creates an exercise once', async () => {
@@ -94,10 +90,7 @@ describe('CreateExercisePage', () => {
     await screen.findByLabelText(/Nom/i);
 
     await user.type(screen.getByLabelText(/Nom/i), 'Nouveau perso');
-    await user.selectOptions(
-      screen.getByLabelText(/Muscle principal/i),
-      MUSCLE_CHEST,
-    );
+    await user.selectOptions(screen.getByLabelText(/Muscle principal/i), MUSCLE_CHEST);
     await user.click(screen.getByRole('button', { name: /Créer l’exercice/i }));
 
     await waitFor(() => expect(createExercise).toHaveBeenCalledTimes(1));
@@ -116,10 +109,7 @@ describe('CreateExercisePage', () => {
 
     await screen.findByLabelText(/Nom/i);
     await user.type(screen.getByLabelText(/Nom/i), 'Échec');
-    await user.selectOptions(
-      screen.getByLabelText(/Muscle principal/i),
-      MUSCLE_CHEST,
-    );
+    await user.selectOptions(screen.getByLabelText(/Muscle principal/i), MUSCLE_CHEST);
     await user.click(screen.getByRole('button', { name: /Créer l’exercice/i }));
 
     expect(await screen.findByText('Création refusée')).toBeInTheDocument();

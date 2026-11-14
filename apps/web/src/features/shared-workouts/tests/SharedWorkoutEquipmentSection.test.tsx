@@ -15,12 +15,9 @@ vi.mock('../api/shared-workouts-api', () => ({
   getSharedWorkoutEquipmentCoordination: (...args: unknown[]) =>
     getSharedWorkoutEquipmentCoordination(...args),
   getMySharedEquipment: (...args: unknown[]) => getMySharedEquipment(...args),
-  requestMySharedEquipment: (...args: unknown[]) =>
-    requestMySharedEquipment(...args),
-  releaseMySharedEquipment: (...args: unknown[]) =>
-    releaseMySharedEquipment(...args),
-  cancelMySharedEquipmentWaiting: (...args: unknown[]) =>
-    cancelMySharedEquipmentWaiting(...args),
+  requestMySharedEquipment: (...args: unknown[]) => requestMySharedEquipment(...args),
+  releaseMySharedEquipment: (...args: unknown[]) => releaseMySharedEquipment(...args),
+  cancelMySharedEquipmentWaiting: (...args: unknown[]) => cancelMySharedEquipmentWaiting(...args),
 }));
 
 function renderSection() {
@@ -29,11 +26,7 @@ function renderSection() {
   });
   return render(
     <QueryClientProvider client={client}>
-      <SharedWorkoutEquipmentSection
-        roomId="room-1"
-        offline={false}
-        enabled
-      />
+      <SharedWorkoutEquipmentSection roomId="room-1" offline={false} enabled />
     </QueryClientProvider>,
   );
 }
@@ -61,9 +54,7 @@ describe('SharedWorkoutEquipmentSection', () => {
     renderSection();
 
     expect(await screen.findByText(/disponible/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /^utiliser$/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^utiliser$/i })).toBeInTheDocument();
   });
 
   it('affiche USING soi avec Libérer', async () => {
@@ -85,12 +76,8 @@ describe('SharedWorkoutEquipmentSection', () => {
     });
     renderSection();
 
-    expect(
-      await screen.findByText(/tu l’utilises actuellement/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /^libérer$/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/tu l’utilises actuellement/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^libérer$/i })).toBeInTheDocument();
   });
 
   it('affiche WAITING avec position et Quitter la file', async () => {
@@ -116,9 +103,7 @@ describe('SharedWorkoutEquipmentSection', () => {
     renderSection();
 
     expect(await screen.findByText(/ta position : 2/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /quitter la file/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /quitter la file/i })).toBeInTheDocument();
   });
 
   it('demande un équipement libre', async () => {

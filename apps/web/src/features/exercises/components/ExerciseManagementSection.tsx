@@ -9,21 +9,14 @@ import {
   useArchiveExerciseMutation,
   useRestoreExerciseMutation,
 } from '../hooks/use-exercise-mutations';
-import {
-  canArchiveExercise,
-  canEditExercise,
-  canRestoreExercise,
-} from '../lib/exercise-form';
+import { canArchiveExercise, canEditExercise, canRestoreExercise } from '../lib/exercise-form';
 
 type ExerciseManagementSectionProps = {
   exercise: ExerciseDetail;
   onStatus?: (message: string) => void;
 };
 
-export function ExerciseManagementSection({
-  exercise,
-  onStatus,
-}: ExerciseManagementSectionProps) {
+export function ExerciseManagementSection({ exercise, onStatus }: ExerciseManagementSectionProps) {
   const canEdit = canEditExercise(exercise.permissions);
   const canArchive = canArchiveExercise(exercise.permissions);
   const canRestore = canRestoreExercise(exercise.permissions);
@@ -48,13 +41,9 @@ export function ExerciseManagementSection({
         </ButtonLink>
       ) : null}
 
-      {canArchive ? (
-        <ArchiveControls exercise={exercise} onStatus={onStatus} />
-      ) : null}
+      {canArchive ? <ArchiveControls exercise={exercise} onStatus={onStatus} /> : null}
 
-      {canRestore ? (
-        <RestoreControls exercise={exercise} onStatus={onStatus} />
-      ) : null}
+      {canRestore ? <RestoreControls exercise={exercise} onStatus={onStatus} /> : null}
     </section>
   );
 }
@@ -79,9 +68,7 @@ function ArchiveControls({
       setConfirmOpen(false);
       onStatus?.('Exercice archivé.');
     } catch (err) {
-      setError(
-        getApiErrorMessage(err, 'Impossible d’archiver cet exercice. Réessaie.'),
-      );
+      setError(getApiErrorMessage(err, 'Impossible d’archiver cet exercice. Réessaie.'));
     }
   }
 
@@ -122,8 +109,8 @@ function ArchiveControls({
               Archiver cet exercice ?
             </h3>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              Il disparaîtra du catalogue par défaut, mais pourra être restauré
-              plus tard. Tes préférences seront conservées.
+              Il disparaîtra du catalogue par défaut, mais pourra être restauré plus tard. Tes
+              préférences seront conservées.
             </p>
             {error ? (
               <p className="mt-3 text-sm text-[var(--danger)]" role="alert">
@@ -174,9 +161,7 @@ function RestoreControls({
       setConfirmOpen(false);
       onStatus?.('Exercice restauré.');
     } catch (err) {
-      setError(
-        getApiErrorMessage(err, 'Impossible de restaurer cet exercice. Réessaie.'),
-      );
+      setError(getApiErrorMessage(err, 'Impossible de restaurer cet exercice. Réessaie.'));
     }
   }
 

@@ -13,8 +13,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -49,26 +48,22 @@ describe('Health endpoints', () => {
     expect(response.body).toMatchObject({ status: 'ok' });
   });
 
-  it(
-    'GET /health/ready returns ok when database is reachable',
-    async () => {
-      const response = await request(app.getHttpServer()).get('/health/ready');
+  it('GET /health/ready returns ok when database is reachable', async () => {
+    const response = await request(app.getHttpServer()).get('/health/ready');
 
-      if (response.status === 503) {
-        expect(response.body).toMatchObject({
-          statusCode: 503,
-        });
-        return;
-      }
-
-      expect(response.status).toBe(200);
+    if (response.status === 503) {
       expect(response.body).toMatchObject({
-        status: 'ok',
-        checks: {
-          database: { status: 'ok' },
-        },
+        statusCode: 503,
       });
-    },
-    15_000,
-  );
+      return;
+    }
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      status: 'ok',
+      checks: {
+        database: { status: 'ok' },
+      },
+    });
+  }, 15_000);
 });

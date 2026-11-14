@@ -12,14 +12,10 @@ describe('SharedWorkoutPresenceService', () => {
     expect(presence.addSocket(roomId, userId, 's2').becameOnline).toBe(false);
     expect(presence.getConnectedUserIds(roomId)).toEqual([userId]);
 
-    expect(presence.removeSocket(roomId, userId, 's1').becameOffline).toBe(
-      false,
-    );
+    expect(presence.removeSocket(roomId, userId, 's1').becameOffline).toBe(false);
     expect(presence.getConnectedUserIds(roomId)).toEqual([userId]);
 
-    expect(presence.removeSocket(roomId, userId, 's2').becameOffline).toBe(
-      true,
-    );
+    expect(presence.removeSocket(roomId, userId, 's2').becameOffline).toBe(true);
     expect(presence.getConnectedUserIds(roomId)).toEqual([]);
   });
 

@@ -140,13 +140,9 @@ describe('rest-timer-storage', () => {
     const dumped = JSON.stringify(storage.dump());
     expect(dumped).not.toMatch(/token|password|email|Bearer/i);
     expect(dumped).not.toContain('actualWeightKg');
-    expect(readRestTimerFromStorage(state.workoutSessionId, storage)).toEqual(
-      state,
-    );
+    expect(readRestTimerFromStorage(state.workoutSessionId, storage)).toEqual(state);
     clearRestTimerStorage(state.workoutSessionId, storage);
-    expect(
-      readRestTimerFromStorage(state.workoutSessionId, storage),
-    ).toBeNull();
+    expect(readRestTimerFromStorage(state.workoutSessionId, storage)).toBeNull();
   });
 
   it('supprime les minuteries des autres séances', () => {

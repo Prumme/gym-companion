@@ -17,8 +17,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -28,11 +27,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -74,9 +69,7 @@ async function createTemplate(
       primaryMuscleGroupId: mg.id,
       secondaryMuscleGroupIds: [],
       defaultEquipmentTypeId: eq.id,
-      compatibleEquipmentTypes: [
-        { equipmentTypeId: eq.id, isPreferred: true, notes: null },
-      ],
+      compatibleEquipmentTypes: [{ equipmentTypeId: eq.id, isPreferred: true, notes: null }],
       defaultRestSeconds: 90,
       instructions: null,
     })
@@ -96,9 +89,7 @@ async function createTemplate(
     .expect(201);
   const templateId = tpl.body.data.workoutTemplates[0].id as string;
   const ex = await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       exerciseId,
@@ -107,12 +98,10 @@ async function createTemplate(
       notes: null,
     })
     .expect(201);
-  const templateExerciseId = ex.body.data.workoutTemplates[0].exercises[0]
-    .id as string;
+  const templateExerciseId = ex.body.data.workoutTemplates[0].exercises[0].id as string;
 
   for (let i = 0; i < 3; i += 1) {
-    const weightKg =
-      options.heterogeneous && i === 2 ? 70 : 80;
+    const weightKg = options.heterogeneous && i === 2 ? 70 : 80;
     await request(app.getHttpServer())
       .post(
         `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${templateExerciseId}/sets`,
@@ -169,9 +158,7 @@ async function completeWorking(
     const setIndex = indexes[i]!;
     const set = session.exercises[0]!.sets[setIndex]!;
     const response = await request(app.getHttpServer())
-      .patch(
-        `/api/v1/workouts/${session.id}/exercises/${session.exercises[0]!.id}/sets/${set.id}`,
-      )
+      .patch(`/api/v1/workouts/${session.id}/exercises/${session.exercises[0]!.id}/sets/${set.id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({
         status: 'COMPLETED',
@@ -335,13 +322,9 @@ describe('Coach summary API (5.4)', () => {
   });
 
   it('overview : load REVIEW remonte ; HOLD+PLATEAU → PLATEAU ; isolation', async () => {
-    const reviewTpl = await createTemplate(
-      app,
-      tokenA,
-      prisma,
-      `rev-${stamp}`,
-      { heterogeneous: true },
-    );
+    const reviewTpl = await createTemplate(app, tokenA, prisma, `rev-${stamp}`, {
+      heterogeneous: true,
+    });
     await completeWorking(
       app,
       tokenA,
@@ -377,8 +360,7 @@ describe('Coach summary API (5.4)', () => {
       .expect(200);
     expect(
       foreignOverview.body.data.items.some(
-        (item: { exerciseId: string }) =>
-          item.exerciseId === reviewTpl.exerciseId,
+        (item: { exerciseId: string }) => item.exerciseId === reviewTpl.exerciseId,
       ),
     ).toBe(false);
   });

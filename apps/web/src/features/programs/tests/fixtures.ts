@@ -10,9 +10,7 @@ import type {
 
 const now = '2026-08-03T12:00:00.000Z';
 
-export function createProgramListItem(
-  overrides: Partial<ProgramListItem> = {},
-): ProgramListItem {
+export function createProgramListItem(overrides: Partial<ProgramListItem> = {}): ProgramListItem {
   return {
     id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
     name: 'Push Pull Legs',
@@ -117,9 +115,7 @@ export function createTemplate(
   };
 }
 
-export function createProgramDetail(
-  overrides: Partial<ProgramDetail> = {},
-): ProgramDetail {
+export function createProgramDetail(overrides: Partial<ProgramDetail> = {}): ProgramDetail {
   const templates = overrides.workoutTemplates ?? [createTemplate()];
   return {
     ...createProgramListItem({
@@ -130,9 +126,7 @@ export function createProgramDetail(
   };
 }
 
-export function createProgramSchedule(
-  overrides: Partial<ProgramSchedule> = {},
-): ProgramSchedule {
+export function createProgramSchedule(overrides: Partial<ProgramSchedule> = {}): ProgramSchedule {
   return {
     entries: overrides.entries ?? [],
     ...overrides,

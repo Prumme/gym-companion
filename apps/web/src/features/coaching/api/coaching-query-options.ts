@@ -11,9 +11,7 @@ import {
 } from './coaching-api';
 import { coachingQueryKeys } from './coaching-query-keys';
 
-export function loadRecommendationQueryOptions(
-  workoutTemplateExerciseId: string,
-) {
+export function loadRecommendationQueryOptions(workoutTemplateExerciseId: string) {
   return queryOptions({
     queryKey: coachingQueryKeys.loadRecommendation(workoutTemplateExerciseId),
     queryFn: () => getLoadRecommendation(workoutTemplateExerciseId),
@@ -21,15 +19,10 @@ export function loadRecommendationQueryOptions(
   });
 }
 
-export function loadRecommendationDecisionsQueryOptions(
-  workoutTemplateExerciseId: string,
-) {
+export function loadRecommendationDecisionsQueryOptions(workoutTemplateExerciseId: string) {
   return queryOptions({
-    queryKey: coachingQueryKeys.loadRecommendationDecisions(
-      workoutTemplateExerciseId,
-    ),
-    queryFn: () =>
-      listLoadRecommendationDecisions(workoutTemplateExerciseId, { limit: 10 }),
+    queryKey: coachingQueryKeys.loadRecommendationDecisions(workoutTemplateExerciseId),
+    queryFn: () => listLoadRecommendationDecisions(workoutTemplateExerciseId, { limit: 10 }),
     staleTime: 30_000,
   });
 }

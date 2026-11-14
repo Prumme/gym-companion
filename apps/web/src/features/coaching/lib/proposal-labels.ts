@@ -1,7 +1,4 @@
-import type {
-  AiCoachProposalKind,
-  AiCoachProposalStatus,
-} from '@gym-companion/shared';
+import type { AiCoachProposalKind, AiCoachProposalStatus } from '@gym-companion/shared';
 
 export function getProposalKindLabel(kind: AiCoachProposalKind): string {
   return kind === 'PROGRAM' ? 'Proposition de programme' : 'Proposition de séance';

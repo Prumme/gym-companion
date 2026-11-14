@@ -11,7 +11,11 @@ export class SharedWorkoutPresenceService {
   /** socketId → set of roomIds (cleanup disconnect). */
   private readonly socketRooms = new Map<string, Set<string>>();
 
-  addSocket(roomId: string, userId: string, socketId: string): {
+  addSocket(
+    roomId: string,
+    userId: string,
+    socketId: string,
+  ): {
     becameOnline: boolean;
   } {
     let users = this.rooms.get(roomId);
@@ -37,7 +41,11 @@ export class SharedWorkoutPresenceService {
     return { becameOnline };
   }
 
-  removeSocket(roomId: string, userId: string, socketId: string): {
+  removeSocket(
+    roomId: string,
+    userId: string,
+    socketId: string,
+  ): {
     becameOffline: boolean;
   } {
     const users = this.rooms.get(roomId);
@@ -104,7 +112,10 @@ export class SharedWorkoutPresenceService {
   }
 
   /** Retire toute présence d’un user dans une room (leave REST). */
-  removeUser(roomId: string, userId: string): {
+  removeUser(
+    roomId: string,
+    userId: string,
+  ): {
     wasOnline: boolean;
     socketIds: string[];
   } {

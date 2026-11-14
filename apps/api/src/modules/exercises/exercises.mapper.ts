@@ -121,10 +121,7 @@ function preferenceFromExerciseRow(
   return toExerciseUserPreference(row.userPreferences?.[0]);
 }
 
-export function toExerciseListItem(
-  row: ExerciseListRow,
-  viewerUserId: string,
-): ExerciseListItem {
+export function toExerciseListItem(row: ExerciseListRow, viewerUserId: string): ExerciseListItem {
   return {
     id: row.id,
     source: row.source,
@@ -149,12 +146,13 @@ export function toExerciseListItem(
 }
 
 export function toExerciseDetail(row: ExerciseRow, viewerUserId: string): ExerciseDetail {
-  const compatibleEquipmentTypes: ExerciseCompatibleEquipment[] =
-    row.compatibleEquipment.map((item) => ({
+  const compatibleEquipmentTypes: ExerciseCompatibleEquipment[] = row.compatibleEquipment.map(
+    (item) => ({
       equipmentType: toEquipmentTypeReference(item.equipmentType),
       isPreferred: item.isPreferred,
       notes: item.notes,
-    }));
+    }),
+  );
 
   return {
     id: row.id,

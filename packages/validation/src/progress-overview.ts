@@ -1,9 +1,6 @@
 import { z } from 'zod';
 
-import {
-  addLocalDateDays,
-  addLocalDateMonths,
-} from './exercise-progress';
+import { addLocalDateDays, addLocalDateMonths } from './exercise-progress';
 import { computeWorkoutMetrics, type WorkoutMetricsSessionInput } from './workout-metrics';
 
 /**
@@ -33,9 +30,7 @@ function isValidLocalDateString(value: string): boolean {
   const day = Number(value.slice(8, 10));
   const date = new Date(Date.UTC(year, month - 1, day));
   return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
   );
 }
 
@@ -70,23 +65,16 @@ export const progressOverviewMetricSchema = z.enum([
   'TOTAL_DISTANCE',
 ]);
 
-export type ProgressOverviewMetric = z.infer<
-  typeof progressOverviewMetricSchema
->;
+export type ProgressOverviewMetric = z.infer<typeof progressOverviewMetricSchema>;
 
 export const progressOverviewBucketSchema = z.enum(['DAY', 'WEEK', 'MONTH']);
-export type ProgressOverviewBucket = z.infer<
-  typeof progressOverviewBucketSchema
->;
+export type ProgressOverviewBucket = z.infer<typeof progressOverviewBucketSchema>;
 
 export const progressOverviewQuerySchema = z
   .object({
     from: z.preprocess(emptyQueryToUndefined, localDateSchema.optional()),
     to: z.preprocess(emptyQueryToUndefined, localDateSchema.optional()),
-    metric: z.preprocess(
-      emptyQueryToUndefined,
-      progressOverviewMetricSchema.optional(),
-    ),
+    metric: z.preprocess(emptyQueryToUndefined, progressOverviewMetricSchema.optional()),
   })
   .strict()
   .superRefine((data, ctx) => {
@@ -116,9 +104,7 @@ export type ProgressOverviewQueryParseResult =
       message: string;
     };
 
-function overviewQueryErrorMessage(
-  code: ProgressOverviewQueryParseErrorCode,
-): string {
+function overviewQueryErrorMessage(code: ProgressOverviewQueryParseErrorCode): string {
   switch (code) {
     case 'PROGRESS_INVALID_METRIC':
       return 'Métrique de dashboard invalide.';
@@ -133,9 +119,7 @@ function overviewQueryErrorMessage(
   }
 }
 
-export function parseProgressOverviewQuery(
-  raw: unknown,
-): ProgressOverviewQueryParseResult {
+export function parseProgressOverviewQuery(raw: unknown): ProgressOverviewQueryParseResult {
   const result = progressOverviewQuerySchema.safeParse(raw);
   if (result.success) {
     return { ok: true, data: result.data };
@@ -185,18 +169,11 @@ export function countInclusiveLocalDays(from: string, to: string): number {
     Number(from.slice(5, 7)) - 1,
     Number(from.slice(8, 10)),
   );
-  const end = Date.UTC(
-    Number(to.slice(0, 4)),
-    Number(to.slice(5, 7)) - 1,
-    Number(to.slice(8, 10)),
-  );
+  const end = Date.UTC(Number(to.slice(0, 4)), Number(to.slice(5, 7)) - 1, Number(to.slice(8, 10)));
   return Math.floor((end - start) / 86_400_000) + 1;
 }
 
-export function resolveProgressOverviewBucket(
-  from: string,
-  to: string,
-): ProgressOverviewBucket {
+export function resolveProgressOverviewBucket(from: string, to: string): ProgressOverviewBucket {
   const days = countInclusiveLocalDays(from, to);
   if (days <= PROGRESS_OVERVIEW_DAY_BUCKET_MAX_DAYS) {
     return 'DAY';
@@ -261,10 +238,7 @@ export function bucketBoundsForDate(
   }
 }
 
-export function nextBucketStart(
-  periodStart: string,
-  bucket: ProgressOverviewBucket,
-): string {
+export function nextBucketStart(periodStart: string, bucket: ProgressOverviewBucket): string {
   switch (bucket) {
     case 'DAY':
       return addLocalDateDays(periodStart, 1);
@@ -340,24 +314,18 @@ export function computeProgressOverviewTotals(
     totals.totalReps += metrics.performance.totalReps;
     totals.workingExternalVolumeKg =
       Math.round(
-        (totals.workingExternalVolumeKg +
-          metrics.performance.workingExternalVolumeKg) *
-          1_000_000,
+        (totals.workingExternalVolumeKg + metrics.performance.workingExternalVolumeKg) * 1_000_000,
       ) / 1_000_000;
     totals.totalDurationSeconds += metrics.performance.totalDurationSeconds;
     totals.totalDistanceMeters =
       Math.round(
-        (totals.totalDistanceMeters +
-          metrics.performance.totalDistanceMeters) *
-          1_000_000,
+        (totals.totalDistanceMeters + metrics.performance.totalDistanceMeters) * 1_000_000,
       ) / 1_000_000;
     totals.failureSetCount += metrics.sets.reachedFailure;
 
     for (const exercise of session.exercises) {
-      const hasPerformed = exercise.sets.some((set) =>
-        set.status === 'COMPLETED' ||
-        set.status === 'PARTIAL' ||
-        set.status === 'FAILED',
+      const hasPerformed = exercise.sets.some(
+        (set) => set.status === 'COMPLETED' || set.status === 'PARTIAL' || set.status === 'FAILED',
       );
       if (hasPerformed && exercise.sourceExerciseId) {
         uniqueExercises.add(exercise.sourceExerciseId);
@@ -395,10 +363,7 @@ export type ProgressOverviewPointComputed = {
   totalDistanceMeters: number;
 };
 
-function emptyPoint(
-  periodStart: string,
-  periodEnd: string,
-): ProgressOverviewPointComputed {
+function emptyPoint(periodStart: string, periodEnd: string): ProgressOverviewPointComputed {
   return {
     periodStart,
     periodEnd,
@@ -428,9 +393,7 @@ export function buildProgressOverviewTimeline(
     cursor = nextBucketStart(bounds.periodStart, bucket);
   }
 
-  const indexByStart = new Map(
-    points.map((point, index) => [point.periodStart, index]),
-  );
+  const indexByStart = new Map(points.map((point, index) => [point.periodStart, index]));
 
   for (const session of sessions) {
     const bounds = bucketBoundsForDate(session.localDate, bucket);
@@ -452,15 +415,12 @@ export function buildProgressOverviewTimeline(
     point.totalReps += metrics.performance.totalReps;
     point.workingExternalVolumeKg =
       Math.round(
-        (point.workingExternalVolumeKg +
-          metrics.performance.workingExternalVolumeKg) *
-          1_000_000,
+        (point.workingExternalVolumeKg + metrics.performance.workingExternalVolumeKg) * 1_000_000,
       ) / 1_000_000;
     point.totalDurationSeconds += metrics.performance.totalDurationSeconds;
     point.totalDistanceMeters =
       Math.round(
-        (point.totalDistanceMeters + metrics.performance.totalDistanceMeters) *
-          1_000_000,
+        (point.totalDistanceMeters + metrics.performance.totalDistanceMeters) * 1_000_000,
       ) / 1_000_000;
   }
 
@@ -473,10 +433,7 @@ export type ProgressOverviewComparisonComputed = {
   workingExternalVolumeChangePercent: number | null;
 };
 
-export function percentageChange(
-  current: number,
-  previous: number,
-): number | null {
+export function percentageChange(current: number, previous: number): number | null {
   if (previous === 0) {
     return null;
   }
@@ -488,10 +445,7 @@ export function computeProgressOverviewComparison(
   previous: ProgressOverviewTotalsComputed,
 ): ProgressOverviewComparisonComputed {
   return {
-    workoutCountChangePercent: percentageChange(
-      current.workoutCount,
-      previous.workoutCount,
-    ),
+    workoutCountChangePercent: percentageChange(current.workoutCount, previous.workoutCount),
     performedSetCountChangePercent: percentageChange(
       current.performedSetCount,
       previous.performedSetCount,
@@ -504,10 +458,7 @@ export function computeProgressOverviewComparison(
 }
 
 /** Période précédente de même durée inclusive, immédiatement antérieure. */
-export function resolvePreviousRange(
-  from: string,
-  to: string,
-): { from: string; to: string } {
+export function resolvePreviousRange(from: string, to: string): { from: string; to: string } {
   const days = countInclusiveLocalDays(from, to);
   const prevTo = addLocalDateDays(from, -1);
   const prevFrom = addLocalDateDays(prevTo, -(days - 1));
@@ -542,13 +493,9 @@ export function computeProgressTopExercises(
       return a.localDate < b.localDate ? -1 : 1;
     }
     const aStart =
-      typeof a.startedAt === 'string'
-        ? a.startedAt
-        : a.startedAt?.toISOString() ?? '';
+      typeof a.startedAt === 'string' ? a.startedAt : (a.startedAt?.toISOString() ?? '');
     const bStart =
-      typeof b.startedAt === 'string'
-        ? b.startedAt
-        : b.startedAt?.toISOString() ?? '';
+      typeof b.startedAt === 'string' ? b.startedAt : (b.startedAt?.toISOString() ?? '');
     return aStart < bStart ? -1 : aStart > bStart ? 1 : 0;
   });
 
@@ -556,17 +503,14 @@ export function computeProgressTopExercises(
     const startedAt =
       typeof session.startedAt === 'string'
         ? session.startedAt
-        : session.startedAt?.toISOString() ?? '';
+        : (session.startedAt?.toISOString() ?? '');
 
     for (const exercise of session.exercises) {
       if (!exercise.sourceExerciseId) {
         continue;
       }
       const performedSets = exercise.sets.filter(
-        (set) =>
-          set.status === 'COMPLETED' ||
-          set.status === 'PARTIAL' ||
-          set.status === 'FAILED',
+        (set) => set.status === 'COMPLETED' || set.status === 'PARTIAL' || set.status === 'FAILED',
       );
       if (performedSets.length === 0) {
         continue;
@@ -590,8 +534,7 @@ export function computeProgressTopExercises(
 
       if (
         session.localDate > acc.latestPerformedOn ||
-        (session.localDate === acc.latestPerformedOn &&
-          startedAt >= acc.latestStartedAt)
+        (session.localDate === acc.latestPerformedOn && startedAt >= acc.latestStartedAt)
       ) {
         acc.latestPerformedOn = session.localDate;
         acc.latestStartedAt = startedAt;

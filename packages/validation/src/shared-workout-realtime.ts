@@ -11,9 +11,7 @@ export const sharedWorkoutRoomSubscribeBodySchema = z
   })
   .strict();
 
-export type SharedWorkoutRoomSubscribeBody = z.infer<
-  typeof sharedWorkoutRoomSubscribeBodySchema
->;
+export type SharedWorkoutRoomSubscribeBody = z.infer<typeof sharedWorkoutRoomSubscribeBodySchema>;
 
 export const sharedWorkoutRoomUnsubscribeBodySchema = z
   .object({

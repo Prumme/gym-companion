@@ -319,7 +319,10 @@ Ces éléments restent explicitement hors livraison de la phase 3 :
 
 - séance vide (sans modèle) ;
 - démarrage de séance hors ligne ;
-- affichage / copie de la dernière performance *(repère **Record** + **Dernière fois** en lecture seule sur Active Workout — livré, sans nouveau moteur Records)* ;
+- affichage / copie de la dernière performance *(repère **Record** + **Dernière fois** en lecture seule sur Active Workout — livré, sans nouveau moteur Records ; action « Reprendre la dernière fois » dans la saisie de série livrée : pré-remplit poids et reps sans enregistrer)* ;
+- signal de fin de repos *(vibration + bip WebAudio facultatifs, réglables localement depuis le minuteur, jamais rejoués au rechargement — livré ; Web Push hors V1, cf. Phase 7)* ;
+- calculateur de disques *(barre `WEIGHT_REPS`, kg uniquement, réglages barre/disques par appareil — livré, docs/04 §5.5 ; reste : préférence de profil synchronisée, ce qui demande une migration, et la prise en charge des lb)* ;
+- rampe d’échauffement *(suggestion calculée en lecture seule — livrée, docs/04 §5.6 ; reste : « ajouter ces séries `WARMUP` » à la séance, ce qui demande d’étendre l’API d’ajout de série avec `setType` et des cibles, en ajout groupé idempotent `expectedVersion` + `clientCommandId`, d’abord en ligne seulement)* ;
 - modification des cibles pendant la séance ;
 - ajout ou suppression d’exercices pendant la séance *(ajout ad hoc à la WorkoutSession ACTIVE livré ; ne mute pas Program/Template ; suppression d’exercice hors V1)* ;
 - ajout ou suppression de séries pendant la séance *(ajout de série WORKING sans cible livré ; suppression physique d’une série sur séance ACTIVE livrée, online only)* ;

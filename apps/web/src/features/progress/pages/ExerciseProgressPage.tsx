@@ -40,13 +40,9 @@ export function ExerciseProgressPage() {
   const { exerciseId = '' } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
-  const fromWorkout =
-    (location.state as { from?: string } | null)?.from === 'workout';
+  const fromWorkout = (location.state as { from?: string } | null)?.from === 'workout';
 
-  const urlFilters = useMemo(
-    () => parseProgressSearchParams(searchParams),
-    [searchParams],
-  );
+  const urlFilters = useMemo(() => parseProgressSearchParams(searchParams), [searchParams]);
 
   const apiFilters = useMemo(
     () => ({
@@ -131,10 +127,7 @@ export function ExerciseProgressPage() {
     const message =
       status === 404
         ? 'Cet exercice est introuvable ou inaccessible.'
-        : getApiErrorMessage(
-            progressQuery.error,
-            'Impossible de charger la progression.',
-          );
+        : getApiErrorMessage(progressQuery.error, 'Impossible de charger la progression.');
 
     return (
       <main className="flex flex-1 flex-col gap-4">
@@ -146,10 +139,7 @@ export function ExerciseProgressPage() {
           <ArrowLeft className="size-4" aria-hidden="true" />
           {fromWorkout ? 'Retour à la séance' : 'Progression'}
         </ButtonLink>
-        <div
-          className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4"
-          role="alert"
-        >
+        <div className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4" role="alert">
           <p className="text-sm text-[var(--danger)]">{message}</p>
           <button
             type="button"
@@ -167,19 +157,14 @@ export function ExerciseProgressPage() {
   const selectedMetric =
     data.selectedMetric ?? urlFilters.metric ?? data.availableMetrics[0] ?? null;
   const longRange =
-    urlFilters.period === '1y' ||
-    urlFilters.period === 'all' ||
-    urlFilters.period === '6m';
+    urlFilters.period === '1y' || urlFilters.period === 'all' || urlFilters.period === '6m';
   const showExpandHint =
-    data.points.length > 0 &&
-    data.points.length < 2 &&
-    urlFilters.period !== 'all';
+    data.points.length > 0 && data.points.length < 2 && urlFilters.period !== 'all';
 
   const maxWeightLatestKg =
     selectedMetric === 'MAX_WEIGHT' && data.summary?.latestValue != null
       ? data.summary.latestValue
-      : data.points.length > 0 &&
-          data.points[data.points.length - 1]?.context.maxWeightKg != null
+      : data.points.length > 0 && data.points[data.points.length - 1]?.context.maxWeightKg != null
         ? data.points[data.points.length - 1]!.context.maxWeightKg
         : null;
 
@@ -187,8 +172,7 @@ export function ExerciseProgressPage() {
   const likelySupportsStrength = data.availableMetrics.includes('MAX_WEIGHT');
   const showStrengthSection =
     strengthData?.supported === true ||
-    (likelySupportsStrength &&
-      (strengthQuery.isLoading || strengthQuery.isError));
+    (likelySupportsStrength && (strengthQuery.isLoading || strengthQuery.isError));
 
   const detail = exerciseQuery.data;
   const metaParts: string[] = [];
@@ -221,13 +205,9 @@ export function ExerciseProgressPage() {
             Progression
           </Link>
         )}
-        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
-          {data.exercise.name}
-        </h1>
+        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">{data.exercise.name}</h1>
         {metaParts.length > 0 ? (
-          <p className="mt-0.5 text-sm text-[var(--muted)]">
-            {metaParts.join(' · ')}
-          </p>
+          <p className="mt-0.5 text-sm text-[var(--muted)]">{metaParts.join(' · ')}</p>
         ) : null}
         {data.exercise.archived ? (
           <p className="mt-1 text-sm text-amber-800">Exercice archivé</p>
@@ -266,10 +246,7 @@ export function ExerciseProgressPage() {
 
       {data.points.length > 0 && selectedMetric ? (
         <>
-          <ProgressSummaryCards
-            summary={data.summary}
-            metric={selectedMetric}
-          />
+          <ProgressSummaryCards summary={data.summary} metric={selectedMetric} />
 
           {showExpandHint ? (
             <p className="text-sm text-[var(--muted)]">
@@ -284,9 +261,7 @@ export function ExerciseProgressPage() {
             </p>
           ) : null}
 
-          {data.points.length >= 2 &&
-          data.summary &&
-          data.summary.pointCount < 2 ? (
+          {data.points.length >= 2 && data.summary && data.summary.pointCount < 2 ? (
             <p className="text-sm text-[var(--muted)]">
               Pas encore assez de données pour calculer une évolution.
             </p>
@@ -311,19 +286,14 @@ export function ExerciseProgressPage() {
       ) : null}
 
       {exerciseId ? (
-        <ExercisePersonalRecordsSection
-          exerciseId={exerciseId}
-          hideProgressCta
-        />
+        <ExercisePersonalRecordsSection exerciseId={exerciseId} hideProgressCta />
       ) : null}
 
       {showStrengthSection ? (
         <EstimatedStrengthSection
           supported={strengthData?.supported ?? true}
           formula={strengthData?.formula ?? 'EPLEY_V1'}
-          eligibility={
-            strengthData?.eligibility ?? { minReps: 1, maxReps: 12 }
-          }
+          eligibility={strengthData?.eligibility ?? { minReps: 1, maxReps: 12 }}
           summary={strengthData?.summary ?? null}
           points={strengthData?.points ?? []}
           longRange={longRange}
@@ -335,17 +305,11 @@ export function ExerciseProgressPage() {
       ) : null}
 
       {exerciseId ? (
-        <ExerciseCoachSummarySection
-          exerciseId={exerciseId}
-          enabled={progressQuery.isSuccess}
-        />
+        <ExerciseCoachSummarySection exerciseId={exerciseId} enabled={progressQuery.isSuccess} />
       ) : null}
 
       {exerciseId ? (
-        <PlateauAnalysisSection
-          exerciseId={exerciseId}
-          enabled={progressQuery.isSuccess}
-        />
+        <PlateauAnalysisSection exerciseId={exerciseId} enabled={progressQuery.isSuccess} />
       ) : null}
     </main>
   );

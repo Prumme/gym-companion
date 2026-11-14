@@ -45,9 +45,7 @@ const EQUIPMENT_LABELS: Record<ProgramImportEquipmentPreference, string> = {
 };
 
 function useOnline(): boolean {
-  const [online, setOnline] = useState(
-    typeof navigator === 'undefined' ? true : navigator.onLine,
-  );
+  const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
   useEffect(() => {
     function onOnline() {
       setOnline(true);
@@ -95,10 +93,7 @@ export function ProgramImportPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const catalog = catalogQuery.data;
-  const muscles = useMemo(
-    () => musclesQuery.data ?? [],
-    [musclesQuery.data],
-  );
+  const muscles = useMemo(() => musclesQuery.data ?? [], [musclesQuery.data]);
 
   const generatedPrompt = useMemo(() => {
     if (!catalog || catalog.length === 0) {
@@ -166,9 +161,7 @@ export function ProgramImportPage() {
         setErrors(details.errors);
         return;
       }
-      setSubmitError(
-        getApiErrorMessage(error, 'Impossible de vérifier ce JSON.'),
-      );
+      setSubmitError(getApiErrorMessage(error, 'Impossible de vérifier ce JSON.'));
     }
   }
 
@@ -198,9 +191,7 @@ export function ProgramImportPage() {
         setParsedPayload(parsed.value);
         return;
       }
-      setSubmitError(
-        getApiErrorMessage(error, 'Impossible d’importer ce programme.'),
-      );
+      setSubmitError(getApiErrorMessage(error, 'Impossible d’importer ce programme.'));
     }
   }
 
@@ -228,12 +219,10 @@ export function ProgramImportPage() {
           <ArrowLeft className="size-5" aria-hidden="true" />
         </Link>
         <div className="min-w-0 flex-1 pt-2">
-          <h1 className="text-xl font-semibold tracking-tight">
-            Importer avec une IA
-          </h1>
+          <h1 className="text-xl font-semibold tracking-tight">Importer avec une IA</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Gym Companion génère un prompt. Tu le colles dans l’IA de ton choix,
-            puis tu colles le JSON ici. Aucune IA n’est appelée par l’application.
+            Gym Companion génère un prompt. Tu le colles dans l’IA de ton choix, puis tu colles le
+            JSON ici. Aucune IA n’est appelée par l’application.
           </p>
         </div>
       </header>
@@ -329,8 +318,7 @@ export function ProgramImportPage() {
             onChange={(event) =>
               setBrief((current) => ({
                 ...current,
-                experienceLevel: event.target
-                  .value as ProgramImportBrief['experienceLevel'],
+                experienceLevel: event.target.value as ProgramImportBrief['experienceLevel'],
               }))
             }
           >
@@ -349,10 +337,7 @@ export function ProgramImportPage() {
           ) : null}
           <div className="grid grid-cols-2 gap-2">
             {muscles.map((muscle) => (
-              <label
-                key={muscle.id}
-                className="flex min-h-11 items-center gap-2 text-sm"
-              >
+              <label key={muscle.id} className="flex min-h-11 items-center gap-2 text-sm">
                 <input
                   type="checkbox"
                   className="size-4 rounded border-[var(--border)]"
@@ -374,8 +359,7 @@ export function ProgramImportPage() {
             onChange={(event) =>
               setBrief((current) => ({
                 ...current,
-                equipmentPreference: event.target
-                  .value as ProgramImportEquipmentPreference,
+                equipmentPreference: event.target.value as ProgramImportEquipmentPreference,
               }))
             }
           >
@@ -402,8 +386,8 @@ export function ProgramImportPage() {
         </label>
 
         <p className="text-xs text-[var(--muted)]">
-          Ces informations aident l’IA externe à proposer un programme. Ce n’est
-          pas une prescription médicale ou sportive.
+          Ces informations aident l’IA externe à proposer un programme. Ce n’est pas une
+          prescription médicale ou sportive.
         </p>
 
         <Button
@@ -476,10 +460,7 @@ export function ProgramImportPage() {
       </section>
 
       {syntaxError ? (
-        <div
-          className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4"
-          role="alert"
-        >
+        <div className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4" role="alert">
           <p className="font-medium text-[var(--danger)]">JSON invalide</p>
           <p className="mt-1 text-sm text-[var(--danger)]">{syntaxError}</p>
         </div>
@@ -500,9 +481,7 @@ export function ProgramImportPage() {
                   className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-3"
                 >
                   <p className="text-sm font-medium">{described.title}</p>
-                  <p className="mt-1 whitespace-pre-line text-sm">
-                    {described.message}
-                  </p>
+                  <p className="mt-1 whitespace-pre-line text-sm">{described.message}</p>
                   {error.suggestions && error.suggestions.length > 0 ? (
                     <p className="mt-2 text-sm">
                       Exercices possibles :
@@ -514,9 +493,7 @@ export function ProgramImportPage() {
                       ))}
                     </p>
                   ) : null}
-                  <p className="mt-2 font-mono text-xs text-[var(--muted)]">
-                    {described.path}
-                  </p>
+                  <p className="mt-2 font-mono text-xs text-[var(--muted)]">{described.path}</p>
                 </li>
               );
             })}
@@ -557,18 +534,13 @@ export function ProgramImportPage() {
               className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-4"
             >
               <h3 className="font-semibold">{workout.name}</h3>
-              <p className="text-xs text-[var(--muted)]">
-                {workout.estimatedDurationMinutes} min
-              </p>
+              <p className="text-xs text-[var(--muted)]">{workout.estimatedDurationMinutes} min</p>
               <ul className="mt-3 flex flex-col gap-3">
                 {workout.exercises.map((exercise) => (
                   <li key={exercise.exerciseSlug}>
                     <p className="text-sm font-medium">{exercise.name}</p>
                     {formatGroupedSetSummaries(exercise.sets).map((line) => (
-                      <p
-                        key={line}
-                        className="text-sm text-[var(--muted)] tabular-nums"
-                      >
+                      <p key={line} className="text-sm text-[var(--muted)] tabular-nums">
                         {line}
                       </p>
                     ))}
@@ -594,11 +566,7 @@ export function ProgramImportPage() {
         </p>
       ) : null}
 
-      <ButtonLink
-        to="/programs"
-        variant="ghost"
-        className="w-full text-[var(--muted)]"
-      >
+      <ButtonLink to="/programs" variant="ghost" className="w-full text-[var(--muted)]">
         Annuler
       </ButtonLink>
     </main>

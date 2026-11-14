@@ -57,9 +57,7 @@ export function PersonalRecordRow({
           aria-label={`${showExerciseName ? record.exercise.name : typeLabel} : ${valueLabel}`}
         >
           {showExerciseName ? (
-            <p className="truncate font-semibold tracking-tight">
-              {record.exercise.name}
-            </p>
+            <p className="truncate font-semibold tracking-tight">{record.exercise.name}</p>
           ) : (
             <p className="truncate text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
               {typeLabel}
@@ -68,10 +66,7 @@ export function PersonalRecordRow({
           <p className="mt-0.5 text-sm tabular-nums">
             <span className="font-semibold">{detailParts[0]}</span>
             {detailParts.length > 1 ? (
-              <span className="text-[var(--muted)]">
-                {' '}
-                · {detailParts.slice(1).join(' · ')}
-              </span>
+              <span className="text-[var(--muted)]"> · {detailParts.slice(1).join(' · ')}</span>
             ) : null}
           </p>
           <p className="mt-0.5 text-xs text-[var(--muted)]">

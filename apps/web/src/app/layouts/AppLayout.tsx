@@ -48,11 +48,7 @@ export function AppLayout() {
               moreOpen={moreOpen}
               onOpenMore={() => setMoreOpen(true)}
             />
-            <MoreMenuSheet
-              open={moreOpen}
-              onClose={closeMore}
-              pathname={location.pathname}
-            />
+            <MoreMenuSheet open={moreOpen} onClose={closeMore} pathname={location.pathname} />
           </>
         ) : null}
       </div>

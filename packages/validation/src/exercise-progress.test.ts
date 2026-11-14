@@ -12,9 +12,7 @@ import {
   type ExerciseProgressSetInput,
 } from './exercise-progress';
 
-function set(
-  overrides: Partial<ExerciseProgressSetInput> = {},
-): ExerciseProgressSetInput {
+function set(overrides: Partial<ExerciseProgressSetInput> = {}): ExerciseProgressSetInput {
   return {
     id: 'set-1',
     setType: 'WORKING',
@@ -59,25 +57,16 @@ describe('resolveAvailableProgressMetrics', () => {
   });
 
   it('BODYWEIGHT / ASSISTED / REPS_ONLY', () => {
-    expect(resolveAvailableProgressMetrics('BODYWEIGHT_REPS')).toEqual([
-      'MAX_REPS',
-      'TOTAL_REPS',
-    ]);
+    expect(resolveAvailableProgressMetrics('BODYWEIGHT_REPS')).toEqual(['MAX_REPS', 'TOTAL_REPS']);
     expect(resolveAvailableProgressMetrics('ASSISTED_BODYWEIGHT_REPS')).toEqual([
       'MAX_REPS',
       'TOTAL_REPS',
     ]);
-    expect(resolveAvailableProgressMetrics('REPS_ONLY')).toEqual([
-      'MAX_REPS',
-      'TOTAL_REPS',
-    ]);
+    expect(resolveAvailableProgressMetrics('REPS_ONLY')).toEqual(['MAX_REPS', 'TOTAL_REPS']);
   });
 
   it('DURATION', () => {
-    expect(resolveAvailableProgressMetrics('DURATION')).toEqual([
-      'MAX_DURATION',
-      'TOTAL_DURATION',
-    ]);
+    expect(resolveAvailableProgressMetrics('DURATION')).toEqual(['MAX_DURATION', 'TOTAL_DURATION']);
   });
 
   it('DISTANCE_DURATION', () => {
@@ -102,14 +91,10 @@ describe('resolveDefaultProgressMetric', () => {
   it('mappe chaque type', () => {
     expect(resolveDefaultProgressMetric('WEIGHT_REPS')).toBe('MAX_WEIGHT');
     expect(resolveDefaultProgressMetric('BODYWEIGHT_REPS')).toBe('MAX_REPS');
-    expect(resolveDefaultProgressMetric('ASSISTED_BODYWEIGHT_REPS')).toBe(
-      'MAX_REPS',
-    );
+    expect(resolveDefaultProgressMetric('ASSISTED_BODYWEIGHT_REPS')).toBe('MAX_REPS');
     expect(resolveDefaultProgressMetric('REPS_ONLY')).toBe('MAX_REPS');
     expect(resolveDefaultProgressMetric('DURATION')).toBe('MAX_DURATION');
-    expect(resolveDefaultProgressMetric('DISTANCE_DURATION')).toBe(
-      'MAX_DISTANCE',
-    );
+    expect(resolveDefaultProgressMetric('DISTANCE_DURATION')).toBe('MAX_DISTANCE');
     expect(resolveDefaultProgressMetric('WEIGHT_DURATION')).toBe('MAX_WEIGHT');
   });
 });
@@ -118,9 +103,7 @@ describe('excludesWarmupFromProgressMetric', () => {
   it('exclut les métriques principales', () => {
     expect(excludesWarmupFromProgressMetric('MAX_WEIGHT')).toBe(true);
     expect(excludesWarmupFromProgressMetric('MAX_REPS')).toBe(true);
-    expect(excludesWarmupFromProgressMetric('WORKING_EXTERNAL_VOLUME')).toBe(
-      true,
-    );
+    expect(excludesWarmupFromProgressMetric('WORKING_EXTERNAL_VOLUME')).toBe(true);
     expect(excludesWarmupFromProgressMetric('TOTAL_REPS')).toBe(false);
     expect(excludesWarmupFromProgressMetric('TOTAL_DURATION')).toBe(false);
     expect(excludesWarmupFromProgressMetric('TOTAL_DISTANCE')).toBe(false);
@@ -217,12 +200,7 @@ describe('computeExerciseWorkoutProgressPoint — WEIGHT_REPS', () => {
   });
 
   it('métrique incompatible → null', () => {
-    expect(
-      computeExerciseWorkoutProgressPoint(
-        weightSession([set()]),
-        'MAX_DISTANCE',
-      ),
-    ).toBeNull();
+    expect(computeExerciseWorkoutProgressPoint(weightSession([set()]), 'MAX_DISTANCE')).toBeNull();
   });
 });
 
@@ -254,12 +232,8 @@ describe('BODYWEIGHT / REPS_ONLY', () => {
         },
       ],
     };
-    expect(computeExerciseWorkoutProgressPoint(session, 'MAX_REPS')?.value).toBe(
-      12,
-    );
-    expect(
-      computeExerciseWorkoutProgressPoint(session, 'TOTAL_REPS')?.value,
-    ).toBe(32);
+    expect(computeExerciseWorkoutProgressPoint(session, 'MAX_REPS')?.value).toBe(12);
+    expect(computeExerciseWorkoutProgressPoint(session, 'TOTAL_REPS')?.value).toBe(32);
   });
 });
 
@@ -292,12 +266,8 @@ describe('DURATION', () => {
         },
       ],
     };
-    expect(
-      computeExerciseWorkoutProgressPoint(session, 'MAX_DURATION')?.value,
-    ).toBe(60);
-    expect(
-      computeExerciseWorkoutProgressPoint(session, 'TOTAL_DURATION')?.value,
-    ).toBe(100);
+    expect(computeExerciseWorkoutProgressPoint(session, 'MAX_DURATION')?.value).toBe(60);
+    expect(computeExerciseWorkoutProgressPoint(session, 'TOTAL_DURATION')?.value).toBe(100);
   });
 });
 
@@ -332,18 +302,10 @@ describe('DISTANCE_DURATION', () => {
         },
       ],
     };
-    expect(
-      computeExerciseWorkoutProgressPoint(session, 'MAX_DISTANCE')?.value,
-    ).toBe(1000);
-    expect(
-      computeExerciseWorkoutProgressPoint(session, 'TOTAL_DISTANCE')?.value,
-    ).toBe(1500);
-    expect(
-      computeExerciseWorkoutProgressPoint(session, 'MAX_DURATION')?.value,
-    ).toBe(300);
-    expect(
-      computeExerciseWorkoutProgressPoint(session, 'TOTAL_DURATION')?.value,
-    ).toBe(420);
+    expect(computeExerciseWorkoutProgressPoint(session, 'MAX_DISTANCE')?.value).toBe(1000);
+    expect(computeExerciseWorkoutProgressPoint(session, 'TOTAL_DISTANCE')?.value).toBe(1500);
+    expect(computeExerciseWorkoutProgressPoint(session, 'MAX_DURATION')?.value).toBe(300);
+    expect(computeExerciseWorkoutProgressPoint(session, 'TOTAL_DURATION')?.value).toBe(420);
   });
 });
 
@@ -376,15 +338,9 @@ describe('WEIGHT_DURATION', () => {
         },
       ],
     };
-    expect(
-      computeExerciseWorkoutProgressPoint(session, 'MAX_WEIGHT')?.value,
-    ).toBe(25);
-    expect(
-      computeExerciseWorkoutProgressPoint(session, 'MAX_DURATION')?.value,
-    ).toBe(45);
-    expect(
-      computeExerciseWorkoutProgressPoint(session, 'TOTAL_DURATION')?.value,
-    ).toBe(75);
+    expect(computeExerciseWorkoutProgressPoint(session, 'MAX_WEIGHT')?.value).toBe(25);
+    expect(computeExerciseWorkoutProgressPoint(session, 'MAX_DURATION')?.value).toBe(45);
+    expect(computeExerciseWorkoutProgressPoint(session, 'TOTAL_DURATION')?.value).toBe(75);
   });
 });
 

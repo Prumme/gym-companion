@@ -1,8 +1,4 @@
-import {
-  apiFetch,
-  setAccessToken,
-  type ApiRequestError,
-} from '@/lib/api/client';
+import { apiFetch, setAccessToken, type ApiRequestError } from '@/lib/api/client';
 import { useAuthStore } from '@/stores/auth-store';
 
 type AuthPayload = {

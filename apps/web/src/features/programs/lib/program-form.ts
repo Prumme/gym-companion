@@ -38,9 +38,7 @@ export function detailToProgramFormValues(
   };
 }
 
-export function programFormToCreatePayload(
-  values: ProgramFormValues,
-): CreateProgramInput {
+export function programFormToCreatePayload(values: ProgramFormValues): CreateProgramInput {
   return createProgramSchema.parse({
     name: values.name,
     description: values.description.trim() === '' ? null : values.description.trim(),
@@ -48,15 +46,11 @@ export function programFormToCreatePayload(
   });
 }
 
-export function programFormToUpdatePayload(
-  values: ProgramFormValues,
-): UpdateProgramInput {
+export function programFormToUpdatePayload(values: ProgramFormValues): UpdateProgramInput {
   return programFormToCreatePayload(values);
 }
 
-export function parseIncludeArchivedParam(
-  value: string | null,
-): boolean {
+export function parseIncludeArchivedParam(value: string | null): boolean {
   if (value == null || value === '') {
     return false;
   }

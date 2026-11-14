@@ -17,8 +17,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -28,11 +27,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -67,9 +62,7 @@ async function createStartableTemplate(
     .expect(201);
   const templateId = tpl.body.data.workoutTemplates[0].id as string;
   const ex = await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       exerciseId: system.id,
@@ -80,9 +73,7 @@ async function createStartableTemplate(
     .expect(201);
   const teId = ex.body.data.workoutTemplates[0].exercises[0].id as string;
   await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       setType: 'WORKING',
@@ -100,11 +91,7 @@ async function createStartableTemplate(
   return templateId;
 }
 
-async function startWorkout(
-  app: INestApplication,
-  token: string,
-  templateId: string,
-) {
+async function startWorkout(app: INestApplication, token: string, templateId: string) {
   const created = await request(app.getHttpServer())
     .post('/api/v1/workouts')
     .set('Authorization', `Bearer ${token}`)
@@ -249,9 +236,7 @@ describe('Workout lifecycle API (3.3)', () => {
     expect(completed.body.data.workoutSession.status).toBe('COMPLETED');
     expect(completed.body.data.workoutSession.completedAt).toBeTruthy();
     expect(completed.body.data.workoutSession.notes).toBe('Bonne séance');
-    expect(completed.body.data.workoutSession.permissions.canRecordSets).toBe(
-      false,
-    );
+    expect(completed.body.data.workoutSession.permissions.canRecordSets).toBe(false);
 
     const activeAfter = await request(app.getHttpServer())
       .get('/api/v1/workouts/active')
@@ -319,13 +304,9 @@ describe('Workout lifecycle API (3.3)', () => {
       .expect(200);
 
     expect(cancelled.body.data.workoutSession.status).toBe('CANCELLED');
-    expect(cancelled.body.data.workoutSession.cancellationReason).toBe(
-      'Interrompue',
-    );
+    expect(cancelled.body.data.workoutSession.cancellationReason).toBe('Interrompue');
     expect(cancelled.body.data.workoutSession.cancelledAt).toBeTruthy();
-    expect(
-      cancelled.body.data.workoutSession.exercises[0].sets[0].actualReps,
-    ).toBe(6);
+    expect(cancelled.body.data.workoutSession.exercises[0].sets[0].actualReps).toBe(6);
 
     expect(
       (

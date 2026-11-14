@@ -26,9 +26,7 @@ export async function enqueueWorkoutCommand(args: {
   const existing = await getSnapshot(args.userId, args.workoutSessionId);
   const base = args.baseSession ?? existing?.data;
   if (!base) {
-    throw new Error(
-      'Impossible d’enregistrer une commande hors ligne sans snapshot local.',
-    );
+    throw new Error('Impossible d’enregistrer une commande hors ligne sans snapshot local.');
   }
 
   const sequence = await nextSequence(args.userId, args.workoutSessionId);
@@ -73,9 +71,7 @@ export async function enqueueWorkoutCommand(args: {
   const syncState = buildSyncState({
     userId: args.userId,
     workoutSessionId: args.workoutSessionId,
-    status: typeof navigator !== 'undefined' && navigator.onLine === false
-      ? 'OFFLINE'
-      : 'PENDING',
+    status: typeof navigator !== 'undefined' && navigator.onLine === false ? 'OFFLINE' : 'PENDING',
     pendingCount: open.filter((c) => c.status === 'PENDING').length + 1,
   });
 

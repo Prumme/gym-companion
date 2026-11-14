@@ -109,12 +109,8 @@ describe('resolveExerciseCoachStatus', () => {
 
 describe('headlines / notices / actions', () => {
   it('headlines déterministes', () => {
-    expect(resolveExerciseCoachHeadline('PLATEAU').title).toBe(
-      'Stagnation détectée',
-    );
-    expect(resolveExerciseCoachHeadline('WATCH').title).toBe(
-      'Progression à surveiller',
-    );
+    expect(resolveExerciseCoachHeadline('PLATEAU').title).toBe('Stagnation détectée');
+    expect(resolveExerciseCoachHeadline('WATCH').title).toBe('Progression à surveiller');
   });
 
   it('notices équipement et effort', () => {
@@ -125,10 +121,7 @@ describe('headlines / notices / actions', () => {
       loadRecommendationReasons: ['INSUFFICIENT_EFFORT_DATA'],
       effortDataMissing: false,
     });
-    expect(notices.map((n) => n.code)).toEqual([
-      'MIXED_EQUIPMENT',
-      'EFFORT_DATA_MISSING',
-    ]);
+    expect(notices.map((n) => n.code)).toEqual(['MIXED_EQUIPMENT', 'EFFORT_DATA_MISSING']);
   });
 
   it('actions sans mutation', () => {
@@ -144,12 +137,8 @@ describe('headlines / notices / actions', () => {
 
   it('ordre overview', () => {
     // compare(a,b) < 0 ⇒ a avant b (priorité plus haute)
-    expect(compareExerciseCoachStatusPriority('REVIEW', 'PLATEAU')).toBeLessThan(
-      0,
-    );
-    expect(
-      compareExerciseCoachStatusPriority('WATCH', 'PROGRESSING'),
-    ).toBeLessThan(0);
+    expect(compareExerciseCoachStatusPriority('REVIEW', 'PLATEAU')).toBeLessThan(0);
+    expect(compareExerciseCoachStatusPriority('WATCH', 'PROGRESSING')).toBeLessThan(0);
   });
 
   it('infère progression récente', () => {

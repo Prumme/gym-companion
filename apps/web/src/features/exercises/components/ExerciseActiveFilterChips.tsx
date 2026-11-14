@@ -1,14 +1,8 @@
-import type {
-  EquipmentTypeReference,
-  MuscleGroupReference,
-} from '@gym-companion/shared';
+import type { EquipmentTypeReference, MuscleGroupReference } from '@gym-companion/shared';
 import { X } from 'lucide-react';
 
 import type { ExerciseListFilters } from '../api/exercise-query-options';
-import {
-  getMeasurementTypeLabel,
-  getSourceLabel,
-} from '../lib/exercise-labels';
+import { getMeasurementTypeLabel, getSourceLabel } from '../lib/exercise-labels';
 
 type Chip = {
   key: string;
@@ -32,9 +26,7 @@ function buildChips(
   const chips: Chip[] = [];
 
   if (filters.muscleGroupId) {
-    const name =
-      muscleGroups.find((g) => g.id === filters.muscleGroupId)?.name ??
-      'Muscle';
+    const name = muscleGroups.find((g) => g.id === filters.muscleGroupId)?.name ?? 'Muscle';
     chips.push({
       key: 'muscle',
       label: name,
@@ -42,9 +34,7 @@ function buildChips(
     });
   }
   if (filters.equipmentTypeId) {
-    const name =
-      equipmentTypes.find((e) => e.id === filters.equipmentTypeId)?.name ??
-      'Équipement';
+    const name = equipmentTypes.find((e) => e.id === filters.equipmentTypeId)?.name ?? 'Équipement';
     chips.push({
       key: 'equipment',
       label: name,

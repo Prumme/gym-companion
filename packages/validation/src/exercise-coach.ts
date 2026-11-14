@@ -10,20 +10,10 @@ export const COACH_OVERVIEW_LIMIT = 5;
 export const COACH_OVERVIEW_CANDIDATE_LIMIT = 20;
 
 export type ExerciseCoachStatus =
-  | 'NO_DATA'
-  | 'BUILDING_HISTORY'
-  | 'PROGRESSING'
-  | 'STABLE'
-  | 'WATCH'
-  | 'PLATEAU'
-  | 'REVIEW';
+  'NO_DATA' | 'BUILDING_HISTORY' | 'PROGRESSING' | 'STABLE' | 'WATCH' | 'PLATEAU' | 'REVIEW';
 
 export type CoachActionType =
-  | 'VIEW_LOAD_RECOMMENDATION'
-  | 'VIEW_PROGRESS'
-  | 'VIEW_RECORDS'
-  | 'VIEW_HISTORY'
-  | 'VIEW_PROGRAM';
+  'VIEW_LOAD_RECOMMENDATION' | 'VIEW_PROGRESS' | 'VIEW_RECORDS' | 'VIEW_HISTORY' | 'VIEW_PROGRAM';
 
 export type CoachNoticeSeverity = 'INFO' | 'ATTENTION';
 
@@ -113,28 +103,23 @@ const HEADLINES: Record<ExerciseCoachStatus, ExerciseCoachHeadline> = {
   },
   BUILDING_HISTORY: {
     title: 'Historique en construction',
-    description:
-      'Quelques séances sont déjà enregistrées. Continue pour affiner l’analyse.',
+    description: 'Quelques séances sont déjà enregistrées. Continue pour affiner l’analyse.',
   },
   PROGRESSING: {
     title: 'Progression récente',
-    description:
-      'Ta charge ou tes performances ont progressé sur les dernières séances.',
+    description: 'Ta charge ou tes performances ont progressé sur les dernières séances.',
   },
   STABLE: {
     title: 'Performances stables',
-    description:
-      'Tes performances sont globalement stables sur les dernières séances.',
+    description: 'Tes performances sont globalement stables sur les dernières séances.',
   },
   WATCH: {
     title: 'Progression à surveiller',
-    description:
-      'Tes performances sont restées proches sur plusieurs séances récentes.',
+    description: 'Tes performances sont restées proches sur plusieurs séances récentes.',
   },
   PLATEAU: {
     title: 'Stagnation détectée',
-    description:
-      'Plusieurs séances comparables montrent peu d’évolution récente.',
+    description: 'Plusieurs séances comparables montrent peu d’évolution récente.',
   },
   REVIEW: {
     title: 'Analyse à vérifier',
@@ -143,9 +128,7 @@ const HEADLINES: Record<ExerciseCoachStatus, ExerciseCoachHeadline> = {
   },
 };
 
-export function resolveExerciseCoachHeadline(
-  status: ExerciseCoachStatus,
-): ExerciseCoachHeadline {
+export function resolveExerciseCoachHeadline(status: ExerciseCoachStatus): ExerciseCoachHeadline {
   return HEADLINES[status];
 }
 
@@ -164,10 +147,7 @@ export function buildExerciseCoachNotices(input: {
 }): CoachNoticeDraft[] {
   const notices: CoachNoticeDraft[] = [];
 
-  if (
-    input.plateauStatus === 'REVIEW' &&
-    input.plateauReasons.includes('INCONSISTENT_EQUIPMENT')
-  ) {
+  if (input.plateauStatus === 'REVIEW' && input.plateauReasons.includes('INCONSISTENT_EQUIPMENT')) {
     notices.push({
       code: 'MIXED_EQUIPMENT',
       severity: 'ATTENTION',
@@ -176,10 +156,7 @@ export function buildExerciseCoachNotices(input: {
     });
   }
 
-  if (
-    input.plateauStatus === 'REVIEW' &&
-    input.plateauReasons.includes('INCONSISTENT_TARGETS')
-  ) {
+  if (input.plateauStatus === 'REVIEW' && input.plateauReasons.includes('INCONSISTENT_TARGETS')) {
     notices.push({
       code: 'INCONSISTENT_TARGETS',
       severity: 'ATTENTION',
@@ -326,15 +303,10 @@ const emptyQueryToUndefined = (value: unknown) => {
 
 export const exerciseCoachSummaryQuerySchema = z
   .object({
-    equipmentId: z.preprocess(
-      emptyQueryToUndefined,
-      z.string().uuid().optional(),
-    ),
+    equipmentId: z.preprocess(emptyQueryToUndefined, z.string().uuid().optional()),
     from: z.preprocess(emptyQueryToUndefined, z.string().optional()),
     to: z.preprocess(emptyQueryToUndefined, z.string().optional()),
   })
   .strict();
 
-export type ExerciseCoachSummaryQuery = z.infer<
-  typeof exerciseCoachSummaryQuerySchema
->;
+export type ExerciseCoachSummaryQuery = z.infer<typeof exerciseCoachSummaryQuerySchema>;

@@ -86,9 +86,7 @@ export async function getExerciseCoachSummary(
 }
 
 export async function getCoachingOverview(): Promise<CoachingOverview> {
-  const response = await apiFetch<{ data: CoachingOverview }>(
-    '/api/v1/coaching/overview',
-  );
+  const response = await apiFetch<{ data: CoachingOverview }>('/api/v1/coaching/overview');
   return response.data;
 }
 
@@ -106,9 +104,11 @@ export async function generateExerciseCoachExplanation(
   return response.data;
 }
 
-export async function createAiCoachConversation(input: {
-  exerciseId?: string;
-} = {}): Promise<AiCoachConversationDetail> {
+export async function createAiCoachConversation(
+  input: {
+    exerciseId?: string;
+  } = {},
+): Promise<AiCoachConversationDetail> {
   const response = await apiFetch<{ data: AiCoachConversationDetail }>(
     '/api/v1/coaching/conversations',
     {
@@ -119,10 +119,12 @@ export async function createAiCoachConversation(input: {
   return response.data;
 }
 
-export async function listAiCoachConversations(params: {
-  cursor?: string;
-  limit?: number;
-} = {}): Promise<ApiCursorListResponse<AiCoachConversationListItem>> {
+export async function listAiCoachConversations(
+  params: {
+    cursor?: string;
+    limit?: number;
+  } = {},
+): Promise<ApiCursorListResponse<AiCoachConversationListItem>> {
   const search = new URLSearchParams();
   if (params.cursor) search.set('cursor', params.cursor);
   if (params.limit != null) search.set('limit', String(params.limit));
@@ -169,10 +171,10 @@ export async function archiveAiCoachConversation(
 ): Promise<{ id: string; archivedAt: string }> {
   const response = await apiFetch<{
     data: { id: string; archivedAt: string };
-  }>(
-    `/api/v1/coaching/conversations/${encodeURIComponent(conversationId)}/archive`,
-    { method: 'POST', body: JSON.stringify({}) },
-  );
+  }>(`/api/v1/coaching/conversations/${encodeURIComponent(conversationId)}/archive`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
   return response.data;
 }
 

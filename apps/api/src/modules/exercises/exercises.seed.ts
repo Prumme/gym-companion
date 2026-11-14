@@ -5,7 +5,11 @@ import seedExercises from './exercises-seed-data.json';
 
 type PrismaLike = Pick<
   PrismaClient,
-  'muscleGroup' | 'equipmentType' | 'exercise' | 'exerciseSecondaryMuscle' | 'exerciseEquipmentCompatibility'
+  | 'muscleGroup'
+  | 'equipmentType'
+  | 'exercise'
+  | 'exerciseSecondaryMuscle'
+  | 'exerciseEquipmentCompatibility'
 >;
 
 type SeedExercise = (typeof seedExercises)[number];
@@ -69,9 +73,7 @@ export async function seedSystemExercises(prisma: PrismaLike): Promise<void> {
       throw new Error(`Missing primary muscle for seed: ${definition.primaryMuscleCode}`);
     }
     if (!defaultEquipmentTypeId) {
-      throw new Error(
-        `Missing default equipment for seed: ${definition.defaultEquipmentCode}`,
-      );
+      throw new Error(`Missing default equipment for seed: ${definition.defaultEquipmentCode}`);
     }
 
     const existing = await prisma.exercise.findUnique({
@@ -93,13 +95,7 @@ export async function seedSystemExercises(prisma: PrismaLike): Promise<void> {
           instructions: definition.instructions,
         },
       });
-      await syncExerciseRelations(
-        prisma,
-        created.id,
-        definition,
-        muscleByCode,
-        equipmentByCode,
-      );
+      await syncExerciseRelations(prisma, created.id, definition, muscleByCode, equipmentByCode);
       continue;
     }
 
@@ -118,12 +114,6 @@ export async function seedSystemExercises(prisma: PrismaLike): Promise<void> {
         ownerUserId: null,
       },
     });
-    await syncExerciseRelations(
-      prisma,
-      existing.id,
-      definition,
-      muscleByCode,
-      equipmentByCode,
-    );
+    await syncExerciseRelations(prisma, existing.id, definition, muscleByCode, equipmentByCode);
   }
 }

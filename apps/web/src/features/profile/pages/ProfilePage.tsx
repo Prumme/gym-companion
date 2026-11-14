@@ -117,9 +117,7 @@ export function ProfilePage() {
       setEditing(false);
       setSuccessMessage('Profil enregistré avec succès.');
     } catch (error) {
-      setSubmitError(
-        getApiErrorMessage(error, 'Impossible d’enregistrer le profil. Réessayez.'),
-      );
+      setSubmitError(getApiErrorMessage(error, 'Impossible d’enregistrer le profil. Réessayez.'));
     }
   });
 
@@ -172,9 +170,7 @@ export function ProfilePage() {
         <>
           <section>
             <h2 className="section-title mb-3">Identité</h2>
-            <p className="text-lg font-semibold text-[var(--foreground)]">
-              {profile.displayName}
-            </p>
+            <p className="text-lg font-semibold text-[var(--foreground)]">{profile.displayName}</p>
             <p className="mt-1 text-sm text-[var(--muted-foreground)]">{email}</p>
           </section>
 
@@ -187,15 +183,11 @@ export function ProfilePage() {
               </li>
               <li className="flex min-h-11 items-center justify-between gap-3 border-b border-[var(--border)] py-2">
                 <span className="text-[var(--muted-foreground)]">Unité de poids</span>
-                <span className="font-medium">
-                  {profile.weightUnit === 'KG' ? 'kg' : 'lb'}
-                </span>
+                <span className="font-medium">{profile.weightUnit === 'KG' ? 'kg' : 'lb'}</span>
               </li>
               <li className="flex min-h-11 items-center justify-between gap-3 border-b border-[var(--border)] py-2">
                 <span className="text-[var(--muted-foreground)]">Unité de distance</span>
-                <span className="font-medium">
-                  {profile.distanceUnit === 'KM' ? 'km' : 'mi'}
-                </span>
+                <span className="font-medium">{profile.distanceUnit === 'KM' ? 'km' : 'mi'}</span>
               </li>
               <li className="flex min-h-11 items-center justify-between gap-3 border-b border-[var(--border)] py-2">
                 <span className="text-[var(--muted-foreground)]">Objectif</span>
@@ -203,15 +195,11 @@ export function ProfilePage() {
               </li>
               <li className="flex min-h-11 items-center justify-between gap-3 border-b border-[var(--border)] py-2">
                 <span className="text-[var(--muted-foreground)]">Niveau</span>
-                <span className="font-medium">
-                  {LEVEL_LABELS[profile.experienceLevel]}
-                </span>
+                <span className="font-medium">{LEVEL_LABELS[profile.experienceLevel]}</span>
               </li>
               <li className="flex min-h-11 items-center justify-between gap-3 border-b border-[var(--border)] py-2">
                 <span className="text-[var(--muted-foreground)]">Suivi d’effort</span>
-                <span className="font-medium">
-                  {EFFORT_LABELS[profile.effortTrackingMode]}
-                </span>
+                <span className="font-medium">{EFFORT_LABELS[profile.effortTrackingMode]}</span>
               </li>
             </ul>
           </section>
@@ -363,11 +351,7 @@ export function ProfilePage() {
               Des modifications de séance ne sont pas encore synchronisées.
             </p>
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setLogoutConfirmOpen(false)}
-              >
+              <Button type="button" variant="secondary" onClick={() => setLogoutConfirmOpen(false)}>
                 Rester connecté
               </Button>
               <Button

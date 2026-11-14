@@ -114,12 +114,7 @@ function decimalToNumber(value: unknown): number | null {
   return Number(value);
 }
 
-function toMuscle(row: {
-  id: string;
-  code: string;
-  name: string;
-  parentId: string | null;
-}) {
+function toMuscle(row: { id: string; code: string; name: string; parentId: string | null }) {
   return {
     id: row.id,
     code: row.code,
@@ -128,11 +123,13 @@ function toMuscle(row: {
   };
 }
 
-function toEquipment(row: {
-  id: string;
-  code: string;
-  name: string;
-} | null) {
+function toEquipment(
+  row: {
+    id: string;
+    code: string;
+    name: string;
+  } | null,
+) {
   if (!row) {
     return null;
   }
@@ -168,9 +165,7 @@ export function toWorkoutTemplateExerciseRef(
   };
 }
 
-export function toWorkoutTemplateSetTarget(
-  row: WorkoutTemplateSetRow,
-): WorkoutTemplateSetTarget {
+export function toWorkoutTemplateSetTarget(row: WorkoutTemplateSetRow): WorkoutTemplateSetTarget {
   return {
     id: row.id,
     position: row.position,
@@ -201,9 +196,7 @@ export function toWorkoutTemplateExerciseDetail(
     equipmentType: toEquipment(row.equipmentType),
     restSecondsOverride: row.restSecondsOverride,
     notes: row.notes,
-    sets: [...row.sets]
-      .sort((a, b) => a.position - b.position)
-      .map(toWorkoutTemplateSetTarget),
+    sets: [...row.sets].sort((a, b) => a.position - b.position).map(toWorkoutTemplateSetTarget),
     permissions: {
       canEdit: canMutate,
       canDelete: canMutate,
@@ -212,9 +205,7 @@ export function toWorkoutTemplateExerciseDetail(
   };
 }
 
-export function toWorkoutTemplateSummary(
-  row: WorkoutTemplateRow,
-): WorkoutTemplateSummary {
+export function toWorkoutTemplateSummary(row: WorkoutTemplateRow): WorkoutTemplateSummary {
   return {
     id: row.id,
     name: row.name,
@@ -231,32 +222,24 @@ export function toWorkoutTemplateDetail(
   row: WorkoutTemplateRow,
   programArchived: boolean,
 ): WorkoutTemplateDetail {
-  const exercises = [...(row.exercises ?? [])].sort(
-    (a, b) => a.position - b.position,
-  );
+  const exercises = [...(row.exercises ?? [])].sort((a, b) => a.position - b.position);
   return {
     ...toWorkoutTemplateSummary({
       ...row,
       _count: { exercises: exercises.length },
     }),
-    exercises: exercises.map((item) =>
-      toWorkoutTemplateExerciseDetail(item, programArchived),
-    ),
+    exercises: exercises.map((item) => toWorkoutTemplateExerciseDetail(item, programArchived)),
   };
 }
 
-export function toProgramListItem(
-  row: ProgramRow,
-  isCurrent: boolean,
-): ProgramListItem {
+export function toProgramListItem(row: ProgramRow, isCurrent: boolean): ProgramListItem {
   return {
     id: row.id,
     name: row.name,
     description: row.description,
     goal: row.goal,
     status: row.status,
-    workoutTemplateCount:
-      row._count?.workoutTemplates ?? row.workoutTemplates?.length ?? 0,
+    workoutTemplateCount: row._count?.workoutTemplates ?? row.workoutTemplates?.length ?? 0,
     isCurrent,
     archivedAt: row.archivedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
@@ -268,10 +251,7 @@ export function toProgramListItem(
   };
 }
 
-export function toProgramDetail(
-  row: ProgramRow,
-  isCurrent: boolean,
-): ProgramDetail {
+export function toProgramDetail(row: ProgramRow, isCurrent: boolean): ProgramDetail {
   const templates = [...(row.workoutTemplates ?? [])].sort(
     (a, b) => a.positionInProgram - b.positionInProgram,
   );
@@ -284,15 +264,11 @@ export function toProgramDetail(
       },
       isCurrent,
     ),
-    workoutTemplates: templates.map((template) =>
-      toWorkoutTemplateDetail(template, archived),
-    ),
+    workoutTemplates: templates.map((template) => toWorkoutTemplateDetail(template, archived)),
   };
 }
 
-export function toProgramScheduleEntry(
-  row: ScheduleEntryRow,
-): ProgramScheduleEntry {
+export function toProgramScheduleEntry(row: ScheduleEntryRow): ProgramScheduleEntry {
   return {
     id: row.id,
     weekday: row.weekday,
@@ -302,9 +278,7 @@ export function toProgramScheduleEntry(
       name: row.workoutTemplate.name,
       estimatedDurationMinutes: row.workoutTemplate.estimatedDurationMinutes,
       exerciseCount:
-        row.workoutTemplate._count?.exercises ??
-        row.workoutTemplate.exercises?.length ??
-        0,
+        row.workoutTemplate._count?.exercises ?? row.workoutTemplate.exercises?.length ?? 0,
     },
   };
 }

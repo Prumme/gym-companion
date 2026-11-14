@@ -69,12 +69,8 @@ export function WorkoutTemplateCard({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [configureOpen, setConfigureOpen] = useState(false);
-  const [selectedExercise, setSelectedExercise] = useState<ExerciseDetail | null>(
-    null,
-  );
-  const [addDefaults, setAddDefaults] = useState<TemplateExerciseFormValues | null>(
-    null,
-  );
+  const [selectedExercise, setSelectedExercise] = useState<ExerciseDetail | null>(null);
+  const [addDefaults, setAddDefaults] = useState<TemplateExerciseFormValues | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -88,10 +84,7 @@ export function WorkoutTemplateCard({
     [template.exercises],
   );
 
-  const setCount = template.exercises.reduce(
-    (sum, exercise) => sum + exercise.sets.length,
-    0,
-  );
+  const setCount = template.exercises.reduce((sum, exercise) => sum + exercise.sets.length, 0);
 
   async function handleUpdate(values: WorkoutTemplateFormValues) {
     setError(null);
@@ -136,12 +129,7 @@ export function WorkoutTemplateCard({
       setShareToken(result.token);
       setShareExpiresAt(result.expiresAt);
     } catch (err) {
-      setShareError(
-        getTrainingShareErrorMessage(
-          err,
-          'Impossible de générer le lien de partage.',
-        ),
-      );
+      setShareError(getTrainingShareErrorMessage(err, 'Impossible de générer le lien de partage.'));
     }
   }
 
@@ -156,10 +144,7 @@ export function WorkoutTemplateCard({
       return;
     }
     const result = reorderTemplatesInDetail(snapshot, index, direction);
-    mutations.queryClient.setQueryData(
-      programQueryKeys.detail(programId),
-      result.next,
-    );
+    mutations.queryClient.setQueryData(programQueryKeys.detail(programId), result.next);
     try {
       await mutations.reorderTemplates.mutateAsync({
         programId,
@@ -167,13 +152,8 @@ export function WorkoutTemplateCard({
       });
       onStatus('Ordre des séances mis à jour.');
     } catch (err) {
-      mutations.queryClient.setQueryData(
-        programQueryKeys.detail(programId),
-        snapshot,
-      );
-      setError(
-        getApiErrorMessage(err, 'Impossible de réordonner les séances.'),
-      );
+      mutations.queryClient.setQueryData(programQueryKeys.detail(programId), snapshot);
+      setError(getApiErrorMessage(err, 'Impossible de réordonner les séances.'));
     } finally {
       setBusy(false);
     }
@@ -188,9 +168,7 @@ export function WorkoutTemplateCard({
       setAddDefaults(buildAddExerciseDefaults(detail));
       setConfigureOpen(true);
     } catch (err) {
-      setError(
-        getApiErrorMessage(err, 'Impossible de charger cet exercice.'),
-      );
+      setError(getApiErrorMessage(err, 'Impossible de charger cet exercice.'));
     }
   }
 
@@ -220,20 +198,14 @@ export function WorkoutTemplateCard({
           <button
             type="button"
             className="inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-control)] hover:bg-[var(--surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
-            aria-label={
-              programName
-                ? `Retour à ${programName}`
-                : 'Retour au programme'
-            }
+            aria-label={programName ? `Retour à ${programName}` : 'Retour au programme'}
             onClick={onBack}
           >
             <ArrowLeft className="size-5" aria-hidden="true" />
           </button>
         ) : null}
         <div className="min-w-0 flex-1">
-          {programName ? (
-            <p className="text-xs text-[var(--muted)]">{programName}</p>
-          ) : null}
+          {programName ? <p className="text-xs text-[var(--muted)]">{programName}</p> : null}
           <h2 className="truncate text-lg font-semibold tracking-tight sm:text-xl">
             {template.name}
           </h2>

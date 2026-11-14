@@ -8,31 +8,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LoadRecommendationCard } from '../components/LoadRecommendationCard';
 
-const {
-  getLoadRecommendation,
-  listLoadRecommendationDecisions,
-  decideLoadRecommendation,
-} = vi.hoisted(() => ({
-  getLoadRecommendation: vi.fn(),
-  listLoadRecommendationDecisions: vi.fn(),
-  decideLoadRecommendation: vi.fn(),
-}));
+const { getLoadRecommendation, listLoadRecommendationDecisions, decideLoadRecommendation } =
+  vi.hoisted(() => ({
+    getLoadRecommendation: vi.fn(),
+    listLoadRecommendationDecisions: vi.fn(),
+    decideLoadRecommendation: vi.fn(),
+  }));
 
 vi.mock('../api/coaching-api', () => ({
   getLoadRecommendation: (...args: unknown[]) => getLoadRecommendation(...args),
-  listLoadRecommendationDecisions: (...args: unknown[]) =>
-    listLoadRecommendationDecisions(...args),
-  decideLoadRecommendation: (...args: unknown[]) =>
-    decideLoadRecommendation(...args),
+  listLoadRecommendationDecisions: (...args: unknown[]) => listLoadRecommendationDecisions(...args),
+  decideLoadRecommendation: (...args: unknown[]) => decideLoadRecommendation(...args),
 }));
 
 vi.mock('@/features/workouts/offline/command-id', () => ({
   createClientCommandId: () => 'cmd-test-1',
 }));
 
-function baseRecommendation(
-  overrides: Partial<LoadRecommendation> = {},
-): LoadRecommendation {
+function baseRecommendation(overrides: Partial<LoadRecommendation> = {}): LoadRecommendation {
   return {
     workoutTemplateExerciseId: 'wte-1',
     exerciseId: 'ex-1',
@@ -76,9 +69,7 @@ function baseRecommendation(
   };
 }
 
-function renderCard(
-  measurementType: 'WEIGHT_REPS' | 'BODYWEIGHT_REPS' = 'WEIGHT_REPS',
-) {
+function renderCard(measurementType: 'WEIGHT_REPS' | 'BODYWEIGHT_REPS' = 'WEIGHT_REPS') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -156,16 +147,13 @@ describe('LoadRecommendationCard (5.1 + 5.2)', () => {
     });
     expect(screen.getByText(/80\s*kg\s*→\s*82,5\s*kg/)).toBeInTheDocument();
     expect(screen.getByText(/Basé sur 3 séances/)).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Appliquer' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Choisir une autre charge' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Appliquer' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Choisir une autre charge' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ignorer' })).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Voir la progression' }),
-    ).toHaveAttribute('href', '/progress/exercises/ex-1');
+    expect(screen.getByRole('link', { name: 'Voir la progression' })).toHaveAttribute(
+      'href',
+      '/progress/exercises/ex-1',
+    );
   });
 
   it('affiche HOLD puis DECREASE sur des montages séparés', async () => {
@@ -206,9 +194,7 @@ describe('LoadRecommendationCard (5.1 + 5.2)', () => {
     );
     renderCard();
     await screen.findByText('Progression à vérifier');
-    expect(
-      screen.getByText(/plusieurs charges ou plages/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/plusieurs charges ou plages/i)).toBeInTheDocument();
   });
 
   it('état sans historique', async () => {
@@ -232,9 +218,7 @@ describe('LoadRecommendationCard (5.1 + 5.2)', () => {
     );
     renderCard();
     await screen.findByText('Pas encore assez de données');
-    expect(
-      screen.getByText(/Pas encore assez de séances terminées/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Pas encore assez de séances terminées/i)).toBeInTheDocument();
   });
 
   it('ouvre le détail avec RIR et ferme le dialog', async () => {
@@ -275,9 +259,7 @@ describe('LoadRecommendationCard (5.1 + 5.2)', () => {
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText(/RIR : 2 \/ 2 \/ 2/)).toBeInTheDocument();
     expect(within(dialog).getByText(/RPE : 8 \/ 8 \/ 8/)).toBeInTheDocument();
-    expect(
-      within(dialog).getByText(/Incrément système par défaut/),
-    ).toBeInTheDocument();
+    expect(within(dialog).getByText(/Incrément système par défaut/)).toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: 'Fermer' }));
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -287,9 +269,7 @@ describe('LoadRecommendationCard (5.1 + 5.2)', () => {
   it('n’appelle pas l’API pour un type non WEIGHT_REPS', () => {
     renderCard('BODYWEIGHT_REPS');
     expect(getLoadRecommendation).not.toHaveBeenCalled();
-    expect(
-      screen.getByText(/Aucune recommandation de charge/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Aucune recommandation de charge/i)).toBeInTheDocument();
   });
 
   it('affiche une erreur réseau', async () => {
@@ -355,12 +335,8 @@ describe('LoadRecommendationCard (5.1 + 5.2)', () => {
     await screen.findByText('Augmenter la charge');
     await user.click(screen.getByRole('button', { name: 'Appliquer' }));
     const dialog = await screen.findByRole('dialog');
-    expect(
-      within(dialog).getByText(/passeront de 80 kg à 82,5 kg/i),
-    ).toBeInTheDocument();
-    await user.click(
-      within(dialog).getByRole('button', { name: /Appliquer 82,5 kg/i }),
-    );
+    expect(within(dialog).getByText(/passeront de 80 kg à 82,5 kg/i)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: /Appliquer 82,5 kg/i }));
     await waitFor(() => {
       expect(decideLoadRecommendation).toHaveBeenCalledWith(
         'wte-1',
@@ -371,9 +347,7 @@ describe('LoadRecommendationCard (5.1 + 5.2)', () => {
         }),
       );
     });
-    expect(
-      await screen.findByText(/mise à jour à 82,5 kg/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/mise à jour à 82,5 kg/i)).toBeInTheDocument();
   });
 
   it('n’affiche pas Appliquer pour REVIEW', async () => {
@@ -391,9 +365,7 @@ describe('LoadRecommendationCard (5.1 + 5.2)', () => {
     );
     renderCard();
     await screen.findByText('Progression à vérifier');
-    expect(
-      screen.queryByRole('button', { name: 'Appliquer' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Appliquer' })).not.toBeInTheDocument();
   });
 
   it('affiche l’historique des décisions', async () => {
@@ -454,12 +426,8 @@ describe('LoadRecommendationCard (5.1 + 5.2)', () => {
     expect(await screen.findByText('82,5 kg')).toBeInTheDocument();
     expect(screen.getByText(/Suggestion/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Voir$/i })).toBeInTheDocument();
-    expect(
-      screen.queryByText(/Suggestion pour la prochaine séance/i),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Appliquer' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Suggestion pour la prochaine séance/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Appliquer' })).not.toBeInTheDocument();
   });
 
   it('variant compact: ne rend rien si non supporté', async () => {
@@ -488,8 +456,6 @@ describe('LoadRecommendationCard (5.1 + 5.2)', () => {
       expect(getLoadRecommendation).toHaveBeenCalled();
       expect(screen.queryByText(/Suggestion/i)).not.toBeInTheDocument();
     });
-    expect(
-      screen.queryByText(/Suggestion pour la prochaine séance/i),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Suggestion pour la prochaine séance/i)).not.toBeInTheDocument();
   });
 });

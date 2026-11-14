@@ -227,12 +227,10 @@ describe('ai-coach-structured', () => {
 
   it('accepte un accept body vide (kind program) ou avec programId (kind workout)', () => {
     expect(acceptCoachProposalBodySchema.parse({})).toEqual({});
-    expect(
-      acceptCoachProposalBodySchema.parse({ programId: EXERCISE_ID }),
-    ).toEqual({ programId: EXERCISE_ID });
-    expect(() =>
-      acceptCoachProposalBodySchema.parse({ programId: 'not-a-uuid' }),
-    ).toThrow();
+    expect(acceptCoachProposalBodySchema.parse({ programId: EXERCISE_ID })).toEqual({
+      programId: EXERCISE_ID,
+    });
+    expect(() => acceptCoachProposalBodySchema.parse({ programId: 'not-a-uuid' })).toThrow();
   });
 
   describe('sanitizeCoachProposalSetForMeasurement', () => {
@@ -263,16 +261,13 @@ describe('ai-coach-structured', () => {
     });
 
     it('DISTANCE_DURATION : retire reps, conserve distance', () => {
-      const sanitized = sanitizeCoachProposalSetForMeasurement(
-        'DISTANCE_DURATION',
-        {
-          ...buildValidSet(),
-          targetRepMin: 5,
-          targetRepMax: 5,
-          targetDurationSeconds: 300,
-          targetDistanceMeters: 1000,
-        },
-      );
+      const sanitized = sanitizeCoachProposalSetForMeasurement('DISTANCE_DURATION', {
+        ...buildValidSet(),
+        targetRepMin: 5,
+        targetRepMax: 5,
+        targetDurationSeconds: 300,
+        targetDistanceMeters: 1000,
+      });
       expect(sanitized.targetRepMin).toBeNull();
       expect(sanitized.targetRepMax).toBeNull();
       expect(sanitized.targetDistanceMeters).toBe(1000);

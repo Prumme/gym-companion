@@ -39,10 +39,7 @@ export function ProgramScheduleEditPage() {
   const replaceMutation = useReplaceProgramScheduleMutation();
 
   const confirmedEntries = useMemo(
-    () =>
-      scheduleQuery.data
-        ? scheduleToDraftEntries(scheduleQuery.data)
-        : [],
+    () => (scheduleQuery.data ? scheduleToDraftEntries(scheduleQuery.data) : []),
     [scheduleQuery.data],
   );
 
@@ -70,10 +67,7 @@ export function ProgramScheduleEditPage() {
           <ArrowLeft className="size-4" aria-hidden="true" />
           Retour au planning
         </ButtonLink>
-        <div
-          className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4"
-          role="alert"
-        >
+        <div className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4" role="alert">
           <p className="text-sm text-[var(--danger)]">
             {getApiErrorMessage(
               detailQuery.error ?? scheduleQuery.error,
@@ -86,8 +80,7 @@ export function ProgramScheduleEditPage() {
   }
 
   const program = detailQuery.data;
-  const isArchived =
-    program.status === 'ARCHIVED' || program.archivedAt != null;
+  const isArchived = program.status === 'ARCHIVED' || program.archivedAt != null;
   const readOnly = isArchived || !program.permissions.canEditSchedule;
   const isDirty = !draftEntriesEqual(draftEntries, confirmedEntries);
   const templates = program.workoutTemplates;
@@ -118,9 +111,7 @@ export function ProgramScheduleEditPage() {
 
     return (
       <label className="mt-2 block text-sm">
-        <span className="sr-only">
-          Ajouter une séance le {WEEKDAY_LABELS[weekday]}
-        </span>
+        <span className="sr-only">Ajouter une séance le {WEEKDAY_LABELS[weekday]}</span>
         <select
           className="mt-2 w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
           defaultValue=""
@@ -133,9 +124,7 @@ export function ProgramScheduleEditPage() {
             if (!template) {
               return;
             }
-            setDraftEntries((current) =>
-              addDraftEntry(current, weekday, template),
-            );
+            setDraftEntries((current) => addDraftEntry(current, weekday, template));
             event.target.value = '';
           }}
         >
@@ -162,9 +151,7 @@ export function ProgramScheduleEditPage() {
           {program.isCurrent ? 'Retour au planning' : 'Retour au programme'}
         </ButtonLink>
 
-        <h1 className="text-2xl font-bold tracking-tight">
-          Planning hebdomadaire
-        </h1>
+        <h1 className="text-2xl font-bold tracking-tight">Planning hebdomadaire</h1>
         <p className="mt-1 text-sm text-[var(--muted)]">{program.name}</p>
         {readOnly ? (
           <p className="mt-2 text-sm text-amber-900">
@@ -199,8 +186,8 @@ export function ProgramScheduleEditPage() {
           role="status"
         >
           <p className="text-sm text-[var(--muted)]">
-            Ce programme n’a aucun modèle de séance. Configure-les d’abord pour
-            planifier ta semaine.
+            Ce programme n’a aucun modèle de séance. Configure-les d’abord pour planifier ta
+            semaine.
           </p>
           <ButtonLink
             to={`/programs/${program.id}`}
@@ -219,9 +206,7 @@ export function ProgramScheduleEditPage() {
                 key={weekday}
                 className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-3"
               >
-                <h2 className="text-sm font-semibold">
-                  {WEEKDAY_LABELS[weekday]}
-                </h2>
+                <h2 className="text-sm font-semibold">{WEEKDAY_LABELS[weekday]}</h2>
 
                 {dayEntries.length === 0 ? (
                   <p className="mt-2 text-sm text-[var(--muted)]">Repos</p>
@@ -234,14 +219,10 @@ export function ProgramScheduleEditPage() {
                       >
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0">
-                            <p className="text-sm font-medium">
-                              {entry.workoutTemplate.name}
-                            </p>
+                            <p className="text-sm font-medium">{entry.workoutTemplate.name}</p>
                             <p className="text-xs text-[var(--muted)]">
                               {entry.workoutTemplate.exerciseCount} exercice
-                              {entry.workoutTemplate.exerciseCount === 1
-                                ? ''
-                                : 's'}
+                              {entry.workoutTemplate.exerciseCount === 1 ? '' : 's'}
                             </p>
                           </div>
                           {!readOnly ? (
@@ -274,20 +255,12 @@ export function ProgramScheduleEditPage() {
                                 canMoveDown={index < dayEntries.length - 1}
                                 onMoveUp={() =>
                                   setDraftEntries((current) =>
-                                    moveDraftEntryWithinDay(
-                                      current,
-                                      entry.clientId,
-                                      'up',
-                                    ),
+                                    moveDraftEntryWithinDay(current, entry.clientId, 'up'),
                                   )
                                 }
                                 onMoveDown={() =>
                                   setDraftEntries((current) =>
-                                    moveDraftEntryWithinDay(
-                                      current,
-                                      entry.clientId,
-                                      'down',
-                                    ),
+                                    moveDraftEntryWithinDay(current, entry.clientId, 'down'),
                                   )
                                 }
                               />

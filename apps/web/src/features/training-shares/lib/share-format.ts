@@ -20,9 +20,7 @@ export function formatShareSetSummary(set: TrainingShareSetPreview): string {
   return set.setType;
 }
 
-export function formatShareSetsLine(
-  sets: TrainingShareSetPreview[],
-): string {
+export function formatShareSetsLine(sets: TrainingShareSetPreview[]): string {
   if (sets.length === 0) return 'Aucune série';
   const first = sets[0]!;
   const same = sets.every(
@@ -37,10 +35,7 @@ export function formatShareSetsLine(
   return `${sets.length} séries`;
 }
 
-export function formatRemainingShareTime(
-  expiresAtIso: string,
-  nowMs: number = Date.now(),
-): string {
+export function formatRemainingShareTime(expiresAtIso: string, nowMs: number = Date.now()): string {
   const remainingMs = new Date(expiresAtIso).getTime() - nowMs;
   if (remainingMs <= 0) return 'expiré';
   const totalMinutes = Math.max(1, Math.ceil(remainingMs / 60_000));
@@ -53,10 +48,7 @@ export function formatRemainingShareTime(
   return `${totalMinutes} min`;
 }
 
-export function getTrainingShareErrorMessage(
-  error: unknown,
-  fallback: string,
-): string {
+export function getTrainingShareErrorMessage(error: unknown, fallback: string): string {
   if (
     error &&
     typeof error === 'object' &&

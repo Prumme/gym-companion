@@ -30,8 +30,7 @@ export function ShareLinkSheet({
   const [shareError, setShareError] = useState<string | null>(null);
 
   const url = token ? buildShareUrl(token) : '';
-  const canNativeShare =
-    typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+  const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
   useEffect(() => {
     if (!open) return;
@@ -101,9 +100,7 @@ export function ShareLinkSheet({
             <h2 id={titleId} className="text-lg font-semibold tracking-tight">
               {title}
             </h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              Valide pendant 1 heure
-            </p>
+            <p className="mt-1 text-sm text-[var(--muted)]">Valide pendant 1 heure</p>
           </div>
           <button
             ref={closeRef}
@@ -154,11 +151,7 @@ export function ShareLinkSheet({
               </p>
             ) : null}
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Button
-                type="button"
-                className="flex-1 gap-2"
-                onClick={() => void handleCopy()}
-              >
+              <Button type="button" className="flex-1 gap-2" onClick={() => void handleCopy()}>
                 {copied ? (
                   <Check className="size-4" aria-hidden="true" />
                 ) : (

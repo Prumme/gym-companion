@@ -1,10 +1,6 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 
-import type {
-  StoredWorkoutCommand,
-  StoredWorkoutSnapshot,
-  StoredWorkoutSyncState,
-} from './types';
+import type { StoredWorkoutCommand, StoredWorkoutSnapshot, StoredWorkoutSyncState } from './types';
 
 const DB_NAME = 'gym-companion-offline';
 const DB_VERSION = 1;

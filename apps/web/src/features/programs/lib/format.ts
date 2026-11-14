@@ -27,10 +27,7 @@ export function formatProgramUpdatedAt(iso: string): string {
   }
 }
 
-export function formatShortDescription(
-  description: string | null,
-  max = 120,
-): string | null {
+export function formatShortDescription(description: string | null, max = 120): string | null {
   if (!description) {
     return null;
   }

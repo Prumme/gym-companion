@@ -93,20 +93,13 @@ function toMemberWorkoutSummary(
     })),
   );
 
-  const terminalSession =
-    status === 'COMPLETED' || status === 'CANCELLED';
+  const terminalSession = status === 'COMPLETED' || status === 'CANCELLED';
   const roomTerminal = roomStatus === 'COMPLETED' || roomStatus === 'CANCELLED';
 
-  let currentExercise: SharedWorkoutRoomMemberWorkoutSummary['currentExercise'] =
-    null;
-  if (
-    !terminalSession &&
-    !roomTerminal &&
-    member.memberSession?.currentWorkoutExercise
-  ) {
+  let currentExercise: SharedWorkoutRoomMemberWorkoutSummary['currentExercise'] = null;
+  if (!terminalSession && !roomTerminal && member.memberSession?.currentWorkoutExercise) {
     currentExercise = buildExerciseProgressSummary({
-      exerciseNameSnapshot:
-        member.memberSession.currentWorkoutExercise.exerciseNameSnapshot,
+      exerciseNameSnapshot: member.memberSession.currentWorkoutExercise.exerciseNameSnapshot,
       sets: member.memberSession.currentWorkoutExercise.sets,
     });
   }
@@ -158,8 +151,7 @@ export function toSharedWorkoutRoomDetail(
   const ownerMember = members.find((member) => member.role === 'OWNER');
   const viewerMember = members.find((member) => member.userId === viewerUserId);
   const isOwner = room.ownerUserId === viewerUserId;
-  const showJoinCode =
-    isOwner && (room.status === 'LOBBY' || room.status === 'ACTIVE');
+  const showJoinCode = isOwner && (room.status === 'LOBBY' || room.status === 'ACTIVE');
   return {
     id: room.id,
     name: room.name,
@@ -168,8 +160,7 @@ export function toSharedWorkoutRoomDetail(
       userId: room.ownerUserId,
       displayName:
         ownerMember?.user.profile?.displayName ??
-        members.find((member) => member.userId === room.ownerUserId)?.user
-          .profile?.displayName ??
+        members.find((member) => member.userId === room.ownerUserId)?.user.profile?.displayName ??
         null,
     },
     members: members
@@ -186,17 +177,12 @@ export function toSharedWorkoutRoomDetail(
     createdAt: room.createdAt.toISOString(),
     updatedAt: room.updatedAt.toISOString(),
     isOwner,
-    joinCode: showJoinCode
-      ? formatSharedWorkoutJoinCode(room.joinCode)
-      : null,
-    myWorkoutSessionId:
-      viewerMember?.memberSession?.workoutSessionId ?? null,
+    joinCode: showJoinCode ? formatSharedWorkoutJoinCode(room.joinCode) : null,
+    myWorkoutSessionId: viewerMember?.memberSession?.workoutSessionId ?? null,
   };
 }
 
-export function toSharedWorkoutRoomListItem(
-  room: RoomRow,
-): SharedWorkoutRoomListItem {
+export function toSharedWorkoutRoomListItem(room: RoomRow): SharedWorkoutRoomListItem {
   const members = activeMembers(room.members);
   const ownerMember = members.find((member) => member.role === 'OWNER');
   return {

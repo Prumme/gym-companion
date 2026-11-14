@@ -13,9 +13,7 @@ const listEquipmentTypes = vi.fn();
 const updateExercise = vi.fn();
 
 vi.mock('../api/exercise-api', async () => {
-  const actual = await vi.importActual<typeof import('../api/exercise-api')>(
-    '../api/exercise-api',
-  );
+  const actual = await vi.importActual<typeof import('../api/exercise-api')>('../api/exercise-api');
   return {
     ...actual,
     getExercise: (...args: unknown[]) => getExercise(...args),
@@ -97,17 +95,13 @@ describe('EditExercisePage', () => {
       { id: MUSCLE_CHEST, code: 'chest', name: 'Pectoraux', parentId: null },
       { id: MUSCLE_BACK, code: 'back', name: 'Dos', parentId: null },
     ]);
-    listEquipmentTypes.mockResolvedValue([
-      { id: EQ_BARBELL, code: 'barbell', name: 'Barre' },
-    ]);
+    listEquipmentTypes.mockResolvedValue([{ id: EQ_BARBELL, code: 'barbell', name: 'Barre' }]);
   });
 
   it('prefills and updates a personal exercise', async () => {
     const user = userEvent.setup();
     getExercise.mockResolvedValue(createUserDetail());
-    updateExercise.mockResolvedValue(
-      createUserDetail({ name: 'Curl modifié' }),
-    );
+    updateExercise.mockResolvedValue(createUserDetail({ name: 'Curl modifié' }));
 
     renderEdit();
     expect(await screen.findByDisplayValue('Curl perso')).toBeInTheDocument();
@@ -121,9 +115,7 @@ describe('EditExercisePage', () => {
     expect(updateExercise.mock.calls[0]?.[0]).toBe(EXERCISE_ID);
     expect(updateExercise.mock.calls[0]?.[1]).toMatchObject({
       name: 'Curl modifié',
-      compatibleEquipmentTypes: [
-        expect.objectContaining({ notes: 'Note A' }),
-      ],
+      compatibleEquipmentTypes: [expect.objectContaining({ notes: 'Note A' })],
     });
     expect(await screen.findByText('Detail page')).toBeInTheDocument();
   });
@@ -136,9 +128,7 @@ describe('EditExercisePage', () => {
       }),
     );
     renderEdit();
-    expect(
-      await screen.findByText(/Modification indisponible/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Modification indisponible/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/Nom/i)).not.toBeInTheDocument();
   });
 
@@ -158,8 +148,6 @@ describe('EditExercisePage', () => {
     const error = Object.assign(new Error('Introuvable'), { status: 404 });
     getExercise.mockRejectedValue(error);
     renderEdit();
-    expect(
-      await screen.findByText(/introuvable ou inaccessible/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/introuvable ou inaccessible/i)).toBeInTheDocument();
   });
 });

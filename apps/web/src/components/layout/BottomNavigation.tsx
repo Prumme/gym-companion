@@ -1,11 +1,7 @@
 import { Menu } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
-import {
-  isNavItemActive,
-  moreNavItems,
-  primaryNavItems,
-} from '@/app/navigation/nav-config';
+import { isNavItemActive, moreNavItems, primaryNavItems } from '@/app/navigation/nav-config';
 import { cn } from '@/lib/utils';
 
 type BottomNavigationProps = {
@@ -14,14 +10,8 @@ type BottomNavigationProps = {
   moreOpen: boolean;
 };
 
-export function BottomNavigation({
-  pathname,
-  onOpenMore,
-  moreOpen,
-}: BottomNavigationProps) {
-  const moreSectionActive = moreNavItems.some((item) =>
-    isNavItemActive(item, pathname),
-  );
+export function BottomNavigation({ pathname, onOpenMore, moreOpen }: BottomNavigationProps) {
+  const moreSectionActive = moreNavItems.some((item) => isNavItemActive(item, pathname));
   const plusActive = moreOpen || moreSectionActive;
 
   return (
@@ -44,9 +34,7 @@ export function BottomNavigation({
                 aria-current={active ? 'page' : undefined}
                 className={cn(
                   'flex h-full min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 px-1 text-[0.6875rem] font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--ring)]',
-                  active
-                    ? 'text-[var(--foreground)]'
-                    : 'text-[var(--muted-foreground)]',
+                  active ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)]',
                 )}
               >
                 <Icon
@@ -76,9 +64,7 @@ export function BottomNavigation({
             aria-current={moreSectionActive ? 'true' : undefined}
             className={cn(
               'flex h-full w-full min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 px-1 text-[0.6875rem] font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--ring)]',
-              plusActive
-                ? 'text-[var(--foreground)]'
-                : 'text-[var(--muted-foreground)]',
+              plusActive ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)]',
             )}
           >
             <Menu

@@ -36,9 +36,7 @@ describe('ai-coach-muscle-concepts', () => {
 
   it('aliases sans UUID hardcodés', () => {
     for (const codes of Object.values(AI_COACH_MUSCLE_CONCEPT_ALIASES)) {
-      expect(codes.every((code) => !code.includes('-') || code.length < 40)).toBe(
-        true,
-      );
+      expect(codes.every((code) => !code.includes('-') || code.length < 40)).toBe(true);
       expect(codes.every((code) => !/^[0-9a-f-]{36}$/i.test(code))).toBe(true);
     }
   });

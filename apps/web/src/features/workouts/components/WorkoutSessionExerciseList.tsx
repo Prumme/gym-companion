@@ -30,28 +30,19 @@ type WorkoutSessionExerciseListProps = {
 
 function exerciseHighlight(exercise: WorkoutSessionExerciseDetail): string {
   const performed = exercise.sets.filter(
-    (set) =>
-      set.status === 'COMPLETED' ||
-      set.status === 'PARTIAL' ||
-      set.status === 'FAILED',
+    (set) => set.status === 'COMPLETED' || set.status === 'PARTIAL' || set.status === 'FAILED',
   );
   let maxWeight: number | null = null;
   let maxReps: number | null = null;
   for (const set of performed) {
     if (set.actualWeightKg != null) {
-      maxWeight =
-        maxWeight == null
-          ? set.actualWeightKg
-          : Math.max(maxWeight, set.actualWeightKg);
+      maxWeight = maxWeight == null ? set.actualWeightKg : Math.max(maxWeight, set.actualWeightKg);
     }
     if (set.actualReps != null) {
-      maxReps =
-        maxReps == null ? set.actualReps : Math.max(maxReps, set.actualReps);
+      maxReps = maxReps == null ? set.actualReps : Math.max(maxReps, set.actualReps);
     }
   }
-  const parts: string[] = [
-    `${exercise.sets.length} série${exercise.sets.length === 1 ? '' : 's'}`,
-  ];
+  const parts: string[] = [`${exercise.sets.length} série${exercise.sets.length === 1 ? '' : 's'}`];
   if (maxWeight != null) {
     parts.push(`${maxWeight} kg max`);
   } else if (maxReps != null) {
@@ -60,8 +51,7 @@ function exerciseHighlight(exercise: WorkoutSessionExerciseDetail): string {
     const sample = performed[0] ?? exercise.sets[0];
     if (sample) {
       const compact =
-        formatWorkoutSetActualCompact(sample) ??
-        formatWorkoutSetTargetSummary(sample);
+        formatWorkoutSetActualCompact(sample) ?? formatWorkoutSetTargetSummary(sample);
       if (compact) {
         const short = compact.split(' — ')[0];
         if (short) parts.push(short);
@@ -112,9 +102,7 @@ function WorkoutSessionExerciseItem({
 }) {
   const titleId = useId();
   const [expanded, setExpanded] = useState(canRecordSets);
-  const [editingSet, setEditingSet] = useState<WorkoutSessionSetDetail | null>(
-    null,
-  );
+  const [editingSet, setEditingSet] = useState<WorkoutSessionSetDetail | null>(null);
   const readOnlyCompact = !canRecordSets;
 
   if (readOnlyCompact) {
@@ -131,20 +119,12 @@ function WorkoutSessionExerciseItem({
             <p className="text-sm font-semibold text-[var(--foreground)]">
               {exercise.exerciseName}
             </p>
-            <p className="mt-0.5 text-sm text-[var(--muted)]">
-              {exerciseHighlight(exercise)}
-            </p>
+            <p className="mt-0.5 text-sm text-[var(--muted)]">{exerciseHighlight(exercise)}</p>
           </div>
           {expanded ? (
-            <ChevronDown
-              className="size-4 shrink-0 text-[var(--muted)]"
-              aria-hidden="true"
-            />
+            <ChevronDown className="size-4 shrink-0 text-[var(--muted)]" aria-hidden="true" />
           ) : (
-            <ChevronRight
-              className="size-4 shrink-0 text-[var(--muted)]"
-              aria-hidden="true"
-            />
+            <ChevronRight className="size-4 shrink-0 text-[var(--muted)]" aria-hidden="true" />
           )}
         </button>
 
@@ -186,9 +166,7 @@ function WorkoutSessionExerciseItem({
           <p className="mt-1 text-xs text-[var(--muted)]">
             {getMeasurementTypeLabel(exercise.measurementType)}
             {exercise.equipment.name ? ` · ${exercise.equipment.name}` : ''}
-            {exercise.restSeconds != null
-              ? ` · repos ${exercise.restSeconds} s`
-              : ''}
+            {exercise.restSeconds != null ? ` · repos ${exercise.restSeconds} s` : ''}
           </p>
         </div>
         <ChevronDown
@@ -201,10 +179,7 @@ function WorkoutSessionExerciseItem({
       </button>
 
       {expanded ? (
-        <div
-          id={`${titleId}-panel`}
-          className="border-t border-[var(--border)] px-3 pb-3"
-        >
+        <div id={`${titleId}-panel`} className="border-t border-[var(--border)] px-3 pb-3">
           {exercise.notes ? (
             <p className="mt-3 text-sm text-[var(--muted)]">{exercise.notes}</p>
           ) : null}
@@ -218,9 +193,7 @@ function WorkoutSessionExerciseItem({
                   id={`set-${set.id}`}
                   className={cn(
                     'rounded-[var(--radius)] bg-[var(--background)] px-3 py-3',
-                    highlighted
-                      ? 'ring-2 ring-[var(--primary)] ring-offset-2'
-                      : '',
+                    highlighted ? 'ring-2 ring-[var(--primary)] ring-offset-2' : '',
                   )}
                 >
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -231,28 +204,19 @@ function WorkoutSessionExerciseItem({
                       </p>
                       <p className="mt-1 text-xs text-[var(--muted)]">
                         Cible :{' '}
-                        {formatWorkoutSetTargetSummary(set)
-                          .split(' — ')
-                          .slice(1)
-                          .join(' — ') || '—'}
+                        {formatWorkoutSetTargetSummary(set).split(' — ').slice(1).join(' — ') ||
+                          '—'}
                       </p>
                       <p className="mt-1 text-xs">
                         Statut : {getWorkoutSetStatusLabel(set.status)}
                       </p>
                       {set.reachedFailure ? (
-                        <p className="mt-1 text-xs text-[var(--muted)]">
-                          Échec musculaire : Oui
-                        </p>
-                      ) : set.status !== 'PENDING' &&
-                        set.status !== 'SKIPPED' ? (
-                        <p className="mt-1 text-xs text-[var(--muted)]">
-                          Échec musculaire : Non
-                        </p>
+                        <p className="mt-1 text-xs text-[var(--muted)]">Échec musculaire : Oui</p>
+                      ) : set.status !== 'PENDING' && set.status !== 'SKIPPED' ? (
+                        <p className="mt-1 text-xs text-[var(--muted)]">Échec musculaire : Non</p>
                       ) : null}
                       {set.notes ? (
-                        <p className="mt-1 text-xs text-[var(--muted)]">
-                          Notes : {set.notes}
-                        </p>
+                        <p className="mt-1 text-xs text-[var(--muted)]">Notes : {set.notes}</p>
                       ) : null}
                       {set.completedAt ? (
                         <p className="mt-1 text-xs text-[var(--muted)]">
@@ -263,9 +227,7 @@ function WorkoutSessionExerciseItem({
                           }).format(new Date(set.completedAt))}
                         </p>
                       ) : null}
-                      {actual ? (
-                        <p className="mt-1 text-sm">Réalisé : {actual}</p>
-                      ) : null}
+                      {actual ? <p className="mt-1 text-sm">Réalisé : {actual}</p> : null}
                     </div>
                     <Button
                       type="button"

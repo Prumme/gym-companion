@@ -37,11 +37,7 @@ export function WorkoutSyncBanner({
         role="status"
       >
         <p>
-          {browserOffline
-            ? 'Hors ligne'
-            : status === 'SYNCING'
-              ? 'Synchronisation…'
-              : label}
+          {browserOffline ? 'Hors ligne' : status === 'SYNCING' ? 'Synchronisation…' : label}
           {fromLocalSnapshot ? ' · Local' : ''}
           {pendingCount > 0 ? ` · ${pendingCount} en attente` : ''}
         </p>
@@ -66,9 +62,7 @@ export function WorkoutSyncBanner({
     >
       <p className="font-medium">{label}</p>
       {fromLocalSnapshot ? (
-        <p className="mt-1 text-[var(--muted)]">
-          Données chargées depuis le stockage local.
-        </p>
+        <p className="mt-1 text-[var(--muted)]">Données chargées depuis le stockage local.</p>
       ) : null}
       {status === 'PENDING' || status === 'OFFLINE' ? (
         <p className="mt-1 text-[var(--muted)]">

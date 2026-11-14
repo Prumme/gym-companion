@@ -14,9 +14,7 @@ export function replaceSetInWorkoutSession(
     version: workoutSessionVersion,
     exercises: detail.exercises.map((exercise) => ({
       ...exercise,
-      sets: exercise.sets.map((set) =>
-        set.id === workoutSet.id ? workoutSet : set,
-      ),
+      sets: exercise.sets.map((set) => (set.id === workoutSet.id ? workoutSet : set)),
     })),
   };
 }
@@ -25,9 +23,5 @@ export function applyUpdateWorkoutSetResult(
   detail: WorkoutSessionDetail,
   result: UpdateWorkoutSetResult,
 ): WorkoutSessionDetail {
-  return replaceSetInWorkoutSession(
-    detail,
-    result.workoutSet,
-    result.workoutSessionVersion,
-  );
+  return replaceSetInWorkoutSession(detail, result.workoutSet, result.workoutSessionVersion);
 }

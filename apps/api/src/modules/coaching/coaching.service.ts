@@ -147,11 +147,7 @@ export class CoachingService {
       };
     }
 
-    const sessions = await this.loadPlateauSessions(
-      userId,
-      exercise.id,
-      parsed.data.equipmentId,
-    );
+    const sessions = await this.loadPlateauSessions(userId, exercise.id, parsed.data.equipmentId);
 
     return detectExercisePlateau({
       exerciseId: exercise.id,
@@ -217,9 +213,7 @@ export class CoachingService {
       if (session.exercises.length === 0) {
         continue;
       }
-      const equipmentIds = new Set(
-        session.exercises.map((ex) => ex.equipmentTypeId),
-      );
+      const equipmentIds = new Set(session.exercises.map((ex) => ex.equipmentTypeId));
       const equipmentTypeId =
         equipmentIds.size === 1
           ? (session.exercises[0]?.equipmentTypeId ?? null)
@@ -251,10 +245,7 @@ export class CoachingService {
     return result;
   }
 
-  private async findAccessibleExerciseOrThrow(
-    userId: string,
-    exerciseId: string,
-  ) {
+  private async findAccessibleExerciseOrThrow(userId: string, exerciseId: string) {
     const row = await this.prisma.exercise.findFirst({
       where: {
         id: exerciseId,
@@ -285,8 +276,7 @@ export class CoachingService {
     if (!parsed.success) {
       const issue = parsed.error.issues[0];
       const code =
-        typeof issue?.message === 'string' &&
-        issue.message.startsWith('LOAD_RECOMMENDATION_')
+        typeof issue?.message === 'string' && issue.message.startsWith('LOAD_RECOMMENDATION_')
           ? issue.message
           : 'VALIDATION_ERROR';
       throw new BadRequestException({
@@ -300,13 +290,12 @@ export class CoachingService {
     }
     const input = parsed.data;
 
-    const payloadFingerprint =
-      buildLoadRecommendationDecisionPayloadFingerprint({
-        recommendationFingerprint: input.recommendationFingerprint,
-        decision: input.decision,
-        adjustedWeightKg: input.adjustedWeightKg ?? null,
-        userNote: input.userNote ?? null,
-      });
+    const payloadFingerprint = buildLoadRecommendationDecisionPayloadFingerprint({
+      recommendationFingerprint: input.recommendationFingerprint,
+      decision: input.decision,
+      adjustedWeightKg: input.adjustedWeightKg ?? null,
+      userNote: input.userNote ?? null,
+    });
 
     const existing = await this.prisma.loadRecommendationDecision.findUnique({
       where: {
@@ -320,15 +309,10 @@ export class CoachingService {
       if (existing.payloadFingerprint !== payloadFingerprint) {
         throw new ConflictException({
           code: 'LOAD_RECOMMENDATION_COMMAND_CONFLICT',
-          message:
-            'Cette commande a déjà été utilisée avec un autre contenu.',
+          message: 'Cette commande a déjà été utilisée avec un autre contenu.',
         });
       }
-      return this.buildDecideResultFromExisting(
-        userId,
-        workoutTemplateExerciseId,
-        existing.id,
-      );
+      return this.buildDecideResultFromExisting(userId, workoutTemplateExerciseId, existing.id);
     }
 
     let createdId: string;
@@ -348,8 +332,7 @@ export class CoachingService {
           if (race.payloadFingerprint !== payloadFingerprint) {
             throw new ConflictException({
               code: 'LOAD_RECOMMENDATION_COMMAND_CONFLICT',
-              message:
-                'Cette commande a déjà été utilisée avec un autre contenu.',
+              message: 'Cette commande a déjà été utilisée avec un autre contenu.',
             });
           }
           return { kind: 'idempotent' as const, decisionId: race.id };
@@ -368,16 +351,9 @@ export class CoachingService {
           });
         }
 
-        const recommendation = await this.computeRecommendation(
-          userId,
-          templateExercise,
-          tx,
-        );
+        const recommendation = await this.computeRecommendation(userId, templateExercise, tx);
 
-        if (
-          recommendation.recommendationFingerprint !==
-          input.recommendationFingerprint
-        ) {
+        if (recommendation.recommendationFingerprint !== input.recommendationFingerprint) {
           throw new ConflictException({
             code: 'LOAD_RECOMMENDATION_STALE',
             message:
@@ -401,9 +377,7 @@ export class CoachingService {
         }
 
         if (applied.mutatesTemplate && applied.appliedWeightKg != null) {
-          const workingSets = templateExercise.sets.filter(
-            (set) => set.setType === 'WORKING',
-          );
+          const workingSets = templateExercise.sets.filter((set) => set.setType === 'WORKING');
           for (const set of workingSets) {
             await tx.workoutTemplateSet.update({
               where: { id: set.id },
@@ -420,13 +394,11 @@ export class CoachingService {
             programId: templateExercise.workoutTemplate.program.id,
             exerciseId: templateExercise.exerciseId,
             engineVersion: recommendation.engineVersion,
-            recommendationFingerprint:
-              recommendation.recommendationFingerprint,
+            recommendationFingerprint: recommendation.recommendationFingerprint,
             recommendationAction: recommendation.action,
             decisionType: input.decision,
             currentTargetWeightKg: recommendation.currentTarget.weightKg,
-            recommendedWeightKg:
-              recommendation.recommendation.suggestedWeightKg,
+            recommendedWeightKg: recommendation.recommendation.suggestedWeightKg,
             appliedWeightKg: applied.appliedWeightKg,
             incrementKg: recommendation.recommendation.incrementKg,
             incrementSource: recommendation.recommendation.incrementSource,
@@ -461,10 +433,7 @@ export class CoachingService {
       createdId = txResult.decisionId;
       programId = txResult.programId;
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         const again = await this.prisma.loadRecommendationDecision.findUnique({
           where: {
             ownerUserId_clientCommandId: {
@@ -474,26 +443,19 @@ export class CoachingService {
           },
         });
         if (again && again.payloadFingerprint === payloadFingerprint) {
-          return this.buildDecideResultFromExisting(
-            userId,
-            workoutTemplateExerciseId,
-            again.id,
-          );
+          return this.buildDecideResultFromExisting(userId, workoutTemplateExerciseId, again.id);
         }
         throw new ConflictException({
           code: 'LOAD_RECOMMENDATION_COMMAND_CONFLICT',
-          message:
-            'Cette commande a déjà été utilisée avec un autre contenu.',
+          message: 'Cette commande a déjà été utilisée avec un autre contenu.',
         });
       }
       throw error;
     }
 
-    const decision = await this.prisma.loadRecommendationDecision.findFirstOrThrow(
-      {
-        where: { id: createdId, ownerUserId: userId },
-      },
-    );
+    const decision = await this.prisma.loadRecommendationDecision.findFirstOrThrow({
+      where: { id: createdId, ownerUserId: userId },
+    });
     const program = await this.programsService.getById(userId, programId);
     const templateExercise = await this.findOwnedTemplateExerciseOrThrow(
       userId,
@@ -504,10 +466,7 @@ export class CoachingService {
       templateExercise.workoutTemplateId,
       templateExercise.id,
     );
-    const recommendation = await this.computeRecommendation(
-      userId,
-      templateExercise,
-    );
+    const recommendation = await this.computeRecommendation(userId, templateExercise);
 
     return {
       decision: this.toDecisionDto(decision),
@@ -522,10 +481,7 @@ export class CoachingService {
     workoutTemplateExerciseId: string,
     query: Record<string, string | undefined>,
   ): Promise<LoadRecommendationDecisionListResponse> {
-    await this.findOwnedTemplateExerciseOrThrow(
-      userId,
-      workoutTemplateExerciseId,
-    );
+    await this.findOwnedTemplateExerciseOrThrow(userId, workoutTemplateExerciseId);
 
     const parsed = loadRecommendationDecisionsQuerySchema.safeParse(query);
     if (!parsed.success) {
@@ -547,10 +503,7 @@ export class CoachingService {
       }
       const createdAt = new Date(cursor.createdAt);
       cursorFilter = {
-        OR: [
-          { createdAt: { lt: createdAt } },
-          { createdAt, id: { lt: cursor.id } },
-        ],
+        OR: [{ createdAt: { lt: createdAt } }, { createdAt, id: { lt: cursor.id } }],
       };
     }
 
@@ -590,10 +543,9 @@ export class CoachingService {
     workoutTemplateExerciseId: string,
     decisionId: string,
   ): Promise<DecideLoadRecommendationResult> {
-    const decision =
-      await this.prisma.loadRecommendationDecision.findFirstOrThrow({
-        where: { id: decisionId, ownerUserId: userId },
-      });
+    const decision = await this.prisma.loadRecommendationDecision.findFirstOrThrow({
+      where: { id: decisionId, ownerUserId: userId },
+    });
     const templateExercise = await this.findOwnedTemplateExerciseOrThrow(
       userId,
       workoutTemplateExerciseId,
@@ -607,10 +559,7 @@ export class CoachingService {
       templateExercise.workoutTemplateId,
       templateExercise.id,
     );
-    const recommendation = await this.computeRecommendation(
-      userId,
-      templateExercise,
-    );
+    const recommendation = await this.computeRecommendation(userId, templateExercise);
     return {
       decision: this.toDecisionDto(decision),
       templateExercise: templateExerciseDetail,
@@ -624,12 +573,8 @@ export class CoachingService {
     workoutTemplateId: string,
     templateExerciseId: string,
   ): WorkoutTemplateExerciseDetail {
-    const template = program.workoutTemplates.find(
-      (item) => item.id === workoutTemplateId,
-    );
-    const exercise = template?.exercises.find(
-      (item) => item.id === templateExerciseId,
-    );
+    const template = program.workoutTemplates.find((item) => item.id === workoutTemplateId);
+    const exercise = template?.exercises.find((item) => item.id === templateExerciseId);
     if (!exercise) {
       throw new NotFoundException({
         code: 'WORKOUT_TEMPLATE_EXERCISE_NOT_FOUND',
@@ -645,16 +590,14 @@ export class CoachingService {
     db: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<LoadRecommendation> {
     const measurementType = templateExercise.exercise.measurementType;
-    const templateSets: TemplateSetTargetInput[] = templateExercise.sets.map(
-      (set) => ({
-        setType: set.setType,
-        targetRepMin: set.targetRepMin,
-        targetRepMax: set.targetRepMax,
-        targetWeightKg: decimalToNumber(set.targetWeightKg),
-        targetRir: set.targetRir,
-        targetRpe: decimalToNumber(set.targetRpe),
-      }),
-    );
+    const templateSets: TemplateSetTargetInput[] = templateExercise.sets.map((set) => ({
+      setType: set.setType,
+      targetRepMin: set.targetRepMin,
+      targetRepMax: set.targetRepMax,
+      targetWeightKg: decimalToNumber(set.targetWeightKg),
+      targetRir: set.targetRir,
+      targetRpe: decimalToNumber(set.targetRpe),
+    }));
 
     if (measurementType !== 'WEIGHT_REPS') {
       const fingerprint = buildLoadRecommendationFingerprint({
@@ -703,8 +646,7 @@ export class CoachingService {
       where: { userId },
       select: { effortTrackingMode: true },
     });
-    const effortTrackingMode = (profile?.effortTrackingMode ??
-      'NONE') as EffortTrackingModeForLoad;
+    const effortTrackingMode = (profile?.effortTrackingMode ?? 'NONE') as EffortTrackingModeForLoad;
 
     const recentWorkouts = await this.loadRecentEligibleWorkouts(
       userId,
@@ -810,9 +752,7 @@ export class CoachingService {
       );
 
       const equipmentTypeId = occurrence.equipmentTypeId;
-      const mixedEquipment = session.exercises.some(
-        (ex) => ex.equipmentTypeId !== equipmentTypeId,
-      );
+      const mixedEquipment = session.exercises.some((ex) => ex.equipmentTypeId !== equipmentTypeId);
 
       result.push({
         workoutSessionId: session.id,
@@ -853,16 +793,13 @@ export class CoachingService {
       recommendationFingerprint: row.recommendationFingerprint,
       recommendationAction:
         row.recommendationAction as LoadRecommendationDecisionDto['recommendationAction'],
-      decisionType:
-        row.decisionType as LoadRecommendationDecisionDto['decisionType'],
+      decisionType: row.decisionType as LoadRecommendationDecisionDto['decisionType'],
       currentTargetWeightKg: decimalToNumber(row.currentTargetWeightKg),
       recommendedWeightKg: decimalToNumber(row.recommendedWeightKg),
       appliedWeightKg: decimalToNumber(row.appliedWeightKg),
       incrementKg: decimalToNumber(row.incrementKg),
       incrementSource: row.incrementSource as LoadIncrementSource | null,
-      reasons: Array.isArray(row.reasons)
-        ? (row.reasons as LoadRecommendationReason[])
-        : [],
+      reasons: Array.isArray(row.reasons) ? (row.reasons as LoadRecommendationReason[]) : [],
       latestEvidenceWorkoutDate: evidence?.latestWorkoutDate ?? null,
       userNote: row.userNote,
       createdAt: row.createdAt.toISOString(),
@@ -890,14 +827,11 @@ export class CoachingService {
       engineVersion: row.engineVersion,
       recommendationAction:
         row.recommendationAction as LoadRecommendationDecisionListItem['recommendationAction'],
-      decisionType:
-        row.decisionType as LoadRecommendationDecisionListItem['decisionType'],
+      decisionType: row.decisionType as LoadRecommendationDecisionListItem['decisionType'],
       currentTargetWeightKg: decimalToNumber(row.currentTargetWeightKg),
       recommendedWeightKg: decimalToNumber(row.recommendedWeightKg),
       appliedWeightKg: decimalToNumber(row.appliedWeightKg),
-      reasons: Array.isArray(row.reasons)
-        ? (row.reasons as LoadRecommendationReason[])
-        : [],
+      reasons: Array.isArray(row.reasons) ? (row.reasons as LoadRecommendationReason[]) : [],
       latestEvidenceWorkoutDate: evidence?.latestWorkoutDate ?? null,
       userNote: row.userNote,
       createdAt: row.createdAt.toISOString(),

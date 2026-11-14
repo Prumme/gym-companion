@@ -17,10 +17,7 @@ import {
 } from '../api/shared-workouts-api';
 import { sharedWorkoutRoomQueryKeys } from '../api/shared-workout-query-keys';
 
-function invalidateRoomQueries(
-  queryClient: ReturnType<typeof useQueryClient>,
-  roomId?: string,
-) {
+function invalidateRoomQueries(queryClient: ReturnType<typeof useQueryClient>, roomId?: string) {
   void queryClient.invalidateQueries({
     queryKey: sharedWorkoutRoomQueryKeys.lists(),
   });
@@ -47,8 +44,7 @@ export function useCreateSharedWorkoutRoomMutation() {
 export function useUpdateSharedWorkoutRoomMutation(roomId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: { name: string }) =>
-      updateSharedWorkoutRoom(roomId, input),
+    mutationFn: (input: { name: string }) => updateSharedWorkoutRoom(roomId, input),
     onSuccess: () => {
       invalidateRoomQueries(queryClient, roomId);
     },
@@ -58,8 +54,7 @@ export function useUpdateSharedWorkoutRoomMutation(roomId: string) {
 export function useStartSharedWorkoutRoomMutation(roomId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (clientCommandId: string) =>
-      startSharedWorkoutRoom(roomId, clientCommandId),
+    mutationFn: (clientCommandId: string) => startSharedWorkoutRoom(roomId, clientCommandId),
     onSuccess: () => {
       invalidateRoomQueries(queryClient, roomId);
     },
@@ -69,8 +64,7 @@ export function useStartSharedWorkoutRoomMutation(roomId: string) {
 export function useCompleteSharedWorkoutRoomMutation(roomId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (clientCommandId: string) =>
-      completeSharedWorkoutRoom(roomId, clientCommandId),
+    mutationFn: (clientCommandId: string) => completeSharedWorkoutRoom(roomId, clientCommandId),
     onSuccess: () => {
       invalidateRoomQueries(queryClient, roomId);
     },
@@ -80,8 +74,7 @@ export function useCompleteSharedWorkoutRoomMutation(roomId: string) {
 export function useCancelSharedWorkoutRoomMutation(roomId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (clientCommandId: string) =>
-      cancelSharedWorkoutRoom(roomId, clientCommandId),
+    mutationFn: (clientCommandId: string) => cancelSharedWorkoutRoom(roomId, clientCommandId),
     onSuccess: () => {
       invalidateRoomQueries(queryClient, roomId);
     },
@@ -103,12 +96,10 @@ export function useRotateSharedWorkoutJoinCodeMutation(roomId: string) {
   return useMutation({
     mutationFn: () => rotateSharedWorkoutJoinCode(roomId),
     onSuccess: (result) => {
-      queryClient.setQueryData(
-        sharedWorkoutRoomQueryKeys.detail(roomId),
-        (current) =>
-          current && typeof current === 'object' && 'joinCode' in current
-            ? { ...current, joinCode: result.joinCode }
-            : current,
+      queryClient.setQueryData(sharedWorkoutRoomQueryKeys.detail(roomId), (current) =>
+        current && typeof current === 'object' && 'joinCode' in current
+          ? { ...current, joinCode: result.joinCode }
+          : current,
       );
       invalidateRoomQueries(queryClient, roomId);
     },
@@ -145,24 +136,16 @@ export function useAttachMySharedWorkoutSessionMutation(roomId: string) {
 export function useCreateMySharedWorkoutSessionMutation(roomId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: {
-      workoutTemplateId: string;
-      localDate?: string;
-      timezone?: string;
-    }) => createMySharedWorkoutSession(roomId, input),
+    mutationFn: (input: { workoutTemplateId: string; localDate?: string; timezone?: string }) =>
+      createMySharedWorkoutSession(roomId, input),
     onSuccess: async (result) => {
       invalidateRoomQueries(queryClient, roomId);
-      queryClient.setQueryData(
-        workoutQueryKeys.active(),
-        result.workoutSession,
-      );
+      queryClient.setQueryData(workoutQueryKeys.active(), result.workoutSession);
       queryClient.setQueryData(
         workoutQueryKeys.detail(result.workoutSession.id),
         result.workoutSession,
       );
-      const userId = queryClient.getQueryData<{ data: { id: string } }>([
-        'me',
-      ])?.data?.id;
+      const userId = queryClient.getQueryData<{ data: { id: string } }>(['me'])?.data?.id;
       if (userId) {
         await persistServerSnapshot(userId, result.workoutSession);
       }

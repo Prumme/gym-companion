@@ -1,78 +1,70 @@
 import { z } from 'zod';
 
-const booleanFromString = z
-  .union([z.boolean(), z.string()])
-  .transform((value) => {
-    if (typeof value === 'boolean') {
-      return value;
-    }
-    return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase());
-  });
-
-export const apiEnvSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  PORT: z.coerce.number().int().positive().default(3000),
-  PUBLIC_APP_URL: z.string().url(),
-  API_BASE_URL: z.string().url(),
-  DATABASE_URL: z.string().min(1),
-  CORS_ALLOWED_ORIGINS: z
-    .string()
-    .min(1)
-    .transform((value) =>
-      value
-        .split(',')
-        .map((origin) => origin.trim())
-        .filter(Boolean),
-    ),
-  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
-  JWT_ACCESS_SECRET: z.string().min(32),
-  JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
-  REFRESH_TOKEN_EXPIRES_IN: z.string().default('30d'),
-  COOKIE_SECRET: z.string().min(32),
-  EMAIL_PROVIDER: z.enum(['mailpit', 'none']).default('none'),
-  EMAIL_FROM: z.string().email().optional(),
-  SMTP_HOST: z.string().optional(),
-  SMTP_PORT: z.coerce.number().int().positive().optional(),
-  EMAIL_VERIFICATION_REQUIRED: booleanFromString.default(false),
-
-  /** Coach IA explicatif (jalon 5.5). Désactivé par défaut. */
-  AI_COACH_ENABLED: booleanFromString.default(false),
-  /**
-   * Fournisseur LLM.
-   * - `none` : aucun appel externe
-   * - `openai` : OpenAI Responses API (clé requise si enabled)
-   * - `fake` : réservé aux tests (interdit en production)
-   */
-  AI_COACH_PROVIDER: z.enum(['none', 'openai', 'fake']).default('none'),
-  AI_COACH_API_KEY: z.string().min(1).optional(),
-  AI_COACH_MODEL: z.string().min(1).default('gpt-4o-mini'),
-  AI_COACH_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
-  AI_COACH_RATE_LIMIT_PER_MINUTE: z.coerce
-    .number()
-    .int()
-    .positive()
-    .default(5),
-}).superRefine((env, ctx) => {
-  if (env.NODE_ENV === 'production' && env.AI_COACH_PROVIDER === 'fake') {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['AI_COACH_PROVIDER'],
-      message: 'AI_COACH_PROVIDER=fake is forbidden in production.',
-    });
+const booleanFromString = z.union([z.boolean(), z.string()]).transform((value) => {
+  if (typeof value === 'boolean') {
+    return value;
   }
-  if (
-    env.AI_COACH_ENABLED &&
-    env.AI_COACH_PROVIDER === 'openai' &&
-    !env.AI_COACH_API_KEY
-  ) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['AI_COACH_API_KEY'],
-      message:
-        'AI_COACH_API_KEY is required when AI_COACH_ENABLED=true and AI_COACH_PROVIDER=openai.',
-    });
-  }
+  return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase());
 });
+
+export const apiEnvSchema = z
+  .object({
+    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    PORT: z.coerce.number().int().positive().default(3000),
+    PUBLIC_APP_URL: z.string().url(),
+    API_BASE_URL: z.string().url(),
+    DATABASE_URL: z.string().min(1),
+    CORS_ALLOWED_ORIGINS: z
+      .string()
+      .min(1)
+      .transform((value) =>
+        value
+          .split(',')
+          .map((origin) => origin.trim())
+          .filter(Boolean),
+      ),
+    LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+    JWT_ACCESS_SECRET: z.string().min(32),
+    JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
+    REFRESH_TOKEN_EXPIRES_IN: z.string().default('30d'),
+    COOKIE_SECRET: z.string().min(32),
+    EMAIL_PROVIDER: z.enum(['mailpit', 'none']).default('none'),
+    EMAIL_FROM: z.string().email().optional(),
+    SMTP_HOST: z.string().optional(),
+    SMTP_PORT: z.coerce.number().int().positive().optional(),
+    EMAIL_VERIFICATION_REQUIRED: booleanFromString.default(false),
+
+    /** Coach IA explicatif (jalon 5.5). Désactivé par défaut. */
+    AI_COACH_ENABLED: booleanFromString.default(false),
+    /**
+     * Fournisseur LLM.
+     * - `none` : aucun appel externe
+     * - `openai` : OpenAI Responses API (clé requise si enabled)
+     * - `fake` : réservé aux tests (interdit en production)
+     */
+    AI_COACH_PROVIDER: z.enum(['none', 'openai', 'fake']).default('none'),
+    AI_COACH_API_KEY: z.string().min(1).optional(),
+    AI_COACH_MODEL: z.string().min(1).default('gpt-4o-mini'),
+    AI_COACH_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
+    AI_COACH_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(5),
+  })
+  .superRefine((env, ctx) => {
+    if (env.NODE_ENV === 'production' && env.AI_COACH_PROVIDER === 'fake') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['AI_COACH_PROVIDER'],
+        message: 'AI_COACH_PROVIDER=fake is forbidden in production.',
+      });
+    }
+    if (env.AI_COACH_ENABLED && env.AI_COACH_PROVIDER === 'openai' && !env.AI_COACH_API_KEY) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['AI_COACH_API_KEY'],
+        message:
+          'AI_COACH_API_KEY is required when AI_COACH_ENABLED=true and AI_COACH_PROVIDER=openai.',
+      });
+    }
+  });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;
 
@@ -106,19 +98,28 @@ export function parseWebEnv(env: Record<string, string | undefined>): WebEnv {
 }
 
 export const registerSchema = z.object({
-  email: z.string().email().transform((value) => value.trim().toLowerCase()),
+  email: z
+    .string()
+    .email()
+    .transform((value) => value.trim().toLowerCase()),
   password: z.string().min(8).max(128),
   displayName: z.string().trim().min(1).max(80).optional(),
   acceptedTermsVersion: z.string().min(1),
 });
 
 export const loginSchema = z.object({
-  email: z.string().email().transform((value) => value.trim().toLowerCase()),
+  email: z
+    .string()
+    .email()
+    .transform((value) => value.trim().toLowerCase()),
   password: z.string().min(1),
 });
 
 export const forgotPasswordSchema = z.object({
-  email: z.string().email().transform((value) => value.trim().toLowerCase()),
+  email: z
+    .string()
+    .email()
+    .transform((value) => value.trim().toLowerCase()),
 });
 
 export const resetPasswordSchema = z.object({
@@ -255,7 +256,7 @@ const compatibleEquipmentInputSchema = z.object({
     .max(500)
     .nullable()
     .optional()
-    .transform((value) => (value === undefined ? undefined : emptyToNull(value) ?? null)),
+    .transform((value) => (value === undefined ? undefined : (emptyToNull(value) ?? null))),
 });
 
 const createExerciseObjectSchema = z.object({
@@ -273,14 +274,10 @@ const createExerciseObjectSchema = z.object({
     .max(4000)
     .nullable()
     .optional()
-    .transform((value) => (value === undefined ? undefined : emptyToNull(value) ?? null)),
+    .transform((value) => (value === undefined ? undefined : (emptyToNull(value) ?? null))),
 });
 
-const CARDIO_MEASUREMENTS = new Set([
-  'DURATION',
-  'DISTANCE',
-  'DISTANCE_DURATION',
-]);
+const CARDIO_MEASUREMENTS = new Set(['DURATION', 'DISTANCE', 'DISTANCE_DURATION']);
 
 function refineExercisePayload(
   data: {
@@ -311,8 +308,7 @@ function refineExercisePayload(
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['measurementType'],
-        message:
-          'Un exercice cardio utilise une durée, une distance, ou les deux.',
+        message: 'Un exercice cardio utilise une durée, une distance, ou les deux.',
       });
     }
   } else if (data.cardioType) {
@@ -338,9 +334,7 @@ function refineExercisePayload(
     });
   }
 
-  const equipmentIds = (data.compatibleEquipmentTypes ?? []).map(
-    (item) => item.equipmentTypeId,
-  );
+  const equipmentIds = (data.compatibleEquipmentTypes ?? []).map((item) => item.equipmentTypeId);
   if (new Set(equipmentIds).size !== equipmentIds.length) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -373,9 +367,7 @@ function refineExercisePayload(
   }
 }
 
-export const createExerciseSchema = createExerciseObjectSchema.superRefine(
-  refineExercisePayload,
-);
+export const createExerciseSchema = createExerciseObjectSchema.superRefine(refineExercisePayload);
 
 export type CreateExerciseInput = z.infer<typeof createExerciseSchema>;
 
@@ -386,12 +378,7 @@ export type UpdateExerciseInput = z.infer<typeof updateExerciseSchema>;
 
 /** Normalise un nom d’exercice pour détection de doublons. */
 export function normalizeExerciseName(name: string): string {
-  return name
-    .trim()
-    .replace(/\s+/g, ' ')
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-    .toLowerCase();
+  return name.trim().replace(/\s+/g, ' ').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 }
 
 const emptyQueryToUndefined = (value: unknown) => {
@@ -484,10 +471,7 @@ export function buildExerciseCursorFilter(cursor: ExerciseCursorPayload): {
     OR: [
       { normalizedName: { gt: cursor.normalizedName } },
       {
-        AND: [
-          { normalizedName: cursor.normalizedName },
-          { id: { gt: cursor.id } },
-        ],
+        AND: [{ normalizedName: cursor.normalizedName }, { id: { gt: cursor.id } }],
       },
     ],
   };
@@ -526,27 +510,16 @@ const listExercisesLimitSchema = z.preprocess(
 );
 
 export const listExercisesQuerySchema = z.object({
-  search: z.preprocess(emptyQueryToUndefined, z.string().max(100).optional()).transform(
-    (value) => {
-      if (value === undefined) {
-        return undefined;
-      }
-      const normalized = normalizeExerciseName(value);
-      return normalized.length === 0 ? undefined : normalized;
-    },
-  ),
-  muscleGroupId: z.preprocess(
-    emptyQueryToUndefined,
-    z.string().uuid().optional(),
-  ),
-  equipmentTypeId: z.preprocess(
-    emptyQueryToUndefined,
-    z.string().uuid().optional(),
-  ),
-  measurementType: z.preprocess(
-    emptyQueryToUndefined,
-    exerciseMeasurementTypeSchema.optional(),
-  ),
+  search: z.preprocess(emptyQueryToUndefined, z.string().max(100).optional()).transform((value) => {
+    if (value === undefined) {
+      return undefined;
+    }
+    const normalized = normalizeExerciseName(value);
+    return normalized.length === 0 ? undefined : normalized;
+  }),
+  muscleGroupId: z.preprocess(emptyQueryToUndefined, z.string().uuid().optional()),
+  equipmentTypeId: z.preprocess(emptyQueryToUndefined, z.string().uuid().optional()),
+  measurementType: z.preprocess(emptyQueryToUndefined, exerciseMeasurementTypeSchema.optional()),
   source: z.preprocess(emptyQueryToUndefined, exerciseSourceSchema.optional()),
   includeArchived: queryBooleanSchema,
   favoriteOnly: queryBooleanSchema,
@@ -568,14 +541,10 @@ export const updateExercisePreferenceSchema = z
   })
   .strict();
 
-export type UpdateExercisePreferenceInput = z.infer<
-  typeof updateExercisePreferenceSchema
->;
+export type UpdateExercisePreferenceInput = z.infer<typeof updateExercisePreferenceSchema>;
 
 /** True si le payload correspond aux préférences effectives par défaut. */
-export function isDefaultExercisePreferenceInput(
-  input: UpdateExercisePreferenceInput,
-): boolean {
+export function isDefaultExercisePreferenceInput(input: UpdateExercisePreferenceInput): boolean {
   return (
     input.isFavorite === false &&
     input.isExcludedFromSuggestions === false &&
@@ -590,7 +559,7 @@ const optionalNullableText = (max: number) =>
     .max(max)
     .nullable()
     .optional()
-    .transform((value) => (value === undefined ? undefined : emptyToNull(value) ?? null));
+    .transform((value) => (value === undefined ? undefined : (emptyToNull(value) ?? null)));
 
 export const createProgramSchema = z.object({
   name: z.string().trim().min(1, 'Le nom est requis.').max(120),
@@ -621,14 +590,10 @@ export const updateWorkoutTemplateSchema = createWorkoutTemplateSchema.partial()
 export type UpdateWorkoutTemplateInput = z.infer<typeof updateWorkoutTemplateSchema>;
 
 export const reorderWorkoutTemplatesSchema = z.object({
-  workoutTemplateIds: z
-    .array(z.string().uuid())
-    .min(1, 'La liste d’ordre ne peut pas être vide.'),
+  workoutTemplateIds: z.array(z.string().uuid()).min(1, 'La liste d’ordre ne peut pas être vide.'),
 });
 
-export type ReorderWorkoutTemplatesInput = z.infer<
-  typeof reorderWorkoutTemplatesSchema
->;
+export type ReorderWorkoutTemplatesInput = z.infer<typeof reorderWorkoutTemplatesSchema>;
 
 export const listProgramsLimitSchema = z.preprocess(
   emptyQueryToUndefined,
@@ -703,10 +668,7 @@ export function decodeProgramCursor(cursor: string): ProgramCursorPayload {
 
 /** Cursor sur tri `updatedAt desc, id desc`. */
 export function buildProgramCursorFilter(cursor: ProgramCursorPayload): {
-  OR: Array<
-    | { updatedAt: { lt: Date } }
-    | { AND: [{ updatedAt: Date }, { id: { lt: string } }] }
-  >;
+  OR: Array<{ updatedAt: { lt: Date } } | { AND: [{ updatedAt: Date }, { id: { lt: string } }] }>;
 } {
   const updatedAt = new Date(cursor.updatedAt);
   return {
@@ -736,10 +698,7 @@ export function compactOrderedPositions(
   return orderedIds.map((id, position) => ({ id, position }));
 }
 
-export type OrderedIdsValidationReason =
-  | 'DUPLICATE'
-  | 'INCOMPLETE'
-  | 'INVALID';
+export type OrderedIdsValidationReason = 'DUPLICATE' | 'INCOMPLETE' | 'INVALID';
 
 export function validateOrderedIds(
   requestedIds: string[],
@@ -761,9 +720,7 @@ export function validateOrderedIds(
 }
 
 /** @deprecated Prefer computeNextOrderedPosition */
-export function computeNextWorkoutTemplatePosition(
-  existingPositions: number[],
-): number {
+export function computeNextWorkoutTemplatePosition(existingPositions: number[]): number {
   return computeNextOrderedPosition(existingPositions);
 }
 
@@ -809,19 +766,14 @@ export const workoutSetTypeSchema = z.enum([
   'FAILURE_OPTIONAL',
 ]);
 
-const restSecondsSchema = z
-  .number()
-  .int()
-  .min(0)
-  .max(1800)
-  .nullable();
+const restSecondsSchema = z.number().int().min(0).max(1800).nullable();
 
 const notesSchema = z
   .string()
   .max(2000)
   .nullable()
   .optional()
-  .transform((value) => (value === undefined ? undefined : emptyToNull(value) ?? null));
+  .transform((value) => (value === undefined ? undefined : (emptyToNull(value) ?? null)));
 
 export const addWorkoutTemplateExerciseSchema = z
   .object({
@@ -839,16 +791,13 @@ export const addWorkoutTemplateExerciseSchema = z
   })
   .strict();
 
-export type AddWorkoutTemplateExerciseInput = z.infer<
-  typeof addWorkoutTemplateExerciseSchema
->;
+export type AddWorkoutTemplateExerciseInput = z.infer<typeof addWorkoutTemplateExerciseSchema>;
 
 export const updateWorkoutTemplateExerciseSchema = z
   .object({
-    equipmentTypeId: z.preprocess(
-      (value) => (value === '' ? null : value),
-      z.string().uuid().nullable(),
-    ).optional(),
+    equipmentTypeId: z
+      .preprocess((value) => (value === '' ? null : value), z.string().uuid().nullable())
+      .optional(),
     restSecondsOverride: restSecondsSchema.optional(),
     notes: notesSchema,
   })
@@ -891,15 +840,12 @@ export const workoutTemplateSetTargetsObjectSchema = z
   .strict();
 
 export const createWorkoutTemplateSetSchema = workoutTemplateSetTargetsObjectSchema;
-export type CreateWorkoutTemplateSetInput = z.infer<
-  typeof createWorkoutTemplateSetSchema
->;
+export type CreateWorkoutTemplateSetInput = z.infer<typeof createWorkoutTemplateSetSchema>;
 
-export const updateWorkoutTemplateSetSchema =
-  workoutTemplateSetTargetsObjectSchema.partial().strict();
-export type UpdateWorkoutTemplateSetInput = z.infer<
-  typeof updateWorkoutTemplateSetSchema
->;
+export const updateWorkoutTemplateSetSchema = workoutTemplateSetTargetsObjectSchema
+  .partial()
+  .strict();
+export type UpdateWorkoutTemplateSetInput = z.infer<typeof updateWorkoutTemplateSetSchema>;
 
 export const reorderWorkoutTemplateSetsSchema = z
   .object({
@@ -907,9 +853,7 @@ export const reorderWorkoutTemplateSetsSchema = z
   })
   .strict();
 
-export type ReorderWorkoutTemplateSetsInput = z.infer<
-  typeof reorderWorkoutTemplateSetsSchema
->;
+export type ReorderWorkoutTemplateSetsInput = z.infer<typeof reorderWorkoutTemplateSetsSchema>;
 
 export type WorkoutTemplateSetTargetFields = {
   targetRepMin: number | null;
@@ -1129,9 +1073,7 @@ export function isValidLocalDateString(value: string): boolean {
   const day = Number(value.slice(8, 10));
   const date = new Date(Date.UTC(year, month - 1, day));
   return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
   );
 }
 
@@ -1189,9 +1131,7 @@ export const replaceProgramScheduleSchema = z
   })
   .strict();
 
-export type ReplaceProgramScheduleInput = z.infer<
-  typeof replaceProgramScheduleSchema
->;
+export type ReplaceProgramScheduleInput = z.infer<typeof replaceProgramScheduleSchema>;
 
 /**
  * Création d’une séance active depuis un modèle.
@@ -1199,9 +1139,7 @@ export type ReplaceProgramScheduleInput = z.infer<
  */
 export const createWorkoutSessionSchema = z
   .object({
-    sourceWorkoutTemplateId: z
-      .string()
-      .uuid('L’identifiant du modèle de séance est invalide.'),
+    sourceWorkoutTemplateId: z.string().uuid('L’identifiant du modèle de séance est invalide.'),
     localDate: localDateSchema,
     timezone: z
       .string()
@@ -1211,9 +1149,7 @@ export const createWorkoutSessionSchema = z
   })
   .strict();
 
-export type CreateWorkoutSessionInput = z.infer<
-  typeof createWorkoutSessionSchema
->;
+export type CreateWorkoutSessionInput = z.infer<typeof createWorkoutSessionSchema>;
 
 export type ProgramScheduleValidationResult =
   | { ok: true }
@@ -1273,7 +1209,6 @@ export function validateProgramScheduleEntries(
 
   return { ok: true };
 }
-
 
 export const workoutSetStatusSchema = z.enum([
   'PENDING',
@@ -1355,9 +1290,7 @@ export const addWorkoutSessionExerciseSchema = z
   })
   .strict();
 
-export type AddWorkoutSessionExerciseInput = z.infer<
-  typeof addWorkoutSessionExerciseSchema
->;
+export type AddWorkoutSessionExerciseInput = z.infer<typeof addWorkoutSessionExerciseSchema>;
 
 /**
  * Ajout d’une série ad hoc (WORKING, sans cibles) sur un exercice de séance ACTIVE.
@@ -1376,9 +1309,7 @@ export const addWorkoutSessionSetSchema = z
   })
   .strict();
 
-export type AddWorkoutSessionSetInput = z.infer<
-  typeof addWorkoutSessionSetSchema
->;
+export type AddWorkoutSessionSetInput = z.infer<typeof addWorkoutSessionSetSchema>;
 
 /** Suppression d’une série de séance ACTIVE. Online only. */
 export const deleteWorkoutSessionSetSchema = z
@@ -1387,9 +1318,7 @@ export const deleteWorkoutSessionSetSchema = z
   })
   .strict();
 
-export type DeleteWorkoutSessionSetInput = z.infer<
-  typeof deleteWorkoutSessionSetSchema
->;
+export type DeleteWorkoutSessionSetInput = z.infer<typeof deleteWorkoutSessionSetSchema>;
 
 export type WorkoutSetActualFields = {
   status: z.infer<typeof workoutSetStatusSchema>;
@@ -1477,9 +1406,7 @@ function hasPrincipalValue(
     case 'DISTANCE':
       return values.actualDistanceMeters != null;
     case 'DISTANCE_DURATION':
-      return (
-        values.actualDistanceMeters != null || values.actualDurationSeconds != null
-      );
+      return values.actualDistanceMeters != null || values.actualDurationSeconds != null;
     default:
       return false;
   }
@@ -1622,8 +1549,7 @@ export function validateWorkoutSetActuals(
     return {
       ok: false,
       code: 'WORKOUT_SET_INVALID_STATUS',
-      message:
-        'Le statut CANCELLED n’est pas disponible pour la saisie manuelle d’une série.',
+      message: 'Le statut CANCELLED n’est pas disponible pour la saisie manuelle d’une série.',
     };
   }
 
@@ -1681,8 +1607,7 @@ export function validateWorkoutSetActuals(
       return {
         ok: false,
         code: 'WORKOUT_SET_INVALID',
-        message:
-          'Une série partielle doit contenir au moins une valeur réelle principale.',
+        message: 'Une série partielle doit contenir au moins une valeur réelle principale.',
       };
     }
     return { ok: true, normalized: input };
@@ -1783,37 +1708,19 @@ export const cancelWorkoutSessionSchema = z
   .strict();
 
 export type PauseWorkoutSessionInput = z.infer<typeof pauseWorkoutSessionSchema>;
-export type ResumeWorkoutSessionInput = z.infer<
-  typeof resumeWorkoutSessionSchema
->;
-export type CompleteWorkoutSessionInput = z.infer<
-  typeof completeWorkoutSessionSchema
->;
-export type CancelWorkoutSessionInput = z.infer<
-  typeof cancelWorkoutSessionSchema
->;
+export type ResumeWorkoutSessionInput = z.infer<typeof resumeWorkoutSessionSchema>;
+export type CompleteWorkoutSessionInput = z.infer<typeof completeWorkoutSessionSchema>;
+export type CancelWorkoutSessionInput = z.infer<typeof cancelWorkoutSessionSchema>;
 
-export type WorkoutLifecycleAction =
-  | 'PAUSE'
-  | 'RESUME'
-  | 'COMPLETE'
-  | 'CANCEL';
+export type WorkoutLifecycleAction = 'PAUSE' | 'RESUME' | 'COMPLETE' | 'CANCEL';
 
-export type WorkoutLifecycleStatus =
-  | 'PLANNED'
-  | 'ACTIVE'
-  | 'PAUSED'
-  | 'COMPLETED'
-  | 'CANCELLED';
+export type WorkoutLifecycleStatus = 'PLANNED' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
 
 export type WorkoutLifecycleTransitionResult =
   | {
       ok: true;
       kind: 'apply' | 'noop';
-      nextStatus: Exclude<
-        WorkoutLifecycleStatus,
-        'PLANNED'
-      >;
+      nextStatus: Exclude<WorkoutLifecycleStatus, 'PLANNED'>;
     }
   | {
       ok: false;
@@ -1954,9 +1861,7 @@ export function normalizeOptionalPlainText(
 /** Statuts autorisés sur l’historique (pas ACTIVE / PAUSED / PLANNED). */
 export const workoutHistoryStatusSchema = z.enum(['COMPLETED', 'CANCELLED']);
 
-export type WorkoutHistoryStatusFilter = z.infer<
-  typeof workoutHistoryStatusSchema
->;
+export type WorkoutHistoryStatusFilter = z.infer<typeof workoutHistoryStatusSchema>;
 
 export const listWorkoutHistoryLimitSchema = listProgramsLimitSchema;
 
@@ -1966,20 +1871,11 @@ export const listWorkoutHistoryLimitSchema = listProgramsLimitSchema;
  */
 export const workoutHistoryQuerySchema = z
   .object({
-    status: z.preprocess(
-      emptyQueryToUndefined,
-      workoutHistoryStatusSchema.optional(),
-    ),
+    status: z.preprocess(emptyQueryToUndefined, workoutHistoryStatusSchema.optional()),
     from: z.preprocess(emptyQueryToUndefined, localDateSchema.optional()),
     to: z.preprocess(emptyQueryToUndefined, localDateSchema.optional()),
-    programId: z.preprocess(
-      emptyQueryToUndefined,
-      z.string().uuid().optional(),
-    ),
-    workoutTemplateId: z.preprocess(
-      emptyQueryToUndefined,
-      z.string().uuid().optional(),
-    ),
+    programId: z.preprocess(emptyQueryToUndefined, z.string().uuid().optional()),
+    workoutTemplateId: z.preprocess(emptyQueryToUndefined, z.string().uuid().optional()),
     cursor: z.preprocess(emptyQueryToUndefined, z.string().min(1).optional()),
     limit: listWorkoutHistoryLimitSchema,
   })
@@ -2006,9 +1902,7 @@ export type WorkoutHistoryQueryParseResult =
   | { ok: true; data: WorkoutHistoryQuery }
   | { ok: false; code: WorkoutHistoryQueryParseErrorCode; message: string };
 
-function workoutHistoryQueryErrorMessage(
-  code: WorkoutHistoryQueryParseErrorCode,
-): string {
+function workoutHistoryQueryErrorMessage(code: WorkoutHistoryQueryParseErrorCode): string {
   switch (code) {
     case 'WORKOUT_HISTORY_INVALID_STATUS':
       return 'Statut d’historique invalide.';
@@ -2024,9 +1918,7 @@ function workoutHistoryQueryErrorMessage(
 }
 
 /** Parse la query historique avec codes d’erreur métier stables. */
-export function parseWorkoutHistoryQuery(
-  raw: unknown,
-): WorkoutHistoryQueryParseResult {
+export function parseWorkoutHistoryQuery(raw: unknown): WorkoutHistoryQueryParseResult {
   const result = workoutHistoryQuerySchema.safeParse(raw);
   if (result.success) {
     return { ok: true, data: result.data };
@@ -2038,36 +1930,28 @@ export function parseWorkoutHistoryQuery(
       return {
         ok: false,
         code: 'WORKOUT_HISTORY_INVALID_DATE_RANGE',
-        message: workoutHistoryQueryErrorMessage(
-          'WORKOUT_HISTORY_INVALID_DATE_RANGE',
-        ),
+        message: workoutHistoryQueryErrorMessage('WORKOUT_HISTORY_INVALID_DATE_RANGE'),
       };
     }
     if (path === 'status') {
       return {
         ok: false,
         code: 'WORKOUT_HISTORY_INVALID_STATUS',
-        message: workoutHistoryQueryErrorMessage(
-          'WORKOUT_HISTORY_INVALID_STATUS',
-        ),
+        message: workoutHistoryQueryErrorMessage('WORKOUT_HISTORY_INVALID_STATUS'),
       };
     }
     if (path === 'from') {
       return {
         ok: false,
         code: 'WORKOUT_HISTORY_INVALID_FROM_DATE',
-        message: workoutHistoryQueryErrorMessage(
-          'WORKOUT_HISTORY_INVALID_FROM_DATE',
-        ),
+        message: workoutHistoryQueryErrorMessage('WORKOUT_HISTORY_INVALID_FROM_DATE'),
       };
     }
     if (path === 'to') {
       return {
         ok: false,
         code: 'WORKOUT_HISTORY_INVALID_TO_DATE',
-        message: workoutHistoryQueryErrorMessage(
-          'WORKOUT_HISTORY_INVALID_TO_DATE',
-        ),
+        message: workoutHistoryQueryErrorMessage('WORKOUT_HISTORY_INVALID_TO_DATE'),
       };
     }
   }
@@ -2086,15 +1970,11 @@ export type WorkoutHistoryCursorPayload = {
   id: string;
 };
 
-export function encodeWorkoutHistoryCursor(
-  payload: WorkoutHistoryCursorPayload,
-): string {
+export function encodeWorkoutHistoryCursor(payload: WorkoutHistoryCursorPayload): string {
   return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
 }
 
-export function decodeWorkoutHistoryCursor(
-  cursor: string,
-): WorkoutHistoryCursorPayload {
+export function decodeWorkoutHistoryCursor(cursor: string): WorkoutHistoryCursorPayload {
   let parsed: unknown;
   try {
     const json = Buffer.from(cursor, 'base64url').toString('utf8');
@@ -2129,23 +2009,14 @@ export function decodeWorkoutHistoryCursor(
 /**
  * Filtre cursor pour tri `localDate DESC, startedAt DESC, id DESC`.
  */
-export function buildWorkoutHistoryCursorFilter(
-  cursor: WorkoutHistoryCursorPayload,
-): {
+export function buildWorkoutHistoryCursorFilter(cursor: WorkoutHistoryCursorPayload): {
   OR: Array<
     | { localDate: { lt: Date } }
     | {
-        AND: [
-          { localDate: Date },
-          { startedAt: { lt: Date } },
-        ];
+        AND: [{ localDate: Date }, { startedAt: { lt: Date } }];
       }
     | {
-        AND: [
-          { localDate: Date },
-          { startedAt: Date },
-          { id: { lt: string } },
-        ];
+        AND: [{ localDate: Date }, { startedAt: Date }, { id: { lt: string } }];
       }
   >;
 } {
@@ -2619,9 +2490,7 @@ export type {
   AttachMySharedWorkoutSessionInput,
   CreateMySharedWorkoutSessionInput,
 } from './shared-workout-member-sessions';
-export {
-  setMySharedCurrentExerciseBodySchema,
-} from './shared-workout-current-exercise';
+export { setMySharedCurrentExerciseBodySchema } from './shared-workout-current-exercise';
 export type { SetMySharedCurrentExerciseInput } from './shared-workout-current-exercise';
 export {
   NON_COORDINATABLE_EQUIPMENT_CODES,

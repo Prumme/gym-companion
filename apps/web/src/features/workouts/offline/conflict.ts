@@ -20,9 +20,7 @@ export async function discardLocalChanges(args: {
   workoutSessionId: string;
   serverDetail?: WorkoutSessionDetail;
 }): Promise<WorkoutSessionDetail> {
-  const server =
-    args.serverDetail ??
-    (await getWorkoutSessionDetail(args.workoutSessionId));
+  const server = args.serverDetail ?? (await getWorkoutSessionDetail(args.workoutSessionId));
 
   await deleteCommandsForSession(args.userId, args.workoutSessionId);
   await saveSnapshot({
@@ -60,9 +58,7 @@ export async function rebaseLocalChanges(args: {
   | { ok: true; session: WorkoutSessionDetail; commandCount: number }
   | { ok: false; reason: string; failedCommandId: string | null }
 > {
-  const server =
-    args.serverDetail ??
-    (await getWorkoutSessionDetail(args.workoutSessionId));
+  const server = args.serverDetail ?? (await getWorkoutSessionDetail(args.workoutSessionId));
 
   if (server.status === 'COMPLETED' || server.status === 'CANCELLED') {
     return {
@@ -96,8 +92,7 @@ export async function rebaseLocalChanges(args: {
   if (!replay.ok) {
     return {
       ok: false,
-      reason:
-        'Une modification locale n’est plus applicable sur la version serveur.',
+      reason: 'Une modification locale n’est plus applicable sur la version serveur.',
       failedCommandId: replay.failedCommandId,
     };
   }
@@ -155,10 +150,7 @@ export async function rebaseLocalChanges(args: {
   };
 }
 
-export async function loadConflictContext(
-  userId: string,
-  workoutSessionId: string,
-) {
+export async function loadConflictContext(userId: string, workoutSessionId: string) {
   const snapshot = await getSnapshot(userId, workoutSessionId);
   const commands = await listOpenCommands(userId, workoutSessionId);
   const conflict =

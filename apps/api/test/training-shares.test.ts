@@ -18,8 +18,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -29,11 +28,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -125,9 +120,7 @@ describe('Training shares API', () => {
     const templateId = detail.body.data.workoutTemplates[0].id as string;
 
     await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${program.body.data.id}/workout-templates/${templateId}/exercises`,
-      )
+      .post(`/api/v1/programs/${program.body.data.id}/workout-templates/${templateId}/exercises`)
       .set('Authorization', `Bearer ${token}`)
       .send({
         exerciseId: systemExerciseId,
@@ -141,8 +134,8 @@ describe('Training shares API', () => {
       .get(`/api/v1/programs/${program.body.data.id}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
-    const templateExerciseId = afterExercise.body.data.workoutTemplates[0]
-      .exercises[0].id as string;
+    const templateExerciseId = afterExercise.body.data.workoutTemplates[0].exercises[0]
+      .id as string;
 
     await request(app.getHttpServer())
       .post(
@@ -170,10 +163,7 @@ describe('Training shares API', () => {
   }
 
   it('owner crée un share programme → token + expiresAt +1h ; hash ≠ token', async () => {
-    const { programId } = await createProgramWithWorkout(
-      tokenA,
-      'Programme partage A',
-    );
+    const { programId } = await createProgramWithWorkout(tokenA, 'Programme partage A');
 
     const before = Date.now();
     const response = await request(app.getHttpServer())
@@ -205,10 +195,7 @@ describe('Training shares API', () => {
   });
 
   it('non-owner ne peut pas créer de share → 404', async () => {
-    const { programId } = await createProgramWithWorkout(
-      tokenA,
-      'Programme privé',
-    );
+    const { programId } = await createProgramWithWorkout(tokenA, 'Programme privé');
     await request(app.getHttpServer())
       .post(`/api/v1/programs/${programId}/share`)
       .set('Authorization', `Bearer ${tokenB}`)
@@ -243,9 +230,7 @@ describe('Training shares API', () => {
     const templateId = withTemplate.body.data.workoutTemplates[0].id as string;
 
     await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-      )
+      .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         exerciseId: personal.id,
@@ -263,19 +248,14 @@ describe('Training shares API', () => {
   });
 
   it('preview public + import programme (copie DRAFT, source inchangé)', async () => {
-    const { programId } = await createProgramWithWorkout(
-      tokenA,
-      'Source immuable',
-    );
+    const { programId } = await createProgramWithWorkout(tokenA, 'Source immuable');
     const share = await request(app.getHttpServer())
       .post(`/api/v1/programs/${programId}/share`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(201);
     const token = share.body.data.token as string;
 
-    const preview = await request(app.getHttpServer())
-      .get(`/api/v1/shares/${token}`)
-      .expect(200);
+    const preview = await request(app.getHttpServer()).get(`/api/v1/shares/${token}`).expect(200);
     expect(preview.body.data.kind).toBe('PROGRAM');
     expect(preview.body.data.preview.name).toBe('Source immuable');
     expect(preview.body.data.preview.workoutCount).toBe(1);
@@ -299,12 +279,8 @@ describe('Training shares API', () => {
     expect(detail.body.data.isCurrent).toBe(false);
     expect(detail.body.data.workoutTemplates).toHaveLength(1);
     expect(detail.body.data.workoutTemplates[0].exercises).toHaveLength(1);
-    expect(detail.body.data.workoutTemplates[0].exercises[0].sets).toHaveLength(
-      1,
-    );
-    expect(
-      detail.body.data.workoutTemplates[0].exercises[0].sets[0].targetRepMin,
-    ).toBe(8);
+    expect(detail.body.data.workoutTemplates[0].exercises[0].sets).toHaveLength(1);
+    expect(detail.body.data.workoutTemplates[0].exercises[0].sets[0].targetRepMin).toBe(8);
 
     const source = await request(app.getHttpServer())
       .get(`/api/v1/programs/${programId}`)
@@ -323,10 +299,7 @@ describe('Training shares API', () => {
   });
 
   it('snapshot immutable après modification de la source', async () => {
-    const { programId } = await createProgramWithWorkout(
-      tokenA,
-      'Avant modif',
-    );
+    const { programId } = await createProgramWithWorkout(tokenA, 'Avant modif');
     const share = await request(app.getHttpServer())
       .post(`/api/v1/programs/${programId}/share`)
       .set('Authorization', `Bearer ${tokenA}`)
@@ -352,10 +325,7 @@ describe('Training shares API', () => {
   });
 
   it('multi-user : B et C importent indépendamment', async () => {
-    const { programId } = await createProgramWithWorkout(
-      tokenA,
-      'Multi import',
-    );
+    const { programId } = await createProgramWithWorkout(tokenA, 'Multi import');
     const share = await request(app.getHttpServer())
       .post(`/api/v1/programs/${programId}/share`)
       .set('Authorization', `Bearer ${tokenA}`)
@@ -395,15 +365,10 @@ describe('Training shares API', () => {
   });
 
   it('share workout template → import NEW_PROGRAM et EXISTING_PROGRAM', async () => {
-    const { programId, templateId } = await createProgramWithWorkout(
-      tokenA,
-      'Conteneur séance',
-    );
+    const { programId, templateId } = await createProgramWithWorkout(tokenA, 'Conteneur séance');
 
     const share = await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/share`,
-      )
+      .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/share`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(201);
     expect(share.body.data.kind).toBe('WORKOUT_TEMPLATE');
@@ -441,9 +406,11 @@ describe('Training shares API', () => {
       .get(`/api/v1/programs/${dest.body.data.id}`)
       .set('Authorization', `Bearer ${tokenB}`)
       .expect(200);
-    expect(detail.body.data.workoutTemplates.some(
-      (t: { id: string }) => t.id === existing.body.data.workoutTemplateId,
-    )).toBe(true);
+    expect(
+      detail.body.data.workoutTemplates.some(
+        (t: { id: string }) => t.id === existing.body.data.workoutTemplateId,
+      ),
+    ).toBe(true);
 
     await request(app.getHttpServer())
       .post(`/api/v1/shares/${share.body.data.token}/import`)
@@ -465,10 +432,7 @@ describe('Training shares API', () => {
         expect(res.body.error.code).toBe('SHARE_LINK_INVALID');
       });
 
-    const { programId } = await createProgramWithWorkout(
-      tokenA,
-      'Expire bientôt',
-    );
+    const { programId } = await createProgramWithWorkout(tokenA, 'Expire bientôt');
     const share = await request(app.getHttpServer())
       .post(`/api/v1/programs/${programId}/share`)
       .set('Authorization', `Bearer ${tokenA}`)
@@ -484,9 +448,7 @@ describe('Training shares API', () => {
       response: { code: 'SHARE_LINK_EXPIRED' },
     });
 
-    await expect(
-      sharesService.importShareAt(userAId, token, {}, atExpiry),
-    ).rejects.toMatchObject({
+    await expect(sharesService.importShareAt(userAId, token, {}, atExpiry)).rejects.toMatchObject({
       response: { code: 'SHARE_LINK_EXPIRED' },
     });
 
@@ -495,21 +457,14 @@ describe('Training shares API', () => {
       where: { tokenHash: hashTrainingShareToken(token) },
       data: { expiresAt: new Date(Date.now() - 1000) },
     });
-    const gone = await request(app.getHttpServer())
-      .get(`/api/v1/shares/${token}`)
-      .expect(410);
+    const gone = await request(app.getHttpServer()).get(`/api/v1/shares/${token}`).expect(410);
     expect(gone.body.error.code).toBe('SHARE_LINK_EXPIRED');
   });
 
   it('import refuse destination absente pour WORKOUT_TEMPLATE', async () => {
-    const { programId, templateId } = await createProgramWithWorkout(
-      tokenA,
-      'Séance seule',
-    );
+    const { programId, templateId } = await createProgramWithWorkout(tokenA, 'Séance seule');
     const share = await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/share`,
-      )
+      .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/share`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(201);
 

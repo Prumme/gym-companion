@@ -39,9 +39,7 @@ describe('ShareLinkSheet', () => {
       />,
     );
 
-    expect(
-      screen.getByRole('heading', { name: /partager le programme/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /partager le programme/i })).toBeInTheDocument();
     expect(screen.getByText(/valide pendant 1 heure/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /copier le lien/i }));
@@ -65,12 +63,8 @@ describe('ShareLinkSheet', () => {
       />,
     );
 
-    expect(
-      screen.getByRole('button', { name: /copier le lien/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /^partager$/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /copier le lien/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^partager$/i })).not.toBeInTheDocument();
   });
 
   it('désactive le double envoi pendant le loading', () => {
@@ -85,8 +79,6 @@ describe('ShareLinkSheet', () => {
       />,
     );
     expect(screen.getByText(/génération du lien/i)).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /copier le lien/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /copier le lien/i })).not.toBeInTheDocument();
   });
 });

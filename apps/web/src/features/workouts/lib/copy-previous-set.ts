@@ -5,6 +5,9 @@ export type CopyableActualKey =
 
 export type CopyableActuals = Partial<Pick<WorkoutSessionSetDetail, CopyableActualKey>>;
 
+/** Toute source portant les valeurs réelles d’une série (série de séance, `LastWorkingSetCue`…). */
+export type CopyableActualsSource = Pick<WorkoutSessionSetDetail, CopyableActualKey>;
+
 export type WorkoutSetActualFieldVisibility = {
   weight: boolean;
   reps: boolean;
@@ -63,7 +66,7 @@ export function findPreviousSetInExercise(
 }
 
 export function pickCopyableActuals(
-  previous: WorkoutSessionSetDetail,
+  previous: CopyableActualsSource,
   measurementType: ExerciseMeasurementType,
 ): CopyableActuals {
   const visibility = getWorkoutSetActualFieldVisibility(measurementType);

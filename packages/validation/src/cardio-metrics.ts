@@ -32,11 +32,7 @@ export function formatDuration(totalSeconds: number | null | undefined): string 
   return `${mm}:${ss}`;
 }
 
-export function parseDurationParts(
-  hours: number,
-  minutes: number,
-  seconds: number,
-): number | null {
+export function parseDurationParts(hours: number, minutes: number, seconds: number): number | null {
   if (
     !Number.isInteger(hours) ||
     !Number.isInteger(minutes) ||
@@ -142,10 +138,7 @@ export function computeCardioDerivedMetrics(
   durationSeconds: number | null | undefined,
 ): CardioDerivedMetrics {
   return {
-    averagePaceSecondsPerKm: computeAveragePaceSecondsPerKm(
-      distanceMeters,
-      durationSeconds,
-    ),
+    averagePaceSecondsPerKm: computeAveragePaceSecondsPerKm(distanceMeters, durationSeconds),
     averageSpeedKmh: computeAverageSpeedKmh(distanceMeters, durationSeconds),
   };
 }
@@ -171,11 +164,7 @@ export function formatSpeedKmh(speedKmh: number | null | undefined): string | nu
   return `${formatted} km/h`;
 }
 
-export const CARDIO_MEASUREMENT_TYPES = [
-  'DURATION',
-  'DISTANCE',
-  'DISTANCE_DURATION',
-] as const;
+export const CARDIO_MEASUREMENT_TYPES = ['DURATION', 'DISTANCE', 'DISTANCE_DURATION'] as const;
 
 export type CardioMeasurementType = (typeof CARDIO_MEASUREMENT_TYPES)[number];
 
@@ -248,7 +237,5 @@ export function buildCardioHistoryEntries(
         notes: session.notes,
       };
     })
-    .filter(
-      (entry) => entry.durationSeconds != null || entry.distanceMeters != null,
-    );
+    .filter((entry) => entry.durationSeconds != null || entry.distanceMeters != null);
 }

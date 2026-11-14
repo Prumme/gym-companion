@@ -9,11 +9,7 @@ import { personalRecordQueryKeys } from '@/features/personal-records/api/persona
 import { progressQueryKeys } from '@/features/progress/api/progress-query-keys';
 import { coachingQueryKeys } from '@/features/coaching/api/coaching-query-keys';
 import { subscribeWorkoutSync } from '../offline/broadcast';
-import {
-  discardLocalChanges,
-  loadConflictContext,
-  rebaseLocalChanges,
-} from '../offline/conflict';
+import { discardLocalChanges, loadConflictContext, rebaseLocalChanges } from '../offline/conflict';
 import { getSyncState, listOpenCommands } from '../offline/store';
 import { syncWorkoutSession } from '../offline/sync-engine';
 import type { StoredWorkoutCommand, WorkoutSyncStatus } from '../offline/types';
@@ -26,12 +22,8 @@ function applySyncedSessionToCache(
     queryClient.setQueryData(workoutQueryKeys.active(), null);
     return;
   }
-  const inProgress =
-    session.status === 'ACTIVE' || session.status === 'PAUSED';
-  queryClient.setQueryData(
-    workoutQueryKeys.active(),
-    inProgress ? session : null,
-  );
+  const inProgress = session.status === 'ACTIVE' || session.status === 'PAUSED';
+  queryClient.setQueryData(workoutQueryKeys.active(), inProgress ? session : null);
   queryClient.setQueryData(workoutQueryKeys.detail(session.id), session);
   if (session.status === 'COMPLETED' || session.status === 'CANCELLED') {
     void queryClient.invalidateQueries({
@@ -68,12 +60,9 @@ export function useWorkoutOfflineSync(workoutSessionId: string | null) {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<WorkoutSyncStatus>('IDLE');
   const [pendingCount, setPendingCount] = useState(0);
-  const [conflictCommandId, setConflictCommandId] = useState<string | null>(
-    null,
-  );
+  const [conflictCommandId, setConflictCommandId] = useState<string | null>(null);
   const [lastErrorMessage, setLastErrorMessage] = useState<string | null>(null);
-  const [conflictCommand, setConflictCommand] =
-    useState<StoredWorkoutCommand | null>(null);
+  const [conflictCommand, setConflictCommand] = useState<StoredWorkoutCommand | null>(null);
   const [browserOffline, setBrowserOffline] = useState(
     typeof navigator !== 'undefined' ? navigator.onLine === false : false,
   );
@@ -117,8 +106,7 @@ export function useWorkoutOfflineSync(workoutSessionId: string | null) {
       if (userId && workoutSessionId) {
         void syncWorkoutSession(userId, workoutSessionId, {
           force: true,
-          onSessionUpdated: (session) =>
-            applySyncedSessionToCache(queryClient, session),
+          onSessionUpdated: (session) => applySyncedSessionToCache(queryClient, session),
         }).then(() => refresh());
       }
     };
@@ -132,17 +120,13 @@ export function useWorkoutOfflineSync(workoutSessionId: string | null) {
       void refresh();
       if (userId && workoutSessionId && navigator.onLine) {
         void syncWorkoutSession(userId, workoutSessionId, {
-          onSessionUpdated: (session) =>
-            applySyncedSessionToCache(queryClient, session),
+          onSessionUpdated: (session) => applySyncedSessionToCache(queryClient, session),
         }).then(() => refresh());
       }
     };
     window.addEventListener('focus', onFocus);
     const unsub = subscribeWorkoutSync((event) => {
-      if (
-        event.userId === userId &&
-        event.workoutSessionId === workoutSessionId
-      ) {
+      if (event.userId === userId && event.workoutSessionId === workoutSessionId) {
         void refresh();
       }
     });
@@ -158,22 +142,14 @@ export function useWorkoutOfflineSync(workoutSessionId: string | null) {
       unsub();
       window.clearInterval(interval);
     };
-  }, [
-    userId,
-    workoutSessionId,
-    queryClient,
-    refresh,
-    pendingCount,
-    status,
-  ]);
+  }, [userId, workoutSessionId, queryClient, refresh, pendingCount, status]);
 
   const syncNow = useCallback(async () => {
     if (!userId || !workoutSessionId) return;
     if (status === 'CONFLICT') return;
     await syncWorkoutSession(userId, workoutSessionId, {
       force: true,
-      onSessionUpdated: (session) =>
-        applySyncedSessionToCache(queryClient, session),
+      onSessionUpdated: (session) => applySyncedSessionToCache(queryClient, session),
     });
     await refresh();
   }, [userId, workoutSessionId, status, queryClient, refresh]);
@@ -199,10 +175,7 @@ export function useWorkoutOfflineSync(workoutSessionId: string | null) {
     const result = await rebaseLocalChanges({ userId, workoutSessionId });
     if (result.ok) {
       queryClient.setQueryData(workoutQueryKeys.active(), result.session);
-      queryClient.setQueryData(
-        workoutQueryKeys.detail(result.session.id),
-        result.session,
-      );
+      queryClient.setQueryData(workoutQueryKeys.detail(result.session.id), result.session);
       await syncNow();
     }
     await refresh();
@@ -214,9 +187,7 @@ export function useWorkoutOfflineSync(workoutSessionId: string | null) {
       return 'Conflit de synchronisation';
     }
     if (status === 'SYNCING') {
-      return pendingCount > 0
-        ? `Synchronisation…`
-        : 'Synchronisation…';
+      return pendingCount > 0 ? `Synchronisation…` : 'Synchronisation…';
     }
     if (status === 'OFFLINE' || browserOffline) {
       return pendingCount > 0

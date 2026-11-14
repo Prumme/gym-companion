@@ -3,10 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger'
 import { createSuccessResponse } from '@gym-companion/shared';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import {
-  JwtAuthGuard,
-  type AuthenticatedUser,
-} from '../../common/guards/jwt-auth.guard';
+import { JwtAuthGuard, type AuthenticatedUser } from '../../common/guards/jwt-auth.guard';
 import { PersonalRecordsService } from './personal-records.service';
 
 @ApiTags('personal-records')
@@ -18,8 +15,7 @@ export class PersonalRecordsController {
 
   @Get('api/v1/personal-records')
   @ApiOperation({
-    summary:
-      'Records personnels courants (calculés à la demande depuis l’historique)',
+    summary: 'Records personnels courants (calculés à la demande depuis l’historique)',
   })
   @ApiQuery({ name: 'exerciseId', required: false, type: String })
   @ApiQuery({ name: 'recordType', required: false, type: String })
@@ -40,10 +36,7 @@ export class PersonalRecordsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
   ) {
-    const data = await this.personalRecordsService.listForExercise(
-      user.id,
-      exerciseId,
-    );
+    const data = await this.personalRecordsService.listForExercise(user.id, exerciseId);
     return createSuccessResponse(data);
   }
 }

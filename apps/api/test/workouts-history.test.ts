@@ -18,8 +18,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -29,11 +28,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -72,9 +67,7 @@ async function createStartableTemplate(
     .expect(201);
   const templateId = tpl.body.data.workoutTemplates[0].id as string;
   const ex = await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       exerciseId: system.id,
@@ -85,9 +78,7 @@ async function createStartableTemplate(
     .expect(201);
   const teId = ex.body.data.workoutTemplates[0].exercises[0].id as string;
   await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       setType: 'WORKING',
@@ -138,12 +129,7 @@ describe('Workout history API (3.6)', () => {
     tokenA = await registerUser(app, emailA, 'Hist A');
     tokenB = await registerUser(app, emailB, 'Hist B');
 
-    const created = await createStartableTemplate(
-      app,
-      tokenA,
-      prisma,
-      `A-${stamp}`,
-    );
+    const created = await createStartableTemplate(app, tokenA, prisma, `A-${stamp}`);
     templateA = created.templateId;
     programA = created.programId;
     await createStartableTemplate(app, tokenB, prisma, `B-${stamp}`);
@@ -264,9 +250,7 @@ describe('Workout history API (3.6)', () => {
     const exerciseId = created.body.data.exercises[0].id as string;
 
     await request(app.getHttpServer())
-      .patch(
-        `/api/v1/workouts/${completedId}/exercises/${exerciseId}/sets/${setId}`,
-      )
+      .patch(`/api/v1/workouts/${completedId}/exercises/${exerciseId}/sets/${setId}`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         status: 'COMPLETED',
@@ -299,9 +283,11 @@ describe('Workout history API (3.6)', () => {
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     expect(all.body.data).toHaveLength(2);
-    expect(all.body.data.every((row: { status: string }) =>
-      ['COMPLETED', 'CANCELLED'].includes(row.status),
-    )).toBe(true);
+    expect(
+      all.body.data.every((row: { status: string }) =>
+        ['COMPLETED', 'CANCELLED'].includes(row.status),
+      ),
+    ).toBe(true);
     expect(all.body.data[0].summary).toMatchObject({
       exerciseCount: 1,
       totalSetCount: 1,
@@ -408,15 +394,10 @@ describe('Workout history API (3.6)', () => {
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     const snapshotName = detailBefore.body.data.name as string;
-    const exerciseName = detailBefore.body.data.exercises[0]
-      .exerciseName as string;
-    const targetWeight = detailBefore.body.data.exercises[0].sets[0]
-      .targetWeightKg as number;
-    const actualReps = detailBefore.body.data.exercises[0].sets[0]
-      .actualReps as number;
-    expect(detailBefore.body.data.exercises[0].sets[0].status).toBe(
-      'COMPLETED',
-    );
+    const exerciseName = detailBefore.body.data.exercises[0].exerciseName as string;
+    const targetWeight = detailBefore.body.data.exercises[0].sets[0].targetWeightKg as number;
+    const actualReps = detailBefore.body.data.exercises[0].sets[0].actualReps as number;
+    expect(detailBefore.body.data.exercises[0].sets[0].status).toBe('COMPLETED');
     expect(detailBefore.body.data.permissions).toEqual({
       canPause: false,
       canResume: false,
@@ -432,9 +413,7 @@ describe('Workout history API (3.6)', () => {
       .expect(200);
 
     await request(app.getHttpServer())
-      .patch(
-        `/api/v1/programs/${programA}/workout-templates/${templateA}`,
-      )
+      .patch(`/api/v1/programs/${programA}/workout-templates/${templateA}`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ name: 'Modèle renommé après coup' })
       .expect(200);
@@ -445,15 +424,9 @@ describe('Workout history API (3.6)', () => {
       .expect(200);
     expect(detailAfter.body.data.name).toBe(snapshotName);
     expect(detailAfter.body.data.exercises[0].exerciseName).toBe(exerciseName);
-    expect(detailAfter.body.data.exercises[0].sets[0].targetWeightKg).toBe(
-      targetWeight,
-    );
-    expect(detailAfter.body.data.exercises[0].sets[0].actualReps).toBe(
-      actualReps,
-    );
-    expect(detailAfter.body.data.source.programName).not.toBe(
-      'Programme renommé après coup',
-    );
+    expect(detailAfter.body.data.exercises[0].sets[0].targetWeightKg).toBe(targetWeight);
+    expect(detailAfter.body.data.exercises[0].sets[0].actualReps).toBe(actualReps);
+    expect(detailAfter.body.data.source.programName).not.toBe('Programme renommé après coup');
 
     const historyItem = await request(app.getHttpServer())
       .get(`/api/v1/workouts?status=COMPLETED`)
@@ -499,9 +472,7 @@ describe('Workout history API (3.6)', () => {
       .get('/api/v1/workouts?status=CANCELLED')
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    const item = list.body.data.find(
-      (row: { id: string }) => row.id === sessionId,
-    );
+    const item = list.body.data.find((row: { id: string }) => row.id === sessionId);
     expect(item.summary.pendingSetCount).toBe(1);
     expect(item.summary.processedSetCount).toBe(0);
   });
@@ -578,9 +549,7 @@ describe('Workout history API (3.6)', () => {
         .get(queryPath)
         .set('Authorization', `Bearer ${tokenA}`)
         .expect(200);
-      collected.push(
-        ...page.body.data.map((row: { id: string }) => row.id),
-      );
+      collected.push(...page.body.data.map((row: { id: string }) => row.id));
       hasMore = Boolean(page.body.pagination.hasMore);
       cursor = page.body.pagination.nextCursor as string | null;
     }

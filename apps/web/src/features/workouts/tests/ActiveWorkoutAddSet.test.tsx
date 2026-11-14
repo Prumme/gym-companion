@@ -12,14 +12,11 @@ const deleteWorkoutSessionSet = vi.fn();
 const listExercises = vi.fn();
 
 vi.mock('../api/workout-api', async () => {
-  const actual = await vi.importActual<typeof import('../api/workout-api')>(
-    '../api/workout-api',
-  );
+  const actual = await vi.importActual<typeof import('../api/workout-api')>('../api/workout-api');
   return {
     ...actual,
     addWorkoutSessionSet: (...args: unknown[]) => addWorkoutSessionSet(...args),
-    deleteWorkoutSessionSet: (...args: unknown[]) =>
-      deleteWorkoutSessionSet(...args),
+    deleteWorkoutSessionSet: (...args: unknown[]) => deleteWorkoutSessionSet(...args),
     addWorkoutSessionExercise: vi.fn(),
     replaceWorkoutSessionExercise: vi.fn(),
   };
@@ -125,9 +122,7 @@ describe('Ajouter une série (Active Workout)', () => {
       }),
     );
 
-    await user.click(
-      screen.getByRole('button', { name: /Ajouter une série/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Ajouter une série/i }));
 
     await waitFor(() => {
       expect(addWorkoutSessionSet).toHaveBeenCalledWith(
@@ -211,9 +206,10 @@ describe('Ajouter une série (Active Workout)', () => {
     expect(screen.getByText('80 kg × 10')).toBeInTheDocument();
     expect(screen.getByText(/Record/)).toBeInTheDocument();
     expect(screen.getByText('110 kg × 3')).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /Voir l’historique/i }),
-    ).toHaveAttribute('href', '/progress/exercises/ex-1');
+    expect(screen.getByRole('link', { name: /Voir l’historique/i })).toHaveAttribute(
+      'href',
+      '/progress/exercises/ex-1',
+    );
   });
 
   it('n’affiche pas un faux record en kg pour un exercice DURATION', () => {
@@ -321,12 +317,9 @@ describe('Ajouter une série (Active Workout)', () => {
     await user.click(screen.getByRole('button', { name: /^Supprimer$/i }));
 
     await waitFor(() => {
-      expect(deleteWorkoutSessionSet).toHaveBeenCalledWith(
-        session.id,
-        'se-1',
-        'ws-1',
-        { expectedVersion: 3 },
-      );
+      expect(deleteWorkoutSessionSet).toHaveBeenCalledWith(session.id, 'se-1', 'ws-1', {
+        expectedVersion: 3,
+      });
     });
   });
 });

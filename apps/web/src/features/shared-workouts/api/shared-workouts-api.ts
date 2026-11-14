@@ -22,13 +22,10 @@ export type SharedWorkoutRoomListFilters = {
 export async function createSharedWorkoutRoom(input: {
   name?: string;
 }): Promise<SharedWorkoutRoomDetail> {
-  const response = await apiFetch<{ data: SharedWorkoutRoomDetail }>(
-    '/api/v1/shared-workouts',
-    {
-      method: 'POST',
-      body: JSON.stringify(input),
-    },
-  );
+  const response = await apiFetch<{ data: SharedWorkoutRoomDetail }>('/api/v1/shared-workouts', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
   return response.data;
 }
 
@@ -45,9 +42,7 @@ export async function listSharedWorkoutRooms(
   );
 }
 
-export async function getSharedWorkoutRoom(
-  roomId: string,
-): Promise<SharedWorkoutRoomDetail> {
+export async function getSharedWorkoutRoom(roomId: string): Promise<SharedWorkoutRoomDetail> {
   const response = await apiFetch<{ data: SharedWorkoutRoomDetail }>(
     `/api/v1/shared-workouts/${encodeURIComponent(roomId)}`,
   );
@@ -133,9 +128,7 @@ export async function rotateSharedWorkoutJoinCode(
   return response.data;
 }
 
-export async function leaveSharedWorkoutRoom(
-  roomId: string,
-): Promise<{ left: true }> {
+export async function leaveSharedWorkoutRoom(roomId: string): Promise<{ left: true }> {
   const response = await apiFetch<{ data: { left: true } }>(
     `/api/v1/shared-workouts/${encodeURIComponent(roomId)}/leave`,
     { method: 'POST' },
@@ -182,13 +175,10 @@ export async function createMySharedWorkoutSession(
       mySession: MySharedWorkoutSessionDto;
       workoutSession: WorkoutSessionDetail;
     };
-  }>(
-    `/api/v1/shared-workouts/${encodeURIComponent(roomId)}/my-workout-session/create`,
-    {
-      method: 'POST',
-      body: JSON.stringify(input),
-    },
-  );
+  }>(`/api/v1/shared-workouts/${encodeURIComponent(roomId)}/my-workout-session/create`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
   return response.data;
 }
 
@@ -224,9 +214,7 @@ export async function getSharedWorkoutEquipmentCoordination(
   return response.data;
 }
 
-export async function getMySharedEquipment(
-  roomId: string,
-): Promise<MySharedWorkoutEquipmentState> {
+export async function getMySharedEquipment(roomId: string): Promise<MySharedWorkoutEquipmentState> {
   const response = await apiFetch<{ data: MySharedWorkoutEquipmentState }>(
     `/api/v1/shared-workouts/${encodeURIComponent(roomId)}/my-equipment`,
   );
@@ -274,4 +262,3 @@ export async function cancelMySharedEquipmentWaiting(
   );
   return response.data;
 }
-

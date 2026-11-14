@@ -57,9 +57,7 @@ export type AiCoachConversationProviderRequest = {
 export interface AiCoachProvider {
   readonly name: string;
 
-  explainExerciseCoachSummary(
-    request: AiCoachProviderRequest,
-  ): Promise<AiCoachExplanationResult>;
+  explainExerciseCoachSummary(request: AiCoachProviderRequest): Promise<AiCoachExplanationResult>;
 
   generateConversationTurn(
     request: AiCoachConversationProviderRequest,

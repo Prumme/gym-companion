@@ -18,8 +18,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -29,11 +28,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -160,9 +155,7 @@ describe('Shared workout rooms API (Shared 5.1)', () => {
       .get('/api/v1/shared-workouts')
       .set('Authorization', `Bearer ${tokenB}`)
       .expect(200);
-    expect(
-      listB.body.data.some((item: { id: string }) => item.id === roomId),
-    ).toBe(true);
+    expect(listB.body.data.some((item: { id: string }) => item.id === roomId)).toBe(true);
   });
 
   it('lifecycle start/complete/cancel + timestamps + idempotence', async () => {
@@ -200,9 +193,7 @@ describe('Shared workout rooms API (Shared 5.1)', () => {
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ clientCommandId: startId })
       .expect(409);
-    expect(conflict.body.error.code).toBe(
-      'SHARED_WORKOUT_ROOM_COMMAND_CONFLICT',
-    );
+    expect(conflict.body.error.code).toBe('SHARED_WORKOUT_ROOM_COMMAND_CONFLICT');
 
     const completed = await request(app.getHttpServer())
       .post(`/api/v1/shared-workouts/${roomId}/complete`)
@@ -292,9 +283,7 @@ describe('Shared workout rooms API (Shared 5.1)', () => {
 
     const statuses = [completeRes.status, cancelRes.status];
     expect(statuses.filter((s) => s === 200)).toHaveLength(1);
-    expect(
-      statuses.every((s) => s === 200 || s === 400 || s === 409),
-    ).toBe(true);
+    expect(statuses.every((s) => s === 200 || s === 400 || s === 409)).toBe(true);
 
     const room = await prisma.sharedWorkoutRoom.findUniqueOrThrow({
       where: { id: roomId },
@@ -326,10 +315,6 @@ describe('Shared workout rooms API (Shared 5.1)', () => {
       .get('/api/v1/shared-workouts?status=LOBBY')
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    expect(
-      list.body.data.every(
-        (item: { status: string }) => item.status === 'LOBBY',
-      ),
-    ).toBe(true);
+    expect(list.body.data.every((item: { status: string }) => item.status === 'LOBBY')).toBe(true);
   });
 });

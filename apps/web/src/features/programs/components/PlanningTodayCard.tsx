@@ -47,9 +47,7 @@ export function PlanningTodayCard({ weekday, entries }: PlanningTodayCardProps) 
                 <p className="text-lg font-semibold text-[var(--foreground)]">
                   {entry.workoutTemplate.name}
                 </p>
-                <p className="mt-0.5 text-sm text-[var(--muted)]">
-                  {formatSessionMeta(entry)}
-                </p>
+                <p className="mt-0.5 text-sm text-[var(--muted)]">{formatSessionMeta(entry)}</p>
               </div>
               <StartWorkoutButton
                 sourceWorkoutTemplateId={entry.workoutTemplate.id}

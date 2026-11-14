@@ -15,10 +15,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { createSuccessResponse } from '@gym-companion/shared';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import {
-  JwtAuthGuard,
-  type AuthenticatedUser,
-} from '../../common/guards/jwt-auth.guard';
+import { JwtAuthGuard, type AuthenticatedUser } from '../../common/guards/jwt-auth.guard';
 import { WorkoutsService } from './workouts.service';
 
 @ApiTags('workouts')
@@ -63,11 +60,7 @@ export class WorkoutsController {
     @Param('workoutSessionId', ParseUUIDPipe) workoutSessionId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.workoutsService.pause(
-      user.id,
-      workoutSessionId,
-      body,
-    );
+    const data = await this.workoutsService.pause(user.id, workoutSessionId, body);
     return createSuccessResponse(data);
   }
 
@@ -79,11 +72,7 @@ export class WorkoutsController {
     @Param('workoutSessionId', ParseUUIDPipe) workoutSessionId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.workoutsService.resume(
-      user.id,
-      workoutSessionId,
-      body,
-    );
+    const data = await this.workoutsService.resume(user.id, workoutSessionId, body);
     return createSuccessResponse(data);
   }
 
@@ -95,11 +84,7 @@ export class WorkoutsController {
     @Param('workoutSessionId', ParseUUIDPipe) workoutSessionId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.workoutsService.complete(
-      user.id,
-      workoutSessionId,
-      body,
-    );
+    const data = await this.workoutsService.complete(user.id, workoutSessionId, body);
     return createSuccessResponse(data);
   }
 
@@ -111,11 +96,7 @@ export class WorkoutsController {
     @Param('workoutSessionId', ParseUUIDPipe) workoutSessionId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.workoutsService.cancel(
-      user.id,
-      workoutSessionId,
-      body,
-    );
+    const data = await this.workoutsService.cancel(user.id, workoutSessionId, body);
     return createSuccessResponse(data);
   }
 
@@ -131,8 +112,7 @@ export class WorkoutsController {
 
   @Patch(':workoutSessionId/exercises/:sessionExerciseId/exercise')
   @ApiOperation({
-    summary:
-      'Remplacer l’exercice catalogue d’une ligne de séance (snapshot session uniquement)',
+    summary: 'Remplacer l’exercice catalogue d’une ligne de séance (snapshot session uniquement)',
   })
   async replaceExercise(
     @CurrentUser() user: AuthenticatedUser,
@@ -151,26 +131,20 @@ export class WorkoutsController {
 
   @Post(':workoutSessionId/exercises')
   @ApiOperation({
-    summary:
-      'Ajouter un exercice ad hoc à la séance ACTIVE (snapshot session uniquement)',
+    summary: 'Ajouter un exercice ad hoc à la séance ACTIVE (snapshot session uniquement)',
   })
   async addExercise(
     @CurrentUser() user: AuthenticatedUser,
     @Param('workoutSessionId', ParseUUIDPipe) workoutSessionId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.workoutsService.addExercise(
-      user.id,
-      workoutSessionId,
-      body,
-    );
+    const data = await this.workoutsService.addExercise(user.id, workoutSessionId, body);
     return createSuccessResponse(data);
   }
 
   @Post(':workoutSessionId/exercises/:sessionExerciseId/sets')
   @ApiOperation({
-    summary:
-      'Ajouter une série WORKING vide à un exercice de la séance ACTIVE',
+    summary: 'Ajouter une série WORKING vide à un exercice de la séance ACTIVE',
   })
   async addSet(
     @CurrentUser() user: AuthenticatedUser,
@@ -190,8 +164,7 @@ export class WorkoutsController {
   @Delete(':workoutSessionId/exercises/:sessionExerciseId/sets/:workoutSetId')
   @HttpCode(200)
   @ApiOperation({
-    summary:
-      'Supprimer une série d’un exercice de séance ACTIVE (recompacte les positions)',
+    summary: 'Supprimer une série d’un exercice de séance ACTIVE (recompacte les positions)',
   })
   async deleteSet(
     @CurrentUser() user: AuthenticatedUser,

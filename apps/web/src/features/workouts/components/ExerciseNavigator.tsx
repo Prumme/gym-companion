@@ -24,11 +24,8 @@ export function ExerciseNavigator({
   hasPrevious,
   hasNext,
 }: ExerciseNavigatorProps) {
-  const selectedIndex = exercises.findIndex(
-    (exercise) => exercise.id === selectedExerciseId,
-  );
-  const selected =
-    selectedIndex >= 0 ? exercises[selectedIndex] : exercises[0] ?? null;
+  const selectedIndex = exercises.findIndex((exercise) => exercise.id === selectedExerciseId);
+  const selected = selectedIndex >= 0 ? exercises[selectedIndex] : (exercises[0] ?? null);
   const positionLabel =
     selectedIndex >= 0
       ? `Exercice ${selectedIndex + 1} / ${exercises.length}`
@@ -48,12 +45,8 @@ export function ExerciseNavigator({
         </button>
 
         <div className="min-w-0 flex-1 text-center">
-          <p className="truncate text-sm font-medium">
-            {selected?.exerciseName ?? 'Exercice'}
-          </p>
-          <p className="text-xs tabular-nums text-[var(--muted)]">
-            {positionLabel}
-          </p>
+          <p className="truncate text-sm font-medium">{selected?.exerciseName ?? 'Exercice'}</p>
+          <p className="text-xs tabular-nums text-[var(--muted)]">{positionLabel}</p>
         </div>
 
         <button

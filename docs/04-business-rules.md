@@ -235,6 +235,34 @@ Les performances doivent pouvoir être associées à un équipement précis.
 
 Une charge utilisée sur une machine ne doit pas être comparée automatiquement à une autre machine comme s’il s’agissait de la même mesure.
 
+### 5.5 Calculateur de disques (barre)
+
+Proposé uniquement pour un exercice `WEIGHT_REPS` dont l’équipement a le code `barbell`. V1 en kg uniquement (les charges de séance sont stockées et affichées en kg).
+
+- Réglages par appareil (localStorage) : barre 20 kg et paires de 25 / 20 / 15 / 10 / 5 / 2,5 / 1,25 kg par défaut ; barre entre 0 et 50 kg.
+- Calcul en grammes entiers (aucune erreur de flottant).
+- Charge par côté = (cible − barre) / 2, arrondie au gramme inférieur.
+- Algorithme glouton, du disque le plus lourd au plus léger. Il est déterministe mais ne garantit pas la combinaison optimale pour des jeux de disques atypiques (par exemple 15 + 10 sans 5).
+- **Exception à §5.3** : la charge chargée ne dépasse jamais la cible (arrondi toujours inférieur, jamais au plus proche). L’écart restant est affiché.
+- Si la cible est inférieure à la barre, seule la barre est indiquée.
+- Le résultat est une valeur calculée : rien n’est enregistré dans la séance.
+
+### 5.6 Rampe d’échauffement suggérée
+
+Suggestion calculée, en lecture seule, à partir de la charge de travail cible :
+
+| Palier | Charge | Répétitions |
+|---|---|---|
+| 1 | barre seule | 10 |
+| 2 | 40 % | 5 |
+| 3 | 60 % | 3 |
+| 4 | 80 % | 1 |
+
+- Chaque pourcentage est calculé en grammes (arrondi inférieur), puis ramené à la charge chargeable inférieure par le calculateur §5.5.
+- Un palier est retiré s’il est inférieur ou égal à la barre, s’il ne dépasse pas le palier précédent, ou s’il atteint la charge de travail.
+- Aucune rampe si la charge de travail est absente ou ne dépasse pas la barre.
+- Les paliers ne créent aucune série `WARMUP` (évolution : docs/01 §6.3).
+
 ## 6. Maximal et référence de performance
 
 ### 6.1 Types de maximum

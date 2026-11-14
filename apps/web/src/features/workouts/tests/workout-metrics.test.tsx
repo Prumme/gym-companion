@@ -3,10 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { WorkoutMetricsSummary } from '../components/WorkoutMetricsSummary';
-import {
-  formatWorkoutVolume,
-  getWorkoutMetricsDisplayFlags,
-} from '../lib/workout-metrics-format';
+import { formatWorkoutVolume, getWorkoutMetricsDisplayFlags } from '../lib/workout-metrics-format';
 
 function metrics(overrides: Partial<WorkoutMetrics> = {}): WorkoutMetrics {
   return {
@@ -54,9 +51,7 @@ describe('workout metrics format / UI', () => {
 
   it('affiche le résumé COMPLETED pertinent', () => {
     render(<WorkoutMetricsSummary metrics={metrics()} />);
-    expect(
-      screen.getByRole('heading', { name: 'Résumé de la séance' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Résumé de la séance' })).toBeInTheDocument();
     expect(screen.getByText(/2 exercices réalisés/)).toBeInTheDocument();
     expect(screen.getByText(/8 séries réalisées/)).toBeInTheDocument();
     expect(screen.getByText(/112 répétitions/)).toBeInTheDocument();

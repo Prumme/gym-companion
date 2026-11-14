@@ -29,9 +29,7 @@ export type ProgressOverviewFilters = {
   to?: string;
 };
 
-function toSearchParams(
-  filters: Record<string, string | undefined>,
-): string {
+function toSearchParams(filters: Record<string, string | undefined>): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) {
     if (value) {
@@ -52,9 +50,7 @@ export async function getExerciseProgress(
   return response.data;
 }
 
-export async function getCardioHistory(
-  exerciseId: string,
-): Promise<CardioHistoryResponse> {
+export async function getCardioHistory(exerciseId: string): Promise<CardioHistoryResponse> {
   const response = await apiFetch<{ data: CardioHistoryResponse }>(
     `/api/v1/progress/exercises/${exerciseId}/cardio-history`,
   );
@@ -82,9 +78,7 @@ export async function getProgressOverview(
   return response.data;
 }
 
-export async function getLastWorkingSets(
-  exerciseIds: string[],
-): Promise<LastWorkingSetCue[]> {
+export async function getLastWorkingSets(exerciseIds: string[]): Promise<LastWorkingSetCue[]> {
   if (exerciseIds.length === 0) {
     return [];
   }

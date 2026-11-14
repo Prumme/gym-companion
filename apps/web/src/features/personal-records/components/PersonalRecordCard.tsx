@@ -13,10 +13,7 @@ type PersonalRecordCardProps = {
   showExerciseLink?: boolean;
 };
 
-export function PersonalRecordCard({
-  record,
-  showExerciseLink = true,
-}: PersonalRecordCardProps) {
+export function PersonalRecordCard({ record, showExerciseLink = true }: PersonalRecordCardProps) {
   const contextParts = formatPersonalRecordContext(record);
   const typeLabel = getPersonalRecordTypeLabel(record.recordType);
   const valueLabel = formatPersonalRecordValue(record);
@@ -26,19 +23,13 @@ export function PersonalRecordCard({
       className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-4"
       aria-label={`${typeLabel} : ${valueLabel}`}
     >
-      <h3 className="text-sm font-semibold text-[var(--foreground)]">
-        {typeLabel}
-      </h3>
+      <h3 className="text-sm font-semibold text-[var(--foreground)]">{typeLabel}</h3>
       <p className="mt-1 text-2xl font-bold tracking-tight">{valueLabel}</p>
       {contextParts.length > 0 ? (
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          {contextParts.join(' · ')}
-        </p>
+        <p className="mt-1 text-sm text-[var(--muted)]">{contextParts.join(' · ')}</p>
       ) : null}
       {record.equipment.name ? (
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          Équipement : {record.equipment.name}
-        </p>
+        <p className="mt-2 text-sm text-[var(--muted)]">Équipement : {record.equipment.name}</p>
       ) : null}
       <p className="mt-2 text-sm text-[var(--muted)]">
         {formatPersonalRecordDate(record.achievedOn)}

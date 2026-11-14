@@ -17,8 +17,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -28,11 +27,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -121,9 +116,7 @@ describe('Replace workout session exercise API', () => {
     });
 
     const ex = await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-      )
+      .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         exerciseId: originalExerciseId,
@@ -132,8 +125,7 @@ describe('Replace workout session exercise API', () => {
         notes: null,
       })
       .expect(201);
-    templateExerciseId = ex.body.data.workoutTemplates[0].exercises[0]
-      .id as string;
+    templateExerciseId = ex.body.data.workoutTemplates[0].exercises[0].id as string;
 
     await request(app.getHttpServer())
       .post(
@@ -205,9 +197,7 @@ describe('Replace workout session exercise API', () => {
     sessionId = created.body.data.id;
     sessionExerciseId = created.body.data.exercises[0].id;
     setId = created.body.data.exercises[0].sets[0].id;
-    expect(created.body.data.exercises[0].sourceExerciseId).toBe(
-      originalExerciseId,
-    );
+    expect(created.body.data.exercises[0].sourceExerciseId).toBe(originalExerciseId);
     expect(created.body.data.exercises[0].sets).toHaveLength(3);
   });
 
@@ -257,9 +247,7 @@ describe('Replace workout session exercise API', () => {
         expectedVersion: version,
       })
       .expect(400);
-    expect(response.body.error.code).toBe(
-      'WORKOUT_EXERCISE_MEASUREMENT_INCOMPATIBLE',
-    );
+    expect(response.body.error.code).toBe('WORKOUT_EXERCISE_MEASUREMENT_INCOMPATIBLE');
   });
 
   it('rejects inaccessible personal exercise of another user', async () => {
@@ -308,9 +296,7 @@ describe('Replace workout session exercise API', () => {
     expect(exercise.sets[0].targetRepMin).toBe(8);
     expect(exercise.sets[0].targetRepMax).toBe(12);
     expect(exercise.sets[0].targetRir).toBe(2);
-    expect(exercise.sets.every((s: { status: string }) => s.status === 'PENDING')).toBe(
-      true,
-    );
+    expect(exercise.sets.every((s: { status: string }) => s.status === 'PENDING')).toBe(true);
     expect(response.body.data.version).toBe(version + 1);
 
     const replacement = await prisma.exercise.findUniqueOrThrow({
@@ -330,9 +316,7 @@ describe('Replace workout session exercise API', () => {
       })
       .expect(200);
     expect(response.body.data.version).toBe(version);
-    expect(response.body.data.exercises[0].sourceExerciseId).toBe(
-      replacementExerciseId,
-    );
+    expect(response.body.data.exercises[0].sourceExerciseId).toBe(replacementExerciseId);
   });
 
   it('leaves Program / WorkoutTemplate unchanged', async () => {
@@ -340,8 +324,7 @@ describe('Replace workout session exercise API', () => {
       .get(`/api/v1/programs/${programId}`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    const tplExercise =
-      program.body.data.workoutTemplates[0].exercises[0];
+    const tplExercise = program.body.data.workoutTemplates[0].exercises[0];
     expect(tplExercise.exercise.id).toBe(originalExerciseId);
 
     const row = await prisma.workoutTemplateExercise.findUniqueOrThrow({
@@ -353,9 +336,7 @@ describe('Replace workout session exercise API', () => {
   it('rejects when a set is already recorded', async () => {
     const version = await getVersion();
     await request(app.getHttpServer())
-      .patch(
-        `/api/v1/workouts/${sessionId}/exercises/${sessionExerciseId}/sets/${setId}`,
-      )
+      .patch(`/api/v1/workouts/${sessionId}/exercises/${sessionExerciseId}/sets/${setId}`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         status: 'COMPLETED',
@@ -380,18 +361,14 @@ describe('Replace workout session exercise API', () => {
         expectedVersion: nextVersion,
       })
       .expect(400);
-    expect(response.body.error.code).toBe(
-      'WORKOUT_EXERCISE_HAS_RECORDED_SETS',
-    );
+    expect(response.body.error.code).toBe('WORKOUT_EXERCISE_HAS_RECORDED_SETS');
   });
 
   it('rejects completed session and next session starts with original exercise', async () => {
     // Reset set to PENDING so we can complete the workout cleanly.
     let version = await getVersion();
     await request(app.getHttpServer())
-      .patch(
-        `/api/v1/workouts/${sessionId}/exercises/${sessionExerciseId}/sets/${setId}`,
-      )
+      .patch(`/api/v1/workouts/${sessionId}/exercises/${sessionExerciseId}/sets/${setId}`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         status: 'PENDING',
@@ -434,9 +411,7 @@ describe('Replace workout session exercise API', () => {
       })
       .expect(201);
 
-    expect(next.body.data.exercises[0].sourceExerciseId).toBe(
-      originalExerciseId,
-    );
+    expect(next.body.data.exercises[0].sourceExerciseId).toBe(originalExerciseId);
   });
 
   it('history of first session keeps the replacement exercise', async () => {
@@ -445,8 +420,6 @@ describe('Replace workout session exercise API', () => {
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     expect(detail.body.data.status).toBe('COMPLETED');
-    expect(detail.body.data.exercises[0].sourceExerciseId).toBe(
-      replacementExerciseId,
-    );
+    expect(detail.body.data.exercises[0].sourceExerciseId).toBe(replacementExerciseId);
   });
 });

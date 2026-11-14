@@ -18,8 +18,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -29,11 +28,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -77,9 +72,7 @@ async function createStartableTemplate(
     .expect(201);
   const templateId = tpl.body.data.workoutTemplates[0].id as string;
   const ex = await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       exerciseId: system.id,
@@ -90,9 +83,7 @@ async function createStartableTemplate(
     .expect(201);
   const teId = ex.body.data.workoutTemplates[0].exercises[0].id as string;
   await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       setType: 'WORKING',
@@ -110,11 +101,7 @@ async function createStartableTemplate(
   return { programId, templateId };
 }
 
-async function createActiveRoom(
-  app: INestApplication,
-  ownerToken: string,
-  name: string,
-) {
+async function createActiveRoom(app: INestApplication, ownerToken: string, name: string) {
   const created = await request(app.getHttpServer())
     .post('/api/v1/shared-workouts')
     .set('Authorization', `Bearer ${ownerToken}`)
@@ -334,12 +321,7 @@ describe('Shared workout member sessions (Shared 5.4)', () => {
       .expect(200);
     expect(stillActive.body.data.status).toBe('ACTIVE');
 
-    await completeActiveWorkout(
-      app,
-      tokenA,
-      sessionId,
-      stillActive.body.data.version,
-    );
+    await completeActiveWorkout(app, tokenA, sessionId, stillActive.body.data.version);
   });
 
   it('create depuis room atomique + leave independence + rejoin', async () => {
@@ -398,12 +380,7 @@ describe('Shared workout member sessions (Shared 5.4)', () => {
     });
     expect(linkCount).toBe(1);
 
-    await cancelActiveWorkout(
-      app,
-      tokenB,
-      workoutId,
-      afterLeave.body.data.version,
-    );
+    await cancelActiveWorkout(app, tokenB, workoutId, afterLeave.body.data.version);
   });
 
   it('refuse attach séance terminale + template étranger', async () => {
@@ -486,14 +463,10 @@ describe('Shared workout member sessions (Shared 5.4)', () => {
       .get(`/api/v1/shared-workouts/${roomId}`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    const memberB = detail.body.data.members.find(
-      (m: { userId: string }) => m.userId === userIdB,
-    );
+    const memberB = detail.body.data.members.find((m: { userId: string }) => m.userId === userIdB);
     expect(memberB.memberWorkout.status).toBe('PAUSED');
     expect(memberB.memberWorkout.workoutName).toBeTruthy();
-    expect(JSON.stringify(detail.body.data)).not.toMatch(
-      /actualWeightKg|actualReps|"rir"|"rpe"/i,
-    );
+    expect(JSON.stringify(detail.body.data)).not.toMatch(/actualWeightKg|actualReps|"rir"|"rpe"/i);
 
     const linkCount = await prisma.sharedWorkoutRoomMemberSession.count({
       where: {

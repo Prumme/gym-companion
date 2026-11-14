@@ -27,8 +27,7 @@ vi.mock('../hooks/use-shared-workout-room-realtime', () => ({
 
 vi.mock('../api/shared-workouts-api', () => ({
   getSharedWorkoutRoom: (...args: unknown[]) => getSharedWorkoutRoom(...args),
-  rotateSharedWorkoutJoinCode: (...args: unknown[]) =>
-    rotateSharedWorkoutJoinCode(...args),
+  rotateSharedWorkoutJoinCode: (...args: unknown[]) => rotateSharedWorkoutJoinCode(...args),
   getMySharedWorkoutSession: vi.fn(async () => ({
     linked: false,
     workoutSession: null,
@@ -88,9 +87,7 @@ vi.mock('@/features/profile/api/profile-api', () => ({
   })),
 }));
 
-function roomFixture(
-  overrides: Partial<SharedWorkoutRoomDetail> = {},
-): SharedWorkoutRoomDetail {
+function roomFixture(overrides: Partial<SharedWorkoutRoomDetail> = {}): SharedWorkoutRoomDetail {
   return {
     id: 'room-1',
     name: 'Séance duo',
@@ -132,10 +129,7 @@ function renderDetail(roomId = 'room-1') {
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[`/shared-workouts/${roomId}`]}>
         <Routes>
-          <Route
-            path="/shared-workouts/:roomId"
-            element={<SharedWorkoutRoomDetailPage />}
-          />
+          <Route path="/shared-workouts/:roomId" element={<SharedWorkoutRoomDetailPage />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -160,13 +154,9 @@ describe('SharedWorkoutRoomDetailPage', () => {
     getSharedWorkoutRoom.mockResolvedValue(roomFixture());
     renderDetail();
 
-    expect(
-      await screen.findByRole('heading', { name: /séance duo/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /séance duo/i })).toBeInTheDocument();
     expect(screen.getByText(/en préparation/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /démarrer la séance/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /démarrer la séance/i })).toBeInTheDocument();
     expect(screen.queryByText(/temps réel connecté/i)).not.toBeInTheDocument();
   });
 
@@ -176,12 +166,8 @@ describe('SharedWorkoutRoomDetailPage', () => {
 
     expect(await screen.findByText(/code d’accès/i)).toBeInTheDocument();
     expect(screen.getByText('K7M-4PX')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /^copier$/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /régénérer/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^copier$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /régénérer/i })).toBeInTheDocument();
     expect(screen.queryByText(/inviter/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/e-mail/i)).not.toBeInTheDocument();
   });
@@ -192,9 +178,7 @@ describe('SharedWorkoutRoomDetailPage', () => {
     renderDetail();
 
     await user.click(await screen.findByRole('button', { name: /^copier$/i }));
-    expect(
-      await screen.findByRole('button', { name: /code copié/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /code copié/i })).toBeInTheDocument();
   });
 
   it('régénère le code après confirmation', async () => {
@@ -204,14 +188,10 @@ describe('SharedWorkoutRoomDetailPage', () => {
     renderDetail();
 
     await user.click(await screen.findByRole('button', { name: /régénérer/i }));
-    expect(
-      screen.getByRole('alertdialog', { name: /régénérer le code/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('alertdialog', { name: /régénérer le code/i })).toBeInTheDocument();
 
     const dialog = screen.getByRole('alertdialog', { name: /régénérer le code/i });
-    await user.click(
-      within(dialog).getByRole('button', { name: /^régénérer$/i }),
-    );
+    await user.click(within(dialog).getByRole('button', { name: /^régénérer$/i }));
 
     await waitFor(() => {
       expect(rotateSharedWorkoutJoinCode).toHaveBeenCalledWith('room-1');
@@ -230,13 +210,9 @@ describe('SharedWorkoutRoomDetailPage', () => {
     );
     renderDetail();
 
-    expect(
-      await screen.findByText(/séance partagée terminée/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/séance partagée terminée/i)).toBeInTheDocument();
     expect(screen.queryByText(/code d’accès/i)).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /régénérer/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /régénérer/i })).not.toBeInTheDocument();
   });
 
   it('affiche ACTIVE avec terminer / annuler dans le menu', async () => {
@@ -250,15 +226,9 @@ describe('SharedWorkoutRoomDetailPage', () => {
     renderDetail();
 
     expect(await screen.findByText(/en cours/i)).toBeInTheDocument();
-    await user.click(
-      screen.getByRole('button', { name: /actions de la salle/i }),
-    );
-    expect(
-      screen.getByRole('menuitem', { name: /terminer/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitem', { name: /annuler la salle/i }),
-    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /actions de la salle/i }));
+    expect(screen.getByRole('menuitem', { name: /terminer/i })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /annuler la salle/i })).toBeInTheDocument();
   });
 
   it('vue terminale sans actions lifecycle', async () => {
@@ -273,15 +243,9 @@ describe('SharedWorkoutRoomDetailPage', () => {
     );
     renderDetail();
 
-    expect(
-      await screen.findByText(/séance partagée terminée/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /démarrer/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /actions de la salle/i }),
-    ).not.toBeInTheDocument();
+    expect(await screen.findByText(/séance partagée terminée/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /démarrer/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /actions de la salle/i })).not.toBeInTheDocument();
   });
 
   it('membre non-owner : lecture seule + leave dans le menu', async () => {
@@ -326,30 +290,18 @@ describe('SharedWorkoutRoomDetailPage', () => {
 
     expect(await screen.findByText(/bob/i)).toBeInTheDocument();
     expect(screen.queryByText(/code d’accès/i)).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /démarrer/i }),
-    ).not.toBeInTheDocument();
-    await user.click(
-      screen.getByRole('button', { name: /actions de la salle/i }),
-    );
-    expect(
-      screen.getByRole('menuitem', { name: /quitter/i }),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /démarrer/i })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /actions de la salle/i }));
+    expect(screen.getByRole('menuitem', { name: /quitter/i })).toBeInTheDocument();
   });
 
   it('affiche Ta séance en LOBBY sans attach', async () => {
     getSharedWorkoutRoom.mockResolvedValue(roomFixture());
     renderDetail();
 
-    expect(
-      await screen.findByRole('heading', { name: /ta séance/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/quand la salle sera lancée/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /rattacher/i }),
-    ).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /ta séance/i })).toBeInTheDocument();
+    expect(screen.getByText(/quand la salle sera lancée/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /rattacher/i })).not.toBeInTheDocument();
   });
 
   it('participants ACTIVE : exercice courant + progression sans données privées', async () => {
@@ -450,12 +402,8 @@ describe('SharedWorkoutRoomDetailPage', () => {
     );
     renderDetail();
 
-    expect(
-      await screen.findByRole('heading', { name: /séance duo/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText(/ne doit pas s’afficher/i),
-    ).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /séance duo/i })).toBeInTheDocument();
+    expect(screen.queryByText(/ne doit pas s’afficher/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
   });
 
@@ -466,14 +414,8 @@ describe('SharedWorkoutRoomDetailPage', () => {
     getSharedWorkoutRoom.mockResolvedValue(roomFixture());
     renderDetail();
 
-    expect(
-      await screen.findByText(/temps réel indisponible/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /actualiser/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /démarrer la séance/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/temps réel indisponible/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /actualiser/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /démarrer la séance/i })).toBeInTheDocument();
   });
 });

@@ -23,9 +23,7 @@ export function WorkoutSessionSummary({
   elapsedLabel,
 }: WorkoutSessionSummaryProps) {
   const percent =
-    progress.totalSets === 0
-      ? 0
-      : Math.round((progress.recordedSets / progress.totalSets) * 100);
+    progress.totalSets === 0 ? 0 : Math.round((progress.recordedSets / progress.totalSets) * 100);
 
   const chips: string[] = [
     `${progress.totalExercises} exercice${progress.totalExercises === 1 ? '' : 's'}`,
@@ -33,24 +31,16 @@ export function WorkoutSessionSummary({
   ];
 
   if (progress.completedSets > 0) {
-    chips.push(
-      `${progress.completedSets} terminée${progress.completedSets === 1 ? '' : 's'}`,
-    );
+    chips.push(`${progress.completedSets} terminée${progress.completedSets === 1 ? '' : 's'}`);
   }
   if (progress.partialSets > 0) {
-    chips.push(
-      `${progress.partialSets} partielle${progress.partialSets === 1 ? '' : 's'}`,
-    );
+    chips.push(`${progress.partialSets} partielle${progress.partialSets === 1 ? '' : 's'}`);
   }
   if (progress.failedSets > 0) {
-    chips.push(
-      `${progress.failedSets} échouée${progress.failedSets === 1 ? '' : 's'}`,
-    );
+    chips.push(`${progress.failedSets} échouée${progress.failedSets === 1 ? '' : 's'}`);
   }
   if (progress.skippedSets > 0) {
-    chips.push(
-      `${progress.skippedSets} ignorée${progress.skippedSets === 1 ? '' : 's'}`,
-    );
+    chips.push(`${progress.skippedSets} ignorée${progress.skippedSets === 1 ? '' : 's'}`);
   }
 
   if (metrics) {
@@ -62,14 +52,10 @@ export function WorkoutSessionSummary({
       chips.push(formatWorkoutVolume(metrics.performance.workingExternalVolumeKg));
     }
     if (flags.showDistance) {
-      chips.push(
-        formatWorkoutDistance(metrics.performance.totalDistanceMeters),
-      );
+      chips.push(formatWorkoutDistance(metrics.performance.totalDistanceMeters));
     }
     if (flags.showElapsed && metrics.elapsedDurationSeconds != null) {
-      chips.push(
-        formatWorkoutElapsedSeconds(metrics.elapsedDurationSeconds),
-      );
+      chips.push(formatWorkoutElapsedSeconds(metrics.elapsedDurationSeconds));
     }
   } else if (elapsedLabel) {
     chips.push(elapsedLabel);
@@ -106,9 +92,7 @@ export function WorkoutSessionSummary({
           aria-label={`Progression ${percent} pour cent`}
         >
           <div
-            className={cn(
-              'h-full rounded-full bg-[var(--primary)] transition-[width]',
-            )}
+            className={cn('h-full rounded-full bg-[var(--primary)] transition-[width]')}
             style={{ width: `${Math.min(100, percent)}%` }}
           />
         </div>

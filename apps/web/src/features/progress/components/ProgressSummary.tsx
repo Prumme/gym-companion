@@ -21,10 +21,7 @@ type ProgressSummaryCardsProps = {
   metric: ExerciseProgressMetric;
 };
 
-export function ProgressSummaryCards({
-  summary,
-  metric,
-}: ProgressSummaryCardsProps) {
+export function ProgressSummaryCards({ summary, metric }: ProgressSummaryCardsProps) {
   if (!summary || summary.pointCount === 0) {
     return null;
   }
@@ -85,17 +82,13 @@ export function ProgressSummaryCards({
           <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
             Variation
           </p>
-          <p className="mt-1 text-base font-semibold tabular-nums">
-            {changeLabel ?? '—'}
-          </p>
+          <p className="mt-1 text-base font-semibold tabular-nums">{changeLabel ?? '—'}</p>
         </li>
         <li className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] px-3 py-2.5 col-span-2 sm:col-span-1">
           <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
             Séances
           </p>
-          <p className="mt-1 text-base font-semibold tabular-nums">
-            {summary.pointCount}
-          </p>
+          <p className="mt-1 text-base font-semibold tabular-nums">{summary.pointCount}</p>
         </li>
       </ul>
     </section>
@@ -107,10 +100,7 @@ type ProgressPointsListProps = {
   metric: ExerciseProgressMetric;
 };
 
-export function ProgressPointsList({
-  points,
-  metric,
-}: ProgressPointsListProps) {
+export function ProgressPointsList({ points, metric }: ProgressPointsListProps) {
   if (points.length === 0) {
     return null;
   }
@@ -129,14 +119,10 @@ export function ProgressPointsList({
         {chronological.map((point) => {
           const secondary: string[] = [];
           if (metric === 'MAX_WEIGHT' && point.context.maxReps != null) {
-            secondary.push(
-              `${point.context.maxReps} rep${point.context.maxReps > 1 ? 's' : ''}`,
-            );
+            secondary.push(`${point.context.maxReps} rep${point.context.maxReps > 1 ? 's' : ''}`);
           }
           if (metric === 'MAX_REPS' && point.context.maxWeightKg != null) {
-            secondary.push(
-              formatProgressMetricValue('MAX_WEIGHT', point.context.maxWeightKg),
-            );
+            secondary.push(formatProgressMetricValue('MAX_WEIGHT', point.context.maxWeightKg));
           }
           if (point.context.equipmentName) {
             secondary.push(point.context.equipmentName);
@@ -179,8 +165,7 @@ export function ProgressEmptyState() {
     >
       <h2 className="text-lg font-semibold">Pas encore de données</h2>
       <p className="mx-auto mt-2 max-w-sm text-sm text-[var(--muted)]">
-        Les performances apparaîtront ici après une séance terminée contenant
-        cet exercice.
+        Les performances apparaîtront ici après une séance terminée contenant cet exercice.
       </p>
       <div className="mt-5 flex flex-col items-center gap-2">
         <ButtonLink to="/programs" className="w-full max-w-xs">
@@ -236,14 +221,10 @@ export function ProgressControls({
           aria-label="Métrique"
           className="min-h-11 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--primary)]"
           value={selectedMetric ?? ''}
-          onChange={(event) =>
-            onMetricChange(event.target.value as ExerciseProgressMetric)
-          }
+          onChange={(event) => onMetricChange(event.target.value as ExerciseProgressMetric)}
           disabled={availableMetrics.length === 0}
         >
-          {availableMetrics.length === 0 ? (
-            <option value="">Aucune métrique</option>
-          ) : null}
+          {availableMetrics.length === 0 ? <option value="">Aucune métrique</option> : null}
           {availableMetrics.map((metric) => (
             <option key={metric} value={metric}>
               {getExerciseProgressMetricLabel(metric)}

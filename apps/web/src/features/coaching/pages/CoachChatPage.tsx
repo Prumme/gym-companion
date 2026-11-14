@@ -12,17 +12,11 @@ import { LoadingState } from '@/components/common/LoadingState';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { getMe } from '@/features/profile/api/profile-api';
-import {
-  getApiErrorMessage,
-  type ApiRequestError,
-} from '@/lib/api/client';
+import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
 
 import { createClientCommandId } from '@/features/workouts/offline/command-id';
 
-import {
-  createAiCoachConversation,
-  sendAiCoachMessage,
-} from '../api/coaching-api';
+import { createAiCoachConversation, sendAiCoachMessage } from '../api/coaching-api';
 import { CoachProposalCard } from '../components/CoachProposalCard';
 import {
   aiCoachConversationQueryOptions,
@@ -76,9 +70,7 @@ export function CoachChatPage() {
   const [offline, setOffline] = useState(
     typeof navigator !== 'undefined' ? !navigator.onLine : false,
   );
-  const [localMessages, setLocalMessages] = useState<
-    AiCoachConversationMessage[]
-  >([]);
+  const [localMessages, setLocalMessages] = useState<AiCoachConversationMessage[]>([]);
   const listId = useId();
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -112,8 +104,7 @@ export function CoachChatPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: () =>
-      createAiCoachConversation(exerciseId ? { exerciseId } : {}),
+    mutationFn: () => createAiCoachConversation(exerciseId ? { exerciseId } : {}),
     onSuccess: (data) => {
       void queryClient.invalidateQueries({
         queryKey: coachingQueryKeys.conversations(),
@@ -123,11 +114,7 @@ export function CoachChatPage() {
   });
 
   const sendMutation = useMutation({
-    mutationFn: (input: {
-      conversationId: string;
-      content: string;
-      clientCommandId: string;
-    }) =>
+    mutationFn: (input: { conversationId: string; content: string; clientCommandId: string }) =>
       sendAiCoachMessage(input.conversationId, {
         content: input.content,
         clientCommandId: input.clientCommandId,
@@ -147,9 +134,7 @@ export function CoachChatPage() {
     },
     onSuccess: (data, variables) => {
       setLocalMessages((prev) => {
-        const withoutOptimistic = prev.filter(
-          (message) => !message.id.startsWith('local-'),
-        );
+        const withoutOptimistic = prev.filter((message) => !message.id.startsWith('local-'));
         const next = [...withoutOptimistic, data.userMessage];
         if (data.assistantMessage) next.push(data.assistantMessage);
         return next;
@@ -197,9 +182,7 @@ export function CoachChatPage() {
 
   function startNewConversation() {
     navigate(
-      exerciseId
-        ? `/coach/chat?exerciseId=${encodeURIComponent(exerciseId)}`
-        : '/coach/chat',
+      exerciseId ? `/coach/chat?exerciseId=${encodeURIComponent(exerciseId)}` : '/coach/chat',
       { replace: true },
     );
     setLocalMessages([]);
@@ -221,8 +204,7 @@ export function CoachChatPage() {
           className="mb-0"
         />
         <p className="text-sm text-[var(--muted-foreground)]">
-          Indisponible sur cet environnement. L’analyse Coach déterministe reste
-          disponible sans IA.
+          Indisponible sur cet environnement. L’analyse Coach déterministe reste disponible sans IA.
         </p>
         <ButtonLink to="/coach" variant="secondary" className="w-fit">
           Retour au Coach
@@ -231,9 +213,7 @@ export function CoachChatPage() {
     );
   }
 
-  const conversation = conversationQuery.data as
-    | AiCoachConversationDetail
-    | undefined;
+  const conversation = conversationQuery.data as AiCoachConversationDetail | undefined;
   const messages = localMessages;
   const conversations = conversationsQuery.data?.data ?? [];
 
@@ -256,8 +236,8 @@ export function CoachChatPage() {
         }
       />
       <p className="text-xs text-[var(--muted-foreground)]">
-        Le Coach peut consulter certaines données de ton historique en lecture
-        seule. Il ne modifie pas ton programme ni tes séances.
+        Le Coach peut consulter certaines données de ton historique en lecture seule. Il ne modifie
+        pas ton programme ni tes séances.
       </p>
       {conversation?.contextExercise ? (
         <p className="text-sm">
@@ -286,13 +266,8 @@ export function CoachChatPage() {
                         : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                     }`}
                   >
-                    <span className="min-w-0 truncate">
-                      {item.title ?? 'Conversation'}
-                    </span>
-                    <ChevronRight
-                      className="size-4 shrink-0"
-                      aria-hidden="true"
-                    />
+                    <span className="min-w-0 truncate">{item.title ?? 'Conversation'}</span>
+                    <ChevronRight className="size-4 shrink-0" aria-hidden="true" />
                   </Link>
                 </li>
               ))}
@@ -345,18 +320,12 @@ export function CoachChatPage() {
                     ? 'ml-4 border-l-2 border-[var(--border)] pl-3 text-sm'
                     : 'text-sm'
                 }
-                aria-label={
-                  message.role === 'USER'
-                    ? 'Message utilisateur'
-                    : 'Message Coach IA'
-                }
+                aria-label={message.role === 'USER' ? 'Message utilisateur' : 'Message Coach IA'}
               >
                 <p className="text-xs font-semibold tracking-wide text-[var(--muted-foreground)] uppercase">
                   {message.role === 'USER' ? 'Toi' : 'Coach IA'}
                 </p>
-                <p className="mt-1 whitespace-pre-wrap leading-relaxed">
-                  {message.content}
-                </p>
+                <p className="mt-1 whitespace-pre-wrap leading-relaxed">{message.content}</p>
                 {message.proposal && conversationId ? (
                   <div className="mt-3">
                     <CoachProposalCard
@@ -392,9 +361,7 @@ export function CoachChatPage() {
                           type="button"
                           className="min-h-10 text-left text-sm text-[var(--muted-foreground)] underline-offset-2 hover:underline"
                           disabled={offline || sendMutation.isPending}
-                          onClick={() =>
-                            void ensureConversationThenSend(followUp)
-                          }
+                          onClick={() => void ensureConversationThenSend(followUp)}
                         >
                           {followUp}
                         </button>
@@ -416,8 +383,7 @@ export function CoachChatPage() {
           <div
             className="sticky bottom-0 border-t border-[var(--border)] bg-[var(--background)] pt-3"
             style={{
-              paddingBottom:
-                'calc(var(--space-3) + env(safe-area-inset-bottom, 0px))',
+              paddingBottom: 'calc(var(--space-3) + env(safe-area-inset-bottom, 0px))',
             }}
           >
             {offline ? (

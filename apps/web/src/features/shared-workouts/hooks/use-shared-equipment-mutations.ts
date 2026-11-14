@@ -7,10 +7,7 @@ import {
 } from '../api/shared-workouts-api';
 import { sharedWorkoutRoomQueryKeys } from '../api/shared-workout-query-keys';
 
-function invalidateEquipment(
-  queryClient: ReturnType<typeof useQueryClient>,
-  roomId: string,
-) {
+function invalidateEquipment(queryClient: ReturnType<typeof useQueryClient>, roomId: string) {
   void queryClient.invalidateQueries({
     queryKey: sharedWorkoutRoomQueryKeys.equipmentCoordination(roomId),
   });
@@ -22,8 +19,7 @@ function invalidateEquipment(
 export function useRequestSharedEquipmentMutation(roomId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (clientCommandId: string) =>
-      requestMySharedEquipment(roomId, clientCommandId),
+    mutationFn: (clientCommandId: string) => requestMySharedEquipment(roomId, clientCommandId),
     onSuccess: () => invalidateEquipment(queryClient, roomId),
   });
 }
@@ -31,8 +27,7 @@ export function useRequestSharedEquipmentMutation(roomId: string) {
 export function useReleaseSharedEquipmentMutation(roomId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (clientCommandId: string) =>
-      releaseMySharedEquipment(roomId, clientCommandId),
+    mutationFn: (clientCommandId: string) => releaseMySharedEquipment(roomId, clientCommandId),
     onSuccess: () => invalidateEquipment(queryClient, roomId),
   });
 }

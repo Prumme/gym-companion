@@ -73,19 +73,11 @@ const weekdayWireSchema = z.enum([
   'SUNDAY',
 ]);
 
-const goalWireSchema = z.enum([
-  'ENDURANCE',
-  'HYPERTROPHY',
-  'STRENGTH',
-  'GENERAL_FITNESS',
-]);
+const goalWireSchema = z.enum(['ENDURANCE', 'HYPERTROPHY', 'STRENGTH', 'GENERAL_FITNESS']);
 
 /** Plage reps wire : exactement [min, max]. */
 export const aiCoachWireRepsRangeSchema = z
-  .tuple([
-    z.number().int().positive().max(500),
-    z.number().int().positive().max(500),
-  ])
+  .tuple([z.number().int().positive().max(500), z.number().int().positive().max(500)])
   .refine(([min, max]) => min <= max, {
     message: 'reps range: min must be <= max',
   });
@@ -118,10 +110,7 @@ export const aiCoachWireExerciseSchema = z
     id: z.string().uuid(),
     eq: z.string().uuid().nullable(),
     note: z.string().max(500).nullable(),
-    s: z
-      .array(aiCoachWireSetSchema)
-      .min(1)
-      .max(AI_COACH_PROPOSAL_MAX_SETS_PER_EXERCISE),
+    s: z.array(aiCoachWireSetSchema).min(1).max(AI_COACH_PROPOSAL_MAX_SETS_PER_EXERCISE),
   })
   .strict();
 
@@ -129,10 +118,7 @@ export const aiCoachWireWorkoutSchema = z
   .object({
     n: z.string().trim().min(1).max(120),
     dur: z.number().int().min(1).max(600).nullable(),
-    e: z
-      .array(aiCoachWireExerciseSchema)
-      .min(1)
-      .max(AI_COACH_PROPOSAL_MAX_EXERCISES_PER_WORKOUT),
+    e: z.array(aiCoachWireExerciseSchema).min(1).max(AI_COACH_PROPOSAL_MAX_EXERCISES_PER_WORKOUT),
   })
   .strict();
 
@@ -153,10 +139,7 @@ export const aiCoachWireProgramSchema = z
     n: z.string().trim().min(1).max(120),
     desc: z.string().max(2000).nullable(),
     goal: goalWireSchema,
-    w: z
-      .array(aiCoachWireWorkoutSchema)
-      .min(1)
-      .max(AI_COACH_PROPOSAL_MAX_WORKOUTS_PER_PROGRAM),
+    w: z.array(aiCoachWireWorkoutSchema).min(1).max(AI_COACH_PROPOSAL_MAX_WORKOUTS_PER_PROGRAM),
     sch: z.array(aiCoachWireScheduleEntrySchema).max(21).nullable(),
   })
   .strict();
@@ -327,11 +310,8 @@ function mapWireProgram(program: z.infer<typeof aiCoachWireProgramSchema>) {
  * Mappe le wire OpenAI vers le DTO canonique métier.
  * Aucune clé wire ne doit fuir hors de cette frontière.
  */
-export function mapAiCoachWireResponse(
-  wire: AiCoachWireResponse,
-): CoachStructuredResponse {
-  const text =
-    wire.t === 'p' ? normalizeProposalText(wire.x) : wire.x.trim();
+export function mapAiCoachWireResponse(wire: AiCoachWireResponse): CoachStructuredResponse {
+  const text = wire.t === 'p' ? normalizeProposalText(wire.x) : wire.x.trim();
 
   const references = wire.rf.map((ref) => {
     if (ref.t === 'ex') {
@@ -365,8 +345,7 @@ export function mapAiCoachWireResponse(
     });
   }
 
-  const kind =
-    wire.d!.k === 'wk' ? 'workout' : wire.d!.k === 'pg' ? 'program' : 'none';
+  const kind = wire.d!.k === 'wk' ? 'workout' : wire.d!.k === 'pg' ? 'program' : 'none';
 
   return parseCoachStructuredResponse({
     type: 'proposal',
@@ -382,9 +361,7 @@ export function mapAiCoachWireResponse(
 }
 
 /** Parse wire OpenAI puis mappe vers le canonique (validation Zod double). */
-export function parseAiCoachOpenAiWireResponse(
-  value: unknown,
-): CoachStructuredResponse {
+export function parseAiCoachOpenAiWireResponse(value: unknown): CoachStructuredResponse {
   return mapAiCoachWireResponse(parseAiCoachWireResponse(value));
 }
 
@@ -419,28 +396,16 @@ function buildWireSetJsonSchema() {
         ],
       },
       sec: {
-        anyOf: [
-          { type: 'null' },
-          { type: 'integer', minimum: 1, maximum: 86400 },
-        ],
+        anyOf: [{ type: 'null' }, { type: 'integer', minimum: 1, maximum: 86400 }],
       },
       m: {
-        anyOf: [
-          { type: 'null' },
-          { type: 'number', exclusiveMinimum: 0, maximum: 1_000_000 },
-        ],
+        anyOf: [{ type: 'null' }, { type: 'number', exclusiveMinimum: 0, maximum: 1_000_000 }],
       },
       kg: {
-        anyOf: [
-          { type: 'null' },
-          { type: 'number', minimum: 0, maximum: 10_000 },
-        ],
+        anyOf: [{ type: 'null' }, { type: 'number', minimum: 0, maximum: 10_000 }],
       },
       pct: {
-        anyOf: [
-          { type: 'null' },
-          { type: 'number', exclusiveMinimum: 0, maximum: 100 },
-        ],
+        anyOf: [{ type: 'null' }, { type: 'number', exclusiveMinimum: 0, maximum: 100 }],
       },
       rir: {
         anyOf: [{ type: 'null' }, { type: 'integer', minimum: 0, maximum: 10 }],
@@ -449,10 +414,7 @@ function buildWireSetJsonSchema() {
         anyOf: [{ type: 'null' }, { type: 'number', minimum: 1, maximum: 10 }],
       },
       rest: {
-        anyOf: [
-          { type: 'null' },
-          { type: 'integer', minimum: 0, maximum: 1800 },
-        ],
+        anyOf: [{ type: 'null' }, { type: 'integer', minimum: 0, maximum: 1800 }],
       },
     },
     required: ['st', 'r', 'sec', 'm', 'kg', 'pct', 'rir', 'rpe', 'rest'],
@@ -532,19 +494,11 @@ export const AI_COACH_WIRE_OUTPUT_JSON_SCHEMA = {
                   properties: {
                     n: { type: 'string', minLength: 1, maxLength: 120 },
                     desc: {
-                      anyOf: [
-                        { type: 'null' },
-                        { type: 'string', maxLength: 2000 },
-                      ],
+                      anyOf: [{ type: 'null' }, { type: 'string', maxLength: 2000 }],
                     },
                     goal: {
                       type: 'string',
-                      enum: [
-                        'ENDURANCE',
-                        'HYPERTROPHY',
-                        'STRENGTH',
-                        'GENERAL_FITNESS',
-                      ],
+                      enum: ['ENDURANCE', 'HYPERTROPHY', 'STRENGTH', 'GENERAL_FITNESS'],
                     },
                     w: {
                       type: 'array',
@@ -577,8 +531,7 @@ export const AI_COACH_WIRE_OUTPUT_JSON_SCHEMA = {
                               wi: {
                                 type: 'integer',
                                 minimum: 0,
-                                maximum:
-                                  AI_COACH_PROPOSAL_MAX_WORKOUTS_PER_PROGRAM - 1,
+                                maximum: AI_COACH_PROPOSAL_MAX_WORKOUTS_PER_PROGRAM - 1,
                               },
                               pos: {
                                 type: 'integer',
@@ -652,8 +605,7 @@ export const AI_COACH_WIRE_OUTPUT_JSON_SCHEMA = {
  * @deprecated Alias — le schema OpenAI est désormais le wire compact.
  * Conservé pour éviter de casser les imports existants.
  */
-export const COACH_STRUCTURED_OUTPUT_JSON_SCHEMA =
-  AI_COACH_WIRE_OUTPUT_JSON_SCHEMA;
+export const COACH_STRUCTURED_OUTPUT_JSON_SCHEMA = AI_COACH_WIRE_OUTPUT_JSON_SCHEMA;
 
 /** Budgets max_tokens Chat Completions (réponse finale). */
 export const AI_COACH_WIRE_MAX_TOKENS = {
@@ -670,7 +622,10 @@ export const AI_COACH_WIRE_MAX_TOKENS = {
  * proposition (fixture). Utile pour mesurer l’économie de caractères/tokens
  * approximative sans appeler OpenAI.
  */
-export function estimateWireSavingsChars(canonicalJson: string, wireJson: string): {
+export function estimateWireSavingsChars(
+  canonicalJson: string,
+  wireJson: string,
+): {
   canonicalChars: number;
   wireChars: number;
   savedChars: number;

@@ -47,8 +47,10 @@ export function SharedWorkoutRoomDetailPage() {
   const leaveMutation = useLeaveSharedWorkoutRoomMutation(roomId);
 
   const room = query.data;
-  const { connectedUserIds, connectionStatus, realtimeAvailable } =
-    useSharedWorkoutRoomRealtime(roomId, room?.status);
+  const { connectedUserIds, connectionStatus, realtimeAvailable } = useSharedWorkoutRoomRealtime(
+    roomId,
+    room?.status,
+  );
   const myEquipmentQuery = useQuery({
     ...mySharedEquipmentQueryOptions(roomId),
     enabled: Boolean(roomId) && room?.status === 'ACTIVE',
@@ -71,9 +73,7 @@ export function SharedWorkoutRoomDetailPage() {
     room && !room.isOwner && (room.status === 'LOBBY' || room.status === 'ACTIVE'),
   );
   const showOwnerJoinCode = Boolean(
-    room?.isOwner &&
-      (room.status === 'LOBBY' || room.status === 'ACTIVE') &&
-      room.joinCode,
+    room?.isOwner && (room.status === 'LOBBY' || room.status === 'ACTIVE') && room.joinCode,
   );
 
   const onlineCount = useMemo(() => {
@@ -99,16 +99,11 @@ export function SharedWorkoutRoomDetailPage() {
       await updateMutation.mutateAsync({ name: nameDraft });
       setRenameOpen(false);
     } catch (error) {
-      setActionError(
-        getApiErrorMessage(error, 'Impossible de renommer la salle.'),
-      );
+      setActionError(getApiErrorMessage(error, 'Impossible de renommer la salle.'));
     }
   }
 
-  async function runLifecycle(
-    action: 'start' | 'complete' | 'cancel',
-    confirmMessage: string,
-  ) {
+  async function runLifecycle(action: 'start' | 'complete' | 'cancel', confirmMessage: string) {
     if (!window.confirm(confirmMessage)) return;
     setActionError(null);
     try {
@@ -117,9 +112,7 @@ export function SharedWorkoutRoomDetailPage() {
       if (action === 'complete') await completeMutation.mutateAsync(commandId);
       if (action === 'cancel') await cancelMutation.mutateAsync(commandId);
     } catch (error) {
-      setActionError(
-        getApiErrorMessage(error, 'Action impossible pour le moment.'),
-      );
+      setActionError(getApiErrorMessage(error, 'Action impossible pour le moment.'));
     }
   }
 
@@ -133,9 +126,7 @@ export function SharedWorkoutRoomDetailPage() {
       parts.push(
         `${inProgress} membre${inProgress > 1 ? 's' : ''} ${inProgress > 1 ? 'ont' : 'a'} encore une séance en cours.`,
       );
-      parts.push(
-        'Terminer la salle ne terminera pas leurs séances personnelles.',
-      );
+      parts.push('Terminer la salle ne terminera pas leurs séances personnelles.');
     }
     parts.push('Les équipements partagés seront libérés.');
     parts.push('Terminer la séance partagée ?');
@@ -148,25 +139,19 @@ export function SharedWorkoutRoomDetailPage() {
       selfMember?.memberWorkout.status === 'PAUSED';
     const usingEquipment = myEquipmentQuery.data?.state === 'USING';
     const leaveMessage = [
-      selfInProgress
-        ? 'Ta séance personnelle restera active après avoir quitté la salle.'
-        : null,
+      selfInProgress ? 'Ta séance personnelle restera active après avoir quitté la salle.' : null,
       usingEquipment
         ? 'Tu utilises actuellement un équipement partagé. Il sera libéré automatiquement si tu quittes la salle.'
         : null,
       'Quitter cette séance partagée ?',
-      !selfInProgress
-        ? 'Tu n’auras plus accès à cette salle après l’avoir quittée.'
-        : null,
+      !selfInProgress ? 'Tu n’auras plus accès à cette salle après l’avoir quittée.' : null,
     ]
       .filter(Boolean)
       .join('\n\n');
 
     if (!window.confirm(leaveMessage)) return;
     if (offline) {
-      setActionError(
-        'Une connexion est nécessaire pour quitter la salle.',
-      );
+      setActionError('Une connexion est nécessaire pour quitter la salle.');
       return;
     }
     setActionError(null);
@@ -174,9 +159,7 @@ export function SharedWorkoutRoomDetailPage() {
       await leaveMutation.mutateAsync();
       void navigate('/shared-workouts', { replace: true });
     } catch (error) {
-      setActionError(
-        getApiErrorMessage(error, 'Impossible de quitter la salle.'),
-      );
+      setActionError(getApiErrorMessage(error, 'Impossible de quitter la salle.'));
     }
   }
 
@@ -208,12 +191,9 @@ export function SharedWorkoutRoomDetailPage() {
     );
   }
 
-  const isTerminal =
-    room.status === 'COMPLETED' || room.status === 'CANCELLED';
+  const isTerminal = room.status === 'COMPLETED' || room.status === 'CANCELLED';
   const showProgress =
-    room.status === 'ACTIVE' ||
-    room.status === 'COMPLETED' ||
-    room.status === 'CANCELLED';
+    room.status === 'ACTIVE' || room.status === 'COMPLETED' || room.status === 'CANCELLED';
 
   const menuItems: ContextMenuItem[] = [];
   if (room.isOwner && (room.status === 'LOBBY' || room.status === 'ACTIVE') && !offline) {
@@ -233,11 +213,7 @@ export function SharedWorkoutRoomDetailPage() {
       },
     });
   }
-  if (
-    room.isOwner &&
-    (room.status === 'LOBBY' || room.status === 'ACTIVE') &&
-    canMutateLifecycle
-  ) {
+  if (room.isOwner && (room.status === 'LOBBY' || room.status === 'ACTIVE') && canMutateLifecycle) {
     menuItems.push({
       label: 'Annuler la salle',
       destructive: true,
@@ -342,11 +318,7 @@ export function SharedWorkoutRoomDetailPage() {
             <Button type="submit" disabled={pending || !nameDraft.trim()}>
               Enregistrer
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setRenameOpen(false)}
-            >
+            <Button type="button" variant="ghost" onClick={() => setRenameOpen(false)}>
               Annuler
             </Button>
           </div>
@@ -384,16 +356,14 @@ export function SharedWorkoutRoomDetailPage() {
         </div>
 
         <ul className="border-y border-[var(--border)]">
-          {(room.status === 'LOBBY' ? room.members : otherMembers).map(
-            (member) => (
-              <SharedParticipantRow
-                key={member.userId}
-                member={member}
-                online={presenceFor(member.userId)}
-                showProgress={showProgress && room.status !== 'LOBBY'}
-              />
-            ),
-          )}
+          {(room.status === 'LOBBY' ? room.members : otherMembers).map((member) => (
+            <SharedParticipantRow
+              key={member.userId}
+              member={member}
+              online={presenceFor(member.userId)}
+              showProgress={showProgress && room.status !== 'LOBBY'}
+            />
+          ))}
         </ul>
       </section>
 
@@ -426,9 +396,7 @@ export function SharedWorkoutRoomDetailPage() {
           <Button
             type="button"
             disabled={pending}
-            onClick={() =>
-              void runLifecycle('start', 'Démarrer la séance partagée ?')
-            }
+            onClick={() => void runLifecycle('start', 'Démarrer la séance partagée ?')}
           >
             Démarrer la séance
           </Button>

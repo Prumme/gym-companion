@@ -52,8 +52,7 @@ export class AiCoachProposalService {
     if (proposal.status === 'DISMISSED') {
       throw new ConflictException({
         code: 'AI_COACH_PROPOSAL_DISMISSED',
-        message:
-          'Cette proposition a été refusée et ne peut plus être acceptée.',
+        message: 'Cette proposition a été refusée et ne peut plus être acceptée.',
       });
     }
     if (proposal.status === 'INVALID') {
@@ -85,10 +84,7 @@ export class AiCoachProposalService {
     }
   }
 
-  async dismiss(
-    proposalId: string,
-    userId: string,
-  ): Promise<DismissAiCoachProposalResponse> {
+  async dismiss(proposalId: string, userId: string): Promise<DismissAiCoachProposalResponse> {
     const proposal = await this.findOwnedOrThrow(userId, proposalId);
 
     if (proposal.status === 'DISMISSED') {
@@ -97,8 +93,7 @@ export class AiCoachProposalService {
     if (proposal.status === 'ACCEPTED') {
       throw new ConflictException({
         code: 'AI_COACH_PROPOSAL_ALREADY_ACCEPTED',
-        message:
-          'Cette proposition a déjà été acceptée et ne peut plus être refusée.',
+        message: 'Cette proposition a déjà été acceptée et ne peut plus être refusée.',
       });
     }
 
@@ -141,13 +136,7 @@ export class AiCoachProposalService {
     }
 
     const payload = coachWorkoutProposalSchema.parse(proposal.payloadJson);
-    const validated = await validateProposalContext(
-      this.prisma,
-      userId,
-      'WORKOUT',
-      payload,
-      null,
-    );
+    const validated = await validateProposalContext(this.prisma, userId, 'WORKOUT', payload, null);
     const workout = validated.workout;
     if (!workout) {
       throw new AiCoachProposalBusinessError(
@@ -210,18 +199,9 @@ export class AiCoachProposalService {
     });
   }
 
-  private async acceptProgram(
-    userId: string,
-    proposal: AiCoachProposal,
-  ): Promise<AiCoachProposal> {
+  private async acceptProgram(userId: string, proposal: AiCoachProposal): Promise<AiCoachProposal> {
     const payload = coachProgramProposalSchema.parse(proposal.payloadJson);
-    const validated = await validateProposalContext(
-      this.prisma,
-      userId,
-      'PROGRAM',
-      null,
-      payload,
-    );
+    const validated = await validateProposalContext(this.prisma, userId, 'PROGRAM', null, payload);
     const programPayload = validated.program;
     if (!programPayload) {
       throw new AiCoachProposalBusinessError(
@@ -312,10 +292,7 @@ export class AiCoachProposalService {
     });
   }
 
-  private async findOwnedOrThrow(
-    userId: string,
-    proposalId: string,
-  ): Promise<AiCoachProposal> {
+  private async findOwnedOrThrow(userId: string, proposalId: string): Promise<AiCoachProposal> {
     const row = await this.prisma.aiCoachProposal.findFirst({
       where: { id: proposalId, ownerUserId: userId },
     });

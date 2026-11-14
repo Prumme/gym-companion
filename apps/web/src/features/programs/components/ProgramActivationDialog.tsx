@@ -91,10 +91,7 @@ export function ActivateProgramDialog({
       onSuccess(`« ${programName} » est maintenant ton programme courant.`);
     } catch (err) {
       form.setError('root', {
-        message: getApiErrorMessage(
-          err,
-          'Impossible d’activer ce programme.',
-        ),
+        message: getApiErrorMessage(err, 'Impossible d’activer ce programme.'),
       });
     }
   }
@@ -147,8 +144,8 @@ export function ActivateProgramDialog({
           {needsReplace ? (
             <div className="rounded-[var(--radius)] border border-amber-200 bg-amber-50 p-3">
               <p className="text-sm text-amber-950">
-                « {currentProgramName} » est actuellement ton programme courant.
-                L’activer le remplacera.
+                « {currentProgramName} » est actuellement ton programme courant. L’activer le
+                remplacera.
               </p>
               <label className="mt-3 flex items-start gap-2 text-sm">
                 <input

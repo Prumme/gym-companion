@@ -51,12 +51,8 @@ function applyLifecycleToCache(
   queryClient: ReturnType<typeof useQueryClient>,
   session: WorkoutSessionDetail,
 ) {
-  const isInProgress =
-    session.status === 'ACTIVE' || session.status === 'PAUSED';
-  queryClient.setQueryData(
-    workoutQueryKeys.active(),
-    isInProgress ? session : null,
-  );
+  const isInProgress = session.status === 'ACTIVE' || session.status === 'PAUSED';
+  queryClient.setQueryData(workoutQueryKeys.active(), isInProgress ? session : null);
   queryClient.setQueryData(workoutQueryKeys.detail(session.id), session);
   if (session.status === 'COMPLETED' || session.status === 'CANCELLED') {
     void queryClient.invalidateQueries({
@@ -92,19 +88,13 @@ export function applyLifecycleToCacheForTest(
 }
 
 function shouldEnqueueOffline(error: unknown): boolean {
-  if (
-    isAuthError(error) ||
-    isConflictError(error) ||
-    isBusinessRejectError(error)
-  ) {
+  if (isAuthError(error) || isConflictError(error) || isBusinessRejectError(error)) {
     return false;
   }
   return isNetworkError(error);
 }
 
-async function resolveUserId(
-  queryClient: ReturnType<typeof useQueryClient>,
-): Promise<string> {
+async function resolveUserId(queryClient: ReturnType<typeof useQueryClient>): Promise<string> {
   const me = queryClient.getQueryData<{ data: { id: string } }>(['me']);
   if (me?.data?.id) {
     return me.data.id;
@@ -123,9 +113,7 @@ export function useCreateWorkoutSessionMutation() {
     onSuccess: async (detail: WorkoutSessionDetail) => {
       queryClient.setQueryData(workoutQueryKeys.active(), detail);
       queryClient.setQueryData(workoutQueryKeys.detail(detail.id), detail);
-      const userId = queryClient.getQueryData<{ data: { id: string } }>([
-        'me',
-      ])?.data?.id;
+      const userId = queryClient.getQueryData<{ data: { id: string } }>(['me'])?.data?.id;
       if (userId) {
         await persistServerSnapshot(userId, detail);
       }
@@ -166,10 +154,7 @@ export function useUpdateWorkoutSetMutation(workoutSessionId: string) {
           return applyUpdateWorkoutSetResult(current, result);
         };
         queryClient.setQueryData(workoutQueryKeys.active(), patch);
-        queryClient.setQueryData(
-          workoutQueryKeys.detail(workoutSessionId),
-          patch,
-        );
+        queryClient.setQueryData(workoutQueryKeys.detail(workoutSessionId), patch);
         const patched = queryClient.getQueryData<WorkoutSessionDetail | null>(
           workoutQueryKeys.active(),
         );
@@ -195,12 +180,8 @@ export function useUpdateWorkoutSetMutation(workoutSessionId: string) {
           notes: args.input.notes ?? null,
         };
         const current =
-          queryClient.getQueryData<WorkoutSessionDetail | null>(
-            workoutQueryKeys.active(),
-          ) ??
-          queryClient.getQueryData<WorkoutSessionDetail>(
-            workoutQueryKeys.detail(workoutSessionId),
-          );
+          queryClient.getQueryData<WorkoutSessionDetail | null>(workoutQueryKeys.active()) ??
+          queryClient.getQueryData<WorkoutSessionDetail>(workoutQueryKeys.detail(workoutSessionId));
         const { snapshot } = await enqueueWorkoutCommand({
           userId,
           workoutSessionId,
@@ -233,10 +214,7 @@ export function useUpdateWorkoutSetMutation(workoutSessionId: string) {
           return applyUpdateWorkoutSetResult(current, value.result);
         };
         queryClient.setQueryData(workoutQueryKeys.active(), patch);
-        queryClient.setQueryData(
-          workoutQueryKeys.detail(workoutSessionId),
-          patch,
-        );
+        queryClient.setQueryData(workoutQueryKeys.detail(workoutSessionId), patch);
         return;
       }
       applyLifecycleToCache(queryClient, value.snapshot.data);
@@ -266,9 +244,7 @@ async function runLifecycleMutation(args: {
       throw error;
     }
     const current =
-      args.queryClient.getQueryData<WorkoutSessionDetail | null>(
-        workoutQueryKeys.active(),
-      ) ??
+      args.queryClient.getQueryData<WorkoutSessionDetail | null>(workoutQueryKeys.active()) ??
       args.queryClient.getQueryData<WorkoutSessionDetail>(
         workoutQueryKeys.detail(args.workoutSessionId),
       );
@@ -310,8 +286,7 @@ export function usePauseWorkoutSessionMutation(workoutSessionId: string) {
             clientCommandId,
           }),
       }),
-    onSuccess: (result) =>
-      applyLifecycleToCache(queryClient, result.workoutSession),
+    onSuccess: (result) => applyLifecycleToCache(queryClient, result.workoutSession),
   });
 }
 
@@ -330,8 +305,7 @@ export function useResumeWorkoutSessionMutation(workoutSessionId: string) {
             clientCommandId,
           }),
       }),
-    onSuccess: (result) =>
-      applyLifecycleToCache(queryClient, result.workoutSession),
+    onSuccess: (result) => applyLifecycleToCache(queryClient, result.workoutSession),
   });
 }
 
@@ -351,8 +325,7 @@ export function useCompleteWorkoutSessionMutation(workoutSessionId: string) {
             clientCommandId,
           }),
       }),
-    onSuccess: (result) =>
-      applyLifecycleToCache(queryClient, result.workoutSession),
+    onSuccess: (result) => applyLifecycleToCache(queryClient, result.workoutSession),
   });
 }
 
@@ -376,17 +349,14 @@ export function useCancelWorkoutSessionMutation(workoutSessionId: string) {
             clientCommandId,
           }),
       }),
-    onSuccess: (result) =>
-      applyLifecycleToCache(queryClient, result.workoutSession),
+    onSuccess: (result) => applyLifecycleToCache(queryClient, result.workoutSession),
   });
 }
 
 /**
  * Remplacement d’exercice — online only (hors file offline V1).
  */
-export function useReplaceWorkoutSessionExerciseMutation(
-  workoutSessionId: string,
-) {
+export function useReplaceWorkoutSessionExerciseMutation(workoutSessionId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -395,10 +365,10 @@ export function useReplaceWorkoutSessionExerciseMutation(
       input: ReplaceWorkoutSessionExerciseInput;
     }) => {
       if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-        throw Object.assign(
-          new Error('Connexion nécessaire pour remplacer un exercice.'),
-          { status: 0, code: 'OFFLINE' },
-        );
+        throw Object.assign(new Error('Connexion nécessaire pour remplacer un exercice.'), {
+          status: 0,
+          code: 'OFFLINE',
+        });
       }
       const userId = await resolveUserId(queryClient);
       const detail = await replaceWorkoutSessionExercise(
@@ -439,9 +409,7 @@ async function persistOnlineSessionMutation(
 /**
  * Ajout d’exercice — online only (hors file offline V1).
  */
-export function useAddWorkoutSessionExerciseMutation(
-  workoutSessionId: string,
-) {
+export function useAddWorkoutSessionExerciseMutation(workoutSessionId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -468,10 +436,7 @@ export function useAddWorkoutSessionSetMutation(workoutSessionId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (args: {
-      sessionExerciseId: string;
-      expectedVersion: number;
-    }) =>
+    mutationFn: async (args: { sessionExerciseId: string; expectedVersion: number }) =>
       persistOnlineSessionMutation(
         queryClient,
         'Connexion nécessaire pour ajouter une série.',
@@ -494,9 +459,7 @@ export function useAddWorkoutSessionSetMutation(workoutSessionId: string) {
 /**
  * Suppression de série — online only (hors file offline V1).
  */
-export function useDeleteWorkoutSessionSetMutation(
-  workoutSessionId: string,
-) {
+export function useDeleteWorkoutSessionSetMutation(workoutSessionId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -509,12 +472,9 @@ export function useDeleteWorkoutSessionSetMutation(
         queryClient,
         'Connexion nécessaire pour supprimer une série.',
         () =>
-          deleteWorkoutSessionSet(
-            workoutSessionId,
-            args.sessionExerciseId,
-            args.workoutSetId,
-            { expectedVersion: args.expectedVersion },
-          ),
+          deleteWorkoutSessionSet(workoutSessionId, args.sessionExerciseId, args.workoutSetId, {
+            expectedVersion: args.expectedVersion,
+          }),
       ),
     onSuccess: (detail) => {
       queryClient.setQueryData(workoutQueryKeys.active(), detail);

@@ -20,8 +20,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -31,11 +30,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -95,11 +90,7 @@ function connectSocket(port: number, token?: string): Promise<Socket> {
   });
 }
 
-function emitAck<T>(
-  socket: Socket,
-  event: string,
-  payload: unknown,
-): Promise<T> {
+function emitAck<T>(socket: Socket, event: string, payload: unknown): Promise<T> {
   return new Promise((resolve) => {
     socket.emit(event, payload, (ack: T) => resolve(ack));
   });
@@ -126,10 +117,7 @@ describe('Shared workout realtime gateway (Shared 5.3)', () => {
     app.useGlobalFilters(new GlobalExceptionFilter(config));
     await app.listen(0);
     const address = app.getHttpServer().address();
-    port =
-      typeof address === 'object' && address && 'port' in address
-        ? address.port
-        : 0;
+    port = typeof address === 'object' && address && 'port' in address ? address.port : 0;
     prisma = app.get(PrismaService);
     await seedReferenceData(prisma);
     await seedSystemExercises(prisma);
@@ -147,16 +135,13 @@ describe('Shared workout realtime gateway (Shared 5.3)', () => {
 
   it('refuse connexion sans token valide', async () => {
     await new Promise<void>((resolve, reject) => {
-      const socket = io(
-        `http://127.0.0.1:${port}${SHARED_WORKOUT_SOCKET_NAMESPACE}`,
-        {
-          auth: {},
-          transports: ['websocket'],
-          forceNew: true,
-          reconnection: false,
-          timeout: 4000,
-        },
-      );
+      const socket = io(`http://127.0.0.1:${port}${SHARED_WORKOUT_SOCKET_NAMESPACE}`, {
+        auth: {},
+        transports: ['websocket'],
+        forceNew: true,
+        reconnection: false,
+        timeout: 4000,
+      });
       const timer = setTimeout(() => {
         socket.close();
         reject(new Error('expected disconnect'));
@@ -190,15 +175,9 @@ describe('Shared workout realtime gateway (Shared 5.3)', () => {
     const joinedA: string[] = [];
     const leftA: string[] = [];
     const changedA: string[] = [];
-    socketA.on('presence:joined', (e: { userId: string }) =>
-      joinedA.push(e.userId),
-    );
-    socketA.on('presence:left', (e: { userId: string }) =>
-      leftA.push(e.userId),
-    );
-    socketA.on('room:changed', (e: { reason: string }) =>
-      changedA.push(e.reason),
-    );
+    socketA.on('presence:joined', (e: { userId: string }) => joinedA.push(e.userId));
+    socketA.on('presence:left', (e: { userId: string }) => leftA.push(e.userId));
+    socketA.on('room:changed', (e: { reason: string }) => changedA.push(e.reason));
 
     const ackA = await emitAck<{
       ok: boolean;
@@ -237,11 +216,9 @@ describe('Shared workout realtime gateway (Shared 5.3)', () => {
       .set('Authorization', `Bearer ${tokenB}`)
       .expect(200);
 
-    const denied = await emitAck<{ ok: boolean; code?: string }>(
-      outsider,
-      'room:subscribe',
-      { roomId },
-    );
+    const denied = await emitAck<{ ok: boolean; code?: string }>(outsider, 'room:subscribe', {
+      roomId,
+    });
     expect(denied.ok).toBe(false);
     expect(denied.code).toBe('ROOM_NOT_ACCESSIBLE');
     outsider.disconnect();
@@ -277,11 +254,9 @@ describe('Shared workout realtime gateway (Shared 5.3)', () => {
     await new Promise((r) => setTimeout(r, 50));
     expect(changedA).toContain('COMPLETED');
 
-    const afterComplete = await emitAck<{ ok: boolean; code?: string }>(
-      socketB,
-      'room:subscribe',
-      { roomId },
-    );
+    const afterComplete = await emitAck<{ ok: boolean; code?: string }>(socketB, 'room:subscribe', {
+      roomId,
+    });
     expect(afterComplete.ok).toBe(false);
 
     // historique REST toujours lisible
@@ -315,9 +290,7 @@ describe('Shared workout realtime gateway (Shared 5.3)', () => {
       .expect(201);
     const templateId = tpl.body.data.workoutTemplates[0].id as string;
     const ex = await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-      )
+      .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
       .set('Authorization', `Bearer ${tokenB}`)
       .send({
         exerciseId: system.id,
@@ -328,9 +301,7 @@ describe('Shared workout realtime gateway (Shared 5.3)', () => {
       .expect(201);
     const teId = ex.body.data.workoutTemplates[0].exercises[0].id as string;
     await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`,
-      )
+      .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`)
       .set('Authorization', `Bearer ${tokenB}`)
       .send({
         setType: 'WORKING',
@@ -379,9 +350,7 @@ describe('Shared workout realtime gateway (Shared 5.3)', () => {
       .send({ workoutSessionId: randomUUID() })
       .expect(404);
     await new Promise((r) => setTimeout(r, 80));
-    expect(
-      payloads.some((p) => p.reason === 'MEMBER_WORKOUT_CHANGED'),
-    ).toBe(false);
+    expect(payloads.some((p) => p.reason === 'MEMBER_WORKOUT_CHANGED')).toBe(false);
 
     const createdSession = await request(app.getHttpServer())
       .post(`/api/v1/shared-workouts/${roomId}/my-workout-session/create`)
@@ -397,9 +366,7 @@ describe('Shared workout realtime gateway (Shared 5.3)', () => {
     expect(event.roomId).toBe(roomId);
     expect(event.reason).toBe('MEMBER_WORKOUT_CHANGED');
     const serialized = JSON.stringify(event);
-    expect(serialized).not.toMatch(
-      /actualWeight|actualReps|"rir"|"rpe"|targetWeight|notes|email/i,
-    );
+    expect(serialized).not.toMatch(/actualWeight|actualReps|"rir"|"rpe"|targetWeight|notes|email/i);
     expect(event).not.toHaveProperty('workoutSession');
     expect(event).not.toHaveProperty('sets');
     expect(event).not.toHaveProperty('progress');
@@ -408,15 +375,11 @@ describe('Shared workout realtime gateway (Shared 5.3)', () => {
       .get(`/api/v1/shared-workouts/${roomId}`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    const memberB = detail.body.data.members.find(
-      (m: { userId: string }) => m.userId === userIdB,
-    );
+    const memberB = detail.body.data.members.find((m: { userId: string }) => m.userId === userIdB);
     expect(memberB.memberWorkout.status).toBe('ACTIVE');
     expect(memberB.memberWorkout.workoutName).toBeTruthy();
     expect(detail.body.data.myWorkoutSessionId).toBeNull();
-    expect(JSON.stringify(detail.body.data)).not.toMatch(
-      /actualWeightKg|actualReps|"rir"|"rpe"/i,
-    );
+    expect(JSON.stringify(detail.body.data)).not.toMatch(/actualWeightKg|actualReps|"rir"|"rpe"/i);
 
     await request(app.getHttpServer())
       .post(`/api/v1/workouts/${workoutId}/cancel`)

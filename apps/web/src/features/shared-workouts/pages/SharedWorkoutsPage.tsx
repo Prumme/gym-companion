@@ -24,9 +24,7 @@ const FILTERS: Array<{ value: '' | SharedWorkoutRoomStatus; label: string }> = [
 ];
 
 export function SharedWorkoutsPage() {
-  const [statusFilter, setStatusFilter] = useState<'' | SharedWorkoutRoomStatus>(
-    '',
-  );
+  const [statusFilter, setStatusFilter] = useState<'' | SharedWorkoutRoomStatus>('');
   const [joinSheetOpen, setJoinSheetOpen] = useState(false);
   const filters = useMemo(
     () => ({
@@ -53,8 +51,7 @@ export function SharedWorkoutsPage() {
     });
   }, [query.data?.data]);
 
-  const isEmpty =
-    !query.isLoading && !query.isError && sorted.length === 0;
+  const isEmpty = !query.isLoading && !query.isError && sorted.length === 0;
   const showHeaderCreate = !isEmpty;
 
   return (
@@ -82,11 +79,7 @@ export function SharedWorkoutsPage() {
 
       {!offline ? (
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => setJoinSheetOpen(true)}
-          >
+          <Button type="button" variant="secondary" onClick={() => setJoinSheetOpen(true)}>
             Rejoindre avec un code
           </Button>
         </div>
@@ -149,11 +142,7 @@ export function SharedWorkoutsPage() {
           <EmptyState
             title="Aucune séance partagée"
             description="Crée une salle pour t’entraîner avec d’autres personnes."
-            action={
-              offline
-                ? undefined
-                : { label: 'Créer une salle', to: '/shared-workouts/new' }
-            }
+            action={offline ? undefined : { label: 'Créer une salle', to: '/shared-workouts/new' }}
           />
           {!offline ? (
             <Button
@@ -208,10 +197,7 @@ export function SharedWorkoutsPage() {
         </section>
       ) : null}
 
-      <SharedWorkoutJoinSheet
-        open={joinSheetOpen}
-        onClose={() => setJoinSheetOpen(false)}
-      />
+      <SharedWorkoutJoinSheet open={joinSheetOpen} onClose={() => setJoinSheetOpen(false)} />
     </main>
   );
 }

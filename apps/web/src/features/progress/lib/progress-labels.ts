@@ -1,9 +1,6 @@
 import type { ExerciseProgressMetric } from '@gym-companion/shared';
 
-export const EXERCISE_PROGRESS_METRIC_LABELS: Record<
-  ExerciseProgressMetric,
-  string
-> = {
+export const EXERCISE_PROGRESS_METRIC_LABELS: Record<ExerciseProgressMetric, string> = {
   MAX_WEIGHT: 'Charge maximale',
   MAX_REPS: 'Répétitions maximales',
   WORKING_EXTERNAL_VOLUME: 'Volume de travail',
@@ -14,8 +11,6 @@ export const EXERCISE_PROGRESS_METRIC_LABELS: Record<
   TOTAL_DISTANCE: 'Distance totale',
 };
 
-export function getExerciseProgressMetricLabel(
-  metric: ExerciseProgressMetric,
-): string {
+export function getExerciseProgressMetricLabel(metric: ExerciseProgressMetric): string {
   return EXERCISE_PROGRESS_METRIC_LABELS[metric] ?? metric;
 }

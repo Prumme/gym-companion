@@ -19,13 +19,8 @@ export function isSetTreated(status: WorkoutSetStatus): boolean {
   return TREATED_STATUSES.includes(status);
 }
 
-export function isExerciseTreated(
-  exercise: Pick<WorkoutSessionExerciseDetail, 'sets'>,
-): boolean {
-  return (
-    exercise.sets.length > 0 &&
-    exercise.sets.every((set) => isSetTreated(set.status))
-  );
+export function isExerciseTreated(exercise: Pick<WorkoutSessionExerciseDetail, 'sets'>): boolean {
+  return exercise.sets.length > 0 && exercise.sets.every((set) => isSetTreated(set.status));
 }
 
 export type ExerciseProgressState = 'NOT_STARTED' | 'IN_PROGRESS' | 'TREATED';

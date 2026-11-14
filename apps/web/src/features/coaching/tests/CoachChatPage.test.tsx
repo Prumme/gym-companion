@@ -29,17 +29,13 @@ vi.mock('@/features/profile/api/profile-api', () => ({
 }));
 
 vi.mock('../api/coaching-api', () => ({
-  listAiCoachConversations: (...args: unknown[]) =>
-    listAiCoachConversations(...args),
-  getAiCoachConversation: (...args: unknown[]) =>
-    getAiCoachConversation(...args),
-  createAiCoachConversation: (...args: unknown[]) =>
-    createAiCoachConversation(...args),
+  listAiCoachConversations: (...args: unknown[]) => listAiCoachConversations(...args),
+  getAiCoachConversation: (...args: unknown[]) => getAiCoachConversation(...args),
+  createAiCoachConversation: (...args: unknown[]) => createAiCoachConversation(...args),
   sendAiCoachMessage: (...args: unknown[]) => sendAiCoachMessage(...args),
   archiveAiCoachConversation: vi.fn(),
   acceptAiCoachProposal: (...args: unknown[]) => acceptAiCoachProposal(...args),
-  dismissAiCoachProposal: (...args: unknown[]) =>
-    dismissAiCoachProposal(...args),
+  dismissAiCoachProposal: (...args: unknown[]) => dismissAiCoachProposal(...args),
 }));
 
 describe('CoachChatPage (5.6)', () => {
@@ -167,10 +163,7 @@ describe('CoachChatPage (5.6)', () => {
     );
 
     await screen.findByText(/Choisis une suggestion/i);
-    await user.type(
-      screen.getByLabelText(/Message pour le Coach/i),
-      'À quoi sert le RIR ?',
-    );
+    await user.type(screen.getByLabelText(/Message pour le Coach/i), 'À quoi sert le RIR ?');
     await user.click(screen.getByRole('button', { name: /Envoyer/i }));
 
     await waitFor(() => {
@@ -184,10 +177,7 @@ describe('CoachChatPage (5.6)', () => {
         clientCommandId: expect.any(String),
       }),
     );
-    const [, body] = sendAiCoachMessage.mock.calls[0] as [
-      string,
-      Record<string, unknown>,
-    ];
+    const [, body] = sendAiCoachMessage.mock.calls[0] as [string, Record<string, unknown>];
     expect(body).not.toHaveProperty('conversationId');
     expect(Object.keys(body).sort()).toEqual(['clientCommandId', 'content']);
     await screen.findByText(/Le RIR estime/i);
@@ -265,10 +255,7 @@ describe('CoachChatPage (5.6)', () => {
     await waitFor(() => {
       expect(sendAiCoachMessage).toHaveBeenCalled();
     });
-    const [, body] = sendAiCoachMessage.mock.calls[0] as [
-      string,
-      Record<string, unknown>,
-    ];
+    const [, body] = sendAiCoachMessage.mock.calls[0] as [string, Record<string, unknown>];
     expect(body).toEqual({
       content: 'Pourquoi ma progression aux tractions stagne ?',
       clientCommandId: expect.any(String),
@@ -360,15 +347,10 @@ describe('CoachChatPage (5.6)', () => {
     );
 
     await screen.findByText(/Choisis une suggestion/i);
-    await user.type(
-      screen.getByLabelText(/Message pour le Coach/i),
-      'Question test',
-    );
+    await user.type(screen.getByLabelText(/Message pour le Coach/i), 'Question test');
     await user.click(screen.getByRole('button', { name: /Envoyer/i }));
 
-    expect(
-      await screen.findByText(/Trop de demandes en peu de temps/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Trop de demandes en peu de temps/i)).toBeInTheDocument();
     expect(screen.queryByText(/429/i)).not.toBeInTheDocument();
   });
 
@@ -453,9 +435,7 @@ describe('CoachChatPage (5.6)', () => {
     );
 
     await screen.findByText(/Programme Force 3x\/semaine/i);
-    expect(
-      screen.getByRole('article', { name: /Proposition de programme/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('article', { name: /Proposition de programme/i })).toBeInTheDocument();
     expect(screen.queryByText(/"kind":"PROGRAM"/i)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Refuser/i }));

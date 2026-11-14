@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  computeElapsedDurationMs,
-  formatElapsedDuration,
-} from '../lib/workout-elapsed-duration';
+import { computeElapsedDurationMs, formatElapsedDuration } from '../lib/workout-elapsed-duration';
 import {
   buildWorkoutHistorySearchParamsFromFilters,
   countActiveWorkoutHistoryFilters,
@@ -64,17 +61,13 @@ describe('workout-history-filters', () => {
       to: '2026-08-04',
     });
     expect(countActiveWorkoutHistoryFilters(parsed)).toBe(3);
-    expect(
-      buildWorkoutHistorySearchParamsFromFilters({ status: 'ALL' }).toString(),
-    ).toBe('');
+    expect(buildWorkoutHistorySearchParamsFromFilters({ status: 'ALL' }).toString()).toBe('');
   });
 
   it('ignore un statut ou une date invalide', () => {
-    expect(
-      parseWorkoutHistorySearchParams(
-        new URLSearchParams('status=ACTIVE&from=nope'),
-      ),
-    ).toEqual({ status: 'ALL', from: undefined, to: undefined });
+    expect(parseWorkoutHistorySearchParams(new URLSearchParams('status=ACTIVE&from=nope'))).toEqual(
+      { status: 'ALL', from: undefined, to: undefined },
+    );
   });
 
   it('résout le retour historique', () => {

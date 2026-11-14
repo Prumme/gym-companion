@@ -14,10 +14,7 @@ import { FakeAiCoachProvider } from '../src/modules/coaching/ai/fake-ai-coach.pr
 import { AiCoachToolRegistry } from '../src/modules/coaching/ai/ai-coach-tool-registry';
 import { seedReferenceData } from '../src/modules/reference/reference.seed';
 import { seedSystemExercises } from '../src/modules/exercises/exercises.seed';
-import type {
-  CoachProgramProposal,
-  CoachWorkoutProposal,
-} from '@gym-companion/validation';
+import type { CoachProgramProposal, CoachWorkoutProposal } from '@gym-companion/validation';
 
 function applyTestEnv() {
   process.env.NODE_ENV = 'test';
@@ -25,8 +22,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -39,11 +35,7 @@ function applyTestEnv() {
   process.env.AI_COACH_RATE_LIMIT_PER_MINUTE = '100';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -213,9 +205,7 @@ describe('Coach IA — propositions structurées (jalon 8)', () => {
         primaryMuscleGroupId: mg.id,
         secondaryMuscleGroupIds: [],
         defaultEquipmentTypeId: eq.id,
-        compatibleEquipmentTypes: [
-          { equipmentTypeId: eq.id, isPreferred: true, notes: null },
-        ],
+        compatibleEquipmentTypes: [{ equipmentTypeId: eq.id, isPreferred: true, notes: null }],
         defaultRestSeconds: 90,
         instructions: null,
       })
@@ -235,23 +225,15 @@ describe('Coach IA — propositions structurées (jalon 8)', () => {
 
   it('persiste une AiCoachProposal PENDING et l’inclut dans la réponse', async () => {
     const conversationId = await createConversation(token);
-    const response = await sendProposalMessage(
-      token,
-      conversationId,
-      workoutProposalData(),
-    );
+    const response = await sendProposalMessage(token, conversationId, workoutProposalData());
 
     const proposal = response.body.data.assistantMessage.proposal;
     expect(proposal).toBeTruthy();
     expect(proposal.kind).toBe('WORKOUT');
     expect(proposal.status).toBe('PENDING');
     expect(proposal.preview.kind).toBe('WORKOUT');
-    expect(proposal.preview.workout.exercises[0].exerciseName).toContain(
-      'Proposal Bench',
-    );
-    expect(response.body.data.assistantMessage.content).toBe(
-      'Voici une proposition adaptée.',
-    );
+    expect(proposal.preview.workout.exercises[0].exerciseName).toContain('Proposal Bench');
+    expect(response.body.data.assistantMessage.content).toBe('Voici une proposition adaptée.');
 
     const row = await prisma.aiCoachProposal.findUnique({
       where: { id: proposal.id },
@@ -267,12 +249,8 @@ describe('Coach IA — propositions structurées (jalon 8)', () => {
 
     const response = await sendProposalMessage(token, conversationId, badData);
     expect(response.body.data.assistantMessage.proposal).toBeNull();
-    expect(response.body.data.assistantMessage.content).toMatch(
-      /compatible avec ton catalogue/i,
-    );
-    expect(
-      await prisma.aiCoachProposal.count({ where: { conversationId } }),
-    ).toBe(0);
+    expect(response.body.data.assistantMessage.content).toMatch(/compatible avec ton catalogue/i);
+    expect(await prisma.aiCoachProposal.count({ where: { conversationId } })).toBe(0);
   });
 
   it('sanitize WEIGHT_REPS : sec/m parasites → proposal persistée sans duration', async () => {
@@ -357,9 +335,7 @@ describe('Coach IA — propositions structurées (jalon 8)', () => {
     expect(fakeProvider.lastChatRequest?.repairFeedback).toBeTruthy();
     expect(response.body.data.assistantMessage.proposal).toBeTruthy();
     expect(response.body.data.assistantMessage.proposal.status).toBe('PENDING');
-    expect(response.body.data.assistantMessage.content).toBe(
-      'Proposition réparée.',
-    );
+    expect(response.body.data.assistantMessage.content).toBe('Proposition réparée.');
   });
 
   it('repair échoue encore → discussion sans proposal (max 1 repair)', async () => {
@@ -401,12 +377,8 @@ describe('Coach IA — propositions structurées (jalon 8)', () => {
 
     expect(fakeProvider.chatCallCount).toBe(2);
     expect(response.body.data.assistantMessage.proposal).toBeNull();
-    expect(response.body.data.assistantMessage.content).toMatch(
-      /compatible avec ton catalogue/i,
-    );
-    expect(
-      await prisma.aiCoachProposal.count({ where: { conversationId } }),
-    ).toBe(0);
+    expect(response.body.data.assistantMessage.content).toMatch(/compatible avec ton catalogue/i);
+    expect(await prisma.aiCoachProposal.count({ where: { conversationId } })).toBe(0);
   });
 
   it('programme bras débutant : IDs search + sets WEIGHT_REPS valides', async () => {
@@ -426,20 +398,14 @@ describe('Coach IA — propositions structurées (jalon 8)', () => {
     ).exercises;
     expect(found.length).toBeGreaterThanOrEqual(2);
     const muscles = new Set(found.map((item) => item.muscle.toLowerCase()));
-    expect(
-      [...muscles].some((m) => m.includes('biceps') || m.includes('triceps')),
-    ).toBe(true);
-    const picked = found
-      .filter((item) => item.measurementType === 'WEIGHT_REPS')
-      .slice(0, 2);
+    expect([...muscles].some((m) => m.includes('biceps') || m.includes('triceps'))).toBe(true);
+    const picked = found.filter((item) => item.measurementType === 'WEIGHT_REPS').slice(0, 2);
     expect(picked.length).toBeGreaterThanOrEqual(1);
 
     const conversationId = await createConversation(token);
     fakeProvider.chatBehavior = {
       mode: 'tools_then_answer',
-      toolCalls: [
-        { name: 'search_exercises', arguments: { muscleGroup: 'bras' } },
-      ],
+      toolCalls: [{ name: 'search_exercises', arguments: { muscleGroup: 'bras' } }],
       answer: {
         type: 'proposal',
         text: 'Programme bras débutant.',
@@ -521,9 +487,7 @@ describe('Coach IA — propositions structurées (jalon 8)', () => {
     expect(proposal).toBeTruthy();
     expect(proposal.kind).toBe('PROGRAM');
     expect(proposal.status).toBe('PENDING');
-    expect(proposal.preview.program.workouts[0].exercises.length).toBe(
-      picked.length,
-    );
+    expect(proposal.preview.program.workouts[0].exercises.length).toBe(picked.length);
   });
 
   it('accepte une proposal WORKOUT (programId requis) et crée le WorkoutTemplate', async () => {
@@ -535,11 +499,7 @@ describe('Coach IA — propositions structurées (jalon 8)', () => {
     const programId = program.body.data.id as string;
 
     const conversationId = await createConversation(token);
-    const sent = await sendProposalMessage(
-      token,
-      conversationId,
-      workoutProposalData(),
-    );
+    const sent = await sendProposalMessage(token, conversationId, workoutProposalData());
     const proposalId = sent.body.data.assistantMessage.proposal.id as string;
 
     const missingProgramId = await request(app.getHttpServer())
@@ -547,9 +507,7 @@ describe('Coach IA — propositions structurées (jalon 8)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({})
       .expect(400);
-    expect(missingProgramId.body.error.code).toBe(
-      'AI_COACH_PROPOSAL_PROGRAM_ID_REQUIRED',
-    );
+    expect(missingProgramId.body.error.code).toBe('AI_COACH_PROPOSAL_PROGRAM_ID_REQUIRED');
 
     const accepted = await request(app.getHttpServer())
       .post(`/api/v1/coaching/proposals/${proposalId}/accept`)
@@ -559,8 +517,7 @@ describe('Coach IA — propositions structurées (jalon 8)', () => {
     expect(accepted.body.data.proposal.status).toBe('ACCEPTED');
     expect(accepted.body.data.proposal.createdWorkoutTemplateId).toBeTruthy();
 
-    const templateId = accepted.body.data.proposal
-      .createdWorkoutTemplateId as string;
+    const templateId = accepted.body.data.proposal.createdWorkoutTemplateId as string;
     const template = await prisma.workoutTemplate.findUnique({
       where: { id: templateId },
       include: { exercises: { include: { sets: true } } },
@@ -575,21 +532,13 @@ describe('Coach IA — propositions structurées (jalon 8)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ programId })
       .expect(201);
-    expect(acceptedAgain.body.data.proposal.createdWorkoutTemplateId).toBe(
-      templateId,
-    );
-    expect(
-      await prisma.workoutTemplate.count({ where: { programId } }),
-    ).toBe(1);
+    expect(acceptedAgain.body.data.proposal.createdWorkoutTemplateId).toBe(templateId);
+    expect(await prisma.workoutTemplate.count({ where: { programId } })).toBe(1);
   });
 
   it('accepte une proposal PROGRAM et crée Program + WorkoutTemplate + planning (DRAFT, non activé)', async () => {
     const conversationId = await createConversation(token);
-    const sent = await sendProposalMessage(
-      token,
-      conversationId,
-      programProposalData(),
-    );
+    const sent = await sendProposalMessage(token, conversationId, programProposalData());
     const proposalId = sent.body.data.assistantMessage.proposal.id as string;
 
     const accepted = await request(app.getHttpServer())
@@ -611,18 +560,12 @@ describe('Coach IA — propositions structurées (jalon 8)', () => {
     expect(program?.status).toBe('DRAFT');
     expect(program?.workoutTemplates).toHaveLength(1);
     expect(program?.scheduleEntries).toHaveLength(1);
-    expect(program?.scheduleEntries[0]?.workoutTemplateId).toBe(
-      program?.workoutTemplates[0]?.id,
-    );
+    expect(program?.scheduleEntries[0]?.workoutTemplateId).toBe(program?.workoutTemplates[0]?.id);
   });
 
   it('refuse (dismiss) une proposal PENDING puis interdit son acceptation', async () => {
     const conversationId = await createConversation(token);
-    const sent = await sendProposalMessage(
-      token,
-      conversationId,
-      workoutProposalData(),
-    );
+    const sent = await sendProposalMessage(token, conversationId, workoutProposalData());
     const proposalId = sent.body.data.assistantMessage.proposal.id as string;
 
     const dismissed = await request(app.getHttpServer())

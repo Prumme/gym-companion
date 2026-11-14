@@ -1,7 +1,4 @@
-import type {
-  WorkoutSessionDetail,
-  WorkoutSessionSetDetail,
-} from '@gym-companion/shared';
+import type { WorkoutSessionDetail, WorkoutSessionSetDetail } from '@gym-companion/shared';
 
 const now = '2026-08-04T10:00:00.000Z';
 

@@ -10,6 +10,4 @@ export const setMySharedCurrentExerciseBodySchema = z
   })
   .strict();
 
-export type SetMySharedCurrentExerciseInput = z.infer<
-  typeof setMySharedCurrentExerciseBodySchema
->;
+export type SetMySharedCurrentExerciseInput = z.infer<typeof setMySharedCurrentExerciseBodySchema>;

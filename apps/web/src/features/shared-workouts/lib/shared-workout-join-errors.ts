@@ -1,7 +1,4 @@
-import {
-  getApiErrorMessage,
-  type ApiRequestError,
-} from '@/lib/api/client';
+import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
 
 export function getJoinSharedWorkoutErrorMessage(
   error: unknown,
@@ -15,10 +12,7 @@ export function getJoinSharedWorkoutErrorMessage(
   if (apiError.status === 429) {
     return 'Trop de tentatives. Réessaie dans un moment.';
   }
-  if (
-    apiError.status === 404 ||
-    apiError.code === 'SHARED_WORKOUT_JOIN_CODE_INVALID'
-  ) {
+  if (apiError.status === 404 || apiError.code === 'SHARED_WORKOUT_JOIN_CODE_INVALID') {
     return 'Code invalide ou expiré.';
   }
 

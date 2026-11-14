@@ -21,8 +21,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -32,11 +31,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -119,9 +114,7 @@ describe('Exercises catalog API', () => {
 
     tokenA = await registerUser(app, emailA, 'User A');
     tokenB = await registerUser(app, emailB, 'User B');
-    userAId = (
-      await prisma.user.findUniqueOrThrow({ where: { email: emailA } })
-    ).id;
+    userAId = (await prisma.user.findUniqueOrThrow({ where: { email: emailA } })).id;
 
     // Données dédiées pagination / noms identiques (déterministes).
     for (let i = 0; i < 5; i += 1) {
@@ -164,9 +157,7 @@ describe('Exercises catalog API', () => {
     });
     expect(bySlug).toHaveLength(SYSTEM_EXERCISE_SEEDS.length);
 
-    const idsBefore = Object.fromEntries(
-      bySlug.map((row) => [row.slug!, row.id]),
-    );
+    const idsBefore = Object.fromEntries(bySlug.map((row) => [row.slug!, row.id]));
 
     await seedSystemExercises(prisma);
 
@@ -341,9 +332,7 @@ describe('Exercises catalog API', () => {
 
     expect(primary.body.data.length).toBeGreaterThan(0);
     expect(
-      (primary.body.data as ListItem[]).some(
-        (item) => item.primaryMuscleGroup.code === 'chest',
-      ),
+      (primary.body.data as ListItem[]).some((item) => item.primaryMuscleGroup.code === 'chest'),
     ).toBe(true);
 
     const secondary = await request(app.getHttpServer())
@@ -353,9 +342,7 @@ describe('Exercises catalog API', () => {
       .expect(200);
 
     expect(
-      (secondary.body.data as ListItem[]).some((item) =>
-        duplicateNameIds.includes(item.id),
-      ),
+      (secondary.body.data as ListItem[]).some((item) => duplicateNameIds.includes(item.id)),
     ).toBe(true);
   });
 
@@ -373,9 +360,7 @@ describe('Exercises catalog API', () => {
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     expect(
-      (byMeasurement.body.data as ListItem[]).every(
-        (item) => item.measurementType === 'DURATION',
-      ),
+      (byMeasurement.body.data as ListItem[]).every((item) => item.measurementType === 'DURATION'),
     ).toBe(true);
 
     const systemOnly = await request(app.getHttpServer())
@@ -383,18 +368,16 @@ describe('Exercises catalog API', () => {
       .query({ source: 'SYSTEM', limit: 100 })
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    expect(
-      (systemOnly.body.data as ListItem[]).every((item) => item.source === 'SYSTEM'),
-    ).toBe(true);
+    expect((systemOnly.body.data as ListItem[]).every((item) => item.source === 'SYSTEM')).toBe(
+      true,
+    );
 
     const userOnly = await request(app.getHttpServer())
       .get('/api/v1/exercises')
       .query({ source: 'USER', limit: 100 })
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    expect(
-      (userOnly.body.data as ListItem[]).every((item) => item.source === 'USER'),
-    ).toBe(true);
+    expect((userOnly.body.data as ListItem[]).every((item) => item.source === 'USER')).toBe(true);
     expect(userOnly.body.data.length).toBeGreaterThan(0);
   });
 
@@ -411,9 +394,7 @@ describe('Exercises catalog API', () => {
       .expect(200);
 
     expect(
-      (response.body.data as ListItem[]).some((item) =>
-        duplicateNameIds.includes(item.id),
-      ),
+      (response.body.data as ListItem[]).some((item) => duplicateNameIds.includes(item.id)),
     ).toBe(true);
   });
 
@@ -427,9 +408,7 @@ describe('Exercises catalog API', () => {
         secondaryMuscleGroupIds: [tricepsId],
         measurementType: 'WEIGHT_REPS',
         defaultEquipmentTypeId: barbellId,
-        compatibleEquipmentTypes: [
-          { equipmentTypeId: barbellId, isPreferred: true, notes: null },
-        ],
+        compatibleEquipmentTypes: [{ equipmentTypeId: barbellId, isPreferred: true, notes: null }],
         defaultRestSeconds: 90,
         instructions: 'Contrôler la descente.',
         source: 'SYSTEM',
@@ -457,12 +436,12 @@ describe('Exercises catalog API', () => {
       .set('Authorization', `Bearer ${tokenB}`)
       .expect(200);
 
-    expect(
-      listA.body.data.some((item: { id: string }) => item.id === personalExerciseId),
-    ).toBe(true);
-    expect(
-      listB.body.data.some((item: { id: string }) => item.id === personalExerciseId),
-    ).toBe(false);
+    expect(listA.body.data.some((item: { id: string }) => item.id === personalExerciseId)).toBe(
+      true,
+    );
+    expect(listB.body.data.some((item: { id: string }) => item.id === personalExerciseId)).toBe(
+      false,
+    );
   });
 
   it('allows owner to read and forbids other user (404)', async () => {
@@ -519,9 +498,7 @@ describe('Exercises catalog API', () => {
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     expect(
-      defaultList.body.data.some(
-        (item: { id: string }) => item.id === personalExerciseId,
-      ),
+      defaultList.body.data.some((item: { id: string }) => item.id === personalExerciseId),
     ).toBe(false);
 
     const archivedList = await request(app.getHttpServer())
@@ -530,9 +507,7 @@ describe('Exercises catalog API', () => {
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     expect(
-      archivedList.body.data.some(
-        (item: { id: string }) => item.id === personalExerciseId,
-      ),
+      archivedList.body.data.some((item: { id: string }) => item.id === personalExerciseId),
     ).toBe(true);
 
     const restored = await request(app.getHttpServer())
@@ -554,9 +529,9 @@ describe('Exercises catalog API', () => {
       .set('Authorization', `Bearer ${tokenB}`)
       .expect(200);
 
-    expect(
-      listB.body.data.some((item: { id: string }) => item.id === personalExerciseId),
-    ).toBe(false);
+    expect(listB.body.data.some((item: { id: string }) => item.id === personalExerciseId)).toBe(
+      false,
+    );
 
     await request(app.getHttpServer())
       .post(`/api/v1/exercises/${personalExerciseId}/restore`)

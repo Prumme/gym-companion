@@ -44,8 +44,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
-    const requestId =
-      (request.headers['x-request-id'] as string | undefined) ?? randomUUID();
+    const requestId = (request.headers['x-request-id'] as string | undefined) ?? randomUUID();
 
     const { status, body } = this.toErrorResponse(exception, requestId);
     const safePath = this.redactSensitivePath(request.url);
@@ -110,9 +109,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           body: {
             error: {
               code: this.codeFromStatus(status),
-              message: this.config.isProduction
-                ? this.genericMessage(status)
-                : exceptionResponse,
+              message: this.config.isProduction ? this.genericMessage(status) : exceptionResponse,
               requestId,
             },
           },
@@ -128,8 +125,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             : this.genericMessage(status);
 
       const fieldErrors =
-        Array.isArray(payload.message) &&
-        payload.message.every((item) => typeof item === 'string')
+        Array.isArray(payload.message) && payload.message.every((item) => typeof item === 'string')
           ? { form: payload.message as string[] }
           : undefined;
 
@@ -137,18 +133,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         status,
         body: {
           error: {
-            code:
-              typeof payload.code === 'string'
-                ? payload.code
-                : this.codeFromStatus(status),
+            code: typeof payload.code === 'string' ? payload.code : this.codeFromStatus(status),
             message:
-              this.config.isProduction && status >= 500
-                ? this.genericMessage(status)
-                : message,
+              this.config.isProduction && status >= 500 ? this.genericMessage(status) : message,
             details: payload.details,
             fieldErrors:
-              (payload.fieldErrors as Record<string, string[]> | undefined) ??
-              fieldErrors,
+              (payload.fieldErrors as Record<string, string[]> | undefined) ?? fieldErrors,
             requestId,
           },
         },

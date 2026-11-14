@@ -24,9 +24,7 @@ export function ShareLandingPage() {
 
   const [destinationOpen, setDestinationOpen] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
-  const [importedProgramId, setImportedProgramId] = useState<string | null>(
-    null,
-  );
+  const [importedProgramId, setImportedProgramId] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
@@ -59,9 +57,7 @@ export function ShareLandingPage() {
       setImportedProgramId(result.programId);
       setSuccessMessage('Programme ajouté');
     } catch (err) {
-      setImportError(
-        getTrainingShareErrorMessage(err, 'Impossible d’ajouter ce programme.'),
-      );
+      setImportError(getTrainingShareErrorMessage(err, 'Impossible d’ajouter ce programme.'));
     }
   }
 
@@ -85,19 +81,14 @@ export function ShareLandingPage() {
       setImportedProgramId(result.programId);
       setSuccessMessage('Séance ajoutée');
     } catch (err) {
-      setImportError(
-        getTrainingShareErrorMessage(err, 'Impossible d’ajouter cette séance.'),
-      );
+      setImportError(getTrainingShareErrorMessage(err, 'Impossible d’ajouter cette séance.'));
     }
   }
 
   if (!token) {
     return (
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-4">
-        <EmptyState
-          title="Lien invalide"
-          description="Ce lien de partage n’est pas valide."
-        />
+        <EmptyState title="Lien invalide" description="Ce lien de partage n’est pas valide." />
       </main>
     );
   }
@@ -143,16 +134,12 @@ export function ShareLandingPage() {
         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
           {preview.kind === 'PROGRAM' ? 'Programme partagé' : 'Séance partagée'}
         </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-          {preview.name}
-        </h1>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight">{preview.name}</h1>
         {preview.kind === 'PROGRAM' && preview.description ? (
           <p className="mt-2 text-sm text-[var(--muted)]">{preview.description}</p>
         ) : null}
         {remainingLabel ? (
-          <p className="mt-2 text-sm text-[var(--muted)]">
-            Ce lien expire dans {remainingLabel}
-          </p>
+          <p className="mt-2 text-sm text-[var(--muted)]">Ce lien expire dans {remainingLabel}</p>
         ) : null}
       </header>
 
@@ -162,10 +149,7 @@ export function ShareLandingPage() {
           role="status"
         >
           <p className="font-medium">{successMessage}</p>
-          <ButtonLink
-            to={`/programs/${importedProgramId}`}
-            className="mt-2"
-          >
+          <ButtonLink to={`/programs/${importedProgramId}`} className="mt-2">
             Voir le programme
           </ButtonLink>
         </div>
@@ -186,9 +170,7 @@ export function ShareLandingPage() {
                   <button
                     type="button"
                     className="flex w-full items-center justify-between gap-3 text-left"
-                    onClick={() =>
-                      setExpanded((prev) => ({ ...prev, [key]: !isOpen }))
-                    }
+                    onClick={() => setExpanded((prev) => ({ ...prev, [key]: !isOpen }))}
                   >
                     <span>
                       <span className="block font-medium">{workout.name}</span>
@@ -223,14 +205,9 @@ export function ShareLandingPage() {
         <section>
           <ul className="space-y-3">
             {preview.exercises.map((exercise) => (
-              <li
-                key={exercise.exerciseId}
-                className="border-b border-[var(--border)] pb-3"
-              >
+              <li key={exercise.exerciseId} className="border-b border-[var(--border)] pb-3">
                 <p className="font-medium">{exercise.name}</p>
-                <p className="text-sm text-[var(--muted)]">
-                  {formatShareSetsLine(exercise.sets)}
-                </p>
+                <p className="text-sm text-[var(--muted)]">{formatShareSetsLine(exercise.sets)}</p>
               </li>
             ))}
           </ul>
@@ -255,9 +232,7 @@ export function ShareLandingPage() {
                 })
               }
             >
-              {importMutation.isPending
-                ? 'Ajout…'
-                : 'Ajouter à mes programmes'}
+              {importMutation.isPending ? 'Ajout…' : 'Ajouter à mes programmes'}
             </Button>
           ) : (
             <Button

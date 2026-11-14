@@ -1,16 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  bootstrapSession,
-  resetBootstrapSessionForTests,
-} from '@/features/auth/api/auth-api';
+import { bootstrapSession, resetBootstrapSessionForTests } from '@/features/auth/api/auth-api';
 import { getAccessToken, setAccessToken } from '@/lib/api/client';
 import { useAuthStore } from '@/stores/auth-store';
 
 vi.mock('@/lib/api/client', async () => {
-  const actual = await vi.importActual<typeof import('@/lib/api/client')>(
-    '@/lib/api/client',
-  );
+  const actual = await vi.importActual<typeof import('@/lib/api/client')>('@/lib/api/client');
   return {
     ...actual,
     apiFetch: vi.fn(),
@@ -55,9 +50,7 @@ describe('bootstrapSession', () => {
   });
 
   it('passe unauthenticated quand le refresh échoue', async () => {
-    apiFetchMock.mockRejectedValueOnce(
-      Object.assign(new Error('Unauthorized'), { status: 401 }),
-    );
+    apiFetchMock.mockRejectedValueOnce(Object.assign(new Error('Unauthorized'), { status: 401 }));
 
     const ok = await bootstrapSession();
     expect(ok).toBe(false);

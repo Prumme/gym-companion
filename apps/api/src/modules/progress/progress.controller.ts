@@ -3,10 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger'
 import { createSuccessResponse } from '@gym-companion/shared';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import {
-  JwtAuthGuard,
-  type AuthenticatedUser,
-} from '../../common/guards/jwt-auth.guard';
+import { JwtAuthGuard, type AuthenticatedUser } from '../../common/guards/jwt-auth.guard';
 import { ProgressService } from './progress.service';
 
 @ApiTags('progress')
@@ -18,8 +15,7 @@ export class ProgressController {
 
   @Get('api/v1/progress/overview')
   @ApiOperation({
-    summary:
-      'Dashboard global de progression (dérivé des séances terminées)',
+    summary: 'Dashboard global de progression (dérivé des séances terminées)',
   })
   @ApiQuery({ name: 'from', required: false, type: String })
   @ApiQuery({ name: 'to', required: false, type: String })
@@ -34,8 +30,7 @@ export class ProgressController {
 
   @Get('api/v1/progress/last-working-sets')
   @ApiOperation({
-    summary:
-      'Dernière série de travail COMPLETED par exercice (batch Active Workout)',
+    summary: 'Dernière série de travail COMPLETED par exercice (batch Active Workout)',
   })
   @ApiQuery({ name: 'exerciseIds', required: true, type: String })
   async getLastWorkingSets(
@@ -48,8 +43,7 @@ export class ProgressController {
 
   @Get('api/v1/progress/exercises/:exerciseId/strength')
   @ApiOperation({
-    summary:
-      '1RM estimé (e1RM Epley V1) pour un exercice WEIGHT_REPS — dérivé, non matérialisé',
+    summary: '1RM estimé (e1RM Epley V1) pour un exercice WEIGHT_REPS — dérivé, non matérialisé',
   })
   @ApiQuery({ name: 'from', required: false, type: String })
   @ApiQuery({ name: 'to', required: false, type: String })
@@ -59,18 +53,13 @@ export class ProgressController {
     @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
     @Query() query: Record<string, string | undefined>,
   ) {
-    const data = await this.progressService.getExerciseStrengthProgress(
-      user.id,
-      exerciseId,
-      query,
-    );
+    const data = await this.progressService.getExerciseStrengthProgress(user.id, exerciseId, query);
     return createSuccessResponse(data);
   }
 
   @Get('api/v1/progress/exercises/:exerciseId/cardio-history')
   @ApiOperation({
-    summary:
-      'Historique cardio d’un exercice (durée, distance, allure, RPE de séance)',
+    summary: 'Historique cardio d’un exercice (durée, distance, allure, RPE de séance)',
   })
   async getCardioHistory(
     @CurrentUser() user: AuthenticatedUser,
@@ -82,8 +71,7 @@ export class ProgressController {
 
   @Get('api/v1/progress/exercises/:exerciseId')
   @ApiOperation({
-    summary:
-      'Progression temporelle d’un exercice (dérivée des séances terminées)',
+    summary: 'Progression temporelle d’un exercice (dérivée des séances terminées)',
   })
   @ApiQuery({ name: 'metric', required: false, type: String })
   @ApiQuery({ name: 'from', required: false, type: String })
@@ -94,11 +82,7 @@ export class ProgressController {
     @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
     @Query() query: Record<string, string | undefined>,
   ) {
-    const data = await this.progressService.getExerciseProgress(
-      user.id,
-      exerciseId,
-      query,
-    );
+    const data = await this.progressService.getExerciseProgress(user.id, exerciseId, query);
     return createSuccessResponse(data);
   }
 }

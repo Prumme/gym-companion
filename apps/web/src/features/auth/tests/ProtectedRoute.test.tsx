@@ -29,9 +29,7 @@ describe('ProtectedRoute', () => {
 
   it('affiche un loader pendant initializing sans rediriger vers login', () => {
     renderProtected('/planning');
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Vérification de la session…',
-    );
+    expect(screen.getByRole('status')).toHaveTextContent('Vérification de la session…');
     expect(screen.queryByText('Login form')).not.toBeInTheDocument();
     expect(screen.queryByText('Planning page')).not.toBeInTheDocument();
   });

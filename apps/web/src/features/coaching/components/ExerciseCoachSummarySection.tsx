@@ -52,10 +52,7 @@ export function ExerciseCoachSummarySection({
       <section role="alert" aria-label="Coach Gym Companion">
         <h2 className="section-title">Coach</h2>
         <p className="mt-2 text-sm text-[var(--danger)]">
-          {getApiErrorMessage(
-            query.error,
-            'Impossible de charger la synthèse Coach.',
-          )}
+          {getApiErrorMessage(query.error, 'Impossible de charger la synthèse Coach.')}
         </p>
       </section>
     );
@@ -81,13 +78,8 @@ function CoachSummaryContent({
   const load = summary.loadRecommendation;
   const decision = summary.recentDecision;
   const suggested =
-    load?.suggestedWeightKg != null
-      ? formatCoachWeightKg(load.suggestedWeightKg)
-      : null;
-  const current =
-    load?.currentWeightKg != null
-      ? formatCoachWeightKg(load.currentWeightKg)
-      : null;
+    load?.suggestedWeightKg != null ? formatCoachWeightKg(load.suggestedWeightKg) : null;
+  const current = load?.currentWeightKg != null ? formatCoachWeightKg(load.currentWeightKg) : null;
   const deltaKg =
     load?.suggestedWeightKg != null && load.currentWeightKg != null
       ? load.suggestedWeightKg - load.currentWeightKg
@@ -124,9 +116,7 @@ function CoachSummaryContent({
           </p>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
             {getCoachLoadActionLabel(load.action)}
-            {current && suggested && current !== suggested
-              ? ` · dernière cible ${current}`
-              : null}
+            {current && suggested && current !== suggested ? ` · dernière cible ${current}` : null}
           </p>
           {deltaKg != null && deltaKg !== 0 ? (
             <p className="mt-1 text-sm text-[var(--muted-foreground)]">

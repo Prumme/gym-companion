@@ -22,10 +22,7 @@ import {
   createDedupedAxisTickFormatter,
   formatProgressChartDate,
 } from '../lib/progress-filters';
-import {
-  formatEstimatedOneRepMaxKg,
-  formatStrengthSourceSet,
-} from '../lib/strength-format';
+import { formatEstimatedOneRepMaxKg, formatStrengthSourceSet } from '../lib/strength-format';
 
 function formatSignedKg(value: number): string {
   const sign = value > 0 ? '+' : '';
@@ -62,21 +59,13 @@ function StrengthTooltip({
   const { sourceSet } = row.point;
   return (
     <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm shadow-sm">
-      <p className="font-medium">
-        {formatProgressChartDate(row.localDate, 'full')}
-      </p>
+      <p className="font-medium">{formatProgressChartDate(row.localDate, 'full')}</p>
       <p className="mt-1 font-semibold text-[var(--foreground)]">
         1RM estimé : {formatEstimatedOneRepMaxKg(row.estimatedOneRepMaxKg)}
       </p>
-      <p className="text-[var(--muted)]">
-        Série source : {formatStrengthSourceSet(sourceSet)}
-      </p>
-      {sourceSet.rir != null ? (
-        <p className="text-[var(--muted)]">RIR : {sourceSet.rir}</p>
-      ) : null}
-      {sourceSet.rpe != null ? (
-        <p className="text-[var(--muted)]">RPE : {sourceSet.rpe}</p>
-      ) : null}
+      <p className="text-[var(--muted)]">Série source : {formatStrengthSourceSet(sourceSet)}</p>
+      {sourceSet.rir != null ? <p className="text-[var(--muted)]">RIR : {sourceSet.rir}</p> : null}
+      {sourceSet.rpe != null ? <p className="text-[var(--muted)]">RPE : {sourceSet.rpe}</p> : null}
     </div>
   );
 }
@@ -159,13 +148,8 @@ export function EstimatedStrengthSection({
         <h2 id="strength-heading" className="text-lg font-semibold">
           Force estimée
         </h2>
-        <div
-          className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4"
-          role="alert"
-        >
-          <p className="text-sm text-[var(--danger)]">
-            Impossible de charger la force estimée.
-          </p>
+        <div className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4" role="alert">
+          <p className="text-sm text-[var(--danger)]">Impossible de charger la force estimée.</p>
           <button
             type="button"
             className="mt-3 text-sm font-semibold text-[var(--primary)] underline-offset-2 hover:underline"
@@ -204,15 +188,15 @@ export function EstimatedStrengthSection({
           Force estimée
         </h2>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Le 1RM estimé est une estimation calculée à partir de la charge et du
-          nombre de répétitions d’une série.
+          Le 1RM estimé est une estimation calculée à partir de la charge et du nombre de
+          répétitions d’une série.
         </p>
         <p className="mt-1 text-sm text-[var(--muted)]">
           Formule : Epley
           {formula === 'EPLEY_V1' ? ' (V1)' : ''}
           {' · '}
-          Calcul utilisé pour les séries de {eligibility.minReps} à{' '}
-          {eligibility.maxReps} répétitions.
+          Calcul utilisé pour les séries de {eligibility.minReps} à {eligibility.maxReps}{' '}
+          répétitions.
         </p>
       </div>
 
@@ -222,9 +206,8 @@ export function EstimatedStrengthSection({
             Pas encore assez de données pour estimer ton 1RM.
           </p>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            Une série terminée entre {eligibility.minReps} et{' '}
-            {eligibility.maxReps} répétitions avec une charge enregistrée
-            permettra de calculer une estimation.
+            Une série terminée entre {eligibility.minReps} et {eligibility.maxReps} répétitions avec
+            une charge enregistrée permettra de calculer une estimation.
           </p>
         </div>
       ) : null}
@@ -246,22 +229,16 @@ export function EstimatedStrengthSection({
         </div>
       ) : null}
 
-      {summary &&
-      maxWeightLatestKg != null &&
-      summary.latestEstimatedOneRepMaxKg != null ? (
+      {summary && maxWeightLatestKg != null && summary.latestEstimatedOneRepMaxKg != null ? (
         <div className="grid grid-cols-2 gap-3 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-4">
           <div>
-            <p className="text-xs font-medium text-[var(--muted)]">
-              Charge maximale réelle
-            </p>
+            <p className="text-xs font-medium text-[var(--muted)]">Charge maximale réelle</p>
             <p className="mt-1 text-lg font-semibold">
               {formatPersonalRecordWeight(maxWeightLatestKg)}
             </p>
           </div>
           <div>
-            <p className="text-xs font-medium text-[var(--muted)]">
-              1RM estimé
-            </p>
+            <p className="text-xs font-medium text-[var(--muted)]">1RM estimé</p>
             <p className="mt-1 text-lg font-semibold">
               {formatEstimatedOneRepMaxKg(summary.latestEstimatedOneRepMaxKg)}
             </p>
@@ -275,9 +252,7 @@ export function EstimatedStrengthSection({
         </p>
       ) : null}
 
-      {summary &&
-      summary.absoluteChangeKg != null &&
-      summary.pointCount >= 2 ? (
+      {summary && summary.absoluteChangeKg != null && summary.pointCount >= 2 ? (
         <p className="text-sm font-medium text-[var(--foreground)]">
           Variation : {formatSignedKg(summary.absoluteChangeKg)}
           {summary.percentageChange != null
@@ -295,10 +270,7 @@ export function EstimatedStrengthSection({
           <h3 className="mb-2 text-sm font-semibold">1RM estimé</h3>
           <div className="h-64 w-full min-w-0 sm:h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={chartData}
-                margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
-              >
+              <LineChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis
                   dataKey="label"
@@ -321,10 +293,7 @@ export function EstimatedStrengthSection({
                     }).format(value)
                   }
                 />
-                <Tooltip
-                  content={<StrengthTooltip />}
-                  cursor={{ stroke: 'var(--border)' }}
-                />
+                <Tooltip content={<StrengthTooltip />} cursor={{ stroke: 'var(--border)' }} />
                 <Line
                   type="monotone"
                   dataKey="estimatedOneRepMaxKg"

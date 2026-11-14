@@ -6,10 +6,7 @@ import {
   getWorkoutSessionDetail,
   listWorkoutHistory,
 } from './workout-api';
-import {
-  workoutQueryKeys,
-  type WorkoutHistoryFilters,
-} from './workout-query-keys';
+import { workoutQueryKeys, type WorkoutHistoryFilters } from './workout-query-keys';
 import { isAuthError, isNetworkError } from '../offline/network';
 import {
   getLocalActiveSnapshot,
@@ -18,9 +15,7 @@ import {
   persistServerSnapshot,
 } from '../offline/store';
 
-export function workoutHistoryInfiniteQueryOptions(
-  filters: WorkoutHistoryFilters,
-) {
+export function workoutHistoryInfiniteQueryOptions(filters: WorkoutHistoryFilters) {
   return infiniteQueryOptions({
     queryKey: workoutQueryKeys.history(filters),
     queryFn: ({ pageParam }) =>
@@ -31,9 +26,7 @@ export function workoutHistoryInfiniteQueryOptions(
       }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
-      lastPage.pagination.hasMore
-        ? (lastPage.pagination.nextCursor ?? undefined)
-        : undefined,
+      lastPage.pagination.hasMore ? (lastPage.pagination.nextCursor ?? undefined) : undefined,
   });
 }
 
@@ -50,9 +43,7 @@ export function pendingTerminalLocalQueryOptions(userId: string | null) {
   });
 }
 
-export function activeWorkoutQueryOptions(
-  getUserId: () => string | null = () => null,
-) {
+export function activeWorkoutQueryOptions(getUserId: () => string | null = () => null) {
   return queryOptions({
     queryKey: workoutQueryKeys.active(),
     queryFn: async ({ client }): Promise<WorkoutSessionDetail | null> => {
@@ -98,10 +89,7 @@ export function workoutDetailQueryOptions(
         if (userId) {
           await persistServerSnapshot(userId, data);
         }
-        client.setQueryData(
-          workoutQueryKeys.detailFromLocal(workoutSessionId),
-          false,
-        );
+        client.setQueryData(workoutQueryKeys.detailFromLocal(workoutSessionId), false);
         return data;
       } catch (error) {
         if (isAuthError(error)) {
@@ -114,10 +102,7 @@ export function workoutDetailQueryOptions(
         if (isNetworkError(error) && userId) {
           const local = await getSnapshot(userId, workoutSessionId);
           if (local) {
-            client.setQueryData(
-              workoutQueryKeys.detailFromLocal(workoutSessionId),
-              true,
-            );
+            client.setQueryData(workoutQueryKeys.detailFromLocal(workoutSessionId), true);
             return local.data;
           }
         }

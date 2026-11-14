@@ -41,8 +41,7 @@ export class UsersService {
         experienceLevel: data.experienceLevel,
         effortTrackingMode: data.effortTrackingMode,
         heightCm: data.heightCm === undefined ? undefined : data.heightCm,
-        currentWeightKg:
-          data.currentWeightKg === undefined ? undefined : data.currentWeightKg,
+        currentWeightKg: data.currentWeightKg === undefined ? undefined : data.currentWeightKg,
         weeklyTrainingTarget: data.weeklyTrainingTarget,
         defaultWorkoutDurationMinutes: data.defaultWorkoutDurationMinutes,
       },

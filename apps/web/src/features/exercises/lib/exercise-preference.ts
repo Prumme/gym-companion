@@ -11,9 +11,7 @@ export const DEFAULT_EXERCISE_USER_PREFERENCE: ExerciseUserPreference = {
   restSecondsOverride: null,
 };
 
-export function hasCustomExercisePreference(
-  preference: ExerciseUserPreference,
-): boolean {
+export function hasCustomExercisePreference(preference: ExerciseUserPreference): boolean {
   return (
     preference.isFavorite ||
     preference.isExcludedFromSuggestions ||
@@ -50,9 +48,7 @@ export function preferenceToFormValues(
     isExcludedFromSuggestions: preference.isExcludedFromSuggestions,
     preferredEquipmentTypeId: preference.preferredEquipmentType?.id ?? '',
     restSecondsOverride:
-      preference.restSecondsOverride != null
-        ? String(preference.restSecondsOverride)
-        : '',
+      preference.restSecondsOverride != null ? String(preference.restSecondsOverride) : '',
   };
 }
 
@@ -61,16 +57,13 @@ export function preferenceFormToPayload(
   values: ExercisePreferenceFormValues,
 ): UpdateExercisePreferenceInput {
   const trimmedRest = values.restSecondsOverride.trim();
-  const restSecondsOverride =
-    trimmedRest.length === 0 ? null : Number(trimmedRest);
+  const restSecondsOverride = trimmedRest.length === 0 ? null : Number(trimmedRest);
 
   return updateExercisePreferenceSchema.parse({
     isFavorite: values.isFavorite,
     isExcludedFromSuggestions: values.isExcludedFromSuggestions,
     preferredEquipmentTypeId:
-      values.preferredEquipmentTypeId.trim() === ''
-        ? null
-        : values.preferredEquipmentTypeId,
+      values.preferredEquipmentTypeId.trim() === '' ? null : values.preferredEquipmentTypeId,
     restSecondsOverride,
   });
 }

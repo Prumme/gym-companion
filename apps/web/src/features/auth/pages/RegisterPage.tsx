@@ -49,8 +49,18 @@ export function RegisterPage() {
         <p className="text-[var(--muted)]">Commencez à suivre vos entraînements.</p>
       </div>
       <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
-        <Input label="Nom affiché" error={errors.displayName?.message} {...register('displayName')} />
-        <Input label="Email" type="email" autoComplete="email" error={errors.email?.message} {...register('email')} />
+        <Input
+          label="Nom affiché"
+          error={errors.displayName?.message}
+          {...register('displayName')}
+        />
+        <Input
+          label="Email"
+          type="email"
+          autoComplete="email"
+          error={errors.email?.message}
+          {...register('email')}
+        />
         <Input
           label="Mot de passe"
           type="password"

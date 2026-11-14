@@ -25,9 +25,7 @@ export function exerciseListInfiniteQueryOptions(filters: ExerciseListFilters) {
       }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
-      lastPage.pagination.hasMore
-        ? (lastPage.pagination.nextCursor ?? undefined)
-        : undefined,
+      lastPage.pagination.hasMore ? (lastPage.pagination.nextCursor ?? undefined) : undefined,
   });
 }
 

@@ -7,9 +7,7 @@ import type {
 
 import { apiFetch } from '@/lib/api/client';
 
-export async function createProgramShare(
-  programId: string,
-): Promise<CreateTrainingShareResponse> {
+export async function createProgramShare(programId: string): Promise<CreateTrainingShareResponse> {
   const response = await apiFetch<{ data: CreateTrainingShareResponse }>(
     `/api/v1/programs/${encodeURIComponent(programId)}/share`,
     { method: 'POST', body: '{}' },
@@ -28,9 +26,7 @@ export async function createWorkoutTemplateShare(
   return response.data;
 }
 
-export async function getSharePreview(
-  token: string,
-): Promise<TrainingSharePreviewResponse> {
+export async function getSharePreview(token: string): Promise<TrainingSharePreviewResponse> {
   const response = await apiFetch<{ data: TrainingSharePreviewResponse }>(
     `/api/v1/shares/${encodeURIComponent(token)}`,
   );
@@ -52,7 +48,6 @@ export async function importShare(
 }
 
 export function buildShareUrl(token: string): string {
-  const origin =
-    typeof window !== 'undefined' ? window.location.origin : '';
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
   return `${origin}/share/${encodeURIComponent(token)}`;
 }

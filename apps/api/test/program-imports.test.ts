@@ -15,8 +15,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -28,11 +27,7 @@ function applyTestEnv() {
   process.env.AI_COACH_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -119,12 +114,8 @@ describe('Program imports API', () => {
     });
     bodyweightSlug = bodyweight.slug!;
 
-    chestId = (
-      await prisma.muscleGroup.findFirstOrThrow({ where: { code: 'chest' } })
-    ).id;
-    machineId = (
-      await prisma.equipmentType.findFirstOrThrow({ where: { code: 'machine' } })
-    ).id;
+    chestId = (await prisma.muscleGroup.findFirstOrThrow({ where: { code: 'chest' } })).id;
+    machineId = (await prisma.equipmentType.findFirstOrThrow({ where: { code: 'machine' } })).id;
   });
 
   afterAll(async () => {
@@ -140,9 +131,7 @@ describe('Program imports API', () => {
       .post('/api/v1/program-imports')
       .send({ schemaVersion: 1, program: {} })
       .expect(401);
-    await request(app.getHttpServer())
-      .get('/api/v1/exercises/system-catalog')
-      .expect(401);
+    await request(app.getHttpServer()).get('/api/v1/exercises/system-catalog').expect(401);
   });
 
   it('returns a compact SYSTEM catalog without UUID or personal data', async () => {
@@ -222,12 +211,8 @@ describe('Program imports API', () => {
     expect(response.body.data.preview.workoutCount).toBe(2);
     expect(response.body.data.preview.exerciseCount).toBe(3);
     expect(response.body.data.preview.setCount).toBe(4);
-    expect(response.body.data.preview.workouts[0].exercises[0].exerciseSlug).toBe(
-      weightSlug,
-    );
-    expect(response.body.data.preview.workouts[0].exercises[0].name).not.toBe(
-      weightSlug,
-    );
+    expect(response.body.data.preview.workouts[0].exercises[0].exerciseSlug).toBe(weightSlug);
+    expect(response.body.data.preview.workouts[0].exercises[0].name).not.toBe(weightSlug);
 
     const after = await prisma.program.count({ where: { ownerUserId: userAId } });
     expect(after).toBe(before);
@@ -378,22 +363,13 @@ describe('Program imports API', () => {
     expect(imported.body.data.workoutTemplates).toHaveLength(3);
     expect(imported.body.data.workoutTemplates[0].position).toBe(0);
     expect(imported.body.data.workoutTemplates[1].name).toBe('Pull');
-    expect(
-      imported.body.data.workoutTemplates[0].exercises[0].exercise.id,
-    ).toBe(weightExerciseId);
-    expect(
-      imported.body.data.workoutTemplates[0].exercises[0].sets,
-    ).toHaveLength(3);
-    expect(
-      imported.body.data.workoutTemplates[0].exercises[0].sets[0].setType,
-    ).toBe('WORKING');
-    expect(
-      imported.body.data.workoutTemplates[0].exercises[0].sets[0].targetRepMin,
-    ).toBe(8);
-    expect(
-      imported.body.data.workoutTemplates[2].exercises[0].sets[0]
-        .targetDurationSeconds,
-    ).toBe(40);
+    expect(imported.body.data.workoutTemplates[0].exercises[0].exercise.id).toBe(weightExerciseId);
+    expect(imported.body.data.workoutTemplates[0].exercises[0].sets).toHaveLength(3);
+    expect(imported.body.data.workoutTemplates[0].exercises[0].sets[0].setType).toBe('WORKING');
+    expect(imported.body.data.workoutTemplates[0].exercises[0].sets[0].targetRepMin).toBe(8);
+    expect(imported.body.data.workoutTemplates[2].exercises[0].sets[0].targetDurationSeconds).toBe(
+      40,
+    );
 
     const activations = await prisma.programActivation.count({
       where: { userId: userAId, endedOn: null },

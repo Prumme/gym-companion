@@ -46,10 +46,7 @@ import { updateSetPayloadSchema } from './schemas';
 export const SYNC_BACKOFF_MS = [2_000, 5_000, 15_000, 30_000, 60_000] as const;
 
 export function getBackoffDelayMs(attemptCount: number): number {
-  const index = Math.min(
-    Math.max(attemptCount - 1, 0),
-    SYNC_BACKOFF_MS.length - 1,
-  );
+  const index = Math.min(Math.max(attemptCount - 1, 0), SYNC_BACKOFF_MS.length - 1);
   return SYNC_BACKOFF_MS[index]!;
 }
 
@@ -64,9 +61,7 @@ async function executeCommand(
   command: StoredWorkoutCommand,
 ): Promise<UpdateWorkoutSetResult | WorkoutLifecycleResult> {
   if (command.type === 'UPDATE_WORKOUT_SET') {
-    const payload = updateSetPayloadSchema.parse(
-      command.payload,
-    ) as UpdateWorkoutSetCommandPayload;
+    const payload = updateSetPayloadSchema.parse(command.payload) as UpdateWorkoutSetCommandPayload;
     const input: UpdateWorkoutSetInput = {
       status: payload.status,
       actualWeightKg: payload.actualWeightKg,
@@ -143,11 +138,7 @@ export async function syncWorkoutSession(
 
   const syncState = await getSyncState(userId, workoutSessionId);
   const now = Date.now();
-  if (
-    !options.force &&
-    syncState?.backoffUntilEpochMs &&
-    syncState.backoffUntilEpochMs > now
-  ) {
+  if (!options.force && syncState?.backoffUntilEpochMs && syncState.backoffUntilEpochMs > now) {
     return { status: 'offline', applied: 0 };
   }
 
@@ -165,8 +156,7 @@ export async function syncWorkoutSession(
         userId,
         workoutSessionId,
         status: 'SYNCING',
-        pendingCount: (await listPendingCommands(userId, workoutSessionId))
-          .length,
+        pendingCount: (await listPendingCommands(userId, workoutSessionId)).length,
         lease,
         lastSyncedAt: syncState?.lastSyncedAt ?? null,
       }),
@@ -179,8 +169,7 @@ export async function syncWorkoutSession(
 
     const open = await listOpenCommands(userId, workoutSessionId);
     const blocking = open.find(
-      (command) =>
-        command.status === 'CONFLICT' || command.status === 'REJECTED',
+      (command) => command.status === 'CONFLICT' || command.status === 'REJECTED',
     );
     if (blocking) {
       await putSyncState(
@@ -239,18 +228,12 @@ export async function syncWorkoutSession(
         const result = await executeCommand(syncingCommand);
         const snapshot = await getSnapshot(userId, workoutSessionId);
         if (snapshot) {
-          const nextData = applyServerResultToSnapshot(
-            snapshot.data,
-            syncingCommand,
-            result,
+          const nextData = applyServerResultToSnapshot(snapshot.data, syncingCommand, result);
+          const remaining = (await listPendingCommands(userId, workoutSessionId)).filter(
+            (item) => item.id !== syncingCommand.id,
           );
-          const remaining = (
-            await listPendingCommands(userId, workoutSessionId)
-          ).filter((item) => item.id !== syncingCommand.id);
           const serverVersion =
-            'workoutSessionVersion' in result
-              ? result.workoutSessionVersion
-              : nextData.version;
+            'workoutSessionVersion' in result ? result.workoutSessionVersion : nextData.version;
           await saveSnapshot({
             ...snapshot,
             data: {
@@ -293,8 +276,7 @@ export async function syncWorkoutSession(
               status: 'ERROR',
               pendingCount: pending.length - applied,
               lastErrorCode: 'UNAUTHORIZED',
-              lastErrorMessage:
-                'Session expirée. Reconnecte-toi pour synchroniser.',
+              lastErrorMessage: 'Session expirée. Reconnecte-toi pour synchroniser.',
               lease: null,
             }),
           );
@@ -310,9 +292,7 @@ export async function syncWorkoutSession(
             updatedAt: new Date().toISOString(),
           });
           try {
-            const serverDetail = await getWorkoutSessionDetail(
-              workoutSessionId,
-            );
+            const serverDetail = await getWorkoutSessionDetail(workoutSessionId);
             options.onSessionUpdated?.(serverDetail);
           } catch {
             // keep local
@@ -369,8 +349,7 @@ export async function syncWorkoutSession(
               status: 'OFFLINE',
               pendingCount: pending.length - applied,
               lastErrorCode: getErrorCode(error),
-              lastErrorMessage:
-                'Une connexion est nécessaire pour synchroniser.',
+              lastErrorMessage: 'Une connexion est nécessaire pour synchroniser.',
               backoffUntilEpochMs: Date.now() + delay,
               lease: null,
             }),

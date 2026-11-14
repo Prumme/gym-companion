@@ -18,14 +18,7 @@ import {
 
 const setFormSchema = z
   .object({
-    setType: z.enum([
-      'WARMUP',
-      'WORKING',
-      'BACKOFF',
-      'DROP_SET',
-      'AMRAP',
-      'FAILURE_OPTIONAL',
-    ]),
+    setType: z.enum(['WARMUP', 'WORKING', 'BACKOFF', 'DROP_SET', 'AMRAP', 'FAILURE_OPTIONAL']),
     targetRepMin: z.string(),
     targetRepMax: z.string(),
     targetDurationMinutes: z.string(),
@@ -119,9 +112,7 @@ export function TemplateSetEditor({
     }
     if (
       dirty &&
-      !window.confirm(
-        'Des modifications non enregistrées seront perdues. Continuer ?',
-      )
+      !window.confirm('Des modifications non enregistrées seront perdues. Continuer ?')
     ) {
       return;
     }
@@ -159,11 +150,7 @@ export function TemplateSetEditor({
           <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
             <label className="flex flex-col gap-1 text-sm" htmlFor="set-type">
               <span className="font-medium">Type</span>
-              <select
-                id="set-type"
-                className={cn(fieldClass, 'text-sm')}
-                {...register('setType')}
-              >
+              <select id="set-type" className={cn(fieldClass, 'text-sm')} {...register('setType')}>
                 {WORKOUT_SET_TYPE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -213,10 +200,7 @@ export function TemplateSetEditor({
 
             {needsDuration ? (
               <div className="grid grid-cols-2 gap-3">
-                <label
-                  className="flex flex-col gap-1 text-sm"
-                  htmlFor="set-duration-min"
-                >
+                <label className="flex flex-col gap-1 text-sm" htmlFor="set-duration-min">
                   <span className="font-medium">Minutes</span>
                   <input
                     id="set-duration-min"
@@ -226,10 +210,7 @@ export function TemplateSetEditor({
                     {...register('targetDurationMinutes')}
                   />
                 </label>
-                <label
-                  className="flex flex-col gap-1 text-sm"
-                  htmlFor="set-duration-sec"
-                >
+                <label className="flex flex-col gap-1 text-sm" htmlFor="set-duration-sec">
                   <span className="font-medium">Secondes</span>
                   <input
                     id="set-duration-sec"
@@ -243,10 +224,7 @@ export function TemplateSetEditor({
             ) : null}
 
             {needsDistance ? (
-              <label
-                className="flex flex-col gap-1 text-sm"
-                htmlFor="set-distance"
-              >
+              <label className="flex flex-col gap-1 text-sm" htmlFor="set-distance">
                 <span className="font-medium">Distance (mètres)</span>
                 <input
                   id="set-distance"
@@ -303,10 +281,7 @@ export function TemplateSetEditor({
 
             {moreOpen ? (
               <div className="space-y-3 border-t border-[var(--border)] pt-3">
-                <label
-                  className="flex flex-col gap-1 text-sm"
-                  htmlFor="set-intensity"
-                >
+                <label className="flex flex-col gap-1 text-sm" htmlFor="set-intensity">
                   <span className="font-medium">Intensité (%)</span>
                   <input
                     id="set-intensity"

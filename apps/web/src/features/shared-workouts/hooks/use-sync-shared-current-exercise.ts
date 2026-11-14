@@ -22,8 +22,7 @@ export function useSyncSharedCurrentExercise(
   const [syncError, setSyncError] = useState<string | null>(null);
 
   const room = contextQuery.data?.room ?? null;
-  const linkedActive =
-    Boolean(contextQuery.data?.linked) && room?.status === 'ACTIVE';
+  const linkedActive = Boolean(contextQuery.data?.linked) && room?.status === 'ACTIVE';
 
   useEffect(() => {
     if (!workoutSessionId || !linkedActive || !room) return;
@@ -32,8 +31,7 @@ export function useSyncSharedCurrentExercise(
     const nextId = selectedExerciseId;
     if (lastSent.current === nextId) return;
     if (lastSent.current === undefined) {
-      lastSent.current =
-        contextQuery.data?.currentWorkoutSessionExerciseId ?? null;
+      lastSent.current = contextQuery.data?.currentWorkoutSessionExerciseId ?? null;
       if (lastSent.current === nextId) return;
     }
 
@@ -51,10 +49,7 @@ export function useSyncSharedCurrentExercise(
         return;
       }
       setSyncError(
-        getApiErrorMessage(
-          error,
-          'Impossible de synchroniser l’exercice courant partagé.',
-        ),
+        getApiErrorMessage(error, 'Impossible de synchroniser l’exercice courant partagé.'),
       );
     });
   }, [

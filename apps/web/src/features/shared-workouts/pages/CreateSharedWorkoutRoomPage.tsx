@@ -17,9 +17,7 @@ export function CreateSharedWorkoutRoomPage() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (offline) {
-      setSubmitError(
-        'Une connexion est nécessaire pour gérer une séance partagée.',
-      );
+      setSubmitError('Une connexion est nécessaire pour gérer une séance partagée.');
       return;
     }
     setSubmitError(null);
@@ -29,9 +27,7 @@ export function CreateSharedWorkoutRoomPage() {
       });
       void navigate(`/shared-workouts/${room.id}`, { replace: true });
     } catch (error) {
-      setSubmitError(
-        getApiErrorMessage(error, 'Impossible de créer la salle.'),
-      );
+      setSubmitError(getApiErrorMessage(error, 'Impossible de créer la salle.'));
     }
   }
 

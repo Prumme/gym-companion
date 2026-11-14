@@ -20,9 +20,9 @@ vi.mock('@/features/profile/api/profile-api', () => ({
 }));
 
 vi.mock('@/features/workouts/offline/store', async () => {
-  const actual = await vi.importActual<
-    typeof import('@/features/workouts/offline/store')
-  >('@/features/workouts/offline/store');
+  const actual = await vi.importActual<typeof import('@/features/workouts/offline/store')>(
+    '@/features/workouts/offline/store',
+  );
   return {
     ...actual,
     listPendingTerminalSnapshots: vi.fn().mockResolvedValue([]),
@@ -55,8 +55,7 @@ function meResponse() {
 }
 
 function record(
-  overrides: Partial<PersonalRecord> &
-    Pick<PersonalRecord, 'recordType' | 'value'>,
+  overrides: Partial<PersonalRecord> & Pick<PersonalRecord, 'recordType' | 'value'>,
 ): PersonalRecord {
   return {
     exerciseId: 'ex-1',
@@ -98,10 +97,7 @@ function renderPage() {
         <Routes>
           <Route path="/records" element={<PersonalRecordsPage />} />
           <Route path="/progress" element={<div>Progression</div>} />
-          <Route
-            path="/progress/exercises/:id"
-            element={<div>Progression exercice</div>}
-          />
+          <Route path="/progress/exercises/:id" element={<div>Progression exercice</div>} />
           <Route path="/programs" element={<div>Programmes</div>} />
           <Route path="/workouts" element={<div>Historique</div>} />
         </Routes>
@@ -123,18 +119,16 @@ describe('PersonalRecordsPage', () => {
       pagination: { nextCursor: null, hasMore: false },
     });
     renderPage();
-    expect(
-      await screen.findByRole('heading', { name: 'Records personnels' }),
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByText('Aucun record pour le moment.'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Voir mes programmes' }),
-    ).toHaveAttribute('href', '/programs');
-    expect(
-      screen.getByRole('link', { name: 'Voir mon historique' }),
-    ).toHaveAttribute('href', '/workouts');
+    expect(await screen.findByRole('heading', { name: 'Records personnels' })).toBeInTheDocument();
+    expect(await screen.findByText('Aucun record pour le moment.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Voir mes programmes' })).toHaveAttribute(
+      'href',
+      '/programs',
+    );
+    expect(screen.getByRole('link', { name: 'Voir mon historique' })).toHaveAttribute(
+      'href',
+      '/workouts',
+    );
   });
 
   it('affiche hero, types de records et navigation compacte', async () => {
@@ -240,9 +234,10 @@ describe('PersonalRecordsPage', () => {
     expect(screen.getByText(/1[\s\u202f]?500 m/)).toBeInTheDocument();
     expect(screen.getAllByText(/12 août 2026/).length).toBeGreaterThan(0);
 
-    expect(
-      screen.getByRole('link', { name: /Charge maximale : 100 kg/i }),
-    ).toHaveAttribute('href', '/progress/exercises/ex-1');
+    expect(screen.getByRole('link', { name: /Charge maximale : 100 kg/i })).toHaveAttribute(
+      'href',
+      '/progress/exercises/ex-1',
+    );
   });
 
   it('gère erreur initiale et pagination', async () => {

@@ -37,10 +37,7 @@ export function ExercisePersonalRecordsSection({
       {recordsQuery.isError ? (
         <div role="alert">
           <p className="text-sm text-[var(--danger)]">
-            {getApiErrorMessage(
-              recordsQuery.error,
-              'Impossible de charger les records.',
-            )}
+            {getApiErrorMessage(recordsQuery.error, 'Impossible de charger les records.')}
           </p>
           <button
             type="button"
@@ -53,9 +50,7 @@ export function ExercisePersonalRecordsSection({
       ) : null}
 
       {recordsQuery.isSuccess && recordsQuery.data.length === 0 ? (
-        <p className="text-sm text-[var(--muted)]">
-          Aucun record enregistré pour cet exercice.
-        </p>
+        <p className="text-sm text-[var(--muted)]">Aucun record enregistré pour cet exercice.</p>
       ) : null}
 
       {recordsQuery.isSuccess && recordsQuery.data.length > 0 ? (

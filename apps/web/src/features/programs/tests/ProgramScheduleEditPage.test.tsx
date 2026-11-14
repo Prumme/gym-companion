@@ -6,26 +6,19 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ProgramScheduleEditPage } from '../pages/ProgramScheduleEditPage';
-import {
-  createProgramDetail,
-  createProgramSchedule,
-  createTemplate,
-} from './fixtures';
+import { createProgramDetail, createProgramSchedule, createTemplate } from './fixtures';
 
 const getProgram = vi.fn();
 const getProgramSchedule = vi.fn();
 const replaceProgramSchedule = vi.fn();
 
 vi.mock('../api/program-api', async () => {
-  const actual = await vi.importActual<typeof import('../api/program-api')>(
-    '../api/program-api',
-  );
+  const actual = await vi.importActual<typeof import('../api/program-api')>('../api/program-api');
   return {
     ...actual,
     getProgram: (...args: unknown[]) => getProgram(...args),
     getProgramSchedule: (...args: unknown[]) => getProgramSchedule(...args),
-    replaceProgramSchedule: (...args: unknown[]) =>
-      replaceProgramSchedule(...args),
+    replaceProgramSchedule: (...args: unknown[]) => replaceProgramSchedule(...args),
   };
 });
 
@@ -123,11 +116,10 @@ describe('ProgramScheduleEditPage', () => {
 
   it('shows empty templates message', async () => {
     renderScheduleEditor(createProgramDetail({ workoutTemplates: [] }));
-    expect(
-      await screen.findByText(/n’a aucun modèle de séance/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /Configurer les séances/i }),
-    ).toHaveAttribute('href', `/programs/${PROGRAM_ID}`);
+    expect(await screen.findByText(/n’a aucun modèle de séance/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Configurer les séances/i })).toHaveAttribute(
+      'href',
+      `/programs/${PROGRAM_ID}`,
+    );
   });
 });

@@ -56,17 +56,12 @@ export function ActiveWorkoutHeader({
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   const exercisePercent =
-    totalExercises === 0
-      ? 0
-      : Math.round(((currentExerciseIndex + 1) / totalExercises) * 100);
+    totalExercises === 0 ? 0 : Math.round(((currentExerciseIndex + 1) / totalExercises) * 100);
 
   useEffect(() => {
     if (!menuOpen) return;
     function onPointerDown(event: MouseEvent) {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target as Node)
-      ) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setMenuOpen(false);
       }
     }
@@ -195,10 +190,7 @@ export function ActiveWorkoutHeader({
             <p className="text-center text-xs tabular-nums text-[var(--muted)]">
               {currentExerciseIndex + 1} / {totalExercises} exercices
             </p>
-            <div
-              className="h-1 overflow-hidden rounded-full bg-[var(--border)]"
-              aria-hidden="true"
-            >
+            <div className="h-1 overflow-hidden rounded-full bg-[var(--border)]" aria-hidden="true">
               <div
                 className="h-full rounded-full bg-[var(--primary)] transition-[width] duration-300"
                 style={{ width: `${exercisePercent}%` }}
@@ -244,9 +236,7 @@ export function ActiveWorkoutHeader({
               {session.source.workoutTemplateName ? (
                 <div className="flex justify-between gap-3">
                   <dt className="text-[var(--muted)]">Modèle</dt>
-                  <dd className="text-right">
-                    {session.source.workoutTemplateName}
-                  </dd>
+                  <dd className="text-right">{session.source.workoutTemplateName}</dd>
                 </div>
               ) : null}
               <div className="flex justify-between gap-3">
@@ -255,16 +245,12 @@ export function ActiveWorkoutHeader({
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-[var(--muted)]">Début</dt>
-                <dd>
-                  {formatDateTime(session.startedAt, session.timezone)}
-                </dd>
+                <dd>{formatDateTime(session.startedAt, session.timezone)}</dd>
               </div>
               {session.pausedAt ? (
                 <div className="flex justify-between gap-3">
                   <dt className="text-[var(--muted)]">Pause</dt>
-                  <dd>
-                    {formatDateTime(session.pausedAt, session.timezone)}
-                  </dd>
+                  <dd>{formatDateTime(session.pausedAt, session.timezone)}</dd>
                 </div>
               ) : null}
             </dl>

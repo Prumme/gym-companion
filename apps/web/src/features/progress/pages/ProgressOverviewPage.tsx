@@ -1,7 +1,4 @@
-import type {
-  ProgressOverviewMetric,
-  ProgressOverviewPoint,
-} from '@gym-companion/shared';
+import type { ProgressOverviewMetric, ProgressOverviewPoint } from '@gym-companion/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -58,10 +55,7 @@ function latestTimelineValue(
 
 export function ProgressOverviewPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const urlFilters = useMemo(
-    () => parseOverviewSearchParams(searchParams),
-    [searchParams],
-  );
+  const urlFilters = useMemo(() => parseOverviewSearchParams(searchParams), [searchParams]);
 
   const apiFilters = useMemo(
     () => ({
@@ -94,10 +88,7 @@ export function ProgressOverviewPage() {
     return (
       <main className="flex flex-1 flex-col gap-4">
         <h1 className="text-2xl font-bold tracking-tight">Progression</h1>
-        <div
-          className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4"
-          role="alert"
-        >
+        <div className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4" role="alert">
           <p className="text-sm text-[var(--danger)]">
             {getApiErrorMessage(
               overviewQuery.error,
@@ -124,9 +115,7 @@ export function ProgressOverviewPage() {
   const isEmpty = data.totals.workoutCount === 0;
   const latestValue = latestTimelineValue(data.timeline.points, selectedMetric);
   const periodLabel =
-    data.range.from && data.range.to
-      ? `${data.range.from} → ${data.range.to}`
-      : 'Toute la période';
+    data.range.from && data.range.to ? `${data.range.from} → ${data.range.to}` : 'Toute la période';
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5">

@@ -4,11 +4,11 @@ import { Link, type LinkProps } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 const variants = {
-  primary:
-    'bg-[var(--primary)] text-[var(--primary-foreground)] hover:brightness-95',
+  primary: 'bg-[var(--primary)] text-[var(--primary-foreground)] hover:brightness-95',
   secondary:
     'border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--background)]',
-  ghost: 'bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--background)]',
+  ghost:
+    'bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--background)]',
   destructive:
     'border border-[var(--danger)]/30 bg-[var(--danger)]/5 text-[var(--danger)] hover:bg-[var(--danger)]/10',
 } as const;
@@ -32,11 +32,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   return (
-    <button
-      type={type}
-      className={cn(baseClass, variants[variant], className)}
-      {...props}
-    >
+    <button type={type} className={cn(baseClass, variants[variant], className)} {...props}>
       {children}
     </button>
   );

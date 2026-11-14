@@ -26,14 +26,11 @@ export function CreateExercisePage() {
   const equipmentTypesQuery = useQuery(equipmentTypesQueryOptions());
   const createMutation = useCreateExerciseMutation();
 
-  const referencesLoading =
-    muscleGroupsQuery.isLoading || equipmentTypesQuery.isLoading;
-  const referencesError =
-    muscleGroupsQuery.isError || equipmentTypesQuery.isError;
+  const referencesLoading = muscleGroupsQuery.isLoading || equipmentTypesQuery.isLoading;
+  const referencesError = muscleGroupsQuery.isError || equipmentTypesQuery.isError;
   const muscleGroups = muscleGroupsQuery.data ?? [];
   const equipmentTypes = equipmentTypesQuery.data ?? [];
-  const referencesReady =
-    !referencesLoading && !referencesError && muscleGroups.length > 0;
+  const referencesReady = !referencesLoading && !referencesError && muscleGroups.length > 0;
 
   async function handleSubmit(values: ExerciseFormValues) {
     setSubmitError(null);
@@ -64,9 +61,7 @@ export function CreateExercisePage() {
         className="mb-0"
       />
 
-      {referencesLoading ? (
-        <LoadingState label="Chargement des références…" />
-      ) : null}
+      {referencesLoading ? <LoadingState label="Chargement des références…" /> : null}
 
       {referencesError ? (
         <div
@@ -93,16 +88,14 @@ export function CreateExercisePage() {
         </div>
       ) : null}
 
-      {!referencesLoading &&
-      !referencesError &&
-      muscleGroups.length === 0 ? (
+      {!referencesLoading && !referencesError && muscleGroups.length === 0 ? (
         <div
           className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] p-4"
           role="status"
         >
           <p className="text-sm text-[var(--muted-foreground)]">
-            Les groupes musculaires sont indisponibles. Impossible de créer un
-            exercice pour le moment.
+            Les groupes musculaires sont indisponibles. Impossible de créer un exercice pour le
+            moment.
           </p>
         </div>
       ) : null}

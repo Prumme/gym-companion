@@ -12,10 +12,7 @@ import { getApiErrorMessage } from '@/lib/api/client';
 
 import { programQueryKeys } from '../api/program-query-keys';
 import { useProgramContentMutations } from '../hooks/use-program-mutations';
-import {
-  reorderExercisesInDetail,
-  reorderSetsInDetail,
-} from '../lib/program-cache';
+import { reorderExercisesInDetail, reorderSetsInDetail } from '../lib/program-cache';
 import { canMoveDown, canMoveUp } from '../lib/reorder';
 import {
   compatibleEquipmentOptions,
@@ -52,9 +49,7 @@ function formatExerciseMeta(exercise: WorkoutTemplateExerciseDetail): string {
     parts.push(exercise.equipmentType.name);
   }
   const rest =
-    exercise.restSecondsOverride != null
-      ? `repos ${exercise.restSecondsOverride} s`
-      : null;
+    exercise.restSecondsOverride != null ? `repos ${exercise.restSecondsOverride} s` : null;
   if (rest) parts.push(rest);
   return parts.join(' · ');
 }
@@ -74,9 +69,7 @@ export function TemplateExerciseCard({
   const [editOpen, setEditOpen] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [setEditorOpen, setSetEditorOpen] = useState(false);
-  const [editingSet, setEditingSet] = useState<WorkoutTemplateSetTarget | null>(
-    null,
-  );
+  const [editingSet, setEditingSet] = useState<WorkoutTemplateSetTarget | null>(null);
   const [setFormValues, setSetFormValues] = useState<TemplateSetFormValues>(
     emptySetFormValues(exercise.exercise.measurementType),
   );
@@ -124,9 +117,7 @@ export function TemplateExerciseCard({
       setEditOpen(false);
       onStatus('Exercice mis à jour.');
     } catch (err) {
-      setError(
-        getApiErrorMessage(err, 'Impossible de modifier cet exercice.'),
-      );
+      setError(getApiErrorMessage(err, 'Impossible de modifier cet exercice.'));
     }
   }
 
@@ -156,21 +147,13 @@ export function TemplateExerciseCard({
       return;
     }
 
-    const result = reorderExercisesInDetail(
-      snapshot,
-      workoutTemplateId,
-      index,
-      direction,
-    );
+    const result = reorderExercisesInDetail(snapshot, workoutTemplateId, index, direction);
     if (!result) {
       onBusyChange?.(false);
       return;
     }
 
-    mutations.queryClient.setQueryData(
-      programQueryKeys.detail(programId),
-      result.next,
-    );
+    mutations.queryClient.setQueryData(programQueryKeys.detail(programId), result.next);
 
     try {
       await mutations.reorderExercises.mutateAsync({
@@ -180,13 +163,8 @@ export function TemplateExerciseCard({
       });
       onStatus('Ordre des exercices mis à jour.');
     } catch (err) {
-      mutations.queryClient.setQueryData(
-        programQueryKeys.detail(programId),
-        snapshot,
-      );
-      setError(
-        getApiErrorMessage(err, 'Impossible de réordonner les exercices.'),
-      );
+      mutations.queryClient.setQueryData(programQueryKeys.detail(programId), snapshot);
+      setError(getApiErrorMessage(err, 'Impossible de réordonner les exercices.'));
     } finally {
       onBusyChange?.(false);
     }
@@ -270,10 +248,7 @@ export function TemplateExerciseCard({
       onBusyChange?.(false);
       return;
     }
-    mutations.queryClient.setQueryData(
-      programQueryKeys.detail(programId),
-      result.next,
-    );
+    mutations.queryClient.setQueryData(programQueryKeys.detail(programId), result.next);
     try {
       await mutations.reorderSets.mutateAsync({
         programId,
@@ -283,10 +258,7 @@ export function TemplateExerciseCard({
       });
       onStatus('Ordre des séries mis à jour.');
     } catch (err) {
-      mutations.queryClient.setQueryData(
-        programQueryKeys.detail(programId),
-        snapshot,
-      );
+      mutations.queryClient.setQueryData(programQueryKeys.detail(programId), snapshot);
       setError(getApiErrorMessage(err, 'Impossible de réordonner les séries.'));
     } finally {
       onBusyChange?.(false);
@@ -309,9 +281,7 @@ export function TemplateExerciseCard({
           <h3 className="text-base font-semibold tracking-tight uppercase sm:normal-case">
             {exercise.exercise.name}
           </h3>
-          <p className="mt-0.5 text-sm text-[var(--muted)]">
-            {formatExerciseMeta(exercise)}
-          </p>
+          <p className="mt-0.5 text-sm text-[var(--muted)]">{formatExerciseMeta(exercise)}</p>
           <p className="mt-0.5 text-xs text-[var(--muted)]">
             {exercise.sets.length} série
             {exercise.sets.length === 1 ? '' : 's'}
@@ -320,9 +290,7 @@ export function TemplateExerciseCard({
             <p className="mt-1 text-sm text-[var(--muted)]">{exercise.notes}</p>
           ) : null}
           {isArchivedSource ? (
-            <p className="mt-1 text-xs font-medium text-amber-800">
-              Exercice source archivé
-            </p>
+            <p className="mt-1 text-xs font-medium text-amber-800">Exercice source archivé</p>
           ) : null}
           <LoadRecommendationCard
             variant="compact"
@@ -330,9 +298,7 @@ export function TemplateExerciseCard({
             workoutTemplateExerciseId={exercise.id}
             exerciseId={exercise.exercise.id}
             measurementType={exercise.exercise.measurementType}
-            workingSetCount={
-              exercise.sets.filter((set) => set.setType === 'WORKING').length
-            }
+            workingSetCount={exercise.sets.filter((set) => set.setType === 'WORKING').length}
           />
         </div>
         {!readOnly ? (
@@ -399,10 +365,7 @@ export function TemplateExerciseCard({
                     },
                     {
                       label: 'Déplacer vers le haut',
-                      disabled:
-                        !canMoveUp(setIndex) ||
-                        busy ||
-                        mutations.reorderSets.isPending,
+                      disabled: !canMoveUp(setIndex) || busy || mutations.reorderSets.isPending,
                       onSelect: () => void handleSetReorder(setIndex, 'up'),
                     },
                     {
@@ -454,9 +417,7 @@ export function TemplateExerciseCard({
         submitLabel={editingSet ? 'Enregistrer' : 'Ajouter la série'}
         measurementType={exercise.exercise.measurementType}
         initialValues={setFormValues}
-        pending={
-          mutations.createSet.isPending || mutations.updateSet.isPending
-        }
+        pending={mutations.createSet.isPending || mutations.updateSet.isPending}
         submitError={error}
         onSubmit={handleSaveSet}
         onCancel={() => setSetEditorOpen(false)}

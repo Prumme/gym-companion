@@ -11,9 +11,7 @@ import { createProgramDetail } from './fixtures';
 const createProgram = vi.fn();
 
 vi.mock('../api/program-api', async () => {
-  const actual = await vi.importActual<typeof import('../api/program-api')>(
-    '../api/program-api',
-  );
+  const actual = await vi.importActual<typeof import('../api/program-api')>('../api/program-api');
   return {
     ...actual,
     createProgram: (...args: unknown[]) => createProgram(...args),

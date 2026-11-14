@@ -95,8 +95,7 @@ export function LoadRecommendationDecisionDialogs({
                   : getLoadRecommendationActionLabel(recommendation.action)}
             </p>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              Les séances déjà commencées ou terminées ne seront pas
-              modifiées.
+              Les séances déjà commencées ou terminées ne seront pas modifiées.
             </p>
             <label className="mt-3 block text-sm">
               Note facultative
@@ -113,19 +112,10 @@ export function LoadRecommendationDecisionDialogs({
               </p>
             ) : null}
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={pending}
-                onClick={onClose}
-              >
+              <Button type="button" variant="secondary" disabled={pending} onClick={onClose}>
                 Annuler
               </Button>
-              <Button
-                type="button"
-                disabled={pending}
-                onClick={() => onAccept(noteOrNull)}
-              >
+              <Button type="button" disabled={pending} onClick={() => onAccept(noteOrNull)}>
                 {pending
                   ? 'En cours…'
                   : recommendation.action === 'HOLD' && current != null
@@ -151,11 +141,9 @@ export function LoadRecommendationDecisionDialogs({
               Choisir une autre charge
             </h3>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              Actuelle :{' '}
-              {current != null ? formatLoadWeightKg(current) : '—'}
+              Actuelle : {current != null ? formatLoadWeightKg(current) : '—'}
               <br />
-              Recommandée :{' '}
-              {suggested != null ? formatLoadWeightKg(suggested) : '—'}
+              Recommandée : {suggested != null ? formatLoadWeightKg(suggested) : '—'}
             </p>
             <label className="mt-3 block text-sm font-medium">
               Nouvelle charge (kg)
@@ -187,12 +175,7 @@ export function LoadRecommendationDecisionDialogs({
               </p>
             ) : null}
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={pending}
-                onClick={onClose}
-              >
+              <Button type="button" variant="secondary" disabled={pending} onClick={onClose}>
                 Annuler
               </Button>
               <Button type="submit" disabled={pending}>
@@ -225,19 +208,10 @@ export function LoadRecommendationDecisionDialogs({
               </p>
             ) : null}
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={pending}
-                onClick={onClose}
-              >
+              <Button type="button" variant="secondary" disabled={pending} onClick={onClose}>
                 Annuler
               </Button>
-              <Button
-                type="button"
-                disabled={pending}
-                onClick={() => onIgnore(noteOrNull)}
-              >
+              <Button type="button" disabled={pending} onClick={() => onIgnore(noteOrNull)}>
                 {pending ? 'En cours…' : 'Ignorer'}
               </Button>
             </div>

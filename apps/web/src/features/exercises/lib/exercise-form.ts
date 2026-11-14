@@ -67,8 +67,7 @@ export function detailToFormValues(detail: ExerciseDetail): ExerciseFormValues {
       isPreferred: item.isPreferred,
       notes: item.notes ?? '',
     })),
-    defaultRestSeconds:
-      detail.defaultRestSeconds != null ? String(detail.defaultRestSeconds) : '',
+    defaultRestSeconds: detail.defaultRestSeconds != null ? String(detail.defaultRestSeconds) : '',
     instructions: detail.instructions ?? '',
   };
 }
@@ -115,9 +114,7 @@ export function reconcileDefaultEquipment(
   if (!defaultEquipmentTypeId) {
     return '';
   }
-  return compatibleEquipmentTypeIds.includes(defaultEquipmentTypeId)
-    ? defaultEquipmentTypeId
-    : '';
+  return compatibleEquipmentTypeIds.includes(defaultEquipmentTypeId) ? defaultEquipmentTypeId : '';
 }
 
 export function removeCompatibleEquipment(
@@ -163,25 +160,22 @@ export function isExerciseFormDirty(
   initial: ExerciseFormValues,
 ): boolean {
   return (
-    JSON.stringify(normalizeForCompare(current)) !==
-    JSON.stringify(normalizeForCompare(initial))
+    JSON.stringify(normalizeForCompare(current)) !== JSON.stringify(normalizeForCompare(initial))
   );
 }
 
-export function formValuesToCreatePayload(
-  values: ExerciseFormValues,
-): CreateExerciseInput {
+export function formValuesToCreatePayload(values: ExerciseFormValues): CreateExerciseInput {
   const secondaryMuscleGroupIds = normalizeSecondaryMuscleGroups(
     values.primaryMuscleGroupId,
     values.secondaryMuscleGroupIds,
   );
-  const compatibleEquipmentTypes = ensureSinglePreferred(
-    values.compatibleEquipmentTypes,
-  ).map((item) => ({
-    equipmentTypeId: item.equipmentTypeId,
-    isPreferred: item.isPreferred,
-    notes: item.notes.trim() === '' ? null : item.notes.trim(),
-  }));
+  const compatibleEquipmentTypes = ensureSinglePreferred(values.compatibleEquipmentTypes).map(
+    (item) => ({
+      equipmentTypeId: item.equipmentTypeId,
+      isPreferred: item.isPreferred,
+      notes: item.notes.trim() === '' ? null : item.notes.trim(),
+    }),
+  );
   const defaultEquipmentTypeId =
     reconcileDefaultEquipment(
       values.defaultEquipmentTypeId,
@@ -204,9 +198,7 @@ export function formValuesToCreatePayload(
   });
 }
 
-export function formValuesToUpdatePayload(
-  values: ExerciseFormValues,
-): UpdateExerciseInput {
+export function formValuesToUpdatePayload(values: ExerciseFormValues): UpdateExerciseInput {
   return formValuesToCreatePayload(values);
 }
 
@@ -217,9 +209,7 @@ export const exerciseFormSchema = z
       .trim()
       .min(1, 'Le nom est requis.')
       .max(120, 'Le nom ne peut pas dépasser 120 caractères.'),
-    primaryMuscleGroupId: z
-      .string()
-      .uuid('Sélectionne un groupe musculaire principal.'),
+    primaryMuscleGroupId: z.string().uuid('Sélectionne un groupe musculaire principal.'),
     secondaryMuscleGroupIds: z.array(z.string().uuid()),
     measurementType: z.enum([
       'WEIGHT_REPS',
@@ -248,9 +238,7 @@ export const exerciseFormSchema = z
       z.object({
         equipmentTypeId: z.string().uuid(),
         isPreferred: z.boolean(),
-        notes: z
-          .string()
-          .max(500, 'La note ne peut pas dépasser 500 caractères.'),
+        notes: z.string().max(500, 'La note ne peut pas dépasser 500 caractères.'),
       }),
     ),
     defaultRestSeconds: z
@@ -266,9 +254,7 @@ export const exerciseFormSchema = z
         const parsed = Number(value.trim());
         return parsed >= 0 && parsed <= 3600;
       }, 'Le repos doit être entre 0 et 3600 secondes.'),
-    instructions: z
-      .string()
-      .max(4000, 'Les instructions ne peuvent pas dépasser 4000 caractères.'),
+    instructions: z.string().max(4000, 'Les instructions ne peuvent pas dépasser 4000 caractères.'),
   })
   .superRefine((data, ctx) => {
     if (data.category === 'CARDIO' && data.cardioType === '') {
@@ -296,10 +282,7 @@ export const exerciseFormSchema = z
         message: 'Groupes musculaires secondaires en double.',
       });
     }
-    if (
-      data.primaryMuscleGroupId &&
-      secondary.includes(data.primaryMuscleGroupId)
-    ) {
+    if (data.primaryMuscleGroupId && secondary.includes(data.primaryMuscleGroupId)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['secondaryMuscleGroupIds'],
@@ -307,9 +290,7 @@ export const exerciseFormSchema = z
       });
     }
 
-    const equipmentIds = data.compatibleEquipmentTypes.map(
-      (item) => item.equipmentTypeId,
-    );
+    const equipmentIds = data.compatibleEquipmentTypes.map((item) => item.equipmentTypeId);
     if (new Set(equipmentIds).size !== equipmentIds.length) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -318,9 +299,7 @@ export const exerciseFormSchema = z
       });
     }
 
-    const preferredCount = data.compatibleEquipmentTypes.filter(
-      (item) => item.isPreferred,
-    ).length;
+    const preferredCount = data.compatibleEquipmentTypes.filter((item) => item.isPreferred).length;
     if (preferredCount > 1) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -329,10 +308,7 @@ export const exerciseFormSchema = z
       });
     }
 
-    if (
-      data.defaultEquipmentTypeId &&
-      !equipmentIds.includes(data.defaultEquipmentTypeId)
-    ) {
+    if (data.defaultEquipmentTypeId && !equipmentIds.includes(data.defaultEquipmentTypeId)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['defaultEquipmentTypeId'],

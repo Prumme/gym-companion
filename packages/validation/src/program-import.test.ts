@@ -112,9 +112,7 @@ describe('program-import V1 schema', () => {
     });
     expect(parsed.ok).toBe(false);
     if (!parsed.ok) {
-      expect(parsed.errors.some((item) => item.code === 'UNKNOWN_FIELD')).toBe(
-        true,
-      );
+      expect(parsed.errors.some((item) => item.code === 'UNKNOWN_FIELD')).toBe(true);
     }
   });
 
@@ -151,9 +149,7 @@ describe('program-import V1 schema', () => {
     });
     expect(parsed.ok).toBe(false);
     if (!parsed.ok) {
-      expect(parsed.errors.some((item) => item.path === 'program.name')).toBe(
-        true,
-      );
+      expect(parsed.errors.some((item) => item.path === 'program.name')).toBe(true);
     }
   });
 
@@ -216,10 +212,10 @@ describe('program-import V1 schema', () => {
   });
 
   it('refuse trop de séries', () => {
-    const sets = Array.from(
-      { length: PROGRAM_IMPORT_MAX_SETS_PER_EXERCISE + 1 },
-      () => ({ repsMin: 8, repsMax: 10 }),
-    );
+    const sets = Array.from({ length: PROGRAM_IMPORT_MAX_SETS_PER_EXERCISE + 1 }, () => ({
+      repsMin: 8,
+      repsMax: 10,
+    }));
     const parsed = parseProgramImportPayload({
       schemaVersion: 1,
       program: {
@@ -288,9 +284,7 @@ describe('program-import measurement rules', () => {
       { repsMin: 10, repsMax: 10 },
       'program.workouts[2].exercises[1].sets[0]',
     );
-    expect(errors.some((item) => item.code === 'INCOMPATIBLE_MEASUREMENT')).toBe(
-      true,
-    );
+    expect(errors.some((item) => item.code === 'INCOMPATIBLE_MEASUREMENT')).toBe(true);
     expect(errors.some((item) => item.path.endsWith('repsMin'))).toBe(true);
     expect(
       errors.some((item) =>
@@ -327,9 +321,7 @@ describe('program-import measurement rules', () => {
       { repsMin: 8, repsMax: 10, rir: 2, rpe: 8 },
       's',
     );
-    expect(errors.some((item) => item.code === 'CONFLICTING_INTENSITY')).toBe(
-      true,
-    );
+    expect(errors.some((item) => item.code === 'CONFLICTING_INTENSITY')).toBe(true);
   });
 
   it('refuse weightKg sur BODYWEIGHT_REPS', () => {
@@ -377,9 +369,7 @@ describe('program-import duplicates and suggestions', () => {
         defaultEquipmentCode: 'barbell',
         measurementType: 'WEIGHT_REPS',
       }),
-    ).toBe(
-      'developpe-couche-barre | Développé couché à la barre | chest | barbell | WEIGHT_REPS',
-    );
+    ).toBe('developpe-couche-barre | Développé couché à la barre | chest | barbell | WEIGHT_REPS');
   });
 
   it('le schema Zod refuse aussi les clés inconnues dans une série', () => {

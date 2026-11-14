@@ -85,9 +85,7 @@ describe('training-share schemas', () => {
   });
 
   it('suggère un nom de programme depuis une séance', () => {
-    expect(suggestProgramNameFromWorkoutTemplate('Full Body A')).toBe(
-      'Programme Full Body A',
-    );
+    expect(suggestProgramNameFromWorkoutTemplate('Full Body A')).toBe('Programme Full Body A');
     expect(suggestProgramNameFromWorkoutTemplate('Programme déjà nommé')).toBe(
       'Programme déjà nommé',
     );
@@ -95,12 +93,8 @@ describe('training-share schemas', () => {
 
   it('détecte l’expiration inclusive à expiresAt', () => {
     const expiresAt = new Date('2026-08-17T14:00:00.000Z');
-    expect(
-      isTrainingShareExpired(expiresAt, new Date('2026-08-17T13:59:59.999Z')),
-    ).toBe(false);
-    expect(
-      isTrainingShareExpired(expiresAt, new Date('2026-08-17T14:00:00.000Z')),
-    ).toBe(true);
+    expect(isTrainingShareExpired(expiresAt, new Date('2026-08-17T13:59:59.999Z'))).toBe(false);
+    expect(isTrainingShareExpired(expiresAt, new Date('2026-08-17T14:00:00.000Z'))).toBe(true);
   });
 
   it('valide les destinations d’import', () => {

@@ -32,8 +32,7 @@ export function isConflictError(error: unknown): boolean {
   const apiError = error as ApiRequestError;
   return (
     apiError?.code === 'WORKOUT_VERSION_CONFLICT' ||
-    (apiError?.status === 409 &&
-      apiError?.code === 'WORKOUT_VERSION_CONFLICT')
+    (apiError?.status === 409 && apiError?.code === 'WORKOUT_VERSION_CONFLICT')
   );
 }
 

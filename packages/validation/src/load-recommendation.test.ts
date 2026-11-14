@@ -77,45 +77,23 @@ function workout(
 
 describe('assessSetAgainstTarget (5.1)', () => {
   it('classifie 10 / 9 / 8 / 7 et statuts', () => {
-    expect(
-      assessSetAgainstTarget(workingSet(10), TARGET_8_10),
-    ).toBe('AT_TOP_OF_RANGE');
-    expect(
-      assessSetAgainstTarget(workingSet(11), TARGET_8_10),
-    ).toBe('ABOVE_TARGET');
-    expect(
-      assessSetAgainstTarget(workingSet(9), TARGET_8_10),
-    ).toBe('IN_RANGE');
-    expect(
-      assessSetAgainstTarget(workingSet(8), TARGET_8_10),
-    ).toBe('IN_RANGE');
-    expect(
-      assessSetAgainstTarget(workingSet(7), TARGET_8_10),
-    ).toBe('BELOW_RANGE');
-    expect(
-      assessSetAgainstTarget(workingSet(5, 'PARTIAL'), TARGET_8_10),
-    ).toBe('FAILED');
-    expect(
-      assessSetAgainstTarget(workingSet(null, 'FAILED'), TARGET_8_10),
-    ).toBe('FAILED');
-    expect(
-      assessSetAgainstTarget(
-        { ...workingSet(12), setType: 'WARMUP' },
-        TARGET_8_10,
-      ),
-    ).toBe('NOT_ASSESSABLE');
-    expect(
-      assessSetAgainstTarget(workingSet(10, 'SKIPPED'), TARGET_8_10),
-    ).toBe('NOT_ASSESSABLE');
+    expect(assessSetAgainstTarget(workingSet(10), TARGET_8_10)).toBe('AT_TOP_OF_RANGE');
+    expect(assessSetAgainstTarget(workingSet(11), TARGET_8_10)).toBe('ABOVE_TARGET');
+    expect(assessSetAgainstTarget(workingSet(9), TARGET_8_10)).toBe('IN_RANGE');
+    expect(assessSetAgainstTarget(workingSet(8), TARGET_8_10)).toBe('IN_RANGE');
+    expect(assessSetAgainstTarget(workingSet(7), TARGET_8_10)).toBe('BELOW_RANGE');
+    expect(assessSetAgainstTarget(workingSet(5, 'PARTIAL'), TARGET_8_10)).toBe('FAILED');
+    expect(assessSetAgainstTarget(workingSet(null, 'FAILED'), TARGET_8_10)).toBe('FAILED');
+    expect(assessSetAgainstTarget({ ...workingSet(12), setType: 'WARMUP' }, TARGET_8_10)).toBe(
+      'NOT_ASSESSABLE',
+    );
+    expect(assessSetAgainstTarget(workingSet(10, 'SKIPPED'), TARGET_8_10)).toBe('NOT_ASSESSABLE');
   });
 });
 
 describe('resolveLoadTargetFromTemplateSets (5.1)', () => {
   it('accepte une config homogène WEIGHT_REPS', () => {
-    const result = resolveLoadTargetFromTemplateSets(
-      templateWorking(),
-      'WEIGHT_REPS',
-    );
+    const result = resolveLoadTargetFromTemplateSets(templateWorking(), 'WEIGHT_REPS');
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.target.weightKg).toBe(80);
@@ -125,10 +103,7 @@ describe('resolveLoadTargetFromTemplateSets (5.1)', () => {
   });
 
   it('refuse les types non WEIGHT_REPS', () => {
-    const result = resolveLoadTargetFromTemplateSets(
-      templateWorking(),
-      'BODYWEIGHT_REPS',
-    );
+    const result = resolveLoadTargetFromTemplateSets(templateWorking(), 'BODYWEIGHT_REPS');
     expect(result).toEqual({
       ok: false,
       action: 'INSUFFICIENT_DATA',
@@ -184,15 +159,9 @@ describe('roundToLoadIncrement / computeSuggestedWeightKg (5.1)', () => {
       suggestedWeightKg: 80,
       adjustmentKg: 0,
     });
-    expect(computeSuggestedWeightKg('DECREASE', 3, 2.5).suggestedWeightKg).toBe(
-      2.5,
-    );
-    expect(
-      computeSuggestedWeightKg('REVIEW', 80, 2.5).suggestedWeightKg,
-    ).toBeNull();
-    expect(
-      computeSuggestedWeightKg('INSUFFICIENT_DATA', 80, 2.5).suggestedWeightKg,
-    ).toBeNull();
+    expect(computeSuggestedWeightKg('DECREASE', 3, 2.5).suggestedWeightKg).toBe(2.5);
+    expect(computeSuggestedWeightKg('REVIEW', 80, 2.5).suggestedWeightKg).toBeNull();
+    expect(computeSuggestedWeightKg('INSUFFICIENT_DATA', 80, 2.5).suggestedWeightKg).toBeNull();
   });
 
   it('utilise SYSTEM_DEFAULT sans préférence utilisateur', () => {
@@ -271,11 +240,7 @@ describe('resolveLoadRecommendation — INCREASE (5.1)', () => {
       templateSets: templateWorking(3, { targetRir: null }),
       effortTrackingMode: 'NONE',
       recentWorkouts: [
-        workout('w1', '2026-08-01', [
-          workingSet(10),
-          workingSet(10),
-          workingSet(10),
-        ]),
+        workout('w1', '2026-08-01', [workingSet(10), workingSet(10), workingSet(10)]),
       ],
     });
     expect(none.action).toBe('INCREASE');
@@ -310,13 +275,7 @@ describe('resolveLoadRecommendation — HOLD (5.1)', () => {
       templateEquipmentTypeId: 'eq-bar',
       templateSets: templateWorking(),
       effortTrackingMode: 'NONE',
-      recentWorkouts: [
-        workout('w1', '2026-08-01', [
-          workingSet(10),
-          workingSet(9),
-          workingSet(8),
-        ]),
-      ],
+      recentWorkouts: [workout('w1', '2026-08-01', [workingSet(10), workingSet(9), workingSet(8)])],
     });
     expect(result.action).toBe('HOLD');
     expect(result.recommendation.suggestedWeightKg).toBe(80);
@@ -349,13 +308,7 @@ describe('resolveLoadRecommendation — HOLD (5.1)', () => {
       templateEquipmentTypeId: 'eq-bar',
       templateSets: templateWorking(),
       effortTrackingMode: 'NONE',
-      recentWorkouts: [
-        workout('w1', '2026-08-01', [
-          workingSet(10),
-          workingSet(9),
-          workingSet(7),
-        ]),
-      ],
+      recentWorkouts: [workout('w1', '2026-08-01', [workingSet(10), workingSet(9), workingSet(7)])],
     });
     expect(mixed.action).toBe('HOLD');
 
@@ -366,16 +319,8 @@ describe('resolveLoadRecommendation — HOLD (5.1)', () => {
       templateSets: templateWorking(),
       effortTrackingMode: 'NONE',
       recentWorkouts: [
-        workout('w1', '2026-08-02', [
-          workingSet(7),
-          workingSet(6),
-          workingSet(5),
-        ]),
-        workout('w0', '2026-08-01', [
-          workingSet(10),
-          workingSet(10),
-          workingSet(10),
-        ]),
+        workout('w1', '2026-08-02', [workingSet(7), workingSet(6), workingSet(5)]),
+        workout('w0', '2026-08-01', [workingSet(10), workingSet(10), workingSet(10)]),
       ],
     });
     expect(oneBad.action).toBe('HOLD');
@@ -392,28 +337,14 @@ describe('resolveLoadRecommendation — DECREASE (5.1)', () => {
       templateSets: templateWorking(),
       effortTrackingMode: 'NONE',
       recentWorkouts: [
-        workout('w2', '2026-08-03', [
-          workingSet(7),
-          workingSet(6),
-          workingSet(6),
-        ]),
-        workout('w1', '2026-08-02', [
-          workingSet(7),
-          workingSet(6),
-          workingSet(5),
-        ]),
-        workout('w0', '2026-08-01', [
-          workingSet(10),
-          workingSet(10),
-          workingSet(10),
-        ]),
+        workout('w2', '2026-08-03', [workingSet(7), workingSet(6), workingSet(6)]),
+        workout('w1', '2026-08-02', [workingSet(7), workingSet(6), workingSet(5)]),
+        workout('w0', '2026-08-01', [workingSet(10), workingSet(10), workingSet(10)]),
       ],
     });
     expect(result.action).toBe('DECREASE');
     expect(result.recommendation.suggestedWeightKg).toBe(75);
-    expect(result.evidence.workoutCount).toBeLessThanOrEqual(
-      LOAD_RECOMMENDATION_HISTORY_LIMIT,
-    );
+    expect(result.evidence.workoutCount).toBeLessThanOrEqual(LOAD_RECOMMENDATION_HISTORY_LIMIT);
   });
 
   it('partial / failed répétées', () => {
@@ -474,12 +405,7 @@ describe('resolveLoadRecommendation — REVIEW / INSUFFICIENT (5.1)', () => {
       templateSets: templateWorking(),
       effortTrackingMode: 'NONE',
       recentWorkouts: [
-        workout(
-          'w1',
-          '2026-08-01',
-          [workingSet(10), workingSet(10), workingSet(10)],
-          'eq-machine',
-        ),
+        workout('w1', '2026-08-01', [workingSet(10), workingSet(10), workingSet(10)], 'eq-machine'),
       ],
     });
     expect(result.action).toBe('REVIEW');
@@ -490,7 +416,7 @@ describe('resolveLoadRecommendation — REVIEW / INSUFFICIENT (5.1)', () => {
   it('aucun historique / charge historique incompatible', () => {
     expect(
       resolveLoadRecommendation({
-      workoutTemplateExerciseId: 'wte-1',
+        workoutTemplateExerciseId: 'wte-1',
         measurementType: 'WEIGHT_REPS',
         templateEquipmentTypeId: 'eq-bar',
         templateSets: templateWorking(),

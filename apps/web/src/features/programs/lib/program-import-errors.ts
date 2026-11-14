@@ -46,11 +46,7 @@ export function describeProgramImportError(
   const parts: string[] = [];
   if (parsed.workoutIndex != null) {
     const name = workoutName(payload, parsed.workoutIndex);
-    parts.push(
-      name
-        ? `Séance « ${name} »`
-        : `Séance ${parsed.workoutIndex + 1}`,
-    );
+    parts.push(name ? `Séance « ${name} »` : `Séance ${parsed.workoutIndex + 1}`);
   }
   if (parsed.exerciseIndex != null) {
     parts.push(`Exercice ${parsed.exerciseIndex + 1}`);

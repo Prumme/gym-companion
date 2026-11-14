@@ -71,8 +71,7 @@ export function CoachProposalPreviewSheet({
         aria-labelledby={titleId}
         className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-[var(--radius-surface)] border border-[var(--border)] bg-[var(--surface)] px-[var(--space-4)] pt-[var(--space-4)] shadow-lg md:inset-x-auto md:right-4 md:bottom-4 md:left-auto md:w-full md:max-w-lg md:rounded-[var(--radius-surface)]"
         style={{
-          paddingBottom:
-            'calc(var(--space-6) + env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'calc(var(--space-6) + env(safe-area-inset-bottom, 0px))',
         }}
       >
         <div className="mb-[var(--space-4)] flex items-center justify-between gap-3">
@@ -93,9 +92,7 @@ export function CoachProposalPreviewSheet({
         {preview.kind === 'PROGRAM' ? (
           <div className="mb-4 flex flex-col gap-1 text-sm text-[var(--muted-foreground)]">
             <p>Objectif : {getTrainingGoalLabel(preview.program.goal)}</p>
-            {preview.program.description ? (
-              <p>{preview.program.description}</p>
-            ) : null}
+            {preview.program.description ? <p>{preview.program.description}</p> : null}
             {preview.program.schedule && preview.program.schedule.length > 0 ? (
               <p>
                 Planning proposé :{' '}
@@ -123,10 +120,7 @@ export function CoachProposalPreviewSheet({
               ) : null}
               <ul className="mt-2 flex flex-col gap-3">
                 {workout.exercises.map((exercise) => (
-                  <ProposalExerciseRow
-                    key={exercise.exerciseId}
-                    exercise={exercise}
-                  />
+                  <ProposalExerciseRow key={exercise.exerciseId} exercise={exercise} />
                 ))}
               </ul>
             </section>
@@ -137,48 +131,31 @@ export function CoachProposalPreviewSheet({
   );
 }
 
-function ProposalExerciseRow({
-  exercise,
-}: {
-  exercise: AiCoachProposalPreviewExercise;
-}) {
+function ProposalExerciseRow({ exercise }: { exercise: AiCoachProposalPreviewExercise }) {
   return (
     <li>
       <p className="text-sm font-medium">
         {exercise.exerciseName}
         {exercise.equipmentName ? (
-          <span className="text-[var(--muted-foreground)]">
-            {' '}
-            · {exercise.equipmentName}
-          </span>
+          <span className="text-[var(--muted-foreground)]"> · {exercise.equipmentName}</span>
         ) : null}
       </p>
       {exercise.notes ? (
-        <p className="text-xs text-[var(--muted-foreground)]">
-          {exercise.notes}
-        </p>
+        <p className="text-xs text-[var(--muted-foreground)]">{exercise.notes}</p>
       ) : null}
       <ul className="mt-1 flex flex-col divide-y divide-[var(--border)]">
         {exercise.sets.map((set, setIndex) => {
           const compact = formatSetSummaryCompact(set);
           return (
-            <li
-              key={setIndex}
-              className="flex items-center gap-2 py-1 text-xs tabular-nums"
-            >
-              <span className="w-4 shrink-0 text-[var(--muted-foreground)]">
-                {setIndex + 1}
-              </span>
+            <li key={setIndex} className="flex items-center gap-2 py-1 text-xs tabular-nums">
+              <span className="w-4 shrink-0 text-[var(--muted-foreground)]">{setIndex + 1}</span>
               <span className="w-16 shrink-0 truncate font-medium">
                 {getWorkoutSetTypeShortLabel(set.setType)}
               </span>
               <span className="min-w-0 flex-1">
                 {compact.primary}
                 {compact.secondary ? (
-                  <span className="text-[var(--muted-foreground)]">
-                    {' '}
-                    · {compact.secondary}
-                  </span>
+                  <span className="text-[var(--muted-foreground)]"> · {compact.secondary}</span>
                 ) : null}
               </span>
             </li>

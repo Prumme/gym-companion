@@ -17,9 +17,9 @@ vi.mock('../api/progress-api', () => ({
 }));
 
 vi.mock('@/features/exercises/api/exercise-api', async () => {
-  const actual = await vi.importActual<
-    typeof import('@/features/exercises/api/exercise-api')
-  >('@/features/exercises/api/exercise-api');
+  const actual = await vi.importActual<typeof import('@/features/exercises/api/exercise-api')>(
+    '@/features/exercises/api/exercise-api',
+  );
   return {
     ...actual,
     getExercise: (...args: unknown[]) => getExercise(...args),
@@ -51,12 +51,7 @@ function emptyResponse(
       name: 'Développé couché',
       archived: false,
     },
-    availableMetrics: [
-      'MAX_WEIGHT',
-      'MAX_REPS',
-      'WORKING_EXTERNAL_VOLUME',
-      'TOTAL_REPS',
-    ],
+    availableMetrics: ['MAX_WEIGHT', 'MAX_REPS', 'WORKING_EXTERNAL_VOLUME', 'TOTAL_REPS'],
     selectedMetric: 'MAX_WEIGHT',
     range: { from: '2026-05-10', to: '2026-08-10' },
     summary: null,
@@ -93,7 +88,8 @@ function point(
 }
 
 function renderPage(
-  initialEntry: string | { pathname: string; state?: { from?: string } } = '/progress/exercises/exercise-1',
+  initialEntry:
+    string | { pathname: string; state?: { from?: string } } = '/progress/exercises/exercise-1',
 ) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -102,14 +98,8 @@ function renderPage(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
-          <Route
-            path="/progress/exercises/:exerciseId"
-            element={<ExerciseProgressPage />}
-          />
-          <Route
-            path="/workouts/active"
-            element={<div>Séance active</div>}
-          />
+          <Route path="/progress/exercises/:exerciseId" element={<ExerciseProgressPage />} />
+          <Route path="/workouts/active" element={<div>Séance active</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -198,14 +188,13 @@ describe('ExerciseProgressPage', () => {
     );
     renderPage();
     expect(
-      await screen.findByText(
-        'Une deuxième séance permettra de comparer ton évolution.',
-      ),
+      await screen.findByText('Une deuxième séance permettra de comparer ton évolution.'),
     ).toBeInTheDocument();
     expect(screen.getAllByText('100 kg').length).toBeGreaterThan(0);
-    expect(
-      screen.getByRole('link', { name: /1 août 2026/i }),
-    ).toHaveAttribute('href', '/workouts/ws-1');
+    expect(screen.getByRole('link', { name: /1 août 2026/i })).toHaveAttribute(
+      'href',
+      '/workouts/ws-1',
+    );
   });
 
   it('affiche résumé, graphique et liste pour plusieurs points', async () => {
@@ -258,9 +247,7 @@ describe('ExerciseProgressPage', () => {
     expect(screen.getByText('Meilleure perf')).toBeInTheDocument();
     expect(screen.getByText('Variation')).toBeInTheDocument();
     expect(screen.getByLabelText('Graphique de progression')).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Dernières séances' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Dernières séances' })).toBeInTheDocument();
   });
 
   it('change de métrique et synchronise l’URL', async () => {
@@ -316,17 +303,11 @@ describe('ExerciseProgressPage', () => {
       from: undefined,
       to: undefined,
     });
-    expect(screen.getByRole('button', { name: 'Tout' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(screen.getByRole('button', { name: 'Tout' })).toHaveAttribute('aria-pressed', 'true');
 
     renderPage('/progress/exercises/exercise-1?period=all');
     await screen.findByRole('heading', { name: 'Pas encore de données' });
-    expect(screen.getByRole('button', { name: 'Tout' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(screen.getByRole('button', { name: 'Tout' })).toHaveAttribute('aria-pressed', 'true');
     expect(getExerciseProgress).toHaveBeenCalledWith(
       'exercise-1',
       expect.objectContaining({ from: undefined, to: undefined }),
@@ -352,9 +333,7 @@ describe('ExerciseProgressPage', () => {
       }),
     );
     renderPage('/progress/exercises/exercise-2');
-    expect(
-      await screen.findByText('Impossible de charger la progression.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Impossible de charger la progression.')).toBeInTheDocument();
   });
 
   it('reste utilisable à 320 px', async () => {
@@ -397,8 +376,6 @@ describe('ExerciseProgressPage', () => {
     });
     const back = await screen.findByRole('link', { name: 'Retour à la séance' });
     expect(back).toHaveAttribute('href', '/workouts/active');
-    expect(
-      screen.queryByRole('link', { name: 'Progression' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Progression' })).not.toBeInTheDocument();
   });
 });

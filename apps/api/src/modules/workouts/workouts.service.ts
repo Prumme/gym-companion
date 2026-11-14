@@ -113,14 +113,10 @@ export class WorkoutsService {
     }
     const query = parsed.data;
 
-    let cursorFilter:
-      | ReturnType<typeof buildWorkoutHistoryCursorFilter>
-      | undefined;
+    let cursorFilter: ReturnType<typeof buildWorkoutHistoryCursorFilter> | undefined;
     if (query.cursor) {
       try {
-        cursorFilter = buildWorkoutHistoryCursorFilter(
-          decodeWorkoutHistoryCursor(query.cursor),
-        );
+        cursorFilter = buildWorkoutHistoryCursorFilter(decodeWorkoutHistoryCursor(query.cursor));
       } catch {
         throw new BadRequestException({
           code: 'WORKOUT_HISTORY_INVALID_CURSOR',
@@ -133,10 +129,7 @@ export class WorkoutsService {
       ? { status: query.status }
       : { status: { in: ['COMPLETED', 'CANCELLED'] } };
 
-    const filters: Prisma.WorkoutSessionWhereInput[] = [
-      { ownerUserId: userId },
-      statusFilter,
-    ];
+    const filters: Prisma.WorkoutSessionWhereInput[] = [{ ownerUserId: userId }, statusFilter];
 
     if (query.from) {
       filters.push({
@@ -161,11 +154,7 @@ export class WorkoutsService {
     const rows = await this.prisma.workoutSession.findMany({
       where: { AND: filters },
       include: historyListInclude,
-      orderBy: [
-        { localDate: 'desc' },
-        { startedAt: 'desc' },
-        { id: 'desc' },
-      ],
+      orderBy: [{ localDate: 'desc' }, { startedAt: 'desc' }, { id: 'desc' }],
       take: query.limit + 1,
     });
 
@@ -183,9 +172,7 @@ export class WorkoutsService {
         : null;
 
     return {
-      data: pageRows.map((row) =>
-        toWorkoutHistoryListItem(row as WorkoutHistoryListRow),
-      ),
+      data: pageRows.map((row) => toWorkoutHistoryListItem(row as WorkoutHistoryListRow)),
       pagination: { nextCursor, hasMore },
     };
   }
@@ -205,18 +192,12 @@ export class WorkoutsService {
     return toWorkoutSessionDetail(row as WorkoutSessionSnapshotRow);
   }
 
-  async getById(
-    userId: string,
-    workoutSessionId: string,
-  ): Promise<WorkoutSessionDetail> {
+  async getById(userId: string, workoutSessionId: string): Promise<WorkoutSessionDetail> {
     const row = await this.findOwnedOrThrow(userId, workoutSessionId);
     return toWorkoutSessionDetail(row as WorkoutSessionSnapshotRow);
   }
 
-  async create(
-    userId: string,
-    input: unknown,
-  ): Promise<WorkoutSessionDetail> {
+  async create(userId: string, input: unknown): Promise<WorkoutSessionDetail> {
     const data = createWorkoutSessionSchema.parse(input);
     try {
       const created = await this.prisma.$transaction(async (tx) => {
@@ -247,9 +228,7 @@ export class WorkoutsService {
         throw new ConflictException({
           code: 'WORKOUT_ACTIVE_ALREADY_EXISTS',
           message: 'Une séance est déjà en cours.',
-          details: active
-            ? { activeWorkoutSessionId: active.id }
-            : undefined,
+          details: active ? { activeWorkoutSessionId: active.id } : undefined,
         });
       }
       throw new BadRequestException({
@@ -321,10 +300,8 @@ export class WorkoutsService {
             exerciseNameSnapshot: exercise.exerciseNameSnapshot,
             measurementTypeSnapshot: exercise.measurementTypeSnapshot,
             position: exercise.position,
-            primaryMuscleGroupNameSnapshot:
-              exercise.primaryMuscleGroupNameSnapshot,
-            sourceExerciseArchivedAtCreation:
-              exercise.sourceExerciseArchivedAtCreation,
+            primaryMuscleGroupNameSnapshot: exercise.primaryMuscleGroupNameSnapshot,
+            sourceExerciseArchivedAtCreation: exercise.sourceExerciseArchivedAtCreation,
             equipmentTypeId: exercise.equipmentTypeId,
             equipmentNameSnapshot: exercise.equipmentNameSnapshot,
             equipmentCodeSnapshot: exercise.equipmentCodeSnapshot,
@@ -455,8 +432,7 @@ export class WorkoutsService {
             ) {
               throw new ConflictException({
                 code: 'WORKOUT_SET_COMMAND_CONFLICT',
-                message:
-                  'Cet identifiant de commande est déjà utilisé pour une autre série.',
+                message: 'Cet identifiant de commande est déjà utilisé pour une autre série.',
               });
             }
 
@@ -486,9 +462,7 @@ export class WorkoutsService {
                 actualRpe: data.actualRpe,
                 reachedFailure: data.reachedFailure,
                 notes:
-                  typeof data.notes === 'string' && data.notes.trim() === ''
-                    ? null
-                    : data.notes,
+                  typeof data.notes === 'string' && data.notes.trim() === '' ? null : data.notes,
               },
             );
             if (!receiptValidation.ok) {
@@ -498,14 +472,11 @@ export class WorkoutsService {
               });
             }
 
-            const fingerprint = buildWorkoutSetCommandFingerprint(
-              receiptValidation.normalized,
-            );
+            const fingerprint = buildWorkoutSetCommandFingerprint(receiptValidation.normalized);
             if (existingReceipt.payloadFingerprint !== fingerprint) {
               throw new ConflictException({
                 code: 'WORKOUT_SET_COMMAND_CONFLICT',
-                message:
-                  'Cet identifiant de commande a déjà été utilisé avec un autre payload.',
+                message: 'Cet identifiant de commande a déjà été utilisé avec un autre payload.',
               });
             }
 
@@ -521,9 +492,7 @@ export class WorkoutsService {
 
             return {
               result: {
-                workoutSet: toWorkoutSetDetail(
-                  existingSet as WorkoutSetSnapshotRow,
-                ),
+                workoutSet: toWorkoutSetDetail(existingSet as WorkoutSetSnapshotRow),
                 workoutSessionVersion: existingReceipt.appliedVersion,
               },
               previousStatus: existingSet.status,
@@ -546,8 +515,7 @@ export class WorkoutsService {
         if (session.version !== data.expectedVersion) {
           throw new ConflictException({
             code: 'WORKOUT_VERSION_CONFLICT',
-            message:
-              'La séance a été modifiée depuis un autre onglet ou appareil.',
+            message: 'La séance a été modifiée depuis un autre onglet ou appareil.',
             details: { currentVersion: session.version },
           });
         }
@@ -587,23 +555,17 @@ export class WorkoutsService {
 
         const previousStatus = set.status;
 
-        const actualValidation = validateWorkoutSetActuals(
-          exercise.measurementTypeSnapshot,
-          {
-            status: data.status,
-            actualWeightKg: data.actualWeightKg,
-            actualReps: data.actualReps,
-            actualDurationSeconds: data.actualDurationSeconds,
-            actualDistanceMeters: data.actualDistanceMeters,
-            actualRir: data.actualRir,
-            actualRpe: data.actualRpe,
-            reachedFailure: data.reachedFailure,
-            notes:
-              typeof data.notes === 'string' && data.notes.trim() === ''
-                ? null
-                : data.notes,
-          },
-        );
+        const actualValidation = validateWorkoutSetActuals(exercise.measurementTypeSnapshot, {
+          status: data.status,
+          actualWeightKg: data.actualWeightKg,
+          actualReps: data.actualReps,
+          actualDurationSeconds: data.actualDurationSeconds,
+          actualDistanceMeters: data.actualDistanceMeters,
+          actualRir: data.actualRir,
+          actualRpe: data.actualRpe,
+          reachedFailure: data.reachedFailure,
+          notes: typeof data.notes === 'string' && data.notes.trim() === '' ? null : data.notes,
+        });
 
         if (!actualValidation.ok) {
           throw new BadRequestException({
@@ -640,9 +602,7 @@ export class WorkoutsService {
             actualRpe: normalized.actualRpe,
             reachedFailure: normalized.reachedFailure,
             notes: normalized.notes,
-            startedAt:
-              set.startedAt ??
-              (normalized.status !== 'PENDING' ? now : null),
+            startedAt: set.startedAt ?? (normalized.status !== 'PENDING' ? now : null),
             completedAt: isFinalized
               ? now
               : normalized.status === 'PENDING'
@@ -727,10 +687,7 @@ export class WorkoutsService {
     },
     fingerprintPayload: Record<string, unknown>,
   ): Promise<WorkoutLifecycleResult> {
-    const fingerprint = buildWorkoutLifecycleFingerprint(
-      action,
-      fingerprintPayload,
-    );
+    const fingerprint = buildWorkoutLifecycleFingerprint(action, fingerprintPayload);
 
     try {
       const result = await this.prisma.$transaction(async (tx) => {
@@ -761,17 +718,14 @@ export class WorkoutsService {
             ) {
               throw new ConflictException({
                 code: 'WORKOUT_COMMAND_CONFLICT',
-                message:
-                  'Cet identifiant de commande a déjà été utilisé avec un autre payload.',
+                message: 'Cet identifiant de commande a déjà été utilisé avec un autre payload.',
               });
             }
             const detail = await tx.workoutSession.findFirstOrThrow({
               where: { id: session.id },
               include: sessionDetailInclude,
             });
-            const mapped = toWorkoutSessionDetail(
-              detail as WorkoutSessionSnapshotRow,
-            );
+            const mapped = toWorkoutSessionDetail(detail as WorkoutSessionSnapshotRow);
             return {
               workoutSession: mapped,
               workoutSessionVersion: mapped.version,
@@ -783,16 +737,12 @@ export class WorkoutsService {
         if (session.version !== data.expectedVersion) {
           throw new ConflictException({
             code: 'WORKOUT_VERSION_CONFLICT',
-            message:
-              'La séance a été modifiée depuis un autre onglet ou appareil.',
+            message: 'La séance a été modifiée depuis un autre onglet ou appareil.',
             details: { currentVersion: session.version },
           });
         }
 
-        const transition = resolveWorkoutLifecycleTransition(
-          session.status,
-          action,
-        );
+        const transition = resolveWorkoutLifecycleTransition(session.status, action);
         if (!transition.ok) {
           throw new ConflictException({
             code: transition.code,
@@ -816,9 +766,7 @@ export class WorkoutsService {
             where: { id: session.id },
             include: sessionDetailInclude,
           });
-          const mapped = toWorkoutSessionDetail(
-            detail as WorkoutSessionSnapshotRow,
-          );
+          const mapped = toWorkoutSessionDetail(detail as WorkoutSessionSnapshotRow);
           return {
             workoutSession: mapped,
             workoutSessionVersion: mapped.version,
@@ -878,9 +826,7 @@ export class WorkoutsService {
           where: { id: session.id },
           include: sessionDetailInclude,
         });
-        const mapped = toWorkoutSessionDetail(
-          detail as WorkoutSessionSnapshotRow,
-        );
+        const mapped = toWorkoutSessionDetail(detail as WorkoutSessionSnapshotRow);
         return {
           workoutSession: mapped,
           workoutSessionVersion: mapped.version,
@@ -890,9 +836,7 @@ export class WorkoutsService {
 
       if (result.statusChanged) {
         if (action === 'COMPLETE' || action === 'CANCEL') {
-          await this.sharedSessionLinkNotifier.clearCurrentExerciseAfterTerminal(
-            workoutSessionId,
-          );
+          await this.sharedSessionLinkNotifier.clearCurrentExerciseAfterTerminal(workoutSessionId);
         }
         await this.sharedSessionLinkNotifier.notifyIfLinked(workoutSessionId);
       }
@@ -968,8 +912,7 @@ export class WorkoutsService {
         if (session.version !== data.expectedVersion) {
           throw new ConflictException({
             code: 'WORKOUT_VERSION_CONFLICT',
-            message:
-              'La séance a été modifiée depuis un autre onglet ou appareil.',
+            message: 'La séance a été modifiée depuis un autre onglet ou appareil.',
             details: { currentVersion: session.version },
           });
         }
@@ -999,14 +942,10 @@ export class WorkoutsService {
             where: { id: session.id },
             include: sessionDetailInclude,
           });
-          return toWorkoutSessionDetail(
-            unchanged as WorkoutSessionSnapshotRow,
-          );
+          return toWorkoutSessionDetail(unchanged as WorkoutSessionSnapshotRow);
         }
 
-        const hasRecordedSet = sessionExercise.sets.some(
-          (set) => set.status !== 'PENDING',
-        );
+        const hasRecordedSet = sessionExercise.sets.some((set) => set.status !== 'PENDING');
         if (hasRecordedSet) {
           throw new BadRequestException({
             code: 'WORKOUT_EXERCISE_HAS_RECORDED_SETS',
@@ -1042,14 +981,10 @@ export class WorkoutsService {
           });
         }
 
-        if (
-          newExercise.measurementType !==
-          sessionExercise.measurementTypeSnapshot
-        ) {
+        if (newExercise.measurementType !== sessionExercise.measurementTypeSnapshot) {
           throw new BadRequestException({
             code: 'WORKOUT_EXERCISE_MEASUREMENT_INCOMPATIBLE',
-            message:
-              'L’exercice de remplacement doit avoir le même type de mesure.',
+            message: 'L’exercice de remplacement doit avoir le même type de mesure.',
           });
         }
 
@@ -1062,10 +997,8 @@ export class WorkoutsService {
             primaryMuscleGroupNameSnapshot: newExercise.primaryMuscleGroup.name,
             sourceExerciseArchivedAtCreation: false,
             equipmentTypeId: newExercise.defaultEquipmentType?.id ?? null,
-            equipmentNameSnapshot:
-              newExercise.defaultEquipmentType?.name ?? null,
-            equipmentCodeSnapshot:
-              newExercise.defaultEquipmentType?.code ?? null,
+            equipmentNameSnapshot: newExercise.defaultEquipmentType?.name ?? null,
+            equipmentCodeSnapshot: newExercise.defaultEquipmentType?.code ?? null,
             // Conserve notes / repos de la ligne de séance et
             // sourceTemplateExerciseId (provenance template, non contaminante).
           },
@@ -1077,15 +1010,10 @@ export class WorkoutsService {
           include: sessionDetailInclude,
         });
 
-        return toWorkoutSessionDetail(
-          updatedSession as WorkoutSessionSnapshotRow,
-        );
+        return toWorkoutSessionDetail(updatedSession as WorkoutSessionSnapshotRow);
       });
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2025'
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
         throw new NotFoundException({
           code: 'WORKOUT_NOT_FOUND',
           message: 'Séance introuvable.',
@@ -1133,8 +1061,7 @@ export class WorkoutsService {
         if (session.version !== data.expectedVersion) {
           throw new ConflictException({
             code: 'WORKOUT_VERSION_CONFLICT',
-            message:
-              'La séance a été modifiée depuis un autre onglet ou appareil.',
+            message: 'La séance a été modifiée depuis un autre onglet ou appareil.',
             details: { currentVersion: session.version },
           });
         }
@@ -1157,10 +1084,7 @@ export class WorkoutsService {
         );
 
         const nextPosition =
-          session.exercises.reduce(
-            (max, exercise) => Math.max(max, exercise.position),
-            -1,
-          ) + 1;
+          session.exercises.reduce((max, exercise) => Math.max(max, exercise.position), -1) + 1;
 
         await tx.workoutSessionExercise.create({
           data: {
@@ -1204,22 +1128,16 @@ export class WorkoutsService {
           include: sessionDetailInclude,
         });
 
-        return toWorkoutSessionDetail(
-          updatedSession as WorkoutSessionSnapshotRow,
-        );
+        return toWorkoutSessionDetail(updatedSession as WorkoutSessionSnapshotRow);
       });
 
       await this.sharedSessionLinkNotifier.notifyIfLinked(workoutSessionId);
       return detail;
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new ConflictException({
           code: 'WORKOUT_VERSION_CONFLICT',
-          message:
-            'La séance a été modifiée depuis un autre onglet ou appareil.',
+          message: 'La séance a été modifiée depuis un autre onglet ou appareil.',
         });
       }
       throw error;
@@ -1270,17 +1188,14 @@ export class WorkoutsService {
             if (existingSet.workoutSessionExerciseId !== sessionExerciseId) {
               throw new ConflictException({
                 code: 'WORKOUT_SET_COMMAND_CONFLICT',
-                message:
-                  'Cet identifiant de commande est déjà utilisé pour une autre série.',
+                message: 'Cet identifiant de commande est déjà utilisé pour une autre série.',
               });
             }
             const replayed = await tx.workoutSession.findFirstOrThrow({
               where: { id: session.id },
               include: sessionDetailInclude,
             });
-            return toWorkoutSessionDetail(
-              replayed as WorkoutSessionSnapshotRow,
-            );
+            return toWorkoutSessionDetail(replayed as WorkoutSessionSnapshotRow);
           }
         }
 
@@ -1289,8 +1204,7 @@ export class WorkoutsService {
         if (session.version !== data.expectedVersion) {
           throw new ConflictException({
             code: 'WORKOUT_VERSION_CONFLICT',
-            message:
-              'La séance a été modifiée depuis un autre onglet ou appareil.',
+            message: 'La séance a été modifiée depuis un autre onglet ou appareil.',
             details: { currentVersion: session.version },
           });
         }
@@ -1315,10 +1229,7 @@ export class WorkoutsService {
         }
 
         const nextPosition =
-          sessionExercise.sets.reduce(
-            (max, set) => Math.max(max, set.position),
-            -1,
-          ) + 1;
+          sessionExercise.sets.reduce((max, set) => Math.max(max, set.position), -1) + 1;
 
         await tx.workoutSet.create({
           data: {
@@ -1347,18 +1258,13 @@ export class WorkoutsService {
           include: sessionDetailInclude,
         });
 
-        return toWorkoutSessionDetail(
-          updatedSession as WorkoutSessionSnapshotRow,
-        );
+        return toWorkoutSessionDetail(updatedSession as WorkoutSessionSnapshotRow);
       });
 
       await this.sharedSessionLinkNotifier.notifyIfLinked(workoutSessionId);
       return detail;
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new ConflictException({
           code: 'WORKOUT_DUPLICATE_COMMAND',
           message: 'Identifiant de commande déjà utilisé.',
@@ -1403,8 +1309,7 @@ export class WorkoutsService {
       if (session.version !== data.expectedVersion) {
         throw new ConflictException({
           code: 'WORKOUT_VERSION_CONFLICT',
-          message:
-            'La séance a été modifiée depuis un autre onglet ou appareil.',
+          message: 'La séance a été modifiée depuis un autre onglet ou appareil.',
           details: { currentVersion: session.version },
         });
       }
@@ -1437,9 +1342,7 @@ export class WorkoutsService {
         });
       }
 
-      const remaining = sessionExercise.sets.filter(
-        (set) => set.id !== workoutSetId,
-      );
+      const remaining = sessionExercise.sets.filter((set) => set.id !== workoutSetId);
       if (remaining.length === 0) {
         throw new BadRequestException({
           code: 'WORKOUT_SET_LAST_REMAINING',
@@ -1469,9 +1372,7 @@ export class WorkoutsService {
         include: sessionDetailInclude,
       });
 
-      return toWorkoutSessionDetail(
-        updatedSession as WorkoutSessionSnapshotRow,
-      );
+      return toWorkoutSessionDetail(updatedSession as WorkoutSessionSnapshotRow);
     });
 
     await this.sharedSessionLinkNotifier.notifyIfLinked(workoutSessionId);
