@@ -232,6 +232,8 @@ Les noms de fichiers hashés permettent l’invalidation.
 
 Le précache Workbox accepte un bundle principal jusqu’à 3 MiB (`maximumFileSizeToCacheInBytes`) afin que le shell PWA reste hors ligne.
 
+Démonstrations d’exercices (`/exercise-media/**`, ~6 Mo au total) : **non précachées**. Elles sont mises en cache à la première consultation (`CacheFirst`, cache `exercise-media`, 400 entrées max, 90 jours). Une démonstration déjà vue reste donc consultable hors ligne. En séance active hors ligne, l’icône « œil » n’apparaît que si la fiche exercice est déjà dans le cache TanStack Query, parce que le média est lu depuis `GET /exercises/:id`, qui est NetworkOnly.
+
 ### 6.2 Navigation de l’application
 
 Stratégie :

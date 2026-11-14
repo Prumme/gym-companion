@@ -542,10 +542,24 @@ Réponse conceptuelle :
       "canEdit": false,
       "canArchive": false,
       "canRestore": false
+    },
+    "media": {
+      "kind": "IMAGE_SEQUENCE",
+      "frames": [
+        "/exercise-media/barbell-bench-press---medium-grip/0.webp",
+        "/exercise-media/barbell-bench-press---medium-grip/1.webp"
+      ],
+      "attribution": {
+        "sourceName": "Free Exercise DB",
+        "sourceUrl": "https://github.com/yuhonas/free-exercise-db",
+        "license": "Unlicense"
+      }
     }
   }
 }
 ```
+
+`media` (type partagé `ExerciseMedia`) est présent sur la liste (`ExerciseListItem`) et le détail (`ExerciseDetail`). Il vaut `null` pour un exercice `USER` ou un exercice système sans démonstration. `frames` sont des chemins d’assets statiques servis par l’app web (même origine), dans l’ordre du mouvement. Voir `docs/04-business-rules.md` §4.3.1.
 
 Un exercice personnel appartenant à un autre utilisateur doit rester indiscernable d’un exercice inexistant.
 

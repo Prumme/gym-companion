@@ -73,6 +73,7 @@ export function detailToListItem(detail: ExerciseDetail): ExerciseListItem {
     archivedAt: detail.archivedAt,
     permissions: detail.permissions,
     userPreference: detail.userPreference,
+    media: detail.media,
   };
 }
 

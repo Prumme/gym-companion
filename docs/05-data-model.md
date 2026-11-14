@@ -444,6 +444,10 @@ type Exercise = {
 - `normalizedName` aide à détecter les doublons ;
 - un exercice archivé reste accessible dans les historiques.
 
+### Démonstration visuelle (dérivée, non persistée)
+
+Le champ d’API `media` n’est **pas** une colonne : il est dérivé du `slug` des exercices `SYSTEM` via le manifeste `apps/api/src/modules/exercises/exercise-media-manifest.json` (`slug → assetKey, frameCount`). Les images sont des assets statiques de l’app web (`apps/web/public/exercise-media/<assetKey>/<index>.webp`). Aucune migration n’est nécessaire ; un futur média personnalisé (exercices `USER`) demanderait une entité dédiée.
+
 ## 14. ExerciseSecondaryMuscle
 
 Table d’association.

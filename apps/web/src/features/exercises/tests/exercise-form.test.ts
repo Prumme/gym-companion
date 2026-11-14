@@ -85,6 +85,7 @@ function createDetail(overrides: Partial<ExerciseDetail> = {}): ExerciseDetail {
       preferredEquipmentType: null,
       restSecondsOverride: 60,
     },
+    media: null,
     ...overrides,
   };
 }
