@@ -1,14 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import type {
-  EquipmentTypeReference,
-  MuscleGroupReference,
-} from '@gym-companion/shared';
+import type { EquipmentTypeReference, MuscleGroupReference } from '@gym-companion/shared';
 
 import { PrismaService } from '../../database/prisma/prisma.service';
-import {
-  toEquipmentTypeReference,
-  toMuscleGroupReference,
-} from './reference.mapper';
+import { toEquipmentTypeReference, toMuscleGroupReference } from './reference.mapper';
 
 @Injectable()
 export class ReferenceService {

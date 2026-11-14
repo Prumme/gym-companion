@@ -3,11 +3,7 @@ import { useEffect, useRef } from 'react';
 type WakeLockSentinelLike = {
   released: boolean;
   release: () => Promise<void>;
-  addEventListener: (
-    type: 'release',
-    listener: () => void,
-    options?: { once?: boolean },
-  ) => void;
+  addEventListener: (type: 'release', listener: () => void, options?: { once?: boolean }) => void;
   removeEventListener: (type: 'release', listener: () => void) => void;
 };
 
@@ -17,15 +13,10 @@ type WakeLockNavigator = Navigator & {
   };
 };
 
-function isWakeLockSupported(
-  nav: Navigator,
-): nav is WakeLockNavigator & {
+function isWakeLockSupported(nav: Navigator): nav is WakeLockNavigator & {
   wakeLock: NonNullable<WakeLockNavigator['wakeLock']>;
 } {
-  return (
-    'wakeLock' in nav &&
-    typeof (nav as WakeLockNavigator).wakeLock?.request === 'function'
-  );
+  return 'wakeLock' in nav && typeof (nav as WakeLockNavigator).wakeLock?.request === 'function';
 }
 
 function debugWakeLock(event: string): void {
@@ -64,10 +55,7 @@ export function useScreenWakeLock(active: boolean): void {
 
     async function acquire(): Promise<void> {
       if (cancelled || !activeRef.current) return;
-      if (
-        typeof document !== 'undefined' &&
-        document.visibilityState !== 'visible'
-      ) {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
         return;
       }
       if (!isWakeLockSupported(navigator)) {

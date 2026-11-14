@@ -40,10 +40,8 @@ export function EditExercisePage() {
     [detailQuery.data],
   );
 
-  const referencesLoading =
-    muscleGroupsQuery.isLoading || equipmentTypesQuery.isLoading;
-  const referencesError =
-    muscleGroupsQuery.isError || equipmentTypesQuery.isError;
+  const referencesLoading = muscleGroupsQuery.isLoading || equipmentTypesQuery.isLoading;
+  const referencesError = muscleGroupsQuery.isError || equipmentTypesQuery.isError;
   const muscleGroups = muscleGroupsQuery.data ?? [];
   const equipmentTypes = equipmentTypesQuery.data ?? [];
 
@@ -77,10 +75,7 @@ export function EditExercisePage() {
     const message =
       status === 404
         ? 'Cet exercice est introuvable ou inaccessible.'
-        : getApiErrorMessage(
-            detailQuery.error,
-            'Impossible de charger cet exercice.',
-          );
+        : getApiErrorMessage(detailQuery.error, 'Impossible de charger cet exercice.');
 
     return (
       <main className="flex flex-1 flex-col gap-4">
@@ -101,14 +96,10 @@ export function EditExercisePage() {
   if (exercise.archivedAt) {
     return (
       <main className="flex flex-1 flex-col gap-4">
-        <PageHeader
-          title="Exercice archivé"
-          backTo={detailPath}
-          backLabel="Détail"
-        />
+        <PageHeader title="Exercice archivé" backTo={detailPath} backLabel="Détail" />
         <p className="text-sm text-[var(--muted-foreground)]">
-          Cet exercice est archivé et ne peut pas être modifié. Restaure-le depuis
-          sa fiche détail si tu veux le modifier.
+          Cet exercice est archivé et ne peut pas être modifié. Restaure-le depuis sa fiche détail
+          si tu veux le modifier.
         </p>
         <ButtonLink to={detailPath} variant="secondary" className="w-fit">
           Voir le détail
@@ -120,14 +111,9 @@ export function EditExercisePage() {
   if (!canEditExercise(exercise.permissions)) {
     return (
       <main className="flex flex-1 flex-col gap-4">
-        <PageHeader
-          title="Modification indisponible"
-          backTo={detailPath}
-          backLabel="Détail"
-        />
+        <PageHeader title="Modification indisponible" backTo={detailPath} backLabel="Détail" />
         <p className="text-sm text-[var(--muted-foreground)]">
-          Tu ne peux pas modifier cet exercice. Les exercices système restent en
-          lecture seule.
+          Tu ne peux pas modifier cet exercice. Les exercices système restent en lecture seule.
         </p>
         <div className="flex flex-wrap gap-2">
           <ButtonLink to={detailPath} variant="secondary">
@@ -157,9 +143,7 @@ export function EditExercisePage() {
         </p>
       ) : null}
 
-      {referencesLoading ? (
-        <LoadingState label="Chargement des références…" />
-      ) : null}
+      {referencesLoading ? <LoadingState label="Chargement des références…" /> : null}
 
       {referencesError ? (
         <div
@@ -186,10 +170,7 @@ export function EditExercisePage() {
         </div>
       ) : null}
 
-      {!referencesLoading &&
-      !referencesError &&
-      initialValues &&
-      muscleGroups.length > 0 ? (
+      {!referencesLoading && !referencesError && initialValues && muscleGroups.length > 0 ? (
         <ExerciseForm
           mode="edit"
           initialValues={initialValues}

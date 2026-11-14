@@ -16,10 +16,7 @@ import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger'
 import { createSuccessResponse } from '@gym-companion/shared';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import {
-  JwtAuthGuard,
-  type AuthenticatedUser,
-} from '../../common/guards/jwt-auth.guard';
+import { JwtAuthGuard, type AuthenticatedUser } from '../../common/guards/jwt-auth.guard';
 import { ExercisesService } from './exercises.service';
 
 @ApiTags('exercises')
@@ -76,11 +73,7 @@ export class ExercisesController {
     @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.exercisesService.upsertPreference(
-      user.id,
-      exerciseId,
-      body,
-    );
+    const data = await this.exercisesService.upsertPreference(user.id, exerciseId, body);
     return createSuccessResponse(data);
   }
 

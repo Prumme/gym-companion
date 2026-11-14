@@ -45,7 +45,13 @@ export function LoginPage() {
         <p className="text-[var(--muted)]">Accédez à votre espace Gym Companion.</p>
       </div>
       <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
-        <Input label="Email" type="email" autoComplete="email" error={errors.email?.message} {...register('email')} />
+        <Input
+          label="Email"
+          type="email"
+          autoComplete="email"
+          error={errors.email?.message}
+          {...register('email')}
+        />
         <Input
           label="Mot de passe"
           type="password"

@@ -17,9 +17,7 @@ import {
   useAttachMySharedWorkoutSessionMutation,
   useCreateMySharedWorkoutSessionMutation,
 } from '../hooks/use-shared-workout-mutations';
-import {
-  formatSharedExerciseProgress,
-} from '../lib/shared-workout-labels';
+import { formatSharedExerciseProgress } from '../lib/shared-workout-labels';
 
 type Props = {
   roomId: string;
@@ -42,12 +40,7 @@ export function SharedWorkoutMySessionSection({
   variant,
 }: Props) {
   const mode =
-    variant ??
-    (roomStatus === 'LOBBY'
-      ? 'lobby'
-      : roomStatus === 'ACTIVE'
-        ? 'active'
-        : 'terminal');
+    variant ?? (roomStatus === 'LOBBY' ? 'lobby' : roomStatus === 'ACTIVE' ? 'active' : 'terminal');
 
   const myQuery = useQuery({
     ...mySharedWorkoutSessionQueryOptions(roomId),
@@ -126,9 +119,7 @@ export function SharedWorkoutMySessionSection({
 
   async function handleAttach(sessionId: string) {
     if (offline) {
-      setLocalError(
-        'Une connexion est nécessaire pour rattacher une séance à la salle.',
-      );
+      setLocalError('Une connexion est nécessaire pour rattacher une séance à la salle.');
       return;
     }
     setLocalError(null);
@@ -136,17 +127,13 @@ export function SharedWorkoutMySessionSection({
       await attachMutation.mutateAsync({ workoutSessionId: sessionId });
       setChooserOpen(false);
     } catch (error) {
-      setLocalError(
-        getApiErrorMessage(error, 'Impossible de rattacher la séance.'),
-      );
+      setLocalError(getApiErrorMessage(error, 'Impossible de rattacher la séance.'));
     }
   }
 
   async function handleCreate() {
     if (offline) {
-      setLocalError(
-        'Une connexion est nécessaire pour rattacher une séance à la salle.',
-      );
+      setLocalError('Une connexion est nécessaire pour rattacher une séance à la salle.');
       return;
     }
     if (!templateId) {
@@ -158,9 +145,7 @@ export function SharedWorkoutMySessionSection({
       await createMutation.mutateAsync({ workoutTemplateId: templateId });
       setChooserOpen(false);
     } catch (error) {
-      setLocalError(
-        getApiErrorMessage(error, 'Impossible de démarrer la séance.'),
-      );
+      setLocalError(getApiErrorMessage(error, 'Impossible de démarrer la séance.'));
     }
   }
 
@@ -195,9 +180,7 @@ export function SharedWorkoutMySessionSection({
           className="flex min-h-14 items-center justify-between gap-3 border-b border-[var(--border)] py-2 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
         >
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">
-              {my.workoutSession.workoutName}
-            </p>
+            <p className="truncate text-sm font-semibold">{my.workoutSession.workoutName}</p>
             <p className="text-sm text-[var(--muted)]">
               {getWorkoutStatusLabel(my.workoutSession.status)}
               {selfExerciseName ? ` · ${selfExerciseName}` : ''}
@@ -237,8 +220,7 @@ export function SharedWorkoutMySessionSection({
 
       {!my?.linked && chooserOpen ? (
         <div className="flex flex-col gap-3">
-          {my?.activeWorkoutElsewhere &&
-          !my.activeWorkoutElsewhere.linkedToOtherRoom ? (
+          {my?.activeWorkoutElsewhere && !my.activeWorkoutElsewhere.linkedToOtherRoom ? (
             <Button
               type="button"
               disabled={offline || pending}
@@ -286,11 +268,7 @@ export function SharedWorkoutMySessionSection({
             </p>
           ) : null}
 
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setChooserOpen(false)}
-          >
+          <Button type="button" variant="ghost" onClick={() => setChooserOpen(false)}>
             Annuler
           </Button>
         </div>

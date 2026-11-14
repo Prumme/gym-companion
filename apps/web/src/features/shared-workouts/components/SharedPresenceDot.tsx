@@ -7,8 +7,7 @@ type SharedPresenceDotProps = {
 };
 
 export function SharedPresenceDot({ online, className }: SharedPresenceDotProps) {
-  const label =
-    online === null ? 'Présence inconnue' : online ? 'En ligne' : 'Hors ligne';
+  const label = online === null ? 'Présence inconnue' : online ? 'En ligne' : 'Hors ligne';
 
   return (
     <span
@@ -19,9 +18,7 @@ export function SharedPresenceDot({ online, className }: SharedPresenceDotProps)
         aria-hidden="true"
         className={cn(
           'inline-block size-2 shrink-0 rounded-full',
-          online === true
-            ? 'bg-[var(--primary)]'
-            : 'bg-[var(--muted)]/50',
+          online === true ? 'bg-[var(--primary)]' : 'bg-[var(--muted)]/50',
         )}
       />
       <span className="sr-only sm:not-sr-only sm:inline">{label}</span>

@@ -1,7 +1,4 @@
-import type {
-  ExerciseMeasurementType,
-  ExerciseSource,
-} from '@gym-companion/shared';
+import type { ExerciseMeasurementType, ExerciseSource } from '@gym-companion/shared';
 
 import type { ExerciseListFilters } from '../api/exercise-query-options';
 
@@ -37,9 +34,7 @@ function isSource(value: string): value is ExerciseSource {
   return value === 'SYSTEM' || value === 'USER';
 }
 
-export function parseExerciseListSearchParams(
-  params: URLSearchParams,
-): ExerciseListFilters {
+export function parseExerciseListSearchParams(params: URLSearchParams): ExerciseListFilters {
   const search = params.get('search')?.trim() || undefined;
   const muscleGroupId = params.get('muscleGroupId')?.trim() || undefined;
   const equipmentTypeId = params.get('equipmentTypeId')?.trim() || undefined;
@@ -59,9 +54,7 @@ export function parseExerciseListSearchParams(
 }
 
 /** Sérialise les filtres en omettant les valeurs par défaut pour une URL lisible. */
-export function serializeExerciseListSearchParams(
-  filters: ExerciseListFilters,
-): URLSearchParams {
+export function serializeExerciseListSearchParams(filters: ExerciseListFilters): URLSearchParams {
   const params = new URLSearchParams();
   if (filters.search?.trim()) {
     params.set('search', filters.search.trim());
@@ -102,11 +95,11 @@ export function countActiveExerciseFilters(filters: ExerciseListFilters): number
 export function hasNonSearchFilters(filters: ExerciseListFilters): boolean {
   return Boolean(
     filters.muscleGroupId ||
-      filters.equipmentTypeId ||
-      filters.measurementType ||
-      filters.source ||
-      filters.favoriteOnly ||
-      filters.includeArchived,
+    filters.equipmentTypeId ||
+    filters.measurementType ||
+    filters.source ||
+    filters.favoriteOnly ||
+    filters.includeArchived,
   );
 }
 

@@ -36,9 +36,7 @@ function appendIfPresent(
   params.set(key, String(value));
 }
 
-export function buildWorkoutHistorySearchParams(
-  query: WorkoutHistoryListQuery,
-): URLSearchParams {
+export function buildWorkoutHistorySearchParams(query: WorkoutHistoryListQuery): URLSearchParams {
   const params = new URLSearchParams();
   appendIfPresent(params, 'status', query.status);
   appendIfPresent(params, 'from', query.from);
@@ -55,15 +53,11 @@ export async function listWorkoutHistory(
 ): Promise<WorkoutHistoryListResponse> {
   const params = buildWorkoutHistorySearchParams(query);
   const suffix = params.toString();
-  return apiFetch<WorkoutHistoryListResponse>(
-    `/api/v1/workouts${suffix ? `?${suffix}` : ''}`,
-  );
+  return apiFetch<WorkoutHistoryListResponse>(`/api/v1/workouts${suffix ? `?${suffix}` : ''}`);
 }
 
 export async function getActiveWorkoutSession(): Promise<WorkoutSessionDetail | null> {
-  const response = await apiFetch<{ data: WorkoutSessionDetail | null }>(
-    '/api/v1/workouts/active',
-  );
+  const response = await apiFetch<{ data: WorkoutSessionDetail | null }>('/api/v1/workouts/active');
   return response.data;
 }
 
@@ -79,13 +73,10 @@ export async function getWorkoutSessionDetail(
 export async function createWorkoutSession(
   input: CreateWorkoutSessionInput,
 ): Promise<WorkoutSessionDetail> {
-  const response = await apiFetch<{ data: WorkoutSessionDetail }>(
-    '/api/v1/workouts',
-    {
-      method: 'POST',
-      body: JSON.stringify(input),
-    },
-  );
+  const response = await apiFetch<{ data: WorkoutSessionDetail }>('/api/v1/workouts', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
   return response.data;
 }
 

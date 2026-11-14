@@ -23,17 +23,14 @@ const DECISION_LABELS: Record<LoadRecommendationDecisionType, string> = {
 const REASON_MESSAGES: Record<LoadRecommendationReason, string> = {
   TARGET_RANGE_REACHED:
     'Tu as atteint le haut de ta plage de répétitions sur tes séries de travail.',
-  TARGET_RANGE_PARTIALLY_REACHED:
-    'La charge actuelle reste adaptée à ta plage cible.',
+  TARGET_RANGE_PARTIALLY_REACHED: 'La charge actuelle reste adaptée à ta plage cible.',
   TARGET_RANGE_NOT_REACHED:
     'Les séances récentes sont restées sous la plage de répétitions prévue.',
   EFFORT_ON_TARGET: 'L’effort déclaré reste cohérent avec la cible.',
   EFFORT_TOO_HIGH: 'L’effort déclaré est nettement plus élevé que prévu.',
-  EFFORT_LOWER_THAN_TARGET:
-    'L’effort déclaré était plus facile que la cible prévue.',
+  EFFORT_LOWER_THAN_TARGET: 'L’effort déclaré était plus facile que la cible prévue.',
   RECENT_FAILURES: 'Des séries partielles ou échouées se sont répétées.',
-  NO_ELIGIBLE_HISTORY:
-    'Pas encore assez de séances terminées pour proposer une charge.',
+  NO_ELIGIBLE_HISTORY: 'Pas encore assez de séances terminées pour proposer une charge.',
   NO_WORKING_SETS: 'Aucune série de travail exploitable n’a été trouvée.',
   UNSUPPORTED_TARGET_CONFIGURATION:
     'Les séries de travail utilisent plusieurs charges ou plages de répétitions différentes. La recommandation automatique est désactivée pour cette configuration.',
@@ -44,10 +41,8 @@ const REASON_MESSAGES: Record<LoadRecommendationReason, string> = {
   UNSUPPORTED_MEASUREMENT_TYPE:
     'Aucune recommandation de charge n’est disponible pour ce type d’exercice.',
   NO_TARGET_WEIGHT: 'Aucune charge cible n’est définie sur les séries de travail.',
-  NO_TARGET_REP_RANGE:
-    'Aucune plage de répétitions exploitable n’est définie.',
-  SINGLE_UNDERPERFORMANCE:
-    'Une seule séance difficile ne suffit pas pour baisser la charge.',
+  NO_TARGET_REP_RANGE: 'Aucune plage de répétitions exploitable n’est définie.',
+  SINGLE_UNDERPERFORMANCE: 'Une seule séance difficile ne suffit pas pour baisser la charge.',
   COMPARABLE_LOAD_MISMATCH:
     'La charge réalisée récemment diffère trop de la cible actuelle du modèle.',
 };
@@ -57,9 +52,7 @@ const INCREMENT_SOURCE_LABELS: Record<LoadIncrementSource, string> = {
   USER_EXERCISE_PREFERENCE: 'Préférence d’exercice',
 };
 
-export function getLoadRecommendationActionLabel(
-  action: LoadRecommendationAction,
-): string {
+export function getLoadRecommendationActionLabel(action: LoadRecommendationAction): string {
   return ACTION_LABELS[action];
 }
 
@@ -69,15 +62,11 @@ export function getLoadRecommendationDecisionLabel(
   return DECISION_LABELS[decision];
 }
 
-export function getLoadRecommendationReasonMessage(
-  reason: LoadRecommendationReason,
-): string {
+export function getLoadRecommendationReasonMessage(reason: LoadRecommendationReason): string {
   return REASON_MESSAGES[reason];
 }
 
-export function getPrimaryLoadRecommendationMessage(
-  recommendation: LoadRecommendation,
-): string {
+export function getPrimaryLoadRecommendationMessage(recommendation: LoadRecommendation): string {
   const primary = recommendation.reasons[0];
   if (primary) {
     return getLoadRecommendationReasonMessage(primary);
@@ -107,18 +96,14 @@ export function formatLoadWeightTransition(
   return `${formatLoadWeightKg(currentKg)} → ${formatLoadWeightKg(suggestedKg)}`;
 }
 
-export function getIncrementSourceLabel(
-  source: LoadIncrementSource | null,
-): string | null {
+export function getIncrementSourceLabel(source: LoadIncrementSource | null): string | null {
   if (!source) {
     return null;
   }
   return INCREMENT_SOURCE_LABELS[source];
 }
 
-export function formatEvidenceSummary(
-  recommendation: LoadRecommendation,
-): string | null {
+export function formatEvidenceSummary(recommendation: LoadRecommendation): string | null {
   const count = recommendation.evidence.workoutCount;
   if (count <= 0) {
     return null;
@@ -126,9 +111,7 @@ export function formatEvidenceSummary(
   return `Basé sur ${count} séance${count > 1 ? 's' : ''} récente${count > 1 ? 's' : ''}.`;
 }
 
-export function isLoadRecommendationActionable(
-  action: LoadRecommendationAction,
-): boolean {
+export function isLoadRecommendationActionable(action: LoadRecommendationAction): boolean {
   return action === 'INCREASE' || action === 'HOLD' || action === 'DECREASE';
 }
 
@@ -139,9 +122,7 @@ export function formatDecisionHistoryLine(input: {
   recommendedWeightKg: number | null;
   appliedWeightKg: number | null;
 }): string {
-  const actionLabel = getLoadRecommendationActionLabel(
-    input.recommendationAction,
-  );
+  const actionLabel = getLoadRecommendationActionLabel(input.recommendationAction);
   const decisionLabel = getLoadRecommendationDecisionLabel(input.decisionType);
   const transition = formatLoadWeightTransition(
     input.currentTargetWeightKg,

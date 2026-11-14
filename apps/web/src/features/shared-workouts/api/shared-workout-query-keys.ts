@@ -6,8 +6,7 @@ export const sharedWorkoutRoomQueryKeys = {
   list: (filters: { status?: SharedWorkoutRoomStatus } = {}) =>
     [...sharedWorkoutRoomQueryKeys.lists(), filters] as const,
   details: () => [...sharedWorkoutRoomQueryKeys.all, 'detail'] as const,
-  detail: (roomId: string) =>
-    [...sharedWorkoutRoomQueryKeys.details(), roomId] as const,
+  detail: (roomId: string) => [...sharedWorkoutRoomQueryKeys.details(), roomId] as const,
   myWorkoutSession: (roomId: string) =>
     [...sharedWorkoutRoomQueryKeys.all, 'my-workout-session', roomId] as const,
   equipmentCoordination: (roomId: string) =>
@@ -15,9 +14,5 @@ export const sharedWorkoutRoomQueryKeys = {
   myEquipment: (roomId: string) =>
     [...sharedWorkoutRoomQueryKeys.all, 'my-equipment', roomId] as const,
   workoutSessionContext: (workoutSessionId: string) =>
-    [
-      ...sharedWorkoutRoomQueryKeys.all,
-      'workout-session-context',
-      workoutSessionId,
-    ] as const,
+    [...sharedWorkoutRoomQueryKeys.all, 'workout-session-context', workoutSessionId] as const,
 };

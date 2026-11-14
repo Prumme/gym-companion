@@ -97,9 +97,10 @@ describe('ExercisesPage', () => {
     expect(await screen.findByText('Squat')).toBeInTheDocument();
     expect(screen.getByText('Soulevé de terre')).toBeInTheDocument();
     expect(screen.getByText('2 exercices chargés')).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /Créer un exercice/i }),
-    ).toHaveAttribute('href', '/exercises/new');
+    expect(screen.getByRole('link', { name: /Créer un exercice/i })).toHaveAttribute(
+      'href',
+      '/exercises/new',
+    );
     expect(screen.queryByRole('button', { name: /archiver/i })).not.toBeInTheDocument();
   });
 
@@ -107,15 +108,9 @@ describe('ExercisesPage', () => {
     const user = userEvent.setup();
     listExercises
       .mockResolvedValueOnce(
-        pageResponse(
-          [createExerciseListItem({ id: '1', name: 'Page 1' })],
-          true,
-          'cursor-1',
-        ),
+        pageResponse([createExerciseListItem({ id: '1', name: 'Page 1' })], true, 'cursor-1'),
       )
-      .mockResolvedValueOnce(
-        pageResponse([createExerciseListItem({ id: '2', name: 'Page 2' })]),
-      );
+      .mockResolvedValueOnce(pageResponse([createExerciseListItem({ id: '2', name: 'Page 2' })]));
 
     renderPage();
     expect(await screen.findByText('Page 1')).toBeInTheDocument();
@@ -191,9 +186,7 @@ describe('ExercisesPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Effacer les filtres' }));
     await waitFor(() => {
-      expect(listExercises).toHaveBeenCalledWith(
-        expect.objectContaining({ search: undefined }),
-      );
+      expect(listExercises).toHaveBeenCalledWith(expect.objectContaining({ search: undefined }));
     });
   });
 
@@ -214,11 +207,7 @@ describe('ExercisesPage', () => {
     const user = userEvent.setup();
     listExercises
       .mockResolvedValueOnce(
-        pageResponse(
-          [createExerciseListItem({ id: '1', name: 'Conservé' })],
-          true,
-          'c1',
-        ),
+        pageResponse([createExerciseListItem({ id: '1', name: 'Conservé' })], true, 'c1'),
       )
       .mockRejectedValueOnce(new Error('Suite indisponible'));
 

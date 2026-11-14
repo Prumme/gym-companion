@@ -6,12 +6,7 @@ type LocationState = {
   };
 };
 
-const AUTH_PUBLIC_PATHS = new Set([
-  '/login',
-  '/register',
-  '/forgot-password',
-  '/reset-password',
-]);
+const AUTH_PUBLIC_PATHS = new Set(['/login', '/register', '/forgot-password', '/reset-password']);
 
 /** Destination après login/register, ou `/` par défaut. */
 export function resolvePostAuthPath(state: unknown): string {

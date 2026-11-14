@@ -17,8 +17,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -28,11 +27,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -94,9 +89,7 @@ describe('Workout set recording API (3.2)', () => {
     const templateId = tpl.body.data.workoutTemplates[0].id as string;
 
     const ex = await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-      )
+      .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         exerciseId: system.id,
@@ -108,9 +101,7 @@ describe('Workout set recording API (3.2)', () => {
     const teId = ex.body.data.workoutTemplates[0].exercises[0].id as string;
 
     await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`,
-      )
+      .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         setType: 'WORKING',
@@ -225,9 +216,7 @@ describe('Workout set recording API (3.2)', () => {
         expectedVersion: 2,
       })
       .expect(400);
-    expect(conflict.body.error.code).toBe(
-      'WORKOUT_SET_CONFLICTING_EFFORT_VALUES',
-    );
+    expect(conflict.body.error.code).toBe('WORKOUT_SET_CONFLICTING_EFFORT_VALUES');
   });
 
   it('rejects stale version', async () => {

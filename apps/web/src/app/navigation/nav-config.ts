@@ -121,9 +121,7 @@ export const moreNavGroups: readonly MoreNavGroup[] = [
 ] as const;
 
 /** Destinations du menu Plus (liste plate dérivée des groupes). */
-export const moreNavItems: readonly AppNavItem[] = moreNavGroups.flatMap(
-  (group) => group.items,
-);
+export const moreNavItems: readonly AppNavItem[] = moreNavGroups.flatMap((group) => group.items);
 
 /** Liens du hub Entraînement. */
 export const trainingHubLinks: readonly AppNavItem[] = [
@@ -174,10 +172,7 @@ export function isFocusModePath(pathname: string): boolean {
   );
 }
 
-export function isNavItemActive(
-  item: AppNavItem,
-  pathname: string,
-): boolean {
+export function isNavItemActive(item: AppNavItem, pathname: string): boolean {
   if (item.end) {
     if (pathname === item.to) return true;
   } else if (pathname === item.to || pathname.startsWith(`${item.to}/`)) {

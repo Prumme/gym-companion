@@ -33,9 +33,7 @@ function isValidLocalDateString(value: string): boolean {
   const day = Number(value.slice(8, 10));
   const date = new Date(Date.UTC(year, month - 1, day));
   return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
   );
 }
 
@@ -58,10 +56,7 @@ export const exerciseStrengthQuerySchema = z
   .object({
     from: z.preprocess(emptyQueryToUndefined, localDateSchema.optional()),
     to: z.preprocess(emptyQueryToUndefined, localDateSchema.optional()),
-    equipmentId: z.preprocess(
-      emptyQueryToUndefined,
-      z.string().uuid().optional(),
-    ),
+    equipmentId: z.preprocess(emptyQueryToUndefined, z.string().uuid().optional()),
   })
   .strict()
   .superRefine((data, ctx) => {
@@ -90,9 +85,7 @@ export type ExerciseStrengthQueryParseResult =
       message: string;
     };
 
-function strengthQueryErrorMessage(
-  code: ExerciseStrengthQueryParseErrorCode,
-): string {
+function strengthQueryErrorMessage(code: ExerciseStrengthQueryParseErrorCode): string {
   switch (code) {
     case 'STRENGTH_INVALID_FROM_DATE':
       return 'Date de début invalide.';
@@ -105,9 +98,7 @@ function strengthQueryErrorMessage(
   }
 }
 
-export function parseExerciseStrengthQuery(
-  raw: unknown,
-): ExerciseStrengthQueryParseResult {
+export function parseExerciseStrengthQuery(raw: unknown): ExerciseStrengthQueryParseResult {
   const result = exerciseStrengthQuerySchema.safeParse(raw);
   if (result.success) {
     return { ok: true, data: result.data };
@@ -147,10 +138,7 @@ export function parseExerciseStrengthQuery(
  * Formule Epley V1.
  * Retourne null si les entrées sont inutilisables (non finies, hors plage, etc.).
  */
-export function estimateOneRepMaxEpley(
-  weightKg: number,
-  reps: number,
-): number | null {
+export function estimateOneRepMaxEpley(weightKg: number, reps: number): number | null {
   if (!Number.isFinite(weightKg) || !Number.isFinite(reps)) {
     return null;
   }
@@ -271,11 +259,7 @@ export function compareEstimatedOneRepMaxCandidates(
   if (a.position !== b.position) {
     return a.position - b.position;
   }
-  return a.workoutSetId < b.workoutSetId
-    ? -1
-    : a.workoutSetId > b.workoutSetId
-      ? 1
-      : 0;
+  return a.workoutSetId < b.workoutSetId ? -1 : a.workoutSetId > b.workoutSetId ? 1 : 0;
 }
 
 export function collectEstimatedOneRepMaxCandidates(
@@ -297,10 +281,7 @@ export function collectEstimatedOneRepMaxCandidates(
       ) {
         continue;
       }
-      const estimated = estimateOneRepMaxEpley(
-        set.actualWeightKg!,
-        set.actualReps!,
-      );
+      const estimated = estimateOneRepMaxEpley(set.actualWeightKg!, set.actualReps!);
       if (estimated == null) {
         continue;
       }
@@ -356,8 +337,7 @@ export function computeBestEstimatedOneRepMaxForWorkout(
       session.exercises
         .filter(
           (exercise) =>
-            exercise.sourceExerciseId != null &&
-            exercise.measurementType === 'WEIGHT_REPS',
+            exercise.sourceExerciseId != null && exercise.measurementType === 'WEIGHT_REPS',
         )
         .map((exercise) => exercise.id),
     ),
@@ -409,9 +389,7 @@ export type ExerciseStrengthSummaryComputed = {
   bestSource: EstimatedStrengthSource | null;
 };
 
-function toSource(
-  point: EstimatedStrengthPointComputed,
-): EstimatedStrengthSource {
+function toSource(point: EstimatedStrengthPointComputed): EstimatedStrengthSource {
   return {
     workoutSessionId: point.workoutSessionId,
     workoutSessionExerciseId: point.sourceSet.workoutSessionExerciseId,
@@ -456,15 +434,10 @@ export function computeExerciseStrengthSummary(
   }
 
   const absoluteChangeKg =
-    points.length >= 2
-      ? latest.estimatedOneRepMaxKg - first.estimatedOneRepMaxKg
-      : null;
+    points.length >= 2 ? latest.estimatedOneRepMaxKg - first.estimatedOneRepMaxKg : null;
   let percentageChange: number | null = null;
   if (absoluteChangeKg != null && first.estimatedOneRepMaxKg > 0) {
-    percentageChange =
-      Math.round(
-        ((absoluteChangeKg / first.estimatedOneRepMaxKg) * 100) * 10,
-      ) / 10;
+    percentageChange = Math.round((absoluteChangeKg / first.estimatedOneRepMaxKg) * 100 * 10) / 10;
   }
 
   return {
@@ -499,8 +472,6 @@ export function compareStrengthPointsAsc(
   return 0;
 }
 
-export function isStrengthSupportedForMeasurement(
-  measurementType: string,
-): boolean {
+export function isStrengthSupportedForMeasurement(measurementType: string): boolean {
   return measurementType === 'WEIGHT_REPS';
 }

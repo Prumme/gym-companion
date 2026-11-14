@@ -12,10 +12,7 @@ import {
 } from './progress-api';
 import { progressQueryKeys } from './progress-query-keys';
 
-export function exerciseProgressQueryOptions(
-  exerciseId: string,
-  filters: ExerciseProgressFilters,
-) {
+export function exerciseProgressQueryOptions(exerciseId: string, filters: ExerciseProgressFilters) {
   return queryOptions({
     queryKey: progressQueryKeys.exercise(exerciseId, filters),
     queryFn: () => getExerciseProgress(exerciseId, filters),
@@ -31,10 +28,7 @@ export function cardioHistoryQueryOptions(exerciseId: string) {
   });
 }
 
-export function exerciseStrengthQueryOptions(
-  exerciseId: string,
-  filters: ExerciseStrengthFilters,
-) {
+export function exerciseStrengthQueryOptions(exerciseId: string, filters: ExerciseStrengthFilters) {
   return queryOptions({
     queryKey: progressQueryKeys.exerciseStrength(exerciseId, filters),
     queryFn: () => getExerciseStrength(exerciseId, filters),

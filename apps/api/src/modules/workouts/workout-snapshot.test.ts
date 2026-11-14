@@ -61,16 +61,18 @@ function makeExercise(overrides?: {
       code: 'BARBELL',
       name: 'Barre',
     },
-    sets: (overrides?.sets ?? [
-      {
-        id: 'set-1',
-        position: 0,
-        setType: 'WORKING' as const,
-        targetRepMin: 8,
-        targetRepMax: 10,
-        restSeconds: 120,
-      },
-    ]).map((set) => ({
+    sets: (
+      overrides?.sets ?? [
+        {
+          id: 'set-1',
+          position: 0,
+          setType: 'WORKING' as const,
+          targetRepMin: 8,
+          targetRepMax: 10,
+          restSeconds: 120,
+        },
+      ]
+    ).map((set) => ({
       ...set,
       targetDurationSeconds: null,
       targetDistanceMeters: null,
@@ -125,19 +127,12 @@ describe('buildWorkoutSessionSnapshotFromTemplate', () => {
     expect(result.snapshot.programNameSnapshot).toBe('Hypertrophie');
     expect(result.snapshot.workoutTemplateNameSnapshot).toBe('Push Day');
     expect(result.snapshot.exercises).toHaveLength(2);
-    expect(result.snapshot.exercises.map((e) => e.exerciseNameSnapshot)).toEqual([
-      'A',
-      'B',
-    ]);
+    expect(result.snapshot.exercises.map((e) => e.exerciseNameSnapshot)).toEqual(['A', 'B']);
     expect(result.snapshot.exercises[1]?.notesSnapshot).toBe('Note B');
     expect(result.snapshot.exercises[1]?.restSecondsSnapshot).toBe(45);
     expect(result.snapshot.exercises[0]?.equipmentNameSnapshot).toBe('Barre');
-    expect(result.snapshot.exercises[0]?.measurementTypeSnapshot).toBe(
-      'WEIGHT_REPS',
-    );
-    expect(result.snapshot.exercises[1]?.sets.map((s) => s.position)).toEqual([
-      0, 1,
-    ]);
+    expect(result.snapshot.exercises[0]?.measurementTypeSnapshot).toBe('WEIGHT_REPS');
+    expect(result.snapshot.exercises[1]?.sets.map((s) => s.position)).toEqual([0, 1]);
     expect(result.snapshot.exercises[1]?.sets[1]?.targetRepMin).toBe(8);
     expect(result.snapshot.exercises[1]?.sets[1]?.targetRestSeconds).toBe(150);
     expect(result.snapshot.exercises[0]?.sets[0]?.targetWeightKg).toBe(60);
@@ -152,15 +147,11 @@ describe('buildWorkoutSessionSnapshotFromTemplate', () => {
     if (!result.ok) {
       return;
     }
-    expect(result.snapshot.exercises[0]?.sourceExerciseArchivedAtCreation).toBe(
-      true,
-    );
+    expect(result.snapshot.exercises[0]?.sourceExerciseArchivedAtCreation).toBe(true);
   });
 
   it('refuse un modèle vide', () => {
-    const result = buildWorkoutSessionSnapshotFromTemplate(
-      makeTemplate({ exercises: [] }),
-    );
+    const result = buildWorkoutSessionSnapshotFromTemplate(makeTemplate({ exercises: [] }));
     expect(result.ok).toBe(false);
     if (result.ok) {
       return;
@@ -171,9 +162,7 @@ describe('buildWorkoutSessionSnapshotFromTemplate', () => {
   it('refuse un exercice sans série', () => {
     const exercise = makeExercise();
     exercise.sets = [];
-    const result = buildWorkoutSessionSnapshotFromTemplate(
-      makeTemplate({ exercises: [exercise] }),
-    );
+    const result = buildWorkoutSessionSnapshotFromTemplate(makeTemplate({ exercises: [exercise] }));
     expect(result.ok).toBe(false);
     if (result.ok) {
       return;

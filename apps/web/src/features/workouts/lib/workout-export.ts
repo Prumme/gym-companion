@@ -56,9 +56,7 @@ export type WorkoutExportDocument = {
   workouts: WorkoutExportSession[];
 };
 
-export function toWorkoutExportSession(
-  session: WorkoutSessionDetail,
-): WorkoutExportSession {
+export function toWorkoutExportSession(session: WorkoutSessionDetail): WorkoutExportSession {
   return {
     name: session.name,
     status: session.status,

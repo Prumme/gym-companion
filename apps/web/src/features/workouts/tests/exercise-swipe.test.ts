@@ -10,28 +10,20 @@ const base = { hasPrevious: true, hasNext: true, elapsedMs: 400 };
 
 describe('resolveSwipeNavigation', () => {
   it('swipe gauche assez long → exercice suivant', () => {
-    expect(
-      resolveSwipeNavigation({ ...base, dx: -100, dy: 10 }),
-    ).toBe('next');
+    expect(resolveSwipeNavigation({ ...base, dx: -100, dy: 10 })).toBe('next');
   });
 
   it('swipe droite assez long → exercice précédent', () => {
-    expect(
-      resolveSwipeNavigation({ ...base, dx: 100, dy: 8 }),
-    ).toBe('previous');
+    expect(resolveSwipeNavigation({ ...base, dx: 100, dy: 8 })).toBe('previous');
   });
 
   it('mouvement sous le seuil → aucune navigation', () => {
-    expect(
-      resolveSwipeNavigation({ ...base, dx: 30, dy: 4 }),
-    ).toBeNull();
+    expect(resolveSwipeNavigation({ ...base, dx: 30, dy: 4 })).toBeNull();
   });
 
   it('mouvement vertical → aucune navigation', () => {
     expect(resolveSwipeAxis(20, 100)).toBe('vertical');
-    expect(
-      resolveSwipeNavigation({ ...base, dx: 20, dy: 100 }),
-    ).toBeNull();
+    expect(resolveSwipeNavigation({ ...base, dx: 20, dy: 100 })).toBeNull();
   });
 
   it('premier exercice + swipe droite → reste en place', () => {
@@ -59,9 +51,7 @@ describe('resolveSwipeNavigation', () => {
   });
 
   it('flick horizontal rapide mais marqué → navigation', () => {
-    expect(
-      resolveSwipeNavigation({ ...base, dx: -42, dy: 6, elapsedMs: 140 }),
-    ).toBe('next');
+    expect(resolveSwipeNavigation({ ...base, dx: -42, dy: 6, elapsedMs: 140 })).toBe('next');
   });
 });
 

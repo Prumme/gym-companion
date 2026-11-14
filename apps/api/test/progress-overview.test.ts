@@ -17,8 +17,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -28,11 +27,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -76,9 +71,7 @@ async function createStartableTemplate(
     .expect(201);
   const templateId = tpl.body.data.workoutTemplates[0].id as string;
   const ex = await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       exerciseId: exercise.id,
@@ -89,9 +82,7 @@ async function createStartableTemplate(
     .expect(201);
   const teId = ex.body.data.workoutTemplates[0].exercises[0].id as string;
   await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       setType: 'WORKING',
@@ -144,9 +135,7 @@ async function completeWeightSession(
   const exercise = session.exercises[0]!;
   const set = exercise.sets[0]!;
   const patched = await request(app.getHttpServer())
-    .patch(
-      `/api/v1/workouts/${session.id}/exercises/${exercise.id}/sets/${set.id}`,
-    )
+    .patch(`/api/v1/workouts/${session.id}/exercises/${exercise.id}/sets/${set.id}`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       status: 'COMPLETED',
@@ -214,48 +203,19 @@ describe('Progress overview API (4.4)', () => {
       .expect(200);
     expect(empty.body.data.totals.workoutCount).toBe(0);
     expect(empty.body.data.timeline.points.length).toBeGreaterThan(0);
-    expect(empty.body.data.timeline.points.every((p: { workoutCount: number }) => p.workoutCount === 0)).toBe(
-      true,
-    );
+    expect(
+      empty.body.data.timeline.points.every((p: { workoutCount: number }) => p.workoutCount === 0),
+    ).toBe(true);
     expect(empty.body.data.recentRecords).toEqual([]);
     expect(empty.body.data.topExercises).toEqual([]);
   });
 
   it('agrège séances, exclut annulée/active, buckets, tops, isolation', async () => {
-    await completeWeightSession(
-      app,
-      tokenA,
-      tpl.templateId,
-      '2026-06-02',
-      80,
-      8,
-      `ov1-${stamp}`,
-    );
-    await completeWeightSession(
-      app,
-      tokenA,
-      tpl.templateId,
-      '2026-06-02',
-      90,
-      6,
-      `ov2-${stamp}`,
-    );
-    await completeWeightSession(
-      app,
-      tokenA,
-      tpl.templateId,
-      '2026-06-10',
-      100,
-      5,
-      `ov3-${stamp}`,
-    );
+    await completeWeightSession(app, tokenA, tpl.templateId, '2026-06-02', 80, 8, `ov1-${stamp}`);
+    await completeWeightSession(app, tokenA, tpl.templateId, '2026-06-02', 90, 6, `ov2-${stamp}`);
+    await completeWeightSession(app, tokenA, tpl.templateId, '2026-06-10', 100, 5, `ov3-${stamp}`);
 
-    const active = await startWorkout(
-      app,
-      tokenA,
-      tpl.templateId,
-      '2026-06-15',
-    );
+    const active = await startWorkout(app, tokenA, tpl.templateId, '2026-06-15');
     const activePatched = await request(app.getHttpServer())
       .patch(
         `/api/v1/workouts/${active.id}/exercises/${active.exercises[0]!.id}/sets/${active.exercises[0]!.sets[0]!.id}`,
@@ -293,12 +253,7 @@ describe('Progress overview API (4.4)', () => {
       })
       .expect(200);
 
-    const cancelled = await startWorkout(
-      app,
-      tokenA,
-      tpl.templateId,
-      '2026-06-16',
-    );
+    const cancelled = await startWorkout(app, tokenA, tpl.templateId, '2026-06-16');
     const cancelledPatch = await request(app.getHttpServer())
       .patch(
         `/api/v1/workouts/${cancelled.id}/exercises/${cancelled.exercises[0]!.id}/sets/${cancelled.exercises[0]!.sets[0]!.id}`,
@@ -330,17 +285,13 @@ describe('Progress overview API (4.4)', () => {
       .expect(200);
 
     const overview = await request(app.getHttpServer())
-      .get(
-        '/api/v1/progress/overview?from=2026-06-01&to=2026-06-30&metric=WORKING_EXTERNAL_VOLUME',
-      )
+      .get('/api/v1/progress/overview?from=2026-06-01&to=2026-06-30&metric=WORKING_EXTERNAL_VOLUME')
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
 
     expect(overview.body.data.totals.workoutCount).toBe(3);
     expect(overview.body.data.frequency.activeDayCount).toBe(2);
-    expect(overview.body.data.totals.workingExternalVolumeKg).toBe(
-      80 * 8 + 90 * 6 + 100 * 5,
-    );
+    expect(overview.body.data.totals.workingExternalVolumeKg).toBe(80 * 8 + 90 * 6 + 100 * 5);
     expect(overview.body.data.timeline.bucket).toBe('DAY');
     expect(
       overview.body.data.timeline.points.some(
@@ -374,8 +325,7 @@ describe('Progress overview API (4.4)', () => {
         .get(`/api/v1/workouts/${row.id}`)
         .set('Authorization', `Bearer ${tokenA}`)
         .expect(200);
-      sumVolume +=
-        detail.body.data.metrics.performance.workingExternalVolumeKg as number;
+      sumVolume += detail.body.data.metrics.performance.workingExternalVolumeKg as number;
     }
     expect(sumVolume).toBe(overview.body.data.totals.workingExternalVolumeKg);
 

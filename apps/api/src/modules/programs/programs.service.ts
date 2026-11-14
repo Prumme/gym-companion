@@ -200,11 +200,7 @@ export class ProgramsService {
     return toProgramDetail(created as ProgramRow, false);
   }
 
-  async update(
-    userId: string,
-    programId: string,
-    input: unknown,
-  ): Promise<ProgramDetail> {
+  async update(userId: string, programId: string, input: unknown): Promise<ProgramDetail> {
     const data = updateProgramSchema.parse(input);
     const existing = await this.findOwnedOrThrow(userId, programId);
     this.assertEditable(existing);
@@ -213,9 +209,7 @@ export class ProgramsService {
       where: { id: programId },
       data: {
         ...(data.name !== undefined ? { name: data.name.trim() } : {}),
-        ...(data.description !== undefined
-          ? { description: data.description }
-          : {}),
+        ...(data.description !== undefined ? { description: data.description } : {}),
         ...(data.goal !== undefined ? { goal: data.goal } : {}),
       },
       include: programDetailInclude,
@@ -273,11 +267,7 @@ export class ProgramsService {
     return toProgramDetail(restored as ProgramRow, false);
   }
 
-  async activate(
-    userId: string,
-    programId: string,
-    input: unknown,
-  ): Promise<ActiveProgramSummary> {
+  async activate(userId: string, programId: string, input: unknown): Promise<ActiveProgramSummary> {
     const data = activateProgramSchema.parse(input);
     const program = await this.findOwnedOrThrow(userId, programId);
     if (program.archivedAt) {
@@ -343,10 +333,7 @@ export class ProgramsService {
         });
       });
     } catch (error) {
-      if (
-        error instanceof ConflictException ||
-        error instanceof BadRequestException
-      ) {
+      if (error instanceof ConflictException || error instanceof BadRequestException) {
         throw error;
       }
       if (
@@ -373,10 +360,7 @@ export class ProgramsService {
     return active;
   }
 
-  async deactivate(
-    userId: string,
-    programId: string,
-  ): Promise<ActiveProgramSummary | null> {
+  async deactivate(userId: string, programId: string): Promise<ActiveProgramSummary | null> {
     await this.findOwnedOrThrow(userId, programId);
     const timezone = await this.getUserTimezone(userId);
     const endedOnToday = localDateStringToUtcDate(todayLocalDateString(timezone));
@@ -401,10 +385,7 @@ export class ProgramsService {
     return this.getActive(userId);
   }
 
-  async getSchedule(
-    userId: string,
-    programId: string,
-  ): Promise<ProgramSchedule> {
+  async getSchedule(userId: string, programId: string): Promise<ProgramSchedule> {
     await this.findOwnedOrThrow(userId, programId);
     const rows = await this.loadScheduleRows(programId);
     return toProgramSchedule(rows);
@@ -427,9 +408,7 @@ export class ProgramsService {
       });
     }
 
-    const templateIds = [
-      ...new Set(data.entries.map((entry) => entry.workoutTemplateId)),
-    ];
+    const templateIds = [...new Set(data.entries.map((entry) => entry.workoutTemplateId))];
     if (templateIds.length > 0) {
       const templates = await this.prisma.workoutTemplate.findMany({
         where: { programId, id: { in: templateIds } },
@@ -438,8 +417,7 @@ export class ProgramsService {
       if (templates.length !== templateIds.length) {
         throw new BadRequestException({
           code: 'PROGRAM_SCHEDULE_TEMPLATE_MISMATCH',
-          message:
-            'Un ou plusieurs modèles n’appartiennent pas à ce programme.',
+          message: 'Un ou plusieurs modèles n’appartiennent pas à ce programme.',
         });
       }
     }
@@ -511,9 +489,7 @@ export class ProgramsService {
       where: { id: workoutTemplateId },
       data: {
         ...(data.name !== undefined ? { name: data.name.trim() } : {}),
-        ...(data.description !== undefined
-          ? { description: data.description }
-          : {}),
+        ...(data.description !== undefined ? { description: data.description } : {}),
         ...(data.estimatedDurationMinutes !== undefined
           ? { estimatedDurationMinutes: data.estimatedDurationMinutes }
           : {}),
@@ -596,10 +572,7 @@ export class ProgramsService {
     this.assertEditable(program);
     await this.findTemplateInProgramOrThrow(programId, workoutTemplateId);
 
-    const exercise = await this.findAccessibleExerciseOrThrow(
-      userId,
-      data.exerciseId,
-    );
+    const exercise = await this.findAccessibleExerciseOrThrow(userId, data.exerciseId);
     if (exercise.archivedAt) {
       throw new BadRequestException({
         code: 'WORKOUT_TEMPLATE_EXERCISE_NOT_EDITABLE',
@@ -607,10 +580,7 @@ export class ProgramsService {
       });
     }
 
-    await this.assertCompatibleEquipment(
-      data.exerciseId,
-      data.equipmentTypeId,
-    );
+    await this.assertCompatibleEquipment(data.exerciseId, data.equipmentTypeId);
 
     try {
       await this.prisma.$transaction(async (tx) => {
@@ -618,9 +588,7 @@ export class ProgramsService {
           where: { workoutTemplateId },
           select: { position: true },
         });
-        const position = computeNextOrderedPosition(
-          existing.map((item) => item.position),
-        );
+        const position = computeNextOrderedPosition(existing.map((item) => item.position));
         await tx.workoutTemplateExercise.create({
           data: {
             workoutTemplateId,
@@ -667,18 +635,13 @@ export class ProgramsService {
     );
 
     if (data.equipmentTypeId !== undefined) {
-      await this.assertCompatibleEquipment(
-        templateExercise.exerciseId,
-        data.equipmentTypeId,
-      );
+      await this.assertCompatibleEquipment(templateExercise.exerciseId, data.equipmentTypeId);
     }
 
     await this.prisma.workoutTemplateExercise.update({
       where: { id: templateExerciseId },
       data: {
-        ...(data.equipmentTypeId !== undefined
-          ? { equipmentTypeId: data.equipmentTypeId }
-          : {}),
+        ...(data.equipmentTypeId !== undefined ? { equipmentTypeId: data.equipmentTypeId } : {}),
         ...(data.restSecondsOverride !== undefined
           ? { restSecondsOverride: data.restSecondsOverride }
           : {}),
@@ -697,11 +660,7 @@ export class ProgramsService {
   ): Promise<ProgramDetail> {
     const program = await this.findOwnedOrThrow(userId, programId);
     this.assertEditable(program);
-    await this.findTemplateExerciseOrThrow(
-      programId,
-      workoutTemplateId,
-      templateExerciseId,
-    );
+    await this.findTemplateExerciseOrThrow(programId, workoutTemplateId, templateExerciseId);
 
     await this.prisma.$transaction(async (tx) => {
       await tx.workoutTemplateExercise.delete({
@@ -773,19 +732,14 @@ export class ProgramsService {
       templateExerciseId,
     );
 
-    this.assertSetTargets(
-      templateExercise.exercise.measurementType,
-      data,
-    );
+    this.assertSetTargets(templateExercise.exercise.measurementType, data);
 
     await this.prisma.$transaction(async (tx) => {
       const existing = await tx.workoutTemplateSet.findMany({
         where: { workoutTemplateExerciseId: templateExerciseId },
         select: { position: true },
       });
-      const position = computeNextOrderedPosition(
-        existing.map((item) => item.position),
-      );
+      const position = computeNextOrderedPosition(existing.map((item) => item.position));
       await tx.workoutTemplateSet.create({
         data: {
           workoutTemplateExerciseId: templateExerciseId,
@@ -827,14 +781,8 @@ export class ProgramsService {
 
     const merged: WorkoutTemplateSetTargetFields & { setType: string } = {
       setType: data.setType ?? existingSet.setType,
-      targetRepMin:
-        data.targetRepMin !== undefined
-          ? data.targetRepMin
-          : existingSet.targetRepMin,
-      targetRepMax:
-        data.targetRepMax !== undefined
-          ? data.targetRepMax
-          : existingSet.targetRepMax,
+      targetRepMin: data.targetRepMin !== undefined ? data.targetRepMin : existingSet.targetRepMin,
+      targetRepMax: data.targetRepMax !== undefined ? data.targetRepMax : existingSet.targetRepMax,
       targetDurationSeconds:
         data.targetDurationSeconds !== undefined
           ? data.targetDurationSeconds
@@ -857,18 +805,14 @@ export class ProgramsService {
           : existingSet.targetIntensityPercent == null
             ? null
             : Number(existingSet.targetIntensityPercent),
-      targetRir:
-        data.targetRir !== undefined ? data.targetRir : existingSet.targetRir,
+      targetRir: data.targetRir !== undefined ? data.targetRir : existingSet.targetRir,
       targetRpe:
         data.targetRpe !== undefined
           ? data.targetRpe
           : existingSet.targetRpe == null
             ? null
             : Number(existingSet.targetRpe),
-      restSeconds:
-        data.restSeconds !== undefined
-          ? data.restSeconds
-          : existingSet.restSeconds,
+      restSeconds: data.restSeconds !== undefined ? data.restSeconds : existingSet.restSeconds,
     };
 
     this.assertSetTargets(templateExercise.exercise.measurementType, merged);
@@ -877,29 +821,21 @@ export class ProgramsService {
       where: { id: setId },
       data: {
         ...(data.setType !== undefined ? { setType: data.setType } : {}),
-        ...(data.targetRepMin !== undefined
-          ? { targetRepMin: data.targetRepMin }
-          : {}),
-        ...(data.targetRepMax !== undefined
-          ? { targetRepMax: data.targetRepMax }
-          : {}),
+        ...(data.targetRepMin !== undefined ? { targetRepMin: data.targetRepMin } : {}),
+        ...(data.targetRepMax !== undefined ? { targetRepMax: data.targetRepMax } : {}),
         ...(data.targetDurationSeconds !== undefined
           ? { targetDurationSeconds: data.targetDurationSeconds }
           : {}),
         ...(data.targetDistanceMeters !== undefined
           ? { targetDistanceMeters: data.targetDistanceMeters }
           : {}),
-        ...(data.targetWeightKg !== undefined
-          ? { targetWeightKg: data.targetWeightKg }
-          : {}),
+        ...(data.targetWeightKg !== undefined ? { targetWeightKg: data.targetWeightKg } : {}),
         ...(data.targetIntensityPercent !== undefined
           ? { targetIntensityPercent: data.targetIntensityPercent }
           : {}),
         ...(data.targetRir !== undefined ? { targetRir: data.targetRir } : {}),
         ...(data.targetRpe !== undefined ? { targetRpe: data.targetRpe } : {}),
-        ...(data.restSeconds !== undefined
-          ? { restSeconds: data.restSeconds }
-          : {}),
+        ...(data.restSeconds !== undefined ? { restSeconds: data.restSeconds } : {}),
       },
     });
 
@@ -915,11 +851,7 @@ export class ProgramsService {
   ): Promise<ProgramDetail> {
     const program = await this.findOwnedOrThrow(userId, programId);
     this.assertEditable(program);
-    await this.findTemplateExerciseOrThrow(
-      programId,
-      workoutTemplateId,
-      templateExerciseId,
-    );
+    await this.findTemplateExerciseOrThrow(programId, workoutTemplateId, templateExerciseId);
     await this.findSetOrThrow(templateExerciseId, setId);
 
     await this.prisma.$transaction(async (tx) => {
@@ -948,11 +880,7 @@ export class ProgramsService {
     const data = reorderWorkoutTemplateSetsSchema.parse(input);
     const program = await this.findOwnedOrThrow(userId, programId);
     this.assertEditable(program);
-    await this.findTemplateExerciseOrThrow(
-      programId,
-      workoutTemplateId,
-      templateExerciseId,
-    );
+    await this.findTemplateExerciseOrThrow(programId, workoutTemplateId, templateExerciseId);
 
     await this.prisma.$transaction(async (tx) => {
       const existing = await tx.workoutTemplateSet.findMany({
@@ -970,10 +898,7 @@ export class ProgramsService {
           message: this.reorderMessage(validation.code),
         });
       }
-      await this.reassignSetPositions(
-        tx,
-        compactOrderedPositions(data.setIds),
-      );
+      await this.reassignSetPositions(tx, compactOrderedPositions(data.setIds));
     });
 
     return this.getById(userId, programId);
@@ -983,10 +908,7 @@ export class ProgramsService {
     measurementType: Parameters<typeof validateWorkoutTemplateSetTargets>[0],
     targets: WorkoutTemplateSetTargetFields,
   ) {
-    const validation = validateWorkoutTemplateSetTargets(
-      measurementType,
-      targets,
-    );
+    const validation = validateWorkoutTemplateSetTargets(measurementType, targets);
     if (!validation.ok) {
       throw new BadRequestException({
         code: validation.code,
@@ -1014,10 +936,7 @@ export class ProgramsService {
     return exercise;
   }
 
-  private async assertCompatibleEquipment(
-    exerciseId: string,
-    equipmentTypeId: string | null,
-  ) {
+  private async assertCompatibleEquipment(exerciseId: string, equipmentTypeId: string | null) {
     if (equipmentTypeId == null) {
       return;
     }
@@ -1047,10 +966,7 @@ export class ProgramsService {
     });
   }
 
-  private async isCurrentProgram(
-    userId: string,
-    programId: string,
-  ): Promise<boolean> {
+  private async isCurrentProgram(userId: string, programId: string): Promise<boolean> {
     const current = await this.prisma.programActivation.findFirst({
       where: { userId, programId, endedOn: null },
       select: { id: true },
@@ -1066,9 +982,7 @@ export class ProgramsService {
     return profile?.timezone || 'Europe/Paris';
   }
 
-  private async loadScheduleRows(
-    programId: string,
-  ): Promise<ScheduleEntryRow[]> {
+  private async loadScheduleRows(programId: string): Promise<ScheduleEntryRow[]> {
     const rows = await this.prisma.programScheduleEntry.findMany({
       where: { programId },
       include: scheduleEntryInclude,
@@ -1105,10 +1019,7 @@ export class ProgramsService {
     }
   }
 
-  private async findOwnedOrThrow(
-    userId: string,
-    programId: string,
-  ): Promise<ProgramRow> {
+  private async findOwnedOrThrow(userId: string, programId: string): Promise<ProgramRow> {
     const row = await this.prisma.program.findUnique({
       where: { id: programId },
       include: programDetailInclude,
@@ -1131,10 +1042,7 @@ export class ProgramsService {
     }
   }
 
-  private async findTemplateInProgramOrThrow(
-    programId: string,
-    workoutTemplateId: string,
-  ) {
+  private async findTemplateInProgramOrThrow(programId: string, workoutTemplateId: string) {
     const template = await this.prisma.workoutTemplate.findFirst({
       where: { id: workoutTemplateId, programId },
     });
@@ -1215,10 +1123,7 @@ export class ProgramsService {
     }
   }
 
-  private async reassignSetPositions(
-    tx: Tx,
-    compacted: Array<{ id: string; position: number }>,
-  ) {
+  private async reassignSetPositions(tx: Tx, compacted: Array<{ id: string; position: number }>) {
     for (const [index, item] of compacted.entries()) {
       await tx.workoutTemplateSet.update({
         where: { id: item.id },
@@ -1235,22 +1140,17 @@ export class ProgramsService {
 
   private reorderMessage(code: string): string {
     const messages: Record<string, string> = {
-      WORKOUT_TEMPLATE_DUPLICATE_IN_ORDER:
-        'La liste d’ordre contient des doublons.',
+      WORKOUT_TEMPLATE_DUPLICATE_IN_ORDER: 'La liste d’ordre contient des doublons.',
       WORKOUT_TEMPLATE_ORDER_INCOMPLETE:
         'La liste d’ordre doit contenir tous les modèles du programme.',
-      WORKOUT_TEMPLATE_INVALID_ORDER:
-        'La liste d’ordre contient un modèle inconnu ou étranger.',
-      WORKOUT_TEMPLATE_EXERCISE_DUPLICATE_IN_ORDER:
-        'La liste d’ordre contient des doublons.',
+      WORKOUT_TEMPLATE_INVALID_ORDER: 'La liste d’ordre contient un modèle inconnu ou étranger.',
+      WORKOUT_TEMPLATE_EXERCISE_DUPLICATE_IN_ORDER: 'La liste d’ordre contient des doublons.',
       WORKOUT_TEMPLATE_EXERCISE_ORDER_INCOMPLETE:
         'La liste d’ordre doit contenir tous les exercices du modèle.',
       WORKOUT_TEMPLATE_EXERCISE_INVALID_ORDER:
         'La liste d’ordre contient un exercice inconnu ou étranger.',
-      WORKOUT_TEMPLATE_SET_DUPLICATE_IN_ORDER:
-        'La liste d’ordre contient des doublons.',
-      WORKOUT_TEMPLATE_SET_ORDER_INCOMPLETE:
-        'La liste d’ordre doit contenir toutes les séries.',
+      WORKOUT_TEMPLATE_SET_DUPLICATE_IN_ORDER: 'La liste d’ordre contient des doublons.',
+      WORKOUT_TEMPLATE_SET_ORDER_INCOMPLETE: 'La liste d’ordre doit contenir toutes les séries.',
       WORKOUT_TEMPLATE_SET_INVALID_ORDER:
         'La liste d’ordre contient une série inconnue ou étrangère.',
     };

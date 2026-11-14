@@ -7,18 +7,14 @@ import { HomePage } from './pages/HomePage';
 import { createWorkoutSessionDetail } from '@/features/workouts/tests/fixtures';
 
 const authState = {
-  authStatus: 'unauthenticated' as
-    | 'unauthenticated'
-    | 'authenticated'
-    | 'initializing',
+  authStatus: 'unauthenticated' as 'unauthenticated' | 'authenticated' | 'initializing',
 };
 const getActiveWorkoutSession = vi.fn();
 const getActiveProgram = vi.fn();
 const getMe = vi.fn();
 
 vi.mock('@/stores/auth-store', () => ({
-  useAuthStore: (selector: (state: { authStatus: string }) => unknown) =>
-    selector(authState),
+  useAuthStore: (selector: (state: { authStatus: string }) => unknown) => selector(authState),
 }));
 
 vi.mock('@/features/profile/api/profile-api', () => ({
@@ -33,8 +29,7 @@ vi.mock('@/features/programs/api/program-api', () => ({
 }));
 
 vi.mock('@/features/workouts/api/workout-api', () => ({
-  getActiveWorkoutSession: (...args: unknown[]) =>
-    getActiveWorkoutSession(...args),
+  getActiveWorkoutSession: (...args: unknown[]) => getActiveWorkoutSession(...args),
 }));
 
 vi.mock('@/features/workouts/offline/store', () => ({
@@ -65,12 +60,8 @@ describe('HomePage', () => {
 
   it('renders the Gym Companion brand for guests', () => {
     renderHome();
-    expect(
-      screen.getByRole('heading', { name: 'Gym Companion' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Se connecter' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Gym Companion' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Se connecter' })).toBeInTheDocument();
   });
 
   it('shows a resume card when a workout is ACTIVE', async () => {
@@ -88,9 +79,10 @@ describe('HomePage', () => {
     renderHome();
     expect(await screen.findByText('Séance en cours')).toBeInTheDocument();
     expect(screen.getByText('Push')).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Reprendre la séance' }),
-    ).toHaveAttribute('href', '/workouts/active');
+    expect(screen.getByRole('link', { name: 'Reprendre la séance' })).toHaveAttribute(
+      'href',
+      '/workouts/active',
+    );
     expect(screen.getByText(/0 \/ 1 séries/i)).toBeInTheDocument();
   });
 
@@ -100,12 +92,8 @@ describe('HomePage', () => {
     getActiveProgram.mockResolvedValue(null);
     getActiveWorkoutSession.mockResolvedValue(null);
     renderHome();
-    expect(
-      await screen.findByText('Aucun programme actif'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Aucun programme actif')).toBeInTheDocument();
     expect(screen.queryByText('Séance en cours')).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: 'Reprendre la séance' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Reprendre la séance' })).not.toBeInTheDocument();
   });
 });

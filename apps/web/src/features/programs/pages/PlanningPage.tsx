@@ -15,10 +15,7 @@ import { PlanningTodayCard } from '../components/PlanningTodayCard';
 import { PlanningWeekList } from '../components/PlanningWeekList';
 import { ScheduleDaySheet } from '../components/ScheduleDaySheet';
 import { useDeactivateProgramMutation } from '../hooks/use-program-mutations';
-import {
-  countScheduledSessions,
-  scheduleEntryToDraft,
-} from '../lib/schedule-utils';
+import { countScheduledSessions, scheduleEntryToDraft } from '../lib/schedule-utils';
 import { getTodayWeekday } from '../lib/weekdays';
 
 export function PlanningPage() {
@@ -37,15 +34,9 @@ export function PlanningPage() {
     return (
       <main className="flex flex-1 flex-col">
         <PageHeader title="Planning" description="Ta semaine d’entraînement" />
-        <div
-          className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4"
-          role="alert"
-        >
+        <div className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4" role="alert">
           <p className="text-sm text-[var(--danger)]">
-            {getApiErrorMessage(
-              activeQuery.error,
-              'Impossible de charger ton planning.',
-            )}
+            {getApiErrorMessage(activeQuery.error, 'Impossible de charger ton planning.')}
           </p>
           <Button
             type="button"
@@ -102,9 +93,7 @@ export function PlanningPage() {
       setDeactivateOpen(false);
       setStatus('Programme courant désactivé.');
     } catch (err) {
-      setError(
-        getApiErrorMessage(err, 'Impossible de désactiver ce programme.'),
-      );
+      setError(getApiErrorMessage(err, 'Impossible de désactiver ce programme.'));
     }
   }
 
@@ -169,10 +158,7 @@ export function PlanningPage() {
 
           <div className="flex flex-wrap items-center gap-3">
             {canEditSchedule ? (
-              <ButtonLink
-                to={`/programs/${programId}/schedule`}
-                variant="secondary"
-              >
+              <ButtonLink to={`/programs/${programId}/schedule`} variant="secondary">
                 Modifier le planning
               </ButtonLink>
             ) : null}

@@ -2,10 +2,7 @@ import type { WorkoutTemplateSetTarget } from '@gym-companion/shared';
 
 import { cn } from '@/lib/utils';
 
-import {
-  getWorkoutSetTypeLabel,
-  getWorkoutSetTypeShortLabel,
-} from '../lib/program-labels';
+import { getWorkoutSetTypeLabel, getWorkoutSetTypeShortLabel } from '../lib/program-labels';
 import { formatSetSummaryCompact } from '../lib/template-forms';
 import { ContextMenu, type ContextMenuItem } from './ContextMenu';
 
@@ -60,10 +57,7 @@ export function TargetSetRow({
           </span>
         </button>
         {!readOnly && menuItems.length > 0 ? (
-          <ContextMenu
-            label={`Actions série ${index + 1}`}
-            items={menuItems}
-          />
+          <ContextMenu label={`Actions série ${index + 1}`} items={menuItems} />
         ) : null}
       </div>
     </li>

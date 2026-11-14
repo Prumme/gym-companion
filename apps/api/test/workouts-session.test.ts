@@ -17,8 +17,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -28,11 +27,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -115,9 +110,7 @@ describe('Workout session snapshot API (3.1)', () => {
     ).id;
 
     const addEx = await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programA}/workout-templates/${templateA}/exercises`,
-      )
+      .post(`/api/v1/programs/${programA}/workout-templates/${templateA}/exercises`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         exerciseId: systemExerciseId,
@@ -389,9 +382,7 @@ describe('Workout session snapshot API (3.1)', () => {
       .expect(201);
     const tplId = tpl.body.data.workoutTemplates[0].id;
     const ex = await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${archivedId}/workout-templates/${tplId}/exercises`,
-      )
+      .post(`/api/v1/programs/${archivedId}/workout-templates/${tplId}/exercises`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         exerciseId: systemExerciseId,
@@ -402,9 +393,7 @@ describe('Workout session snapshot API (3.1)', () => {
       .expect(201);
     const teId = ex.body.data.workoutTemplates[0].exercises[0].id;
     await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${archivedId}/workout-templates/${tplId}/exercises/${teId}/sets`,
-      )
+      .post(`/api/v1/programs/${archivedId}/workout-templates/${tplId}/exercises/${teId}/sets`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         setType: 'WORKING',
@@ -450,9 +439,7 @@ describe('Workout session snapshot API (3.1)', () => {
       .expect(201);
     const tplId = tpl.body.data.workoutTemplates[0].id;
     const ex = await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programId}/workout-templates/${tplId}/exercises`,
-      )
+      .post(`/api/v1/programs/${programId}/workout-templates/${tplId}/exercises`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         exerciseId: systemExerciseId,
@@ -463,9 +450,7 @@ describe('Workout session snapshot API (3.1)', () => {
       .expect(201);
     const teId = ex.body.data.workoutTemplates[0].exercises[0].id;
     await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programId}/workout-templates/${tplId}/exercises/${teId}/sets`,
-      )
+      .post(`/api/v1/programs/${programId}/workout-templates/${tplId}/exercises/${teId}/sets`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         setType: 'WORKING',
@@ -503,9 +488,7 @@ describe('Workout session snapshot API (3.1)', () => {
 
     const activeCount = await prisma.workoutSession.count({
       where: {
-        ownerUserId: (
-          await prisma.user.findUniqueOrThrow({ where: { email: emailA } })
-        ).id,
+        ownerUserId: (await prisma.user.findUniqueOrThrow({ where: { email: emailA } })).id,
         status: { in: ['ACTIVE', 'PAUSED'] },
       },
     });

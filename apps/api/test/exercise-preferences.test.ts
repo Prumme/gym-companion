@@ -17,8 +17,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -28,11 +27,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -149,18 +144,18 @@ describe('Exercise preferences API', () => {
       .query({ favoriteOnly: true, limit: 100 })
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    expect(
-      favoritesA.body.data.some((item: { id: string }) => item.id === systemExerciseId),
-    ).toBe(true);
+    expect(favoritesA.body.data.some((item: { id: string }) => item.id === systemExerciseId)).toBe(
+      true,
+    );
 
     const favoritesB = await request(app.getHttpServer())
       .get('/api/v1/exercises')
       .query({ favoriteOnly: true, limit: 100 })
       .set('Authorization', `Bearer ${tokenB}`)
       .expect(200);
-    expect(
-      favoritesB.body.data.some((item: { id: string }) => item.id === systemExerciseId),
-    ).toBe(false);
+    expect(favoritesB.body.data.some((item: { id: string }) => item.id === systemExerciseId)).toBe(
+      false,
+    );
 
     const detailB = await request(app.getHttpServer())
       .get(`/api/v1/exercises/${systemExerciseId}`)
@@ -227,9 +222,7 @@ describe('Exercise preferences API', () => {
         restSecondsOverride: 90,
       })
       .expect(400);
-    expect(incompatible.body.error.code).toBe(
-      'EXERCISE_PREFERRED_EQUIPMENT_NOT_COMPATIBLE',
-    );
+    expect(incompatible.body.error.code).toBe('EXERCISE_PREFERRED_EQUIPMENT_NOT_COMPATIBLE');
   });
 
   it('rejects invalid restSecondsOverride', async () => {
@@ -403,8 +396,7 @@ describe('Exercise preferences API', () => {
       .expect(200);
     expect(
       searched.body.data.every(
-        (item: { userPreference: { isFavorite: boolean } }) =>
-          item.userPreference.isFavorite,
+        (item: { userPreference: { isFavorite: boolean } }) => item.userPreference.isFavorite,
       ),
     ).toBe(true);
 

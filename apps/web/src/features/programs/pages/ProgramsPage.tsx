@@ -26,13 +26,9 @@ function dedupePrograms(items: ProgramListItem[]): ProgramListItem[] {
 
 export function ProgramsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const includeArchived = parseIncludeArchivedParam(
-    searchParams.get('includeArchived'),
-  );
+  const includeArchived = parseIncludeArchivedParam(searchParams.get('includeArchived'));
 
-  const listQuery = useInfiniteQuery(
-    programListInfiniteQueryOptions({ includeArchived }),
-  );
+  const listQuery = useInfiniteQuery(programListInfiniteQueryOptions({ includeArchived }));
 
   const programs = useMemo(
     () => dedupePrograms(listQuery.data?.pages.flatMap((page) => page.data) ?? []),
@@ -94,15 +90,9 @@ export function ProgramsPage() {
       ) : null}
 
       {listQuery.isError ? (
-        <div
-          className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4"
-          role="alert"
-        >
+        <div className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4" role="alert">
           <p className="text-sm text-[var(--danger)]">
-            {getApiErrorMessage(
-              listQuery.error,
-              'Impossible de charger tes programmes.',
-            )}
+            {getApiErrorMessage(listQuery.error, 'Impossible de charger tes programmes.')}
           </p>
           <Button
             type="button"
@@ -120,17 +110,11 @@ export function ProgramsPage() {
           className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-6 text-center"
           role="status"
         >
-          <p className="text-sm text-[var(--muted)]">
-            Tu n’as encore créé aucun programme.
-          </p>
+          <p className="text-sm text-[var(--muted)]">Tu n’as encore créé aucun programme.</p>
           <ButtonLink to="/programs/new" className="mt-4 inline-flex">
             Créer mon premier programme
           </ButtonLink>
-          <ButtonLink
-            to="/programs/import"
-            variant="secondary"
-            className="mt-2 inline-flex"
-          >
+          <ButtonLink to="/programs/import" variant="secondary" className="mt-2 inline-flex">
             Importer avec une IA
           </ButtonLink>
           {!includeArchived ? (
@@ -161,16 +145,9 @@ export function ProgramsPage() {
       {listQuery.isFetchNextPageError ? (
         <div role="alert" className="space-y-2">
           <p className="text-sm text-[var(--danger)]">
-            {getApiErrorMessage(
-              listQuery.error,
-              'Impossible de charger la page suivante.',
-            )}
+            {getApiErrorMessage(listQuery.error, 'Impossible de charger la page suivante.')}
           </p>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => void listQuery.fetchNextPage()}
-          >
+          <Button type="button" variant="secondary" onClick={() => void listQuery.fetchNextPage()}>
             Réessayer
           </Button>
         </div>

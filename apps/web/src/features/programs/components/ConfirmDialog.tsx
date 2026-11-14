@@ -58,12 +58,7 @@ export function ConfirmDialog({
           </p>
         ) : null}
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={pending}
-            onClick={onCancel}
-          >
+          <Button type="button" variant="secondary" disabled={pending} onClick={onCancel}>
             Annuler
           </Button>
           <Button

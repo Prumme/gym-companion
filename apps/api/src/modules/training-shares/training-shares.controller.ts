@@ -1,21 +1,10 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  ParseUUIDPipe,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, ParseUUIDPipe, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { createSuccessResponse } from '@gym-companion/shared';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import {
-  JwtAuthGuard,
-  type AuthenticatedUser,
-} from '../../common/guards/jwt-auth.guard';
+import { JwtAuthGuard, type AuthenticatedUser } from '../../common/guards/jwt-auth.guard';
 import { TrainingSharesService } from './training-shares.service';
 
 @ApiTags('training-shares')
@@ -32,10 +21,7 @@ export class TrainingSharesController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('programId', ParseUUIDPipe) programId: string,
   ) {
-    const data = await this.trainingSharesService.createProgramShare(
-      user.id,
-      programId,
-    );
+    const data = await this.trainingSharesService.createProgramShare(user.id, programId);
     return createSuccessResponse(data);
   }
 
@@ -77,11 +63,7 @@ export class TrainingSharesController {
     @Param('token') token: string,
     @Body() body: unknown,
   ) {
-    const data = await this.trainingSharesService.importShare(
-      user.id,
-      token,
-      body,
-    );
+    const data = await this.trainingSharesService.importShare(user.id, token, body);
     return createSuccessResponse(data);
   }
 }

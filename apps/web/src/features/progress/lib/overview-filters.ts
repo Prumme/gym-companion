@@ -32,18 +32,14 @@ export type OverviewUrlFilters = {
   period: ProgressPeriodPreset;
 };
 
-export function parseOverviewMetricParam(
-  value: string | null,
-): ProgressOverviewMetric | undefined {
+export function parseOverviewMetricParam(value: string | null): ProgressOverviewMetric | undefined {
   if (!value || !OVERVIEW_METRICS.has(value)) {
     return undefined;
   }
   return value as ProgressOverviewMetric;
 }
 
-export function parseOverviewSearchParams(
-  searchParams: URLSearchParams,
-): OverviewUrlFilters {
+export function parseOverviewSearchParams(searchParams: URLSearchParams): OverviewUrlFilters {
   const metric = parseOverviewMetricParam(searchParams.get('metric'));
   const periodParam = searchParams.get('period');
 
@@ -59,8 +55,7 @@ export function parseOverviewSearchParams(
   const from = parseOptionalLocalDateParam(searchParams.get('from'));
   const toRaw = parseOptionalLocalDateParam(searchParams.get('to'));
   const to = from && toRaw && from > toRaw ? undefined : toRaw;
-  const hasExplicitDates =
-    searchParams.has('from') || searchParams.has('to');
+  const hasExplicitDates = searchParams.has('from') || searchParams.has('to');
 
   if (!hasExplicitDates) {
     const defaultRange = resolvePresetRange('3m');
@@ -80,9 +75,7 @@ export function parseOverviewSearchParams(
   };
 }
 
-export function buildOverviewSearchParams(
-  filters: OverviewUrlFilters,
-): URLSearchParams {
+export function buildOverviewSearchParams(filters: OverviewUrlFilters): URLSearchParams {
   const params = buildProgressSearchParams({
     metric: undefined,
     from: filters.from,
@@ -95,10 +88,7 @@ export function buildOverviewSearchParams(
   return params;
 }
 
-export function formatOverviewMetricValue(
-  metric: ProgressOverviewMetric,
-  value: number,
-): string {
+export function formatOverviewMetricValue(metric: ProgressOverviewMetric, value: number): string {
   switch (metric) {
     case 'WORKOUT_COUNT':
       return `${value} séance${value > 1 ? 's' : ''}`;
@@ -119,15 +109,10 @@ export function formatOverviewMetricValue(
   }
 }
 
-export function formatOverviewAxisTick(
-  metric: ProgressOverviewMetric,
-  value: number,
-): string {
+export function formatOverviewAxisTick(metric: ProgressOverviewMetric, value: number): string {
   switch (metric) {
     case 'WORKING_EXTERNAL_VOLUME':
-      return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(
-        value,
-      );
+      return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(value);
     case 'TOTAL_DURATION':
       if (value < 60) return `${value}s`;
       return `${Math.round(value / 60)}m`;
@@ -155,9 +140,7 @@ export function formatOverviewPeriodLabel(
   return `Sem. ${formatProgressChartDate(periodStart, 'short')}`;
 }
 
-export function formatOverviewComparisonPercent(
-  value: number | null,
-): string {
+export function formatOverviewComparisonPercent(value: number | null): string {
   if (value == null) {
     return '—';
   }

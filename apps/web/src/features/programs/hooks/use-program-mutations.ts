@@ -68,13 +68,8 @@ export function useCreateProgramMutation() {
 export function useUpdateProgramMutation() {
   const sync = useSyncProgramDetail();
   return useMutation({
-    mutationFn: ({
-      programId,
-      input,
-    }: {
-      programId: string;
-      input: UpdateProgramInput;
-    }) => updateProgram(programId, input),
+    mutationFn: ({ programId, input }: { programId: string; input: UpdateProgramInput }) =>
+      updateProgram(programId, input),
     onSuccess: (detail) => sync(detail, true),
   });
 }
@@ -107,11 +102,7 @@ export function useActivateProgramMutation() {
       previousProgramId: string | null;
     }) => activateProgram(programId, input),
     onSuccess: (active, variables) => {
-      syncAfterActivation(
-        queryClient,
-        active,
-        variables.previousProgramId,
-      );
+      syncAfterActivation(queryClient, active, variables.previousProgramId);
     },
   });
 }
@@ -129,13 +120,8 @@ export function useDeactivateProgramMutation() {
 export function useReplaceProgramScheduleMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      programId,
-      input,
-    }: {
-      programId: string;
-      input: ReplaceProgramScheduleInput;
-    }) => replaceProgramSchedule(programId, input),
+    mutationFn: ({ programId, input }: { programId: string; input: ReplaceProgramScheduleInput }) =>
+      replaceProgramSchedule(programId, input),
     onSuccess: (schedule, variables) => {
       syncAfterScheduleReplace(queryClient, variables.programId, schedule);
     },
@@ -147,13 +133,8 @@ export function useProgramContentMutations() {
   const queryClient = useQueryClient();
 
   const createTemplate = useMutation({
-    mutationFn: ({
-      programId,
-      input,
-    }: {
-      programId: string;
-      input: CreateWorkoutTemplateInput;
-    }) => createWorkoutTemplate(programId, input),
+    mutationFn: ({ programId, input }: { programId: string; input: CreateWorkoutTemplateInput }) =>
+      createWorkoutTemplate(programId, input),
     onSuccess: (detail) => sync(detail, true),
   });
 
@@ -216,13 +197,7 @@ export function useProgramContentMutations() {
       workoutTemplateId: string;
       templateExerciseId: string;
       input: UpdateWorkoutTemplateExerciseInput;
-    }) =>
-      updateWorkoutTemplateExercise(
-        programId,
-        workoutTemplateId,
-        templateExerciseId,
-        input,
-      ),
+    }) => updateWorkoutTemplateExercise(programId, workoutTemplateId, templateExerciseId, input),
     onSuccess: (detail) => sync(detail),
   });
 
@@ -235,12 +210,7 @@ export function useProgramContentMutations() {
       programId: string;
       workoutTemplateId: string;
       templateExerciseId: string;
-    }) =>
-      removeWorkoutTemplateExercise(
-        programId,
-        workoutTemplateId,
-        templateExerciseId,
-      ),
+    }) => removeWorkoutTemplateExercise(programId, workoutTemplateId, templateExerciseId),
     onSuccess: (detail) => sync(detail, true),
   });
 
@@ -268,13 +238,7 @@ export function useProgramContentMutations() {
       workoutTemplateId: string;
       templateExerciseId: string;
       input: CreateWorkoutTemplateSetInput;
-    }) =>
-      createWorkoutTemplateSet(
-        programId,
-        workoutTemplateId,
-        templateExerciseId,
-        input,
-      ),
+    }) => createWorkoutTemplateSet(programId, workoutTemplateId, templateExerciseId, input),
     onSuccess: (detail) => sync(detail),
   });
 
@@ -291,14 +255,7 @@ export function useProgramContentMutations() {
       templateExerciseId: string;
       setId: string;
       input: UpdateWorkoutTemplateSetInput;
-    }) =>
-      updateWorkoutTemplateSet(
-        programId,
-        workoutTemplateId,
-        templateExerciseId,
-        setId,
-        input,
-      ),
+    }) => updateWorkoutTemplateSet(programId, workoutTemplateId, templateExerciseId, setId, input),
     onSuccess: (detail) => sync(detail),
   });
 
@@ -313,13 +270,7 @@ export function useProgramContentMutations() {
       workoutTemplateId: string;
       templateExerciseId: string;
       setId: string;
-    }) =>
-      deleteWorkoutTemplateSet(
-        programId,
-        workoutTemplateId,
-        templateExerciseId,
-        setId,
-      ),
+    }) => deleteWorkoutTemplateSet(programId, workoutTemplateId, templateExerciseId, setId),
     onSuccess: (detail) => sync(detail),
   });
 
@@ -334,13 +285,7 @@ export function useProgramContentMutations() {
       workoutTemplateId: string;
       templateExerciseId: string;
       input: ReorderWorkoutTemplateSetsInput;
-    }) =>
-      reorderWorkoutTemplateSets(
-        programId,
-        workoutTemplateId,
-        templateExerciseId,
-        input,
-      ),
+    }) => reorderWorkoutTemplateSets(programId, workoutTemplateId, templateExerciseId, input),
     onSuccess: (detail) => sync(detail),
   });
 

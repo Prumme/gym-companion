@@ -20,12 +20,7 @@ export const PLATEAU_REP_RANGE_TOLERANCE = 1;
 /** Écart de nombre de séries de travail toléré avant REVIEW. */
 export const PLATEAU_WORKING_SET_COUNT_TOLERANCE = 1;
 
-export type PlateauStatus =
-  | 'NONE'
-  | 'WATCH'
-  | 'PLATEAU'
-  | 'INSUFFICIENT_DATA'
-  | 'REVIEW';
+export type PlateauStatus = 'NONE' | 'WATCH' | 'PLATEAU' | 'INSUFFICIENT_DATA' | 'REVIEW';
 
 export type PlateauReason =
   | 'NO_ELIGIBLE_HISTORY'
@@ -158,9 +153,7 @@ function modeNumber(values: Array<number | null>): number | null {
 /**
  * Dérive les métriques d’une séance pour l’analyse de plateau (WORKING uniquement).
  */
-export function buildPlateauWorkoutPoint(
-  session: PlateauSessionInput,
-): PlateauWorkoutPoint | null {
+export function buildPlateauWorkoutPoint(session: PlateauSessionInput): PlateauWorkoutPoint | null {
   const working = session.sets.filter(isWorkingSet);
   if (working.length === 0) {
     return null;
@@ -185,17 +178,10 @@ export function buildPlateauWorkoutPoint(
 
     if (set.actualWeightKg != null && set.actualWeightKg > 0) {
       maxWeightKg =
-        maxWeightKg == null
-          ? set.actualWeightKg
-          : Math.max(maxWeightKg, set.actualWeightKg);
+        maxWeightKg == null ? set.actualWeightKg : Math.max(maxWeightKg, set.actualWeightKg);
     }
-    if (
-      set.status === 'COMPLETED' &&
-      set.actualReps != null &&
-      Number.isFinite(set.actualReps)
-    ) {
-      maxReps =
-        maxReps == null ? set.actualReps : Math.max(maxReps, set.actualReps);
+    if (set.status === 'COMPLETED' && set.actualReps != null && Number.isFinite(set.actualReps)) {
+      maxReps = maxReps == null ? set.actualReps : Math.max(maxReps, set.actualReps);
     }
 
     if (
@@ -231,15 +217,14 @@ export function buildPlateauWorkoutPoint(
     }
   }
 
-  const trackedSetCount = rirValues.length + rpeValues.length > 0
-    ? new Set([
-        ...working
-          .map((set, index) =>
-            set.actualRir != null || set.actualRpe != null ? index : -1,
-          )
-          .filter((index) => index >= 0),
-      ]).size
-    : 0;
+  const trackedSetCount =
+    rirValues.length + rpeValues.length > 0
+      ? new Set([
+          ...working
+            .map((set, index) => (set.actualRir != null || set.actualRpe != null ? index : -1))
+            .filter((index) => index >= 0),
+        ]).size
+      : 0;
 
   return {
     workoutSessionId: session.workoutSessionId,
@@ -356,12 +341,8 @@ export function hasRepetitionProgress(
   return false;
 }
 
-export function hasRepeatedTargetMisses(
-  pointsChronological: PlateauWorkoutPoint[],
-): boolean {
-  const withTarget = pointsChronological.filter(
-    (point) => point.targetMinReps != null,
-  );
+export function hasRepeatedTargetMisses(pointsChronological: PlateauWorkoutPoint[]): boolean {
+  const withTarget = pointsChronological.filter((point) => point.targetMinReps != null);
   if (withTarget.length < 2) {
     return false;
   }
@@ -371,8 +352,7 @@ export function hasRepeatedTargetMisses(
     // Séance « miss » : max reps < min cible, ou majorité partielle/échouée.
     const underperformed =
       (point.maxReps != null && point.maxReps < min) ||
-      point.partialSetCount + point.failedSetCount >=
-        Math.ceil(point.workingSetCount / 2);
+      point.partialSetCount + point.failedSetCount >= Math.ceil(point.workingSetCount / 2);
     if (underperformed) {
       missSessions += 1;
     }
@@ -380,21 +360,15 @@ export function hasRepeatedTargetMisses(
   return missSessions >= 2;
 }
 
-export function hasRepeatedFailures(
-  pointsChronological: PlateauWorkoutPoint[],
-): boolean {
+export function hasRepeatedFailures(pointsChronological: PlateauWorkoutPoint[]): boolean {
   const sessionsWithIssue = pointsChronological.filter(
     (point) => point.failedSetCount > 0 || point.partialSetCount > 0,
   ).length;
   return sessionsWithIssue >= 2;
 }
 
-export function hasHighEffortTrend(
-  pointsChronological: PlateauWorkoutPoint[],
-): boolean {
-  const withRir = pointsChronological.filter(
-    (point) => point.averageRir != null,
-  );
+export function hasHighEffortTrend(pointsChronological: PlateauWorkoutPoint[]): boolean {
+  const withRir = pointsChronological.filter((point) => point.averageRir != null);
   if (withRir.length >= 3) {
     const first = withRir[0]!.averageRir!;
     const last = withRir[withRir.length - 1]!.averageRir!;
@@ -402,9 +376,7 @@ export function hasHighEffortTrend(
       return true;
     }
   }
-  const withRpe = pointsChronological.filter(
-    (point) => point.averageRpe != null,
-  );
+  const withRpe = pointsChronological.filter((point) => point.averageRpe != null);
   if (withRpe.length >= 3) {
     const first = withRpe[0]!.averageRpe!;
     const last = withRpe[withRpe.length - 1]!.averageRpe!;
@@ -462,10 +434,7 @@ function targetsComparable(points: PlateauWorkoutPoint[]): boolean {
     }
   }
   const setCounts = points.map((point) => point.workingSetCount);
-  if (
-    Math.max(...setCounts) - Math.min(...setCounts) >
-    PLATEAU_WORKING_SET_COUNT_TOLERANCE
-  ) {
+  if (Math.max(...setCounts) - Math.min(...setCounts) > PLATEAU_WORKING_SET_COUNT_TOLERANCE) {
     return false;
   }
   return true;
@@ -477,8 +446,7 @@ function neverReachedTargetMax(points: PlateauWorkoutPoint[]): boolean {
     return false;
   }
   return withMax.every(
-    (point) =>
-      point.maxReps == null || point.maxReps < (point.targetMaxReps ?? 0),
+    (point) => point.maxReps == null || point.maxReps < (point.targetMaxReps ?? 0),
   );
 }
 
@@ -509,8 +477,7 @@ function computeTrend(pointsChronological: PlateauWorkoutPoint[]) {
       ? roundKg(last.maxWeightKg - first.maxWeightKg)
       : null;
   const e1rmChangeKg =
-    first.bestEstimatedOneRepMaxKg != null &&
-    last.bestEstimatedOneRepMaxKg != null
+    first.bestEstimatedOneRepMaxKg != null && last.bestEstimatedOneRepMaxKg != null
       ? roundKg(last.bestEstimatedOneRepMaxKg - first.bestEstimatedOneRepMaxKg)
       : null;
   const e1rmChangePercent =
@@ -524,9 +491,7 @@ function computeTrend(pointsChronological: PlateauWorkoutPoint[]) {
         )
       : null;
   const maxRepsChange =
-    first.maxReps != null && last.maxReps != null
-      ? last.maxReps - first.maxReps
-      : null;
+    first.maxReps != null && last.maxReps != null ? last.maxReps - first.maxReps : null;
   return { loadChangeKg, e1rmChangeKg, e1rmChangePercent, maxRepsChange };
 }
 
@@ -534,9 +499,7 @@ function computeTrend(pointsChronological: PlateauWorkoutPoint[]) {
  * Détecte un signal de stagnation / plateau à partir de séances COMPATIBLES.
  * `sessions` attendues déjà filtrées COMPLETED + sourceExerciseId (ordre quelconque).
  */
-export function detectExercisePlateau(
-  input: DetectExercisePlateauInput,
-): PlateauAnalysisResult {
+export function detectExercisePlateau(input: DetectExercisePlateauInput): PlateauAnalysisResult {
   if (input.measurementType !== 'WEIGHT_REPS') {
     return emptyResult(
       input.exerciseId,
@@ -548,9 +511,7 @@ export function detectExercisePlateau(
 
   let sessions = [...input.sessions];
   if (input.equipmentTypeId !== undefined && input.equipmentTypeId !== null) {
-    sessions = sessions.filter(
-      (session) => session.equipmentTypeId === input.equipmentTypeId,
-    );
+    sessions = sessions.filter((session) => session.equipmentTypeId === input.equipmentTypeId);
   }
 
   // Tri récent → ancien, puis fenêtre.
@@ -577,9 +538,7 @@ export function detectExercisePlateau(
   }
 
   if (pointsNewestFirst.length === 0) {
-    return emptyResult(input.exerciseId, 'INSUFFICIENT_DATA', [
-      'NO_ELIGIBLE_HISTORY',
-    ]);
+    return emptyResult(input.exerciseId, 'INSUFFICIENT_DATA', ['NO_ELIGIBLE_HISTORY']);
   }
 
   // Sans filtre équipement : plusieurs identités → REVIEW.
@@ -591,8 +550,7 @@ export function detectExercisePlateau(
       ...emptyResult(input.exerciseId, 'REVIEW', ['INCONSISTENT_EQUIPMENT']),
       range: {
         analyzedWorkoutCount: pointsNewestFirst.length,
-        firstWorkoutDate:
-          pointsNewestFirst[pointsNewestFirst.length - 1]?.localDate ?? null,
+        firstWorkoutDate: pointsNewestFirst[pointsNewestFirst.length - 1]?.localDate ?? null,
         latestWorkoutDate: pointsNewestFirst[0]?.localDate ?? null,
       },
       evidence: pointsNewestFirst,
@@ -604,8 +562,7 @@ export function detectExercisePlateau(
       ...emptyResult(input.exerciseId, 'REVIEW', ['INCONSISTENT_TARGETS']),
       range: {
         analyzedWorkoutCount: pointsNewestFirst.length,
-        firstWorkoutDate:
-          pointsNewestFirst[pointsNewestFirst.length - 1]?.localDate ?? null,
+        firstWorkoutDate: pointsNewestFirst[pointsNewestFirst.length - 1]?.localDate ?? null,
         latestWorkoutDate: pointsNewestFirst[0]?.localDate ?? null,
       },
       evidence: pointsNewestFirst,
@@ -666,8 +623,7 @@ export function detectExercisePlateau(
     !hasMeaningfulLoadProgress(prior) &&
     !hasMeaningfulE1rmProgress(prior) &&
     !hasRepetitionProgress(prior);
-  const recentProgressBreak =
-    stagnantPrior && (loadProgress || e1rmProgress || repsProgress);
+  const recentProgressBreak = stagnantPrior && (loadProgress || e1rmProgress || repsProgress);
 
   let status: PlateauStatus = 'NONE';
 
@@ -684,8 +640,7 @@ export function detectExercisePlateau(
     if (failures) reasons.push('REPEATED_FAILURES');
     if (effortHigh) reasons.push('EFFORT_TREND_HIGH');
 
-    const secondarySignal =
-      stagnantReps || neverTop || targetMisses || failures || effortHigh;
+    const secondarySignal = stagnantReps || neverTop || targetMisses || failures || effortHigh;
 
     if (
       chronological.length >= PLATEAU_MIN_WORKOUTS_FOR_PLATEAU &&
@@ -756,10 +711,7 @@ const emptyQueryToUndefined = (value: unknown) => {
 
 export const plateauAnalysisQuerySchema = z
   .object({
-    equipmentId: z.preprocess(
-      emptyQueryToUndefined,
-      z.string().uuid().optional(),
-    ),
+    equipmentId: z.preprocess(emptyQueryToUndefined, z.string().uuid().optional()),
   })
   .strict();
 

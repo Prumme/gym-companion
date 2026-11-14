@@ -16,11 +16,7 @@ import {
   type ProgressOverviewSessionInput,
 } from './progress-overview';
 
-function set(
-  overrides: Partial<
-    ProgressOverviewSessionInput['exercises'][0]['sets'][0]
-  > = {},
-) {
+function set(overrides: Partial<ProgressOverviewSessionInput['exercises'][0]['sets'][0]> = {}) {
   return {
     setType: 'WORKING',
     status: 'COMPLETED',
@@ -54,15 +50,9 @@ function session(
 
 describe('granularité', () => {
   it('DAY / WEEK / MONTH selon la plage', () => {
-    expect(resolveProgressOverviewBucket('2026-08-01', '2026-08-20')).toBe(
-      'DAY',
-    );
-    expect(resolveProgressOverviewBucket('2026-01-01', '2026-06-01')).toBe(
-      'WEEK',
-    );
-    expect(resolveProgressOverviewBucket('2024-01-01', '2026-08-01')).toBe(
-      'MONTH',
-    );
+    expect(resolveProgressOverviewBucket('2026-08-01', '2026-08-20')).toBe('DAY');
+    expect(resolveProgressOverviewBucket('2026-01-01', '2026-06-01')).toBe('WEEK');
+    expect(resolveProgressOverviewBucket('2024-01-01', '2026-08-01')).toBe('MONTH');
   });
 });
 
@@ -161,11 +151,7 @@ describe('timeline buckets', () => {
       '2026-09-10',
       'MONTH',
     );
-    expect(month.map((p) => p.periodStart)).toEqual([
-      '2026-07-01',
-      '2026-08-01',
-      '2026-09-01',
-    ]);
+    expect(month.map((p) => p.periodStart)).toEqual(['2026-07-01', '2026-08-01', '2026-09-01']);
     expect(month[1]!.workoutCount).toBe(1);
   });
 });
@@ -267,9 +253,7 @@ describe('top exercices', () => {
 
 describe('parseProgressOverviewQuery', () => {
   it('valide et rejette', () => {
-    expect(parseProgressOverviewQuery({ metric: 'WORKOUT_COUNT' }).ok).toBe(
-      true,
-    );
+    expect(parseProgressOverviewQuery({ metric: 'WORKOUT_COUNT' }).ok).toBe(true);
     const badRange = parseProgressOverviewQuery({
       from: '2026-08-01',
       to: '2026-01-01',

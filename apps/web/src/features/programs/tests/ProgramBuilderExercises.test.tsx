@@ -8,12 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExerciseDetail, ExerciseListItem } from '@gym-companion/shared';
 
 import { ProgramDetailPage } from '../pages/ProgramDetailPage';
-import {
-  createProgramDetail,
-  createSet,
-  createTemplate,
-  createTemplateExercise,
-} from './fixtures';
+import { createProgramDetail, createSet, createTemplate, createTemplateExercise } from './fixtures';
 
 const getProgram = vi.fn();
 const getActiveProgram = vi.fn();
@@ -34,34 +29,26 @@ const getLoadRecommendation = vi.fn();
 const listLoadRecommendationDecisions = vi.fn();
 
 vi.mock('../api/program-api', async () => {
-  const actual = await vi.importActual<typeof import('../api/program-api')>(
-    '../api/program-api',
-  );
+  const actual = await vi.importActual<typeof import('../api/program-api')>('../api/program-api');
   return {
     ...actual,
     getProgram: (...args: unknown[]) => getProgram(...args),
     getActiveProgram: (...args: unknown[]) => getActiveProgram(...args),
-    addWorkoutTemplateExercise: (...args: unknown[]) =>
-      addWorkoutTemplateExercise(...args),
-    createWorkoutTemplateSet: (...args: unknown[]) =>
-      createWorkoutTemplateSet(...args),
-    updateWorkoutTemplateSet: (...args: unknown[]) =>
-      updateWorkoutTemplateSet(...args),
-    deleteWorkoutTemplateSet: (...args: unknown[]) =>
-      deleteWorkoutTemplateSet(...args),
-    removeWorkoutTemplateExercise: (...args: unknown[]) =>
-      removeWorkoutTemplateExercise(...args),
+    addWorkoutTemplateExercise: (...args: unknown[]) => addWorkoutTemplateExercise(...args),
+    createWorkoutTemplateSet: (...args: unknown[]) => createWorkoutTemplateSet(...args),
+    updateWorkoutTemplateSet: (...args: unknown[]) => updateWorkoutTemplateSet(...args),
+    deleteWorkoutTemplateSet: (...args: unknown[]) => deleteWorkoutTemplateSet(...args),
+    removeWorkoutTemplateExercise: (...args: unknown[]) => removeWorkoutTemplateExercise(...args),
     reorderWorkoutTemplateExercises: (...args: unknown[]) =>
       reorderWorkoutTemplateExercises(...args),
-    reorderWorkoutTemplateSets: (...args: unknown[]) =>
-      reorderWorkoutTemplateSets(...args),
+    reorderWorkoutTemplateSets: (...args: unknown[]) => reorderWorkoutTemplateSets(...args),
   };
 });
 
 vi.mock('@/features/exercises/api/exercise-api', async () => {
-  const actual = await vi.importActual<
-    typeof import('@/features/exercises/api/exercise-api')
-  >('@/features/exercises/api/exercise-api');
+  const actual = await vi.importActual<typeof import('@/features/exercises/api/exercise-api')>(
+    '@/features/exercises/api/exercise-api',
+  );
   return {
     ...actual,
     listExercises: (...args: unknown[]) => listExercises(...args),
@@ -72,8 +59,7 @@ vi.mock('@/features/exercises/api/exercise-api', async () => {
 });
 
 vi.mock('@/features/workouts/api/workout-api', () => ({
-  getActiveWorkoutSession: (...args: unknown[]) =>
-    getActiveWorkoutSession(...args),
+  getActiveWorkoutSession: (...args: unknown[]) => getActiveWorkoutSession(...args),
   createWorkoutSession: vi.fn(),
   getWorkoutSessionDetail: vi.fn(),
 }));
@@ -84,8 +70,7 @@ vi.mock('@/features/profile/api/profile-api', () => ({
 
 vi.mock('@/features/coaching/api/coaching-api', () => ({
   getLoadRecommendation: (...args: unknown[]) => getLoadRecommendation(...args),
-  listLoadRecommendationDecisions: (...args: unknown[]) =>
-    listLoadRecommendationDecisions(...args),
+  listLoadRecommendationDecisions: (...args: unknown[]) => listLoadRecommendationDecisions(...args),
   decideLoadRecommendation: vi.fn(),
 }));
 
@@ -135,10 +120,7 @@ const catalogDetail: ExerciseDetail = {
   updatedAt: '2026-01-01T00:00:00.000Z',
 };
 
-async function openTemplate(
-  user: ReturnType<typeof userEvent.setup>,
-  name = 'Push A',
-) {
+async function openTemplate(user: ReturnType<typeof userEvent.setup>, name = 'Push A') {
   const row = await screen.findByRole('button', {
     name: new RegExp(`^${name}\\b`, 'i'),
   });
@@ -416,15 +398,9 @@ describe('Program builder exercises and sets', () => {
 
     renderDetail(detail);
     await openTemplate(user);
-    await user.click(
-      screen.getByRole('button', { name: /Actions pour Développé couché/i }),
-    );
-    await user.click(
-      screen.getByRole('menuitem', { name: /Déplacer vers le bas/i }),
-    );
-    await waitFor(() =>
-      expect(reorderWorkoutTemplateExercises).toHaveBeenCalled(),
-    );
+    await user.click(screen.getByRole('button', { name: /Actions pour Développé couché/i }));
+    await user.click(screen.getByRole('menuitem', { name: /Déplacer vers le bas/i }));
+    await waitFor(() => expect(reorderWorkoutTemplateExercises).toHaveBeenCalled());
   });
 
   it('removes an exercise with confirmation', async () => {
@@ -438,13 +414,9 @@ describe('Program builder exercises and sets', () => {
     renderDetail();
     await openTemplate(user);
     await screen.findByText('Développé couché');
-    await user.click(
-      screen.getByRole('button', { name: /Actions pour Développé couché/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Actions pour Développé couché/i }));
     await user.click(screen.getByRole('menuitem', { name: /^Supprimer$/i }));
-    expect(
-      await screen.findByText(/restera disponible dans le catalogue/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/restera disponible dans le catalogue/i)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /^Retirer$/i }));
     await waitFor(() => expect(removeWorkoutTemplateExercise).toHaveBeenCalled());
   });

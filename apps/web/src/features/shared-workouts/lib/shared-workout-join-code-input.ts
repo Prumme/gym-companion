@@ -8,7 +8,10 @@ const ALPHABET_SET = new Set(SHARED_WORKOUT_JOIN_CODE_ALPHABET.split(''));
 
 /** Normalise une saisie partielle (sans lever d’erreur). */
 export function sanitizePartialSharedWorkoutJoinCode(raw: string): string {
-  const cleaned = raw.trim().toUpperCase().replace(/[\s-]+/g, '');
+  const cleaned = raw
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, '');
   let result = '';
   for (const char of cleaned) {
     if (ALPHABET_SET.has(char) && result.length < SHARED_WORKOUT_JOIN_CODE_LENGTH) {

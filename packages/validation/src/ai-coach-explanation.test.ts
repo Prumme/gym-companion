@@ -52,9 +52,7 @@ describe('ai-coach-explanation (5.5)', () => {
     expect(input.loadRecommendation?.action).toBe('HOLD');
     expect(input.plateau?.status).toBe('WATCH');
     expect(input.progress?.maxWeightLatestKg).toBe(80);
-    expect(input.notices).toEqual([
-      { code: 'EFFORT_DATA_MISSING', severity: 'INFO' },
-    ]);
+    expect(input.notices).toEqual([{ code: 'EFFORT_DATA_MISSING', severity: 'INFO' }]);
     assertAiCoachPayloadMinimized(input);
     const serialized = JSON.stringify(input);
     expect(serialized).not.toContain('ownerUserId');
@@ -179,9 +177,9 @@ describe('ai-coach-explanation (5.5)', () => {
     expect(generateExerciseCoachExplanationBodySchema.parse({})).toEqual({
       focus: 'GENERAL',
     });
-    expect(
-      generateExerciseCoachExplanationBodySchema.parse({ focus: 'LOAD' }),
-    ).toEqual({ focus: 'LOAD' });
+    expect(generateExerciseCoachExplanationBodySchema.parse({ focus: 'LOAD' })).toEqual({
+      focus: 'LOAD',
+    });
     expect(() =>
       generateExerciseCoachExplanationBodySchema.parse({
         focus: 'LOAD',

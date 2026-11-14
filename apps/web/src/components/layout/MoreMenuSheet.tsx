@@ -2,10 +2,7 @@ import { useEffect, useId, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { ChevronRight, X } from 'lucide-react';
 
-import {
-  isNavItemActive,
-  moreNavGroups,
-} from '@/app/navigation/nav-config';
+import { isNavItemActive, moreNavGroups } from '@/app/navigation/nav-config';
 import { cn } from '@/lib/utils';
 
 type MoreMenuSheetProps = {
@@ -51,8 +48,7 @@ export function MoreMenuSheet({ open, onClose, pathname }: MoreMenuSheetProps) {
         aria-labelledby={titleId}
         className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-[var(--radius-surface)] border border-[var(--border)] bg-[var(--surface)] px-[var(--space-4)] pt-[var(--space-4)] shadow-lg"
         style={{
-          paddingBottom:
-            'calc(var(--space-6) + env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'calc(var(--space-6) + env(safe-area-inset-bottom, 0px))',
         }}
       >
         <div className="mb-[var(--space-4)] flex items-center justify-between gap-3">
@@ -102,9 +98,7 @@ export function MoreMenuSheet({ open, onClose, pathname }: MoreMenuSheetProps) {
                           aria-hidden="true"
                         />
                         <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-medium">
-                            {item.label}
-                          </span>
+                          <span className="block text-sm font-medium">{item.label}</span>
                           {item.description ? (
                             <span className="block text-xs text-[var(--muted-foreground)]">
                               {item.description}

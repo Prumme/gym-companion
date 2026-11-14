@@ -10,24 +10,13 @@ export const SHARED_WORKOUT_ROOM_DEFAULT_NAME = 'Séance partagée';
 export const SHARED_WORKOUT_ROOM_LIST_DEFAULT_LIMIT = 20;
 export const SHARED_WORKOUT_ROOM_LIST_MAX_LIMIT = 50;
 
-export const sharedWorkoutRoomStatusSchema = z.enum([
-  'LOBBY',
-  'ACTIVE',
-  'COMPLETED',
-  'CANCELLED',
-]);
+export const sharedWorkoutRoomStatusSchema = z.enum(['LOBBY', 'ACTIVE', 'COMPLETED', 'CANCELLED']);
 
-export type SharedWorkoutRoomStatusValue = z.infer<
-  typeof sharedWorkoutRoomStatusSchema
->;
+export type SharedWorkoutRoomStatusValue = z.infer<typeof sharedWorkoutRoomStatusSchema>;
 
 export const sharedWorkoutRoomMemberRoleSchema = z.enum(['OWNER', 'MEMBER']);
 
-export const sharedWorkoutRoomLifecycleActionSchema = z.enum([
-  'START',
-  'COMPLETE',
-  'CANCEL',
-]);
+export const sharedWorkoutRoomLifecycleActionSchema = z.enum(['START', 'COMPLETE', 'CANCEL']);
 
 export type SharedWorkoutRoomLifecycleAction = z.infer<
   typeof sharedWorkoutRoomLifecycleActionSchema
@@ -43,20 +32,13 @@ export const createSharedWorkoutRoomBodySchema = z
     name: z
       .preprocess(
         emptyToUndefined,
-        z
-          .string()
-          .trim()
-          .min(1)
-          .max(SHARED_WORKOUT_ROOM_NAME_MAX)
-          .optional(),
+        z.string().trim().min(1).max(SHARED_WORKOUT_ROOM_NAME_MAX).optional(),
       )
       .optional(),
   })
   .strict();
 
-export type CreateSharedWorkoutRoomInput = z.infer<
-  typeof createSharedWorkoutRoomBodySchema
->;
+export type CreateSharedWorkoutRoomInput = z.infer<typeof createSharedWorkoutRoomBodySchema>;
 
 export const updateSharedWorkoutRoomBodySchema = z
   .object({
@@ -64,9 +46,7 @@ export const updateSharedWorkoutRoomBodySchema = z
   })
   .strict();
 
-export type UpdateSharedWorkoutRoomInput = z.infer<
-  typeof updateSharedWorkoutRoomBodySchema
->;
+export type UpdateSharedWorkoutRoomInput = z.infer<typeof updateSharedWorkoutRoomBodySchema>;
 
 export const sharedWorkoutRoomLifecycleCommandBodySchema = z
   .object({
@@ -90,18 +70,13 @@ const sharedWorkoutRoomListLimitSchema = z.preprocess(
 
 export const sharedWorkoutRoomListQuerySchema = z
   .object({
-    status: z.preprocess(
-      emptyToUndefined,
-      sharedWorkoutRoomStatusSchema.optional(),
-    ),
+    status: z.preprocess(emptyToUndefined, sharedWorkoutRoomStatusSchema.optional()),
     cursor: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
     limit: sharedWorkoutRoomListLimitSchema,
   })
   .strict();
 
-export type SharedWorkoutRoomListQuery = z.infer<
-  typeof sharedWorkoutRoomListQuerySchema
->;
+export type SharedWorkoutRoomListQuery = z.infer<typeof sharedWorkoutRoomListQuerySchema>;
 
 export type SharedWorkoutRoomCursorPayload = {
   version: 1;
@@ -109,15 +84,11 @@ export type SharedWorkoutRoomCursorPayload = {
   id: string;
 };
 
-export function encodeSharedWorkoutRoomCursor(
-  payload: SharedWorkoutRoomCursorPayload,
-): string {
+export function encodeSharedWorkoutRoomCursor(payload: SharedWorkoutRoomCursorPayload): string {
   return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
 }
 
-export function decodeSharedWorkoutRoomCursor(
-  cursor: string,
-): SharedWorkoutRoomCursorPayload {
+export function decodeSharedWorkoutRoomCursor(cursor: string): SharedWorkoutRoomCursorPayload {
   let parsed: unknown;
   try {
     const json = Buffer.from(cursor, 'base64url').toString('utf8');
@@ -146,13 +117,8 @@ export function decodeSharedWorkoutRoomCursor(
 }
 
 /** Cursor sur tri `updatedAt desc, id desc`. */
-export function buildSharedWorkoutRoomCursorFilter(
-  cursor: SharedWorkoutRoomCursorPayload,
-): {
-  OR: Array<
-    | { updatedAt: { lt: Date } }
-    | { AND: [{ updatedAt: Date }, { id: { lt: string } }] }
-  >;
+export function buildSharedWorkoutRoomCursorFilter(cursor: SharedWorkoutRoomCursorPayload): {
+  OR: Array<{ updatedAt: { lt: Date } } | { AND: [{ updatedAt: Date }, { id: { lt: string } }] }>;
 } {
   const updatedAt = new Date(cursor.updatedAt);
   return {
@@ -165,9 +131,7 @@ export function buildSharedWorkoutRoomCursorFilter(
   };
 }
 
-export function resolveSharedWorkoutRoomName(
-  name: string | undefined,
-): string {
+export function resolveSharedWorkoutRoomName(name: string | undefined): string {
   const trimmed = name?.trim() ?? '';
   if (trimmed.length > 0) return trimmed.slice(0, SHARED_WORKOUT_ROOM_NAME_MAX);
   return SHARED_WORKOUT_ROOM_DEFAULT_NAME;
@@ -246,9 +210,7 @@ export function resolveSharedWorkoutRoomLifecycleTransition(
   return { ok: false, code: 'SHARED_WORKOUT_ROOM_INVALID_STATUS' };
 }
 
-export function canRenameSharedWorkoutRoom(
-  status: SharedWorkoutRoomStatusValue,
-): boolean {
+export function canRenameSharedWorkoutRoom(status: SharedWorkoutRoomStatusValue): boolean {
   return status === 'LOBBY' || status === 'ACTIVE';
 }
 
@@ -265,9 +227,7 @@ function stableDigestHex(input: string): string {
     h3 = Math.imul(h3 ^ ((c << 1) + i), 0x01000193);
     h4 = Math.imul(h4 ^ ((c << 2) ^ i), 0x811c9dc5);
   }
-  return [h1, h2, h3, h4]
-    .map((value) => (value >>> 0).toString(16).padStart(8, '0'))
-    .join('');
+  return [h1, h2, h3, h4].map((value) => (value >>> 0).toString(16).padStart(8, '0')).join('');
 }
 
 export function buildSharedWorkoutRoomLifecycleFingerprint(input: {

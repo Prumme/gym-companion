@@ -11,9 +11,7 @@ import { createProgramListItem } from './fixtures';
 const listPrograms = vi.fn();
 
 vi.mock('../api/program-api', async () => {
-  const actual = await vi.importActual<typeof import('../api/program-api')>(
-    '../api/program-api',
-  );
+  const actual = await vi.importActual<typeof import('../api/program-api')>('../api/program-api');
   return {
     ...actual,
     listPrograms: (...args: unknown[]) => listPrograms(...args),
@@ -87,13 +85,9 @@ describe('ProgramsPage', () => {
 
     renderList();
     expect(await screen.findByText('Actif')).toBeInTheDocument();
-    await user.click(
-      screen.getByRole('button', { name: /Actions pour Programme actif/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Actions pour Programme actif/i }));
     expect(screen.getByRole('menuitem', { name: /Modifier/i })).toBeInTheDocument();
-    await user.click(
-      screen.getByRole('link', { name: /Ouvrir le programme Programme actif/i }),
-    );
+    await user.click(screen.getByRole('link', { name: /Ouvrir le programme Programme actif/i }));
     expect(await screen.findByText('Détail')).toBeInTheDocument();
   });
 
@@ -124,12 +118,8 @@ describe('ProgramsPage', () => {
     });
 
     renderList('/programs');
-    expect(
-      await screen.findByText(/Tu n’as encore créé aucun programme/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /Créer mon premier programme/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Tu n’as encore créé aucun programme/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Créer mon premier programme/i })).toBeInTheDocument();
 
     await user.click(screen.getByLabelText(/Inclure les programmes archivés/i));
     await waitFor(() =>

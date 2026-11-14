@@ -1,13 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import {
-  Link,
-  useLocation,
-  useNavigate,
-  useParams,
-  useSearchParams,
-} from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { Button, ButtonLink } from '@/components/ui/button';
 import { EmptyState } from '@/components/common/EmptyState';
@@ -83,11 +77,7 @@ export function ProgramDetailPage() {
   const program = detailQuery.data;
   const editingTemplate = useMemo(() => {
     if (!program || !editingTemplateId) return null;
-    return (
-      program.workoutTemplates.find(
-        (template) => template.id === editingTemplateId,
-      ) ?? null
-    );
+    return program.workoutTemplates.find((template) => template.id === editingTemplateId) ?? null;
   }, [program, editingTemplateId]);
 
   if (detailQuery.isLoading) {
@@ -99,10 +89,7 @@ export function ProgramDetailPage() {
     const message =
       httpStatus === 404
         ? 'Ce programme est introuvable ou inaccessible.'
-        : getApiErrorMessage(
-            detailQuery.error,
-            'Impossible de charger ce programme.',
-          );
+        : getApiErrorMessage(detailQuery.error, 'Impossible de charger ce programme.');
 
     return (
       <main className="flex flex-1 flex-col gap-4">
@@ -110,10 +97,7 @@ export function ProgramDetailPage() {
           <ArrowLeft className="size-4" aria-hidden="true" />
           Programmes
         </ButtonLink>
-        <div
-          className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4"
-          role="alert"
-        >
+        <div className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4" role="alert">
           <p className="text-sm text-[var(--danger)]">{message}</p>
           <Button
             type="button"
@@ -128,8 +112,7 @@ export function ProgramDetailPage() {
     );
   }
 
-  const isArchived =
-    program.status === 'ARCHIVED' || program.archivedAt != null;
+  const isArchived = program.status === 'ARCHIVED' || program.archivedAt != null;
   const readOnly = isArchived || !program.permissions.canEdit;
   const currentProgram = program;
 
@@ -152,9 +135,7 @@ export function ProgramDetailPage() {
       setDeactivateOpen(false);
       setStatus('Programme courant désactivé.');
     } catch (err) {
-      setDeactivateError(
-        getApiErrorMessage(err, 'Impossible de désactiver ce programme.'),
-      );
+      setDeactivateError(getApiErrorMessage(err, 'Impossible de désactiver ce programme.'));
     }
   }
 
@@ -169,12 +150,7 @@ export function ProgramDetailPage() {
       setShareToken(result.token);
       setShareExpiresAt(result.expiresAt);
     } catch (err) {
-      setShareError(
-        getTrainingShareErrorMessage(
-          err,
-          'Impossible de générer le lien de partage.',
-        ),
-      );
+      setShareError(getTrainingShareErrorMessage(err, 'Impossible de générer le lien de partage.'));
     }
   }
 
@@ -227,8 +203,7 @@ export function ProgramDetailPage() {
             ) : null}
           </div>
           <p className="mt-0.5 text-sm text-[var(--muted)]">
-            {getTrainingGoalLabel(program.goal)} ·{' '}
-            {program.workoutTemplateCount} séance
+            {getTrainingGoalLabel(program.goal)} · {program.workoutTemplateCount} séance
             {program.workoutTemplateCount === 1 ? '' : 's'}
           </p>
         </div>

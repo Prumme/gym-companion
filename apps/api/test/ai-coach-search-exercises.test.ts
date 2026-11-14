@@ -21,8 +21,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -35,11 +34,7 @@ function applyTestEnv() {
   process.env.AI_COACH_RATE_LIMIT_PER_MINUTE = '100';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -108,9 +103,7 @@ describe('search_exercises tool (Coach catalogue)', () => {
         primaryMuscleGroupId: mg.id,
         secondaryMuscleGroupIds: [],
         defaultEquipmentTypeId: eq.id,
-        compatibleEquipmentTypes: [
-          { equipmentTypeId: eq.id, isPreferred: true, notes: null },
-        ],
+        compatibleEquipmentTypes: [{ equipmentTypeId: eq.id, isPreferred: true, notes: null }],
         defaultRestSeconds: 90,
         instructions: null,
       })
@@ -247,9 +240,7 @@ describe('search_exercises tool (Coach catalogue)', () => {
     };
     // Machine touche surtout des polyarticulaires (triceps/biceps secondaires) — OK.
     expect(payload.count).toBeGreaterThan(0);
-    expect(
-      payload.exercises.every((item) => Boolean(item.id)),
-    ).toBe(true);
+    expect(payload.exercises.every((item) => Boolean(item.id))).toBe(true);
   });
 
   it('bras + équipement introuvable pour la zone → fallback dropped_equipment', async () => {
@@ -308,9 +299,7 @@ describe('search_exercises tool (Coach catalogue)', () => {
       { ownerUserId: userAId },
     );
     expect((result.llmPayload as { count: number }).count).toBeGreaterThan(0);
-    expect(
-      (result.outputSummary.muscleGroupIds as string[]).length,
-    ).toBeGreaterThanOrEqual(2);
+    expect((result.outputSummary.muscleGroupIds as string[]).length).toBeGreaterThanOrEqual(2);
   });
 
   it('full body → plusieurs groupes', async () => {
@@ -320,9 +309,7 @@ describe('search_exercises tool (Coach catalogue)', () => {
       { ownerUserId: userAId },
     );
     expect((result.llmPayload as { count: number }).count).toBeGreaterThan(2);
-    expect(
-      (result.outputSummary.muscleGroupIds as string[]).length,
-    ).toBeGreaterThan(3);
+    expect((result.outputSummary.muscleGroupIds as string[]).length).toBeGreaterThan(3);
   });
 
   it('user sans exercice personnel voit le catalogue SYSTEM', async () => {
@@ -362,9 +349,7 @@ describe('search_exercises tool (Coach catalogue)', () => {
       }
     ).exercises;
     expect(found.length).toBeGreaterThanOrEqual(2);
-    const picked = found
-      .filter((item) => item.measurementType === 'WEIGHT_REPS')
-      .slice(0, 2);
+    const picked = found.filter((item) => item.measurementType === 'WEIGHT_REPS').slice(0, 2);
     expect(picked.length).toBeGreaterThanOrEqual(1);
 
     fakeProvider.resetChat();
@@ -426,9 +411,7 @@ describe('search_exercises tool (Coach catalogue)', () => {
       .expect(201);
 
     const response = await request(app.getHttpServer())
-      .post(
-        `/api/v1/coaching/conversations/${created.body.data.id}/messages`,
-      )
+      .post(`/api/v1/coaching/conversations/${created.body.data.id}/messages`)
       .set('Authorization', `Bearer ${tokenB}`)
       .send({
         content:
@@ -461,9 +444,9 @@ describe('search_exercises tool (Coach catalogue)', () => {
       { query: 'Perso Tractions' },
       { ownerUserId: userAId },
     );
-    const ownerIds = (
-      forOwner.llmPayload as { exercises: Array<{ id: string }> }
-    ).exercises.map((item) => item.id);
+    const ownerIds = (forOwner.llmPayload as { exercises: Array<{ id: string }> }).exercises.map(
+      (item) => item.id,
+    );
     expect(ownerIds).toContain(personalExerciseId);
 
     const forOther = await tools.execute(
@@ -471,9 +454,9 @@ describe('search_exercises tool (Coach catalogue)', () => {
       { query: 'Perso Tractions' },
       { ownerUserId: userBId },
     );
-    const otherIds = (
-      forOther.llmPayload as { exercises: Array<{ id: string }> }
-    ).exercises.map((item) => item.id);
+    const otherIds = (forOther.llmPayload as { exercises: Array<{ id: string }> }).exercises.map(
+      (item) => item.id,
+    );
     expect(otherIds).not.toContain(personalExerciseId);
   });
 
@@ -506,9 +489,7 @@ describe('search_exercises tool (Coach catalogue)', () => {
       }
     ).exercises;
     expect(found.length).toBeGreaterThanOrEqual(2);
-    const picked = found
-      .filter((item) => item.measurementType === 'WEIGHT_REPS')
-      .slice(0, 2);
+    const picked = found.filter((item) => item.measurementType === 'WEIGHT_REPS').slice(0, 2);
     expect(picked.length).toBeGreaterThanOrEqual(2);
 
     fakeProvider.resetChat();
@@ -557,9 +538,7 @@ describe('search_exercises tool (Coach catalogue)', () => {
       .expect(201);
 
     const response = await request(app.getHttpServer())
-      .post(
-        `/api/v1/coaching/conversations/${created.body.data.id}/messages`,
-      )
+      .post(`/api/v1/coaching/conversations/${created.body.data.id}/messages`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         content: 'Propose-moi une séance dos de 45 minutes',
@@ -569,8 +548,6 @@ describe('search_exercises tool (Coach catalogue)', () => {
 
     expect(response.body.data.assistantMessage.proposal).toBeTruthy();
     expect(response.body.data.assistantMessage.proposal.kind).toBe('WORKOUT');
-    expect(response.body.data.assistantMessage.content).not.toMatch(
-      /aucun identifiant/i,
-    );
+    expect(response.body.data.assistantMessage.content).not.toMatch(/aucun identifiant/i);
   });
 });

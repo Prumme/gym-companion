@@ -20,8 +20,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -138,9 +137,7 @@ describe('Reference data (muscle groups & equipment types)', () => {
       expect(item).not.toHaveProperty('updatedAt');
     }
 
-    const chest = response.body.data.find(
-      (item: { code: string }) => item.code === 'chest',
-    );
+    const chest = response.body.data.find((item: { code: string }) => item.code === 'chest');
     expect(chest).toMatchObject({
       code: 'chest',
       name: 'Pectoraux',
@@ -183,9 +180,7 @@ describe('Reference data (muscle groups & equipment types)', () => {
       expect(item).not.toHaveProperty('updatedAt');
     }
 
-    const barbell = response.body.data.find(
-      (item: { code: string }) => item.code === 'barbell',
-    );
+    const barbell = response.body.data.find((item: { code: string }) => item.code === 'barbell');
     expect(barbell).toMatchObject({
       code: 'barbell',
       name: 'Barre',

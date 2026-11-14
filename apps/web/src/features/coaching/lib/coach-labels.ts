@@ -28,21 +28,15 @@ const DECISION_LABELS: Record<LoadRecommendationDecisionType, string> = {
   IGNORED: 'Ignorée',
 };
 
-export function getExerciseCoachStatusLabel(
-  status: ExerciseCoachStatus,
-): string {
+export function getExerciseCoachStatusLabel(status: ExerciseCoachStatus): string {
   return STATUS_LABELS[status];
 }
 
-export function getCoachLoadActionLabel(
-  action: LoadRecommendationAction,
-): string {
+export function getCoachLoadActionLabel(action: LoadRecommendationAction): string {
   return LOAD_ACTION_LABELS[action];
 }
 
-export function getCoachDecisionLabel(
-  decision: LoadRecommendationDecisionType,
-): string {
+export function getCoachDecisionLabel(decision: LoadRecommendationDecisionType): string {
   return DECISION_LABELS[decision];
 }
 

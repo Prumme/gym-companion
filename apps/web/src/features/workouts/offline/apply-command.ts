@@ -14,9 +14,7 @@ import type {
 } from './types';
 import { updateSetPayloadSchema } from './schemas';
 
-export function permissionsForStatus(
-  status: WorkoutStatus,
-): WorkoutSessionPermissions {
+export function permissionsForStatus(status: WorkoutStatus): WorkoutSessionPermissions {
   switch (status) {
     case 'ACTIVE':
       return {
@@ -67,11 +65,7 @@ function patchSet(
     reachedFailure: payload.reachedFailure,
     notes: payload.notes,
     startedAt: set.startedAt ?? (payload.status !== 'PENDING' ? now : null),
-    completedAt: isFinalized
-      ? now
-      : payload.status === 'PENDING'
-        ? null
-        : set.completedAt,
+    completedAt: isFinalized ? now : payload.status === 'PENDING' ? null : set.completedAt,
   };
 }
 
@@ -159,8 +153,7 @@ export function applyOptimisticLifecycle(
       pausedAt: null,
       cancelledAt: null,
       cancellationReason: null,
-      notes:
-        notesPayload.notes !== undefined ? notesPayload.notes : session.notes,
+      notes: notesPayload.notes !== undefined ? notesPayload.notes : session.notes,
       version: nextVersion,
       permissions: permissionsForStatus('COMPLETED'),
     };
@@ -201,12 +194,7 @@ export function applyCommandToSession(
     }
     return applyOptimisticSetUpdate(session, parsed.data, nextVersion);
   }
-  return applyOptimisticLifecycle(
-    session,
-    command.type,
-    command.payload,
-    nextVersion,
-  );
+  return applyOptimisticLifecycle(session, command.type, command.payload, nextVersion);
 }
 
 export function applyCommandsInOrder(
@@ -219,11 +207,7 @@ export function applyCommandsInOrder(
 } {
   let current = session;
   for (const command of commands) {
-    const next = applyCommandToSession(
-      current,
-      command,
-      current.version + 1,
-    );
+    const next = applyCommandToSession(current, command, current.version + 1);
     if (!next) {
       return {
         session: current,

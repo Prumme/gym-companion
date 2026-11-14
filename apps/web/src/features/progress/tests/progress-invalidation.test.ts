@@ -14,18 +14,12 @@ describe('progress invalidation (4.3)', () => {
       invalidateQueries,
     } as unknown as QueryClient;
 
-    applyLifecycleToCacheForTest(
-      queryClient,
-      createWorkoutSessionDetail({ status: 'ACTIVE' }),
-    );
+    applyLifecycleToCacheForTest(queryClient, createWorkoutSessionDetail({ status: 'ACTIVE' }));
     expect(invalidateQueries).not.toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: progressQueryKeys.all }),
     );
 
-    applyLifecycleToCacheForTest(
-      queryClient,
-      createWorkoutSessionDetail({ status: 'PAUSED' }),
-    );
+    applyLifecycleToCacheForTest(queryClient, createWorkoutSessionDetail({ status: 'PAUSED' }));
     expect(invalidateQueries).not.toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: progressQueryKeys.all }),
     );

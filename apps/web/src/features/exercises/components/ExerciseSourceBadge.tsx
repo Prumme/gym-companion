@@ -8,10 +8,7 @@ type ExerciseSourceBadgeProps = {
 };
 
 /** Badge discret pour les exercices personnels uniquement (pas de badge SYSTEM). */
-export function ExerciseSourceBadge({
-  source,
-  className,
-}: ExerciseSourceBadgeProps) {
+export function ExerciseSourceBadge({ source, className }: ExerciseSourceBadgeProps) {
   if (source !== 'USER') {
     return null;
   }

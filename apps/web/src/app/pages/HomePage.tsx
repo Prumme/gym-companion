@@ -85,8 +85,7 @@ export function HomePage() {
   const active = activeQuery.data;
   const inProgressWorkout = activeWorkoutQuery.data;
   const showInProgress =
-    inProgressWorkout?.status === 'ACTIVE' ||
-    inProgressWorkout?.status === 'PAUSED';
+    inProgressWorkout?.status === 'ACTIVE' || inProgressWorkout?.status === 'PAUSED';
 
   return (
     <main className="flex flex-1 flex-col gap-[var(--space-6)]">
@@ -109,9 +108,7 @@ export function HomePage() {
       ) : null}
 
       {activeQuery.isLoading ? (
-        <p className="text-sm text-[var(--muted-foreground)]">
-          Chargement du programme courant…
-        </p>
+        <p className="text-sm text-[var(--muted-foreground)]">Chargement du programme courant…</p>
       ) : null}
 
       {active ? (

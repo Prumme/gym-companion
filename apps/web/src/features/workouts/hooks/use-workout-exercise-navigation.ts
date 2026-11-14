@@ -4,14 +4,10 @@ import { useSearchParams } from 'react-router-dom';
 
 import { resolveInitialExerciseId } from '../lib/workout-progress';
 
-export function useWorkoutExerciseNavigation(
-  session: WorkoutSessionDetail | null | undefined,
-) {
+export function useWorkoutExerciseNavigation(session: WorkoutSessionDetail | null | undefined) {
   const [searchParams, setSearchParams] = useSearchParams();
   const paramExerciseId = searchParams.get('exerciseId');
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(
-    null,
-  );
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!session) {
@@ -40,19 +36,14 @@ export function useWorkoutExerciseNavigation(
     if (!session || !selectedExerciseId) {
       return null;
     }
-    return (
-      session.exercises.find((exercise) => exercise.id === selectedExerciseId) ??
-      null
-    );
+    return session.exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null;
   }, [session, selectedExerciseId]);
 
   const selectedIndex = useMemo(() => {
     if (!session || !selectedExerciseId) {
       return -1;
     }
-    return session.exercises.findIndex(
-      (exercise) => exercise.id === selectedExerciseId,
-    );
+    return session.exercises.findIndex((exercise) => exercise.id === selectedExerciseId);
   }, [session, selectedExerciseId]);
 
   const selectExercise = useCallback(

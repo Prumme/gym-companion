@@ -1,13 +1,8 @@
 import { PROGRAM_IMPORT_MAX_PAYLOAD_BYTES } from '@gym-companion/validation';
 
-export type ParsedImportJson =
-  | { ok: true; value: unknown }
-  | { ok: false; message: string };
+export type ParsedImportJson = { ok: true; value: unknown } | { ok: false; message: string };
 
-export function indexToLineColumn(
-  text: string,
-  index: number,
-): { line: number; column: number } {
+export function indexToLineColumn(text: string, index: number): { line: number; column: number } {
   const clamped = Math.max(0, Math.min(index, text.length));
   let line = 1;
   let column = 1;

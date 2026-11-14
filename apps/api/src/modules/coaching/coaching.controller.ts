@@ -12,10 +12,7 @@ import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger'
 import { createSuccessResponse } from '@gym-companion/shared';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import {
-  JwtAuthGuard,
-  type AuthenticatedUser,
-} from '../../common/guards/jwt-auth.guard';
+import { JwtAuthGuard, type AuthenticatedUser } from '../../common/guards/jwt-auth.guard';
 import { AiCoachChatService } from './ai/ai-coach-chat.service';
 import { AiCoachExplanationService } from './ai/ai-coach-explanation.service';
 import { AiCoachProposalService } from './ai/ai-coach-proposal.service';
@@ -37,8 +34,7 @@ export class CoachingController {
 
   @Get('api/v1/coaching/overview')
   @ApiOperation({
-    summary:
-      'Vue Coach globale : exercices récents nécessitant potentiellement attention',
+    summary: 'Vue Coach globale : exercices récents nécessitant potentiellement attention',
   })
   async getCoachingOverview(@CurrentUser() user: AuthenticatedUser) {
     const data = await this.coachSummaryService.getCoachingOverview(user.id);
@@ -57,43 +53,31 @@ export class CoachingController {
     @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
     @Query() query: Record<string, string | undefined>,
   ) {
-    const data = await this.coachSummaryService.getExerciseCoachSummary(
-      user.id,
-      exerciseId,
-      query,
-    );
+    const data = await this.coachSummaryService.getExerciseCoachSummary(user.id, exerciseId, query);
     return createSuccessResponse(data);
   }
 
   @Post('api/v1/coaching/exercises/:exerciseId/explanation')
   @ApiOperation({
-    summary:
-      'Génère une explication IA à partir du ExerciseCoachSummary déterministe (5.5)',
+    summary: 'Génère une explication IA à partir du ExerciseCoachSummary déterministe (5.5)',
   })
   async generateExerciseCoachExplanation(
     @CurrentUser() user: AuthenticatedUser,
     @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
     @Body() body: unknown,
   ) {
-    const data =
-      await this.aiCoachExplanationService.generateExerciseExplanation(
-        user.id,
-        exerciseId,
-        body ?? {},
-      );
+    const data = await this.aiCoachExplanationService.generateExerciseExplanation(
+      user.id,
+      exerciseId,
+      body ?? {},
+    );
     return createSuccessResponse(data);
   }
 
   @Post('api/v1/coaching/conversations')
   @ApiOperation({ summary: 'Crée une conversation Coach (5.6)' })
-  async createAiCoachConversation(
-    @CurrentUser() user: AuthenticatedUser,
-    @Body() body: unknown,
-  ) {
-    const data = await this.aiCoachChatService.createConversation(
-      user.id,
-      body ?? {},
-    );
+  async createAiCoachConversation(@CurrentUser() user: AuthenticatedUser, @Body() body: unknown) {
+    const data = await this.aiCoachChatService.createConversation(user.id, body ?? {});
     return createSuccessResponse(data);
   }
 
@@ -117,11 +101,7 @@ export class CoachingController {
     @Param('conversationId', ParseUUIDPipe) conversationId: string,
     @Query() query: Record<string, string | undefined>,
   ) {
-    const data = await this.aiCoachChatService.getConversation(
-      user.id,
-      conversationId,
-      query,
-    );
+    const data = await this.aiCoachChatService.getConversation(user.id, conversationId, query);
     return createSuccessResponse(data);
   }
 
@@ -132,11 +112,7 @@ export class CoachingController {
     @Param('conversationId', ParseUUIDPipe) conversationId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.aiCoachChatService.sendMessage(
-      user.id,
-      conversationId,
-      body,
-    );
+    const data = await this.aiCoachChatService.sendMessage(user.id, conversationId, body);
     return createSuccessResponse(data);
   }
 
@@ -146,10 +122,7 @@ export class CoachingController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('conversationId', ParseUUIDPipe) conversationId: string,
   ) {
-    const data = await this.aiCoachChatService.archiveConversation(
-      user.id,
-      conversationId,
-    );
+    const data = await this.aiCoachChatService.archiveConversation(user.id, conversationId);
     return createSuccessResponse(data);
   }
 
@@ -163,11 +136,7 @@ export class CoachingController {
     @Param('proposalId', ParseUUIDPipe) proposalId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.aiCoachProposalService.accept(
-      proposalId,
-      user.id,
-      body ?? {},
-    );
+    const data = await this.aiCoachProposalService.accept(proposalId, user.id, body ?? {});
     return createSuccessResponse(data);
   }
 
@@ -177,17 +146,13 @@ export class CoachingController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('proposalId', ParseUUIDPipe) proposalId: string,
   ) {
-    const data = await this.aiCoachProposalService.dismiss(
-      proposalId,
-      user.id,
-    );
+    const data = await this.aiCoachProposalService.dismiss(proposalId, user.id);
     return createSuccessResponse(data);
   }
 
   @Get('api/v1/coaching/exercises/:exerciseId/plateau-analysis')
   @ApiOperation({
-    summary:
-      'Analyse déterministe de stagnation / plateau (lecture seule, WEIGHT_REPS)',
+    summary: 'Analyse déterministe de stagnation / plateau (lecture seule, WEIGHT_REPS)',
   })
   @ApiQuery({ name: 'equipmentId', required: false, type: String })
   async getPlateauAnalysis(
@@ -195,20 +160,13 @@ export class CoachingController {
     @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
     @Query() query: Record<string, string | undefined>,
   ) {
-    const data = await this.coachingService.getPlateauAnalysis(
-      user.id,
-      exerciseId,
-      query,
-    );
+    const data = await this.coachingService.getPlateauAnalysis(user.id, exerciseId, query);
     return createSuccessResponse(data);
   }
 
-  @Get(
-    'api/v1/coaching/workout-template-exercises/:workoutTemplateExerciseId/load-recommendation',
-  )
+  @Get('api/v1/coaching/workout-template-exercises/:workoutTemplateExerciseId/load-recommendation')
   @ApiOperation({
-    summary:
-      'Recommandation déterministe de charge (lecture seule, WEIGHT_REPS)',
+    summary: 'Recommandation déterministe de charge (lecture seule, WEIGHT_REPS)',
   })
   async getLoadRecommendation(
     @CurrentUser() user: AuthenticatedUser,

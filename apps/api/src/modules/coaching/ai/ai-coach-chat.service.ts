@@ -74,9 +74,7 @@ export class AiCoachChatService {
     private readonly toolRegistry: AiCoachToolRegistry,
     @Inject(AI_COACH_PROVIDER) private readonly provider: AiCoachProvider,
   ) {
-    this.rateLimiter = new AiCoachRateLimiter(
-      this.config.aiCoachRateLimitPerMinute,
-    );
+    this.rateLimiter = new AiCoachRateLimiter(this.config.aiCoachRateLimitPerMinute);
   }
 
   isAvailable(): boolean {
@@ -104,10 +102,7 @@ export class AiCoachChatService {
     } | null = null;
 
     if (parsed.data.exerciseId) {
-      const exercise = await this.findAccessibleExerciseOrThrow(
-        userId,
-        parsed.data.exerciseId,
-      );
+      const exercise = await this.findAccessibleExerciseOrThrow(userId, parsed.data.exerciseId);
       contextExercise = {
         id: exercise.id,
         name: exercise.name,
@@ -153,9 +148,7 @@ export class AiCoachChatService {
       );
     }
 
-    const cursor = parsed.data.cursor
-      ? decodeAiCoachConversationCursor(parsed.data.cursor)
-      : null;
+    const cursor = parsed.data.cursor ? decodeAiCoachConversationCursor(parsed.data.cursor) : null;
     if (parsed.data.cursor && !cursor) {
       throw new HttpException(
         { code: 'VALIDATION_ERROR', message: 'Cursor invalide.' },
@@ -199,9 +192,7 @@ export class AiCoachChatService {
       contextExercise: row.contextExercise
         ? { id: row.contextExercise.id, name: row.contextExercise.name }
         : null,
-      lastMessagePreview: row.messages[0]
-        ? truncate(row.messages[0].content, 120)
-        : null,
+      lastMessagePreview: row.messages[0] ? truncate(row.messages[0].content, 120) : null,
       updatedAt: row.updatedAt.toISOString(),
     }));
 
@@ -227,13 +218,8 @@ export class AiCoachChatService {
     rawQuery: Record<string, string | undefined>,
   ): Promise<AiCoachConversationDetail> {
     this.assertAiAvailable();
-    const conversation = await this.findOwnedConversationOrThrow(
-      userId,
-      conversationId,
-    );
-    const parsed = aiCoachConversationMessagesQuerySchema.safeParse(
-      rawQuery ?? {},
-    );
+    const conversation = await this.findOwnedConversationOrThrow(userId, conversationId);
+    const parsed = aiCoachConversationMessagesQuerySchema.safeParse(rawQuery ?? {});
     if (!parsed.success) {
       throw new HttpException(
         { code: 'VALIDATION_ERROR', message: 'Paramètres invalides.' },
@@ -241,9 +227,7 @@ export class AiCoachChatService {
       );
     }
 
-    const cursor = parsed.data.cursor
-      ? decodeAiCoachMessageCursor(parsed.data.cursor)
-      : null;
+    const cursor = parsed.data.cursor ? decodeAiCoachMessageCursor(parsed.data.cursor) : null;
     if (parsed.data.cursor && !cursor) {
       throw new HttpException(
         { code: 'VALIDATION_ERROR', message: 'Cursor invalide.' },
@@ -305,10 +289,7 @@ export class AiCoachChatService {
 
   async archiveConversation(userId: string, conversationId: string) {
     this.assertAiAvailable();
-    const conversation = await this.findOwnedConversationOrThrow(
-      userId,
-      conversationId,
-    );
+    const conversation = await this.findOwnedConversationOrThrow(userId, conversationId);
     if (conversation.archivedAt) {
       return { id: conversation.id, archivedAt: conversation.archivedAt.toISOString() };
     }
@@ -335,11 +316,7 @@ export class AiCoachChatService {
             path: issue.path.map(String),
             code: issue.code,
           };
-          if (
-            issue.code === 'unrecognized_keys' &&
-            'keys' in issue &&
-            Array.isArray(issue.keys)
-          ) {
+          if (issue.code === 'unrecognized_keys' && 'keys' in issue && Array.isArray(issue.keys)) {
             return { ...base, keys: issue.keys as string[] };
           }
           return base;
@@ -361,10 +338,7 @@ export class AiCoachChatService {
       );
     }
 
-    const conversation = await this.findOwnedConversationOrThrow(
-      userId,
-      conversationId,
-    );
+    const conversation = await this.findOwnedConversationOrThrow(userId, conversationId);
     if (conversation.archivedAt) {
       throw new HttpException(
         {
@@ -402,9 +376,7 @@ export class AiCoachChatService {
       });
       return {
         userMessage: this.mapMessage(existing),
-        assistantMessage: assistant
-          ? this.mapMessage(assistant, assistant.proposal)
-          : null,
+        assistantMessage: assistant ? this.mapMessage(assistant, assistant.proposal) : null,
       };
     }
 
@@ -514,11 +486,10 @@ export class AiCoachChatService {
           : null,
       };
 
-      const {
-        answer,
-        toolInvocations,
-        providerRequestId,
-      } = await this.runToolLoop(userId, turnInput);
+      const { answer, toolInvocations, providerRequestId } = await this.runToolLoop(
+        userId,
+        turnInput,
+      );
 
       // Jalon 8 — proposal revalidée (+ sanitize measurementType) avant
       // persistance ; max 1 repair OpenAI si cible métier réparable.
@@ -623,21 +594,13 @@ export class AiCoachChatService {
           error instanceof AiCoachProviderError
             ? error.code
             : error instanceof HttpException
-              ? ((error.getResponse() as { code?: string })?.code ??
-                'HTTP_ERROR')
+              ? ((error.getResponse() as { code?: string })?.code ?? 'HTTP_ERROR')
               : 'UNKNOWN',
-        phase:
-          error instanceof AiCoachProviderError ? error.phase : null,
-        providerHttpStatus:
-          error instanceof AiCoachProviderError ? error.httpStatus : null,
-        providerCode:
-          error instanceof AiCoachProviderError ? error.providerCode : null,
-        openaiRequestId:
-          error instanceof AiCoachProviderError
-            ? error.openaiRequestId
-            : null,
-        model:
-          error instanceof AiCoachProviderError ? error.model : null,
+        phase: error instanceof AiCoachProviderError ? error.phase : null,
+        providerHttpStatus: error instanceof AiCoachProviderError ? error.httpStatus : null,
+        providerCode: error instanceof AiCoachProviderError ? error.providerCode : null,
+        openaiRequestId: error instanceof AiCoachProviderError ? error.openaiRequestId : null,
+        model: error instanceof AiCoachProviderError ? error.model : null,
         userHash: hashUserId(userId),
         provider: this.provider.name,
       });
@@ -796,9 +759,7 @@ export class AiCoachChatService {
               reason: 'provider_error',
               conversationId: repairCtx.conversationId,
               providerCode:
-                repairError instanceof AiCoachProviderError
-                  ? repairError.code
-                  : 'UNKNOWN',
+                repairError instanceof AiCoachProviderError ? repairError.code : 'UNKNOWN',
               userHash: hashUserId(userId),
             });
           }
@@ -848,8 +809,7 @@ export class AiCoachChatService {
       inputSnapshot: Record<string, unknown>;
       outputSummary: Record<string, unknown>;
     }> = [];
-    let pendingToolLoop: AiCoachConversationProviderRequest['pendingToolLoop'] =
-      [];
+    let pendingToolLoop: AiCoachConversationProviderRequest['pendingToolLoop'] = [];
     let toolCallsUsed = 0;
     let providerRequestId: string | null = null;
 
@@ -873,14 +833,11 @@ export class AiCoachChatService {
         return {
           answer: {
             ...result.answer,
-            references: filterReferences(
-              result.answer.references,
-              allowedReferences,
+            references: filterReferences(result.answer.references, allowedReferences),
+            suggestedFollowUps: filterAiCoachFollowUps(result.answer.suggestedFollowUps).slice(
+              0,
+              3,
             ),
-            suggestedFollowUps: filterAiCoachFollowUps(
-              result.answer.suggestedFollowUps,
-            )
-              .slice(0, 3),
           },
           toolInvocations,
           providerRequestId,
@@ -893,14 +850,13 @@ export class AiCoachChatService {
         continue;
       }
 
-      const assistantFunctionCalls: AiCoachResponsesToolLoopItem[] =
-        calls.map((call) => ({
-          type: 'function_call' as const,
-          id: call.outputItemId,
-          call_id: call.id,
-          name: call.name,
-          arguments: call.argumentsJson,
-        }));
+      const assistantFunctionCalls: AiCoachResponsesToolLoopItem[] = calls.map((call) => ({
+        type: 'function_call' as const,
+        id: call.outputItemId,
+        call_id: call.id,
+        name: call.name,
+        arguments: call.argumentsJson,
+      }));
       const toolOutputItems: AiCoachResponsesToolLoopItem[] = [];
 
       for (const call of calls) {
@@ -929,11 +885,7 @@ export class AiCoachChatService {
         });
       }
 
-      pendingToolLoop = [
-        ...(pendingToolLoop ?? []),
-        ...assistantFunctionCalls,
-        ...toolOutputItems,
-      ];
+      pendingToolLoop = [...(pendingToolLoop ?? []), ...assistantFunctionCalls, ...toolOutputItems];
     }
 
     return {
@@ -961,10 +913,7 @@ export class AiCoachChatService {
     }
   }
 
-  private async findOwnedConversationOrThrow(
-    userId: string,
-    conversationId: string,
-  ) {
+  private async findOwnedConversationOrThrow(userId: string, conversationId: string) {
     const conversation = await this.prisma.aiCoachConversation.findFirst({
       where: { id: conversationId, ownerUserId: userId },
       include: {
@@ -986,10 +935,7 @@ export class AiCoachChatService {
     return conversation;
   }
 
-  private async findAccessibleExerciseOrThrow(
-    userId: string,
-    exerciseId: string,
-  ) {
+  private async findAccessibleExerciseOrThrow(userId: string, exerciseId: string) {
     const exercise = await this.prisma.exercise.findFirst({
       where: {
         id: exerciseId,

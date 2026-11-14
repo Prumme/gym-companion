@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  formatRemainingShareTime,
-  formatShareSetsLine,
-} from '../lib/share-format';
+import { formatRemainingShareTime, formatShareSetsLine } from '../lib/share-format';
 
 describe('share-format', () => {
   it('formate les séries homogènes', () => {
@@ -43,10 +40,7 @@ describe('share-format', () => {
   it('calcule le temps restant', () => {
     const expiresAt = new Date('2026-08-17T15:00:00.000Z').toISOString();
     expect(
-      formatRemainingShareTime(
-        expiresAt,
-        new Date('2026-08-17T14:18:00.000Z').getTime(),
-      ),
+      formatRemainingShareTime(expiresAt, new Date('2026-08-17T14:18:00.000Z').getTime()),
     ).toBe('42 min');
   });
 });

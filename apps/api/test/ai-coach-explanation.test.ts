@@ -20,8 +20,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -34,11 +33,7 @@ function applyTestEnv() {
   process.env.AI_COACH_RATE_LIMIT_PER_MINUTE = '100';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -79,9 +74,7 @@ async function createTemplate(
       primaryMuscleGroupId: mg.id,
       secondaryMuscleGroupIds: [],
       defaultEquipmentTypeId: eq.id,
-      compatibleEquipmentTypes: [
-        { equipmentTypeId: eq.id, isPreferred: true, notes: null },
-      ],
+      compatibleEquipmentTypes: [{ equipmentTypeId: eq.id, isPreferred: true, notes: null }],
       defaultRestSeconds: 90,
       instructions: null,
     })
@@ -101,9 +94,7 @@ async function createTemplate(
     .expect(201);
   const templateId = tpl.body.data.workoutTemplates[0].id as string;
   const ex = await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       exerciseId,
@@ -112,8 +103,7 @@ async function createTemplate(
       notes: null,
     })
     .expect(201);
-  const templateExerciseId = ex.body.data.workoutTemplates[0].exercises[0]
-    .id as string;
+  const templateExerciseId = ex.body.data.workoutTemplates[0].exercises[0].id as string;
 
   for (let i = 0; i < 3; i += 1) {
     await request(app.getHttpServer())
@@ -171,9 +161,7 @@ async function completeWorkout(
     const setIndex = indexes[i]!;
     const set = session.exercises[0]!.sets[setIndex]!;
     const response = await request(app.getHttpServer())
-      .patch(
-        `/api/v1/workouts/${session.id}/exercises/${session.exercises[0]!.id}/sets/${set.id}`,
-      )
+      .patch(`/api/v1/workouts/${session.id}/exercises/${session.exercises[0]!.id}/sets/${set.id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({
         status: 'COMPLETED',
@@ -275,9 +263,7 @@ describe('Coach AI explanation API (5.5)', () => {
       .expect(201);
 
     expect(response.body.data.explanation.title).toBeTruthy();
-    expect(response.body.data.meta.schemaVersion).toBe(
-      'AI_COACH_EXPLANATION_V1',
-    );
+    expect(response.body.data.meta.schemaVersion).toBe('AI_COACH_EXPLANATION_V1');
     expect(response.body.data.meta.promptVersion).toBe('AI_COACH_PROMPT_V1');
     expect(response.body.data.meta.focus).toBe('GENERAL');
     expect(response.body.data.meta.coachSummaryFingerprint).toMatch(/^[a-f0-9]+$/);
@@ -385,11 +371,7 @@ describe('Coach AI disabled', () => {
     await seedReferenceData(prisma);
     await seedSystemExercises(prisma);
 
-    const token = await registerUser(
-      disabledApp,
-      `ai-off-${Date.now()}@test.local`,
-      'Off',
-    );
+    const token = await registerUser(disabledApp, `ai-off-${Date.now()}@test.local`, 'Off');
     const me = await request(disabledApp.getHttpServer())
       .get('/api/v1/me')
       .set('Authorization', `Bearer ${token}`)
@@ -411,9 +393,7 @@ describe('Coach AI disabled', () => {
         primaryMuscleGroupId: mg.id,
         secondaryMuscleGroupIds: [],
         defaultEquipmentTypeId: eq.id,
-        compatibleEquipmentTypes: [
-          { equipmentTypeId: eq.id, isPreferred: true, notes: null },
-        ],
+        compatibleEquipmentTypes: [{ equipmentTypeId: eq.id, isPreferred: true, notes: null }],
         defaultRestSeconds: 60,
         instructions: null,
       })

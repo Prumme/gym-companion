@@ -20,10 +20,7 @@ function groupRecordsByExercise(
   records: PersonalRecord[],
 ): Array<{ exerciseId: string; name: string; records: PersonalRecord[] }> {
   const order: string[] = [];
-  const map = new Map<
-    string,
-    { exerciseId: string; name: string; records: PersonalRecord[] }
-  >();
+  const map = new Map<string, { exerciseId: string; name: string; records: PersonalRecord[] }>();
   for (const record of records) {
     const existing = map.get(record.exerciseId);
     if (!existing) {
@@ -121,9 +118,7 @@ export function PersonalRecordsPage() {
           ← Progression
         </Link>
         <h1 className="text-2xl font-bold tracking-tight">Records personnels</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Tes meilleures performances validées.
-        </p>
+        <p className="mt-1 text-sm text-[var(--muted)]">Tes meilleures performances validées.</p>
       </header>
 
       {hasPendingCompletedSync ? (
@@ -138,15 +133,9 @@ export function PersonalRecordsPage() {
       {isInitialLoading ? <PersonalRecordsSkeleton /> : null}
 
       {listQuery.isError && !listQuery.data ? (
-        <div
-          className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4"
-          role="alert"
-        >
+        <div className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4" role="alert">
           <p className="text-sm text-[var(--danger)]">
-            {getApiErrorMessage(
-              listQuery.error,
-              'Impossible de charger les records.',
-            )}
+            {getApiErrorMessage(listQuery.error, 'Impossible de charger les records.')}
           </p>
           <button
             type="button"
@@ -165,8 +154,7 @@ export function PersonalRecordsPage() {
         >
           <h2 className="text-lg font-semibold">Aucun record pour le moment.</h2>
           <p className="mx-auto mt-2 max-w-sm text-sm text-[var(--muted)]">
-            Tes records apparaîtront après tes premières séries validées dans des
-            séances terminées.
+            Tes records apparaîtront après tes premières séries validées dans des séances terminées.
           </p>
           <div className="mt-5 flex flex-col items-center gap-2">
             <ButtonLink to="/programs" className="w-full max-w-xs">
@@ -220,10 +208,7 @@ export function PersonalRecordsPage() {
           ) : null}
           {listQuery.isFetchNextPageError ? (
             <p className="text-sm text-[var(--danger)]" role="alert">
-              {getApiErrorMessage(
-                listQuery.error,
-                'Impossible de charger la suite.',
-              )}
+              {getApiErrorMessage(listQuery.error, 'Impossible de charger la suite.')}
             </p>
           ) : null}
           <Button

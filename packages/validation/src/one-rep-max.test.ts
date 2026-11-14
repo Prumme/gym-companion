@@ -112,36 +112,18 @@ describe('isEligibleForEstimatedOneRepMax', () => {
   });
 
   it('refuse PARTIAL / FAILED / SKIPPED / WARMUP', () => {
-    expect(
-      isEligibleForEstimatedOneRepMax({ ...base, setStatus: 'PARTIAL' }),
-    ).toBe(false);
-    expect(
-      isEligibleForEstimatedOneRepMax({ ...base, setStatus: 'FAILED' }),
-    ).toBe(false);
-    expect(
-      isEligibleForEstimatedOneRepMax({ ...base, setStatus: 'SKIPPED' }),
-    ).toBe(false);
-    expect(
-      isEligibleForEstimatedOneRepMax({ ...base, setType: 'WARMUP' }),
-    ).toBe(false);
+    expect(isEligibleForEstimatedOneRepMax({ ...base, setStatus: 'PARTIAL' })).toBe(false);
+    expect(isEligibleForEstimatedOneRepMax({ ...base, setStatus: 'FAILED' })).toBe(false);
+    expect(isEligibleForEstimatedOneRepMax({ ...base, setStatus: 'SKIPPED' })).toBe(false);
+    expect(isEligibleForEstimatedOneRepMax({ ...base, setType: 'WARMUP' })).toBe(false);
   });
 
   it('reps 1 et 12 ok, 13 ko ; weight null ko', () => {
-    expect(
-      isEligibleForEstimatedOneRepMax({ ...base, actualReps: MIN_E1RM_REPS }),
-    ).toBe(true);
-    expect(
-      isEligibleForEstimatedOneRepMax({ ...base, actualReps: MAX_E1RM_REPS }),
-    ).toBe(true);
-    expect(
-      isEligibleForEstimatedOneRepMax({ ...base, actualReps: 13 }),
-    ).toBe(false);
-    expect(
-      isEligibleForEstimatedOneRepMax({ ...base, actualWeightKg: null }),
-    ).toBe(false);
-    expect(
-      isEligibleForEstimatedOneRepMax({ ...base, actualReps: null }),
-    ).toBe(false);
+    expect(isEligibleForEstimatedOneRepMax({ ...base, actualReps: MIN_E1RM_REPS })).toBe(true);
+    expect(isEligibleForEstimatedOneRepMax({ ...base, actualReps: MAX_E1RM_REPS })).toBe(true);
+    expect(isEligibleForEstimatedOneRepMax({ ...base, actualReps: 13 })).toBe(false);
+    expect(isEligibleForEstimatedOneRepMax({ ...base, actualWeightKg: null })).toBe(false);
+    expect(isEligibleForEstimatedOneRepMax({ ...base, actualReps: null })).toBe(false);
   });
 });
 

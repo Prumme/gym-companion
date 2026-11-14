@@ -42,11 +42,7 @@ describe('buildExerciseProgressSummary', () => {
   it('inclut SKIPPED et warmup (pas de distinction type)', () => {
     const summary = buildExerciseProgressSummary({
       exerciseNameSnapshot: 'Squat',
-      sets: [
-        { status: 'COMPLETED' },
-        { status: 'SKIPPED' },
-        { status: 'PENDING' },
-      ],
+      sets: [{ status: 'COMPLETED' }, { status: 'SKIPPED' }, { status: 'PENDING' }],
     });
     expect(summary.processedSetCount).toBe(2);
     expect(summary.totalSetCount).toBe(3);
@@ -67,11 +63,7 @@ describe('buildWorkoutProgressSummary', () => {
     const summary = buildWorkoutProgressSummary([
       {
         exerciseNameSnapshot: 'A',
-        sets: [
-          { status: 'COMPLETED' },
-          { status: 'COMPLETED' },
-          { status: 'COMPLETED' },
-        ],
+        sets: [{ status: 'COMPLETED' }, { status: 'COMPLETED' }, { status: 'COMPLETED' }],
       },
       {
         exerciseNameSnapshot: 'B',
@@ -84,11 +76,7 @@ describe('buildWorkoutProgressSummary', () => {
       },
       {
         exerciseNameSnapshot: 'C',
-        sets: [
-          { status: 'PENDING' },
-          { status: 'PENDING' },
-          { status: 'PENDING' },
-        ],
+        sets: [{ status: 'PENDING' }, { status: 'PENDING' }, { status: 'PENDING' }],
       },
     ]);
     expect(summary).toEqual({
@@ -100,9 +88,7 @@ describe('buildWorkoutProgressSummary', () => {
   });
 
   it('exercice sans set compte comme processed', () => {
-    expect(isExerciseFullyProcessed({ exerciseNameSnapshot: 'X', sets: [] })).toBe(
-      true,
-    );
+    expect(isExerciseFullyProcessed({ exerciseNameSnapshot: 'X', sets: [] })).toBe(true);
   });
 });
 

@@ -66,20 +66,13 @@ function isFiniteNonNegative(value: number | null): value is number {
 /**
  * Stabilise l’accumulation flottante kg×reps (charges décimales Prisma).
  */
-export function addExternalVolumeKg(
-  accumulator: number,
-  weightKg: number,
-  reps: number,
-): number {
+export function addExternalVolumeKg(accumulator: number, weightKg: number, reps: number): number {
   return Math.round((accumulator + weightKg * reps) * 1_000_000) / 1_000_000;
 }
 
 export function setExternalVolumeContributionKg(
   measurementType: string,
-  set: Pick<
-    WorkoutMetricsSetInput,
-    'status' | 'actualWeightKg' | 'actualReps'
-  >,
+  set: Pick<WorkoutMetricsSetInput, 'status' | 'actualWeightKg' | 'actualReps'>,
 ): number {
   if (!isPerformedSetStatus(set.status)) {
     return 0;
@@ -87,10 +80,7 @@ export function setExternalVolumeContributionKg(
   if (!contributesToExternalVolume(measurementType)) {
     return 0;
   }
-  if (
-    !isFiniteNonNegative(set.actualWeightKg) ||
-    !isFiniteNonNegative(set.actualReps)
-  ) {
+  if (!isFiniteNonNegative(set.actualWeightKg) || !isFiniteNonNegative(set.actualReps)) {
     return 0;
   }
   return addExternalVolumeKg(0, set.actualWeightKg, set.actualReps);
@@ -128,9 +118,7 @@ export function computeElapsedDurationSeconds(input: {
  * Calcule les métriques d’une séance à partir de ses snapshots.
  * Indépendant du statut de séance (l’appelant décide de l’officialité).
  */
-export function computeWorkoutMetrics(
-  input: WorkoutMetricsSessionInput,
-): WorkoutMetrics {
+export function computeWorkoutMetrics(input: WorkoutMetricsSessionInput): WorkoutMetrics {
   let completed = 0;
   let partial = 0;
   let failed = 0;
@@ -191,10 +179,7 @@ export function computeWorkoutMetrics(
         reachedFailure += 1;
       }
 
-      if (
-        contributesToTotalReps(exercise.measurementType) &&
-        isFiniteNonNegative(set.actualReps)
-      ) {
+      if (contributesToTotalReps(exercise.measurementType) && isFiniteNonNegative(set.actualReps)) {
         totalReps += set.actualReps;
       }
 
@@ -223,9 +208,7 @@ export function computeWorkoutMetrics(
 
       if (isFiniteNonNegative(set.actualDistanceMeters)) {
         totalDistanceMeters =
-          Math.round(
-            (totalDistanceMeters + set.actualDistanceMeters) * 1_000_000,
-          ) / 1_000_000;
+          Math.round((totalDistanceMeters + set.actualDistanceMeters) * 1_000_000) / 1_000_000;
       }
     }
 

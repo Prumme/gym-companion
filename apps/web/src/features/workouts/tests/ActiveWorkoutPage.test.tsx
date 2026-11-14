@@ -16,13 +16,11 @@ const getMe = vi.fn();
 const listExercises = vi.fn();
 
 vi.mock('../api/workout-api', () => ({
-  getActiveWorkoutSession: (...args: unknown[]) =>
-    getActiveWorkoutSession(...args),
+  getActiveWorkoutSession: (...args: unknown[]) => getActiveWorkoutSession(...args),
   createWorkoutSession: (...args: unknown[]) => createWorkoutSession(...args),
   updateWorkoutSet: (...args: unknown[]) => updateWorkoutSet(...args),
   replaceWorkoutSessionExercise: vi.fn(),
-  addWorkoutSessionExercise: (...args: unknown[]) =>
-    addWorkoutSessionExercise(...args),
+  addWorkoutSessionExercise: (...args: unknown[]) => addWorkoutSessionExercise(...args),
   addWorkoutSessionSet: vi.fn(),
   deleteWorkoutSessionSet: vi.fn(),
   getWorkoutSessionDetail: vi.fn(),
@@ -227,38 +225,26 @@ describe('ActiveWorkoutPage', () => {
 
     expect(await screen.findByText('Séance Push')).toBeInTheDocument();
     expect(screen.getByText(/0 \/ 1 séries/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Développé couché' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Développé couché' })).toBeInTheDocument();
     expect(screen.getByText('Courante')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('navigation', { name: /principale/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: /principale/i })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Actions de séance/i }));
-    expect(
-      screen.getByRole('menuitem', { name: /Mettre en pause/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Mettre en pause/i })).toBeInTheDocument();
     await user.keyboard('{Escape}');
 
-    await user.click(
-      screen.getByRole('button', { name: /Enregistrer la série/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Enregistrer la série/i }));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByLabelText(/Charge/i)).toHaveValue(60);
     expect(within(dialog).getByLabelText(/Répétitions/i)).toHaveValue(10);
 
-    await user.click(
-      within(dialog).getByRole('button', { name: /^Enregistrer$/i }),
-    );
+    await user.click(within(dialog).getByRole('button', { name: /^Enregistrer$/i }));
 
     await waitFor(() => expect(updateWorkoutSet).toHaveBeenCalledTimes(1));
     await waitFor(() => {
       expect(screen.getByText(/1 \/ 1 séries/i)).toBeInTheDocument();
     });
     expect(screen.queryByRole('timer')).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /^Terminer la séance$/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Terminer la séance$/i })).toBeInTheDocument();
     expect(screen.getByText(/Exercice terminé/i)).toBeInTheDocument();
   });
 
@@ -319,9 +305,7 @@ describe('ActiveWorkoutPage', () => {
       </QueryClientProvider>,
     );
 
-    await user.click(
-      await screen.findByRole('button', { name: /Enregistrer la série/i }),
-    );
+    await user.click(await screen.findByRole('button', { name: /Enregistrer la série/i }));
     await user.click(
       within(await screen.findByRole('dialog')).getByRole('button', {
         name: /^Enregistrer$/i,
@@ -329,15 +313,11 @@ describe('ActiveWorkoutPage', () => {
     );
     await waitFor(() => expect(updateWorkoutSet).toHaveBeenCalledTimes(1));
     expect(await screen.findByRole('timer')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /^Terminer la séance$/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Terminer la séance$/i })).not.toBeInTheDocument();
     const shell = document.querySelector('[data-rest-timer-active="true"]');
     expect(shell).not.toBeNull();
     expect(shell?.className).not.toMatch(/\bpb-56\b|\bpb-60\b/);
-    expect(
-      document.querySelector('[data-rest-timer-padding="true"]'),
-    ).toBeNull();
+    expect(document.querySelector('[data-rest-timer-padding="true"]')).toBeNull();
   });
 
   it('navigue entre exercices et démarre la minuterie après enregistrement', async () => {
@@ -405,32 +385,20 @@ describe('ActiveWorkoutPage', () => {
     );
 
     expect(await screen.findByRole('heading', { name: 'Développé couché' })).toBeInTheDocument();
-    await user.click(
-      screen.getByRole('button', { name: /Aller à l'exercice suivant/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Aller à l'exercice suivant/i }));
     expect(
       await screen.findByRole('heading', { name: 'Élévations latérales' }),
     ).toBeInTheDocument();
-    await user.click(
-      screen.getByRole('button', { name: /Aller à l'exercice précédent/i }),
-    );
-    expect(
-      await screen.findByRole('heading', { name: 'Développé couché' }),
-    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Aller à l'exercice précédent/i }));
+    expect(await screen.findByRole('heading', { name: 'Développé couché' })).toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole('button', { name: /Enregistrer la série/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Enregistrer la série/i }));
     const dialog = await screen.findByRole('dialog');
-    await user.click(
-      within(dialog).getByRole('button', { name: /^Enregistrer$/i }),
-    );
+    await user.click(within(dialog).getByRole('button', { name: /^Enregistrer$/i }));
     await waitFor(() => expect(updateWorkoutSet).toHaveBeenCalledTimes(1));
     expect(await screen.findByRole('timer')).toBeInTheDocument();
     expect(screen.getByText(/Exercice terminé/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /^Exercice suivant$/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Exercice suivant$/i })).toBeInTheDocument();
     const shell = document.querySelector('[data-rest-timer-active="true"]');
     expect(shell).not.toBeNull();
     expect(shell?.className).not.toMatch(/\bpb-56\b|\bpb-60\b/);
@@ -489,9 +457,7 @@ describe('ActiveWorkoutPage', () => {
       </QueryClientProvider>,
     );
 
-    await user.click(
-      await screen.findByRole('button', { name: /Enregistrer la série/i }),
-    );
+    await user.click(await screen.findByRole('button', { name: /Enregistrer la série/i }));
     await user.click(
       within(await screen.findByRole('dialog')).getByRole('button', {
         name: /^Enregistrer$/i,
@@ -500,27 +466,14 @@ describe('ActiveWorkoutPage', () => {
     await waitFor(() => expect(updateWorkoutSet).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole('timer')).not.toBeInTheDocument();
     expect(screen.getByText(/^Exercice terminé$/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /^Terminer la séance$/i }),
-    ).toBeInTheDocument();
-    expect(
-      document.querySelector('[data-rest-timer-active="false"]'),
-    ).not.toBeNull();
-    expect(
-      document.querySelector('[data-rest-timer-active="true"]'),
-    ).toBeNull();
+    expect(screen.getByRole('button', { name: /^Terminer la séance$/i })).toBeInTheDocument();
+    expect(document.querySelector('[data-rest-timer-active="false"]')).not.toBeNull();
+    expect(document.querySelector('[data-rest-timer-active="true"]')).toBeNull();
 
-    await user.click(
-      screen.getByRole('button', { name: /^Terminer la séance$/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /^Terminer la séance$/i }));
     const completeDialog = await screen.findByRole('dialog');
-    expect(
-      within(completeDialog).getByText(/Terminer la séance \?/i),
-    ).toBeInTheDocument();
-    expect(within(completeDialog).getByLabelText(/Notes/i)).toHaveAttribute(
-      'rows',
-      '1',
-    );
+    expect(within(completeDialog).getByText(/Terminer la séance \?/i)).toBeInTheDocument();
+    expect(within(completeDialog).getByLabelText(/Notes/i)).toHaveAttribute('rows', '1');
     expect(
       within(completeDialog).getByRole('button', {
         name: /Continuer la séance/i,
@@ -574,15 +527,9 @@ describe('ActiveWorkoutPage', () => {
     );
 
     expect(await screen.findByText('Séance Push')).toBeInTheDocument();
-    await user.click(
-      screen.getByRole('button', { name: /Ajouter un exercice/i }),
-    );
-    expect(
-      await screen.findByRole('heading', { name: 'Ajouter un exercice' }),
-    ).toBeInTheDocument();
-    await user.click(
-      await screen.findByRole('button', { name: /Leg Extension/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Ajouter un exercice/i }));
+    expect(await screen.findByRole('heading', { name: 'Ajouter un exercice' })).toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: /Leg Extension/i }));
     await user.click(screen.getByRole('button', { name: /^Ajouter$/i }));
 
     await waitFor(() => {
@@ -594,12 +541,8 @@ describe('ActiveWorkoutPage', () => {
         }),
       );
     });
-    expect(
-      await screen.findByRole('heading', { name: 'Leg Extension' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /Série 1/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Leg Extension' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Série 1/i })).toBeInTheDocument();
   });
 });
 
@@ -646,17 +589,11 @@ describe('StartWorkoutButton', () => {
       </QueryClientProvider>,
     );
 
-    await user.click(
-      screen.getByRole('button', { name: /Démarrer cette séance/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Démarrer cette séance/i }));
     const dialog = await screen.findByRole('alertdialog');
-    await user.click(
-      within(dialog).getByRole('button', { name: /^Démarrer$/i }),
-    );
+    await user.click(within(dialog).getByRole('button', { name: /^Démarrer$/i }));
 
-    await waitFor(() =>
-      expect(createWorkoutSession).toHaveBeenCalledTimes(1),
-    );
+    await waitFor(() => expect(createWorkoutSession).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('Séance Push')).toBeInTheDocument();
   });
 });

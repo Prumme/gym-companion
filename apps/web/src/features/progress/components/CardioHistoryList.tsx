@@ -1,9 +1,5 @@
 import type { CardioHistoryEntry } from '@gym-companion/shared';
-import {
-  formatDistanceMeters,
-  formatDuration,
-  formatPace,
-} from '@gym-companion/validation';
+import { formatDistanceMeters, formatDuration, formatPace } from '@gym-companion/validation';
 
 function formatLocalDate(value: string): string {
   const [year, month, day] = value.split('-').map(Number);

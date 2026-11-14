@@ -57,14 +57,10 @@ export function buildExerciseListSearchParams(query: ExerciseListQuery): URLSear
   return params;
 }
 
-export async function listExercises(
-  query: ExerciseListQuery = {},
-): Promise<ExerciseListResponse> {
+export async function listExercises(query: ExerciseListQuery = {}): Promise<ExerciseListResponse> {
   const params = buildExerciseListSearchParams(query);
   const suffix = params.toString();
-  return apiFetch<ExerciseListResponse>(
-    `/api/v1/exercises${suffix ? `?${suffix}` : ''}`,
-  );
+  return apiFetch<ExerciseListResponse>(`/api/v1/exercises${suffix ? `?${suffix}` : ''}`);
 }
 
 export async function getExercise(exerciseId: string): Promise<ExerciseDetail> {
@@ -79,9 +75,7 @@ export function getExerciseDetail(exerciseId: string): Promise<ExerciseDetail> {
   return getExercise(exerciseId);
 }
 
-export async function getExercisePreference(
-  exerciseId: string,
-): Promise<ExerciseUserPreference> {
+export async function getExercisePreference(exerciseId: string): Promise<ExerciseUserPreference> {
   const response = await apiFetch<{ data: ExerciseUserPreference }>(
     `/api/v1/exercises/${encodeURIComponent(exerciseId)}/preference`,
   );
@@ -102,18 +96,13 @@ export async function updateExercisePreference(
   return response.data;
 }
 
-export async function resetExercisePreference(
-  exerciseId: string,
-): Promise<void> {
-  await apiFetch<void>(
-    `/api/v1/exercises/${encodeURIComponent(exerciseId)}/preference`,
-    { method: 'DELETE' },
-  );
+export async function resetExercisePreference(exerciseId: string): Promise<void> {
+  await apiFetch<void>(`/api/v1/exercises/${encodeURIComponent(exerciseId)}/preference`, {
+    method: 'DELETE',
+  });
 }
 
-export async function createExercise(
-  input: CreateExerciseInput,
-): Promise<ExerciseDetail> {
+export async function createExercise(input: CreateExerciseInput): Promise<ExerciseDetail> {
   const response = await apiFetch<{ data: ExerciseDetail }>('/api/v1/exercises', {
     method: 'POST',
     body: JSON.stringify(input),
@@ -158,9 +147,7 @@ export async function listMuscleGroups(): Promise<MuscleGroupReference[]> {
   return response.data;
 }
 
-export async function listSystemExerciseCatalog(): Promise<
-  SystemExerciseCatalogItem[]
-> {
+export async function listSystemExerciseCatalog(): Promise<SystemExerciseCatalogItem[]> {
   const response = await apiFetch<{ data: SystemExerciseCatalogItem[] }>(
     '/api/v1/exercises/system-catalog',
   );

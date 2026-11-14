@@ -5,10 +5,7 @@ import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-import {
-  templateExerciseFormSchema,
-  type TemplateExerciseFormValues,
-} from '../lib/template-forms';
+import { templateExerciseFormSchema, type TemplateExerciseFormValues } from '../lib/template-forms';
 
 type TemplateExerciseFormProps = {
   open: boolean;
@@ -80,9 +77,7 @@ export function TemplateExerciseForm({
     }
     if (
       dirty &&
-      !window.confirm(
-        'Des modifications non enregistrées seront perdues. Continuer ?',
-      )
+      !window.confirm('Des modifications non enregistrées seront perdues. Continuer ?')
     ) {
       return;
     }
@@ -107,9 +102,7 @@ export function TemplateExerciseForm({
           <h3 id={titleId} className="text-lg font-semibold">
             {title}
           </h3>
-          <p className="mt-0.5 truncate text-sm text-[var(--muted)]">
-            {exerciseName}
-          </p>
+          <p className="mt-0.5 truncate text-sm text-[var(--muted)]">{exerciseName}</p>
         </div>
 
         <form
@@ -121,10 +114,7 @@ export function TemplateExerciseForm({
           })}
         >
           <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
-            <label
-              className="flex flex-col gap-1 text-sm"
-              htmlFor="template-exercise-equipment"
-            >
+            <label className="flex flex-col gap-1 text-sm" htmlFor="template-exercise-equipment">
               <span className="font-medium">Équipement prévu</span>
               <select
                 id="template-exercise-equipment"
@@ -140,10 +130,7 @@ export function TemplateExerciseForm({
               </select>
             </label>
 
-            <label
-              className="flex flex-col gap-1 text-sm"
-              htmlFor="template-exercise-rest"
-            >
+            <label className="flex flex-col gap-1 text-sm" htmlFor="template-exercise-rest">
               <span className="font-medium">Repos prévu (secondes)</span>
               <input
                 id="template-exercise-rest"
@@ -161,15 +148,9 @@ export function TemplateExerciseForm({
               ) : null}
             </label>
 
-            <label
-              className="flex flex-col gap-1 text-sm"
-              htmlFor="template-exercise-notes"
-            >
+            <label className="flex flex-col gap-1 text-sm" htmlFor="template-exercise-notes">
               <span className="font-medium">
-                Notes{' '}
-                <span className="font-normal text-[var(--muted)]">
-                  (facultatif)
-                </span>
+                Notes <span className="font-normal text-[var(--muted)]">(facultatif)</span>
               </span>
               <textarea
                 id="template-exercise-notes"

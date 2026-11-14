@@ -197,9 +197,7 @@ export function ExerciseSwipeSurface({
         style={{
           transform: transformActive ? `translateX(${offsetX}px)` : undefined,
           transition:
-            reduced || dragging || !transformActive
-              ? 'none'
-              : `transform ${MOTION_MS}ms ease`,
+            reduced || dragging || !transformActive ? 'none' : `transform ${MOTION_MS}ms ease`,
         }}
       >
         {children}

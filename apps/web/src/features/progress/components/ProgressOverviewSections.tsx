@@ -109,9 +109,7 @@ export function OverviewTotalsCards({ data }: TotalsCardsProps) {
             <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
               {card.label}
             </p>
-            <p className="mt-1 text-lg font-semibold tabular-nums tracking-tight">
-              {card.value}
-            </p>
+            <p className="mt-1 text-lg font-semibold tabular-nums tracking-tight">{card.value}</p>
             {card.change !== undefined && data.comparison ? (
               <p className="mt-0.5 text-xs text-[var(--muted)]">
                 {formatOverviewComparisonPercent(card.change ?? null)} vs préc.
@@ -135,8 +133,7 @@ function FrequencyLine({
   const average = formatAverageWorkoutsPerWeek(frequency.averageWorkoutsPerWeek);
   return (
     <p className="mt-2 text-sm text-[var(--muted)]">
-      {workoutCount} séance{workoutCount > 1 ? 's' : ''} sur{' '}
-      {frequency.activeDayCount} jour
+      {workoutCount} séance{workoutCount > 1 ? 's' : ''} sur {frequency.activeDayCount} jour
       {frequency.activeDayCount > 1 ? 's' : ''} actif
       {frequency.activeDayCount > 1 ? 's' : ''}
       {average ? ` · ${average}` : null}
@@ -150,12 +147,9 @@ export function OverviewEmptyState() {
       className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] px-4 py-8 text-center"
       role="status"
     >
-      <h2 className="text-lg font-semibold tracking-tight">
-        Pas encore assez de données
-      </h2>
+      <h2 className="text-lg font-semibold tracking-tight">Pas encore assez de données</h2>
       <p className="mx-auto mt-2 max-w-sm text-sm text-[var(--muted)]">
-        Termine quelques séances pour voir apparaître tes tendances et ta
-        progression.
+        Termine quelques séances pour voir apparaître tes tendances et ta progression.
       </p>
       <div className="mt-5 flex flex-col items-center gap-2">
         <ButtonLink to="/programs" className="w-full max-w-xs">
@@ -208,9 +202,7 @@ export function OverviewControls({
           aria-label="Métrique du graphique"
           className="min-h-11 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--primary)]"
           value={selectedMetric}
-          onChange={(event) =>
-            onMetricChange(event.target.value as ProgressOverviewMetric)
-          }
+          onChange={(event) => onMetricChange(event.target.value as ProgressOverviewMetric)}
         >
           {availableMetrics.map((metric) => (
             <option key={metric} value={metric}>
@@ -282,11 +274,7 @@ export function OverviewRecentRecords({
   );
 }
 
-export function OverviewTopExercises({
-  exercises,
-}: {
-  exercises: ProgressTopExercise[];
-}) {
+export function OverviewTopExercises({ exercises }: { exercises: ProgressTopExercise[] }) {
   if (exercises.length === 0) {
     return null;
   }
@@ -309,14 +297,11 @@ export function OverviewTopExercises({
                 <p className="truncate font-semibold">{exercise.exerciseName}</p>
                 <p className="text-sm text-[var(--muted)]">
                   {exercise.workoutCount} séance
-                  {exercise.workoutCount > 1 ? 's' : ''} ·{' '}
-                  {exercise.performedSetCount} série
+                  {exercise.workoutCount > 1 ? 's' : ''} · {exercise.performedSetCount} série
                   {exercise.performedSetCount > 1 ? 's' : ''}
                 </p>
               </div>
-              <span className="shrink-0 text-sm font-medium text-[var(--muted)]">
-                Voir →
-              </span>
+              <span className="shrink-0 text-sm font-medium text-[var(--muted)]">Voir →</span>
             </Link>
           </li>
         ))}

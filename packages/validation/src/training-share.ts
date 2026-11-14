@@ -5,18 +5,12 @@
 
 import { z } from 'zod';
 
-import {
-  coachProposalSetSchema,
-  type CoachProposalSet,
-} from './ai-coach-structured';
+import { coachProposalSetSchema, type CoachProposalSet } from './ai-coach-structured';
 
 export const TRAINING_SHARE_LIFETIME_MS = 60 * 60 * 1000;
 export const TRAINING_SHARE_SNAPSHOT_VERSION = 1 as const;
 
-export const trainingShareKindSchema = z.enum([
-  'PROGRAM',
-  'WORKOUT_TEMPLATE',
-]);
+export const trainingShareKindSchema = z.enum(['PROGRAM', 'WORKOUT_TEMPLATE']);
 export type TrainingShareKind = z.infer<typeof trainingShareKindSchema>;
 
 /** Set portable — mêmes cibles que le Program Builder / Coach. */
@@ -33,9 +27,7 @@ export const sharedTemplateExerciseSchema = z
   })
   .strict();
 
-export type SharedTemplateExercise = z.infer<
-  typeof sharedTemplateExerciseSchema
->;
+export type SharedTemplateExercise = z.infer<typeof sharedTemplateExerciseSchema>;
 
 export const sharedWorkoutTemplateBodySchema = z
   .object({
@@ -46,9 +38,7 @@ export const sharedWorkoutTemplateBodySchema = z
   })
   .strict();
 
-export type SharedWorkoutTemplateBody = z.infer<
-  typeof sharedWorkoutTemplateBodySchema
->;
+export type SharedWorkoutTemplateBody = z.infer<typeof sharedWorkoutTemplateBodySchema>;
 
 export const sharedWorkoutTemplateSnapshotV1Schema = z
   .object({
@@ -61,9 +51,7 @@ export const sharedWorkoutTemplateSnapshotV1Schema = z
   })
   .strict();
 
-export type SharedWorkoutTemplateSnapshotV1 = z.infer<
-  typeof sharedWorkoutTemplateSnapshotV1Schema
->;
+export type SharedWorkoutTemplateSnapshotV1 = z.infer<typeof sharedWorkoutTemplateSnapshotV1Schema>;
 
 export const sharedProgramSnapshotV1Schema = z
   .object({
@@ -76,9 +64,7 @@ export const sharedProgramSnapshotV1Schema = z
   })
   .strict();
 
-export type SharedProgramSnapshotV1 = z.infer<
-  typeof sharedProgramSnapshotV1Schema
->;
+export type SharedProgramSnapshotV1 = z.infer<typeof sharedProgramSnapshotV1Schema>;
 
 export const trainingShareSnapshotSchema = z.discriminatedUnion('kind', [
   sharedProgramSnapshotV1Schema,
@@ -95,9 +81,7 @@ export const createTrainingShareResponseSchema = z
   })
   .strict();
 
-export type CreateTrainingShareResponse = z.infer<
-  typeof createTrainingShareResponseSchema
->;
+export type CreateTrainingShareResponse = z.infer<typeof createTrainingShareResponseSchema>;
 
 export const sharedSetPreviewSchema = z
   .object({
@@ -164,23 +148,20 @@ export const trainingSharePreviewSchema = z
 
 export type TrainingSharePreview = z.infer<typeof trainingSharePreviewSchema>;
 
-export const importTrainingShareDestinationSchema = z.discriminatedUnion(
-  'type',
-  [
-    z
-      .object({
-        type: z.literal('EXISTING_PROGRAM'),
-        programId: z.string().uuid(),
-      })
-      .strict(),
-    z
-      .object({
-        type: z.literal('NEW_PROGRAM'),
-        programName: z.string().trim().min(1).max(120),
-      })
-      .strict(),
-  ],
-);
+export const importTrainingShareDestinationSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('EXISTING_PROGRAM'),
+      programId: z.string().uuid(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('NEW_PROGRAM'),
+      programName: z.string().trim().min(1).max(120),
+    })
+    .strict(),
+]);
 
 export const importTrainingShareSchema = z
   .object({
@@ -203,23 +184,16 @@ export const importTrainingShareResultSchema = z
   })
   .strict();
 
-export type ImportTrainingShareResult = z.infer<
-  typeof importTrainingShareResultSchema
->;
+export type ImportTrainingShareResult = z.infer<typeof importTrainingShareResultSchema>;
 
 /** Préfixe intelligent pour un nouveau programme créé depuis une séance. */
-export function suggestProgramNameFromWorkoutTemplate(
-  workoutName: string,
-): string {
+export function suggestProgramNameFromWorkoutTemplate(workoutName: string): string {
   const trimmed = workoutName.trim();
   if (!trimmed) return 'Nouveau programme';
   if (/^programme\b/i.test(trimmed)) return trimmed.slice(0, 120);
   return `Programme ${trimmed}`.slice(0, 120);
 }
 
-export function isTrainingShareExpired(
-  expiresAt: Date,
-  now: Date = new Date(),
-): boolean {
+export function isTrainingShareExpired(expiresAt: Date, now: Date = new Date()): boolean {
   return now.getTime() >= expiresAt.getTime();
 }

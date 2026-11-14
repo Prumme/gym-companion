@@ -9,9 +9,6 @@ export function formatEstimatedOneRepMaxKg(kg: number): string {
   }).format(rounded)} kg`;
 }
 
-export function formatStrengthSourceSet(source: {
-  weightKg: number;
-  reps: number;
-}): string {
+export function formatStrengthSourceSet(source: { weightKg: number; reps: number }): string {
   return `${formatPersonalRecordWeight(source.weightKg)} × ${source.reps} répétition${source.reps > 1 ? 's' : ''}`;
 }

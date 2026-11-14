@@ -157,9 +157,7 @@ export class ExercisesService {
 
     if (query.source) {
       filters.push(
-        query.source === 'SYSTEM'
-          ? { source: 'SYSTEM' }
-          : { source: 'USER', ownerUserId: userId },
+        query.source === 'SYSTEM' ? { source: 'SYSTEM' } : { source: 'USER', ownerUserId: userId },
       );
     }
 
@@ -198,9 +196,7 @@ export class ExercisesService {
         : null;
 
     return {
-      data: pageRows.map((row) =>
-        toExerciseListItem(row as ExerciseListRow, userId),
-      ),
+      data: pageRows.map((row) => toExerciseListItem(row as ExerciseListRow, userId)),
       pagination: {
         nextCursor,
         hasMore,
@@ -250,10 +246,7 @@ export class ExercisesService {
     return toExerciseDetail(row as ExerciseRow, userId);
   }
 
-  async getPreference(
-    userId: string,
-    exerciseId: string,
-  ): Promise<ExerciseUserPreference> {
+  async getPreference(userId: string, exerciseId: string): Promise<ExerciseUserPreference> {
     const row = await this.findAccessibleOrThrow(userId, exerciseId);
     return toExerciseUserPreference(
       (row as ExerciseRow).userPreferences?.[0] as PreferenceRow | undefined,
@@ -327,7 +320,7 @@ export class ExercisesService {
           primaryMuscleGroupId: data.primaryMuscleGroupId,
           measurementType: data.measurementType,
           category: data.category,
-          cardioType: data.category === 'CARDIO' ? data.cardioType ?? null : null,
+          cardioType: data.category === 'CARDIO' ? (data.cardioType ?? null) : null,
           defaultEquipmentTypeId: data.defaultEquipmentTypeId ?? null,
           defaultRestSeconds: data.defaultRestSeconds ?? null,
           instructions: data.instructions ?? null,
@@ -363,12 +356,10 @@ export class ExercisesService {
       name: data.name ?? existing.name,
       primaryMuscleGroupId: data.primaryMuscleGroupId ?? existing.primaryMuscleGroupId,
       secondaryMuscleGroupIds:
-        data.secondaryMuscleGroupIds ??
-        existing.secondaryMuscles.map((item) => item.muscleGroupId),
+        data.secondaryMuscleGroupIds ?? existing.secondaryMuscles.map((item) => item.muscleGroupId),
       measurementType: data.measurementType ?? existing.measurementType,
       category: data.category ?? existing.category,
-      cardioType:
-        data.cardioType !== undefined ? data.cardioType : existing.cardioType,
+      cardioType: data.cardioType !== undefined ? data.cardioType : existing.cardioType,
       defaultEquipmentTypeId:
         data.defaultEquipmentTypeId !== undefined
           ? data.defaultEquipmentTypeId
@@ -384,8 +375,7 @@ export class ExercisesService {
         data.defaultRestSeconds !== undefined
           ? data.defaultRestSeconds
           : existing.defaultRestSeconds,
-      instructions:
-        data.instructions !== undefined ? data.instructions : existing.instructions,
+      instructions: data.instructions !== undefined ? data.instructions : existing.instructions,
     };
 
     const validated = createExerciseSchema.parse(merged);
@@ -403,8 +393,7 @@ export class ExercisesService {
           primaryMuscleGroupId: validated.primaryMuscleGroupId,
           measurementType: validated.measurementType,
           category: validated.category,
-          cardioType:
-            validated.category === 'CARDIO' ? validated.cardioType ?? null : null,
+          cardioType: validated.category === 'CARDIO' ? (validated.cardioType ?? null) : null,
           defaultEquipmentTypeId: validated.defaultEquipmentTypeId ?? null,
           defaultRestSeconds: validated.defaultRestSeconds ?? null,
           instructions: validated.instructions ?? null,
@@ -602,10 +591,7 @@ export class ExercisesService {
       }
     }
 
-    if (
-      data.defaultEquipmentTypeId &&
-      !equipmentIds.includes(data.defaultEquipmentTypeId)
-    ) {
+    if (data.defaultEquipmentTypeId && !equipmentIds.includes(data.defaultEquipmentTypeId)) {
       throw new BadRequestException({
         code: 'EXERCISE_DEFAULT_EQUIPMENT_NOT_COMPATIBLE',
         message: 'L’équipement par défaut doit être compatible.',

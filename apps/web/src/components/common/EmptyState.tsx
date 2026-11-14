@@ -44,9 +44,7 @@ export function EmptyState({
       ) : null}
       <div className="flex flex-col gap-1">
         <h2 className="section-title">{title}</h2>
-        {description ? (
-          <p className="secondary-text max-w-md">{description}</p>
-        ) : null}
+        {description ? <p className="secondary-text max-w-md">{description}</p> : null}
       </div>
       {action || secondaryAction ? (
         <div className="flex flex-wrap items-center gap-[var(--space-2)]">
@@ -65,11 +63,7 @@ export function EmptyState({
                 {secondaryAction.label}
               </ButtonLink>
             ) : (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={secondaryAction.onClick}
-              >
+              <Button type="button" variant="secondary" onClick={secondaryAction.onClick}>
                 {secondaryAction.label}
               </Button>
             )

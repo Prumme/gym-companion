@@ -51,7 +51,11 @@ function session(
 }
 
 function triple(weight: number, reps: number, extras?: Partial<PlateauSetInput>) {
-  return [working(weight, reps, extras), working(weight, reps, extras), working(weight, reps, extras)];
+  return [
+    working(weight, reps, extras),
+    working(weight, reps, extras),
+    working(weight, reps, extras),
+  ];
 }
 
 describe('buildPlateauWorkoutPoint', () => {
@@ -97,31 +101,17 @@ describe('tolérances progression', () => {
       effortCoverage: { trackedSetCount: 0, eligibleSetCount: 3 },
       reachedFailureCount: 0,
     };
+    expect(hasMeaningfulLoadProgress([base, { ...base, maxWeightKg: 80.5 }])).toBe(false);
     expect(
-      hasMeaningfulLoadProgress([
-        base,
-        { ...base, maxWeightKg: 80.5 },
-      ]),
-    ).toBe(false);
-    expect(
-      hasMeaningfulLoadProgress([
-        base,
-        { ...base, maxWeightKg: 80 + LOAD_PROGRESS_TOLERANCE_KG },
-      ]),
+      hasMeaningfulLoadProgress([base, { ...base, maxWeightKg: 80 + LOAD_PROGRESS_TOLERANCE_KG }]),
     ).toBe(true);
 
-    expect(
-      hasMeaningfulE1rmProgress([
-        base,
-        { ...base, bestEstimatedOneRepMaxKg: 100.2 },
-      ]),
-    ).toBe(false);
-    expect(
-      hasMeaningfulE1rmProgress([
-        base,
-        { ...base, bestEstimatedOneRepMaxKg: 100.8 },
-      ]),
-    ).toBe(false);
+    expect(hasMeaningfulE1rmProgress([base, { ...base, bestEstimatedOneRepMaxKg: 100.2 }])).toBe(
+      false,
+    );
+    expect(hasMeaningfulE1rmProgress([base, { ...base, bestEstimatedOneRepMaxKg: 100.8 }])).toBe(
+      false,
+    );
     expect(
       hasMeaningfulE1rmProgress([
         base,
@@ -208,21 +198,9 @@ describe('detectExercisePlateau', () => {
       measurementType: 'WEIGHT_REPS',
       sessions: [
         session('1', '2026-08-01', triple(80, 8)),
-        session('2', '2026-08-02', [
-          working(80, 9),
-          working(80, 8),
-          working(80, 8),
-        ]),
-        session('3', '2026-08-03', [
-          working(80, 9),
-          working(80, 9),
-          working(80, 8),
-        ]),
-        session('4', '2026-08-04', [
-          working(80, 10),
-          working(80, 9),
-          working(80, 9),
-        ]),
+        session('2', '2026-08-02', [working(80, 9), working(80, 8), working(80, 8)]),
+        session('3', '2026-08-03', [working(80, 9), working(80, 9), working(80, 8)]),
+        session('4', '2026-08-04', [working(80, 10), working(80, 9), working(80, 9)]),
       ],
     });
     expect(result.status).toBe('NONE');
@@ -280,8 +258,7 @@ describe('detectExercisePlateau', () => {
   });
 
   it('effort RIR renforce mais ne déclenche pas seul', () => {
-    const withRir = (rir: number) =>
-      triple(80, 9, { actualRir: rir });
+    const withRir = (rir: number) => triple(80, 9, { actualRir: rir });
     const three = detectExercisePlateau({
       exerciseId: 'ex-1',
       measurementType: 'WEIGHT_REPS',
@@ -298,10 +275,7 @@ describe('detectExercisePlateau', () => {
     const two = detectExercisePlateau({
       exerciseId: 'ex-1',
       measurementType: 'WEIGHT_REPS',
-      sessions: [
-        session('1', '2026-08-01', withRir(3)),
-        session('2', '2026-08-02', withRir(0)),
-      ],
+      sessions: [session('1', '2026-08-01', withRir(3)), session('2', '2026-08-02', withRir(0))],
     });
     expect(two.status).toBe('INSUFFICIENT_DATA');
   });

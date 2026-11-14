@@ -99,10 +99,7 @@ export class FakeAiCoachProvider implements AiCoachProvider {
           'Délai d’attente du fournisseur IA dépassé.',
         );
       case 'unavailable':
-        throw new AiCoachProviderError(
-          'AI_COACH_UNAVAILABLE',
-          'Fournisseur IA indisponible.',
-        );
+        throw new AiCoachProviderError('AI_COACH_UNAVAILABLE', 'Fournisseur IA indisponible.');
       case 'rate_limited':
         throw new AiCoachProviderError(
           'AI_COACH_RATE_LIMITED',
@@ -162,15 +159,9 @@ export class FakeAiCoachProvider implements AiCoachProvider {
           'Délai d’attente du fournisseur IA dépassé.',
         );
       case 'unavailable':
-        throw new AiCoachProviderError(
-          'AI_COACH_UNAVAILABLE',
-          'Fournisseur IA indisponible.',
-        );
+        throw new AiCoachProviderError('AI_COACH_UNAVAILABLE', 'Fournisseur IA indisponible.');
       case 'invalid':
-        throw new AiCoachProviderError(
-          'AI_COACH_INVALID_RESPONSE',
-          'Réponse chat hors schéma.',
-        );
+        throw new AiCoachProviderError('AI_COACH_INVALID_RESPONSE', 'Réponse chat hors schéma.');
       case 'answer':
         return {
           kind: 'answer',

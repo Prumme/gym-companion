@@ -17,9 +17,7 @@ function isValidLocalDateString(value: string): boolean {
   const day = Number(value.slice(8, 10));
   const date = new Date(Date.UTC(year, month - 1, day));
   return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
   );
 }
 
@@ -94,12 +92,7 @@ export function resolveAvailableProgressMetrics(
 ): ExerciseProgressMetric[] {
   switch (measurementType) {
     case 'WEIGHT_REPS':
-      return [
-        'MAX_WEIGHT',
-        'MAX_REPS',
-        'WORKING_EXTERNAL_VOLUME',
-        'TOTAL_REPS',
-      ];
+      return ['MAX_WEIGHT', 'MAX_REPS', 'WORKING_EXTERNAL_VOLUME', 'TOTAL_REPS'];
     case 'BODYWEIGHT_REPS':
     case 'ASSISTED_BODYWEIGHT_REPS':
     case 'REPS_ONLY':
@@ -109,12 +102,7 @@ export function resolveAvailableProgressMetrics(
     case 'DISTANCE':
       return ['MAX_DISTANCE', 'TOTAL_DISTANCE'];
     case 'DISTANCE_DURATION':
-      return [
-        'MAX_DISTANCE',
-        'TOTAL_DISTANCE',
-        'MAX_DURATION',
-        'TOTAL_DURATION',
-      ];
+      return ['MAX_DISTANCE', 'TOTAL_DISTANCE', 'MAX_DURATION', 'TOTAL_DURATION'];
     case 'WEIGHT_DURATION':
       return ['MAX_WEIGHT', 'MAX_DURATION', 'TOTAL_DURATION'];
     default: {
@@ -169,14 +157,8 @@ export function isProgressMetricCompatibleWithMeasurement(
 }
 
 /** Warmups exclus des métriques « performance principale ». */
-export function excludesWarmupFromProgressMetric(
-  metric: ExerciseProgressMetric,
-): boolean {
-  return (
-    metric === 'MAX_WEIGHT' ||
-    metric === 'MAX_REPS' ||
-    metric === 'WORKING_EXTERNAL_VOLUME'
-  );
+export function excludesWarmupFromProgressMetric(metric: ExerciseProgressMetric): boolean {
+  return metric === 'MAX_WEIGHT' || metric === 'MAX_REPS' || metric === 'WORKING_EXTERNAL_VOLUME';
 }
 
 function isFiniteNonNegative(value: number | null): value is number {
@@ -243,12 +225,7 @@ function flattenCompatibleSets(
 ): FlatSet[] {
   const result: FlatSet[] = [];
   for (const exercise of exercises) {
-    if (
-      !isProgressMetricCompatibleWithMeasurement(
-        metric,
-        exercise.measurementType,
-      )
-    ) {
+    if (!isProgressMetricCompatibleWithMeasurement(metric, exercise.measurementType)) {
       continue;
     }
     for (const set of exercise.sets) {
@@ -286,10 +263,7 @@ function buildContextFromSets(
     performedSetCount += 1;
     const isWarmup = set.setType === 'WARMUP';
 
-    if (
-      contributesToTotalReps(set.measurementType) &&
-      isFiniteNonNegative(set.actualReps)
-    ) {
+    if (contributesToTotalReps(set.measurementType) && isFiniteNonNegative(set.actualReps)) {
       totalReps += set.actualReps;
     }
 
@@ -310,8 +284,7 @@ function buildContextFromSets(
       if (
         maxWeightKg == null ||
         set.actualWeightKg > maxWeightKg ||
-        (set.actualWeightKg === maxWeightKg &&
-          (set.actualReps ?? -1) > (maxWeightRepsAtMax ?? -1))
+        (set.actualWeightKg === maxWeightKg && (set.actualReps ?? -1) > (maxWeightRepsAtMax ?? -1))
       ) {
         maxWeightKg = set.actualWeightKg;
         maxWeightRepsAtMax = set.actualReps;
@@ -322,8 +295,7 @@ function buildContextFromSets(
       if (
         maxReps == null ||
         set.actualReps > maxReps ||
-        (set.actualReps === maxReps &&
-          (set.actualWeightKg ?? -1) > (maxRepsWeightAtMax ?? -1))
+        (set.actualReps === maxReps && (set.actualWeightKg ?? -1) > (maxRepsWeightAtMax ?? -1))
       ) {
         maxReps = set.actualReps;
         maxRepsWeightAtMax = set.actualWeightKg;
@@ -332,32 +304,22 @@ function buildContextFromSets(
 
     if (isFiniteNonNegative(set.actualDurationSeconds)) {
       totalDurationSeconds += set.actualDurationSeconds;
-      if (
-        maxDurationSeconds == null ||
-        set.actualDurationSeconds > maxDurationSeconds
-      ) {
+      if (maxDurationSeconds == null || set.actualDurationSeconds > maxDurationSeconds) {
         maxDurationSeconds = set.actualDurationSeconds;
       }
     }
 
     if (isFiniteNonNegative(set.actualDistanceMeters)) {
       totalDistanceMeters =
-        Math.round(
-          (totalDistanceMeters + set.actualDistanceMeters) * 1_000_000,
-        ) / 1_000_000;
-      if (
-        maxDistanceMeters == null ||
-        set.actualDistanceMeters > maxDistanceMeters
-      ) {
+        Math.round((totalDistanceMeters + set.actualDistanceMeters) * 1_000_000) / 1_000_000;
+      if (maxDistanceMeters == null || set.actualDistanceMeters > maxDistanceMeters) {
         maxDistanceMeters = set.actualDistanceMeters;
       }
     }
   }
 
   const equipmentIds = new Set(
-    exercises
-      .map((exercise) => exercise.equipmentTypeId)
-      .filter((id): id is string => id != null),
+    exercises.map((exercise) => exercise.equipmentTypeId).filter((id): id is string => id != null),
   );
   const equipmentNames = new Set(
     exercises
@@ -369,15 +331,12 @@ function buildContextFromSets(
     measurementType: exercises[0]!.measurementType,
     maxWeightKg,
     maxReps,
-    workingExternalVolumeKg:
-      workingExternalVolumeKg > 0 ? workingExternalVolumeKg : null,
+    workingExternalVolumeKg: workingExternalVolumeKg > 0 ? workingExternalVolumeKg : null,
     totalReps: totalReps > 0 ? totalReps : null,
     maxDurationSeconds,
-    totalDurationSeconds:
-      totalDurationSeconds > 0 ? totalDurationSeconds : null,
+    totalDurationSeconds: totalDurationSeconds > 0 ? totalDurationSeconds : null,
     maxDistanceMeters,
-    totalDistanceMeters:
-      totalDistanceMeters > 0 ? totalDistanceMeters : null,
+    totalDistanceMeters: totalDistanceMeters > 0 ? totalDistanceMeters : null,
     performedSetCount,
     equipmentTypeId: equipmentIds.size === 1 ? [...equipmentIds][0]! : null,
     equipmentName: equipmentNames.size === 1 ? [...equipmentNames][0]! : null,
@@ -441,10 +400,7 @@ function resolveMetricValue(
         if (set.actualReps === best.actualReps) {
           const weight = set.actualWeightKg ?? -1;
           const bestWeight = best.actualWeightKg ?? -1;
-          if (
-            weight > bestWeight ||
-            (weight === bestWeight && set.id < best.id)
-          ) {
+          if (weight > bestWeight || (weight === bestWeight && set.id < best.id)) {
             best = set;
           }
         }
@@ -455,14 +411,10 @@ function resolveMetricValue(
       let volume = 0;
       let any = false;
       for (const set of candidates) {
-        const contribution = setExternalVolumeContributionKg(
-          set.measurementType,
-          set,
-        );
+        const contribution = setExternalVolumeContributionKg(set.measurementType, set);
         if (contribution > 0) {
           any = true;
-          volume =
-            Math.round((volume + contribution) * 1_000_000) / 1_000_000;
+          volume = Math.round((volume + contribution) * 1_000_000) / 1_000_000;
         }
       }
       return any ? volume : null;
@@ -471,10 +423,7 @@ function resolveMetricValue(
       let total = 0;
       let any = false;
       for (const set of candidates) {
-        if (
-          contributesToTotalReps(set.measurementType) &&
-          isFiniteNonNegative(set.actualReps)
-        ) {
+        if (contributesToTotalReps(set.measurementType) && isFiniteNonNegative(set.actualReps)) {
           any = true;
           total += set.actualReps;
         }
@@ -502,9 +451,7 @@ function resolveMetricValue(
       for (const set of candidates) {
         if (isFiniteNonNegative(set.actualDistanceMeters)) {
           any = true;
-          total =
-            Math.round((total + set.actualDistanceMeters) * 1_000_000) /
-            1_000_000;
+          total = Math.round((total + set.actualDistanceMeters) * 1_000_000) / 1_000_000;
         }
       }
       return any ? total : null;
@@ -593,12 +540,10 @@ export function computeExerciseProgressSummary(
     }
   }
 
-  const absoluteChange =
-    points.length >= 2 ? latest.value - first.value : null;
+  const absoluteChange = points.length >= 2 ? latest.value - first.value : null;
   let percentageChange: number | null = null;
   if (absoluteChange != null && first.value > 0) {
-    percentageChange =
-      Math.round(((absoluteChange / first.value) * 100) * 10) / 10;
+    percentageChange = Math.round((absoluteChange / first.value) * 100 * 10) / 10;
   }
 
   return {
@@ -633,16 +578,10 @@ export function compareExerciseProgressPointsAsc(
 
 export const exerciseProgressQuerySchema = z
   .object({
-    metric: z.preprocess(
-      emptyQueryToUndefined,
-      exerciseProgressMetricSchema.optional(),
-    ),
+    metric: z.preprocess(emptyQueryToUndefined, exerciseProgressMetricSchema.optional()),
     from: z.preprocess(emptyQueryToUndefined, localDateSchema.optional()),
     to: z.preprocess(emptyQueryToUndefined, localDateSchema.optional()),
-    equipmentId: z.preprocess(
-      emptyQueryToUndefined,
-      z.string().uuid().optional(),
-    ),
+    equipmentId: z.preprocess(emptyQueryToUndefined, z.string().uuid().optional()),
   })
   .strict()
   .superRefine((data, ctx) => {
@@ -672,9 +611,7 @@ export type ExerciseProgressQueryParseResult =
       message: string;
     };
 
-function progressQueryErrorMessage(
-  code: ExerciseProgressQueryParseErrorCode,
-): string {
+function progressQueryErrorMessage(code: ExerciseProgressQueryParseErrorCode): string {
   switch (code) {
     case 'PROGRESS_INVALID_METRIC':
       return 'Métrique de progression invalide.';
@@ -690,9 +627,7 @@ function progressQueryErrorMessage(
 }
 
 /** Parse la query progression avec codes d’erreur métier stables. */
-export function parseExerciseProgressQuery(
-  raw: unknown,
-): ExerciseProgressQueryParseResult {
+export function parseExerciseProgressQuery(raw: unknown): ExerciseProgressQueryParseResult {
   const result = exerciseProgressQuerySchema.safeParse(raw);
   if (result.success) {
     return { ok: true, data: result.data };

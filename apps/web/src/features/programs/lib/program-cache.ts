@@ -7,9 +7,7 @@ import type {
 
 import { moveItemDown, moveItemUp, orderedIdsFromItems } from './reorder';
 
-function withReindexedTemplates(
-  templates: WorkoutTemplateDetail[],
-): WorkoutTemplateDetail[] {
+function withReindexedTemplates(templates: WorkoutTemplateDetail[]): WorkoutTemplateDetail[] {
   return templates.map((template, index) => ({
     ...template,
     position: index,
@@ -25,9 +23,7 @@ function withReindexedExercises(
   }));
 }
 
-function withReindexedSets(
-  sets: WorkoutTemplateSetTarget[],
-): WorkoutTemplateSetTarget[] {
+function withReindexedSets(sets: WorkoutTemplateSetTarget[]): WorkoutTemplateSetTarget[] {
   return sets.map((set, index) => ({
     ...set,
     position: index,
@@ -60,9 +56,7 @@ export function reorderExercisesInDetail(
   fromIndex: number,
   direction: 'up' | 'down',
 ): { next: ProgramDetail; orderedIds: string[] } | null {
-  const templateIndex = detail.workoutTemplates.findIndex(
-    (item) => item.id === workoutTemplateId,
-  );
+  const templateIndex = detail.workoutTemplates.findIndex((item) => item.id === workoutTemplateId);
   if (templateIndex < 0) {
     return null;
   }
@@ -91,16 +85,12 @@ export function reorderSetsInDetail(
   fromIndex: number,
   direction: 'up' | 'down',
 ): { next: ProgramDetail; orderedIds: string[] } | null {
-  const templateIndex = detail.workoutTemplates.findIndex(
-    (item) => item.id === workoutTemplateId,
-  );
+  const templateIndex = detail.workoutTemplates.findIndex((item) => item.id === workoutTemplateId);
   if (templateIndex < 0) {
     return null;
   }
   const template = detail.workoutTemplates[templateIndex]!;
-  const exerciseIndex = template.exercises.findIndex(
-    (item) => item.id === templateExerciseId,
-  );
+  const exerciseIndex = template.exercises.findIndex((item) => item.id === templateExerciseId);
   if (exerciseIndex < 0) {
     return null;
   }

@@ -13,16 +13,11 @@ import {
   parseCoachStructuredResponse,
   type CoachStructuredResponse,
 } from './ai-coach-structured';
-import {
-  aiCoachWireResponseSchema,
-  mapAiCoachWireResponse,
-} from './ai-coach-wire';
+import { aiCoachWireResponseSchema, mapAiCoachWireResponse } from './ai-coach-wire';
 
 /** V2 : réponse finale structurée discussion|proposal (remplace l’ancien format `{message}`). */
-export const AI_COACH_CHAT_SCHEMA_VERSION =
-  'AI_COACH_CHAT_STRUCTURED_V1' as const;
-export const AI_COACH_CHAT_PROMPT_VERSION =
-  'AI_COACH_CHAT_STRUCTURED_PROMPT_V4' as const;
+export const AI_COACH_CHAT_SCHEMA_VERSION = 'AI_COACH_CHAT_STRUCTURED_V1' as const;
+export const AI_COACH_CHAT_PROMPT_VERSION = 'AI_COACH_CHAT_STRUCTURED_PROMPT_V4' as const;
 
 export const AI_COACH_MAX_TOOL_CALLS_PER_TURN = 4;
 export const AI_COACH_HISTORY_MESSAGE_LIMIT = 12;
@@ -48,8 +43,7 @@ export const AI_COACH_READ_ONLY_TOOL_NAMES = [
   'get_program_detail',
 ] as const;
 
-export type AiCoachReadOnlyToolName =
-  (typeof AI_COACH_READ_ONLY_TOOL_NAMES)[number];
+export type AiCoachReadOnlyToolName = (typeof AI_COACH_READ_ONLY_TOOL_NAMES)[number];
 
 /**
  * Garde-fou : aucun outil de mutation ne doit apparaître.
@@ -73,13 +67,9 @@ export const AI_COACH_FORBIDDEN_TOOL_NAME_PATTERNS = [
   /search_web/i,
 ] as const;
 
-export function assertReadOnlyToolRegistry(
-  names: readonly string[],
-): void {
+export function assertReadOnlyToolRegistry(names: readonly string[]): void {
   for (const name of names) {
-    if (
-      !(AI_COACH_READ_ONLY_TOOL_NAMES as readonly string[]).includes(name)
-    ) {
+    if (!(AI_COACH_READ_ONLY_TOOL_NAMES as readonly string[]).includes(name)) {
       throw new Error(`Unknown AI coach tool outside allowlist: ${name}`);
     }
     for (const pattern of AI_COACH_FORBIDDEN_TOOL_NAME_PATTERNS) {
@@ -96,24 +86,16 @@ export const createAiCoachConversationBodySchema = z
   })
   .strict();
 
-export type CreateAiCoachConversationInput = z.infer<
-  typeof createAiCoachConversationBodySchema
->;
+export type CreateAiCoachConversationInput = z.infer<typeof createAiCoachConversationBodySchema>;
 
 export const sendAiCoachMessageBodySchema = z
   .object({
-    content: z
-      .string()
-      .trim()
-      .min(1)
-      .max(AI_COACH_USER_MESSAGE_MAX_LENGTH),
+    content: z.string().trim().min(1).max(AI_COACH_USER_MESSAGE_MAX_LENGTH),
     clientCommandId: z.string().uuid(),
   })
   .strict();
 
-export type SendAiCoachMessageInput = z.infer<
-  typeof sendAiCoachMessageBodySchema
->;
+export type SendAiCoachMessageInput = z.infer<typeof sendAiCoachMessageBodySchema>;
 
 export const aiCoachConversationsListQuerySchema = z
   .object({
@@ -189,36 +171,16 @@ export const searchExercisesToolArgsSchema = z
     query: z.preprocess(emptyToUndefined, z.string().max(100).optional()),
     search: z.preprocess(emptyToUndefined, z.string().max(100).optional()),
     muscleGroup: z.preprocess(emptyToUndefined, z.string().max(80).optional()),
-    muscleGroupId: z.preprocess(
-      emptyToUndefined,
-      z.string().uuid().optional(),
-    ),
+    muscleGroupId: z.preprocess(emptyToUndefined, z.string().uuid().optional()),
     equipmentType: z.preprocess(emptyToUndefined, z.string().max(80).optional()),
-    equipmentTypeId: z.preprocess(
-      emptyToUndefined,
-      z.string().uuid().optional(),
-    ),
+    equipmentTypeId: z.preprocess(emptyToUndefined, z.string().uuid().optional()),
     /** Exclure un équipement (ex. « Machine » pour « sans machines »). */
-    excludeEquipmentType: z.preprocess(
-      emptyToUndefined,
-      z.string().max(80).optional(),
-    ),
-    excludeEquipmentTypeId: z.preprocess(
-      emptyToUndefined,
-      z.string().uuid().optional(),
-    ),
-    measurementType: z.preprocess(
-      emptyToUndefined,
-      z.string().max(64).optional(),
-    ),
+    excludeEquipmentType: z.preprocess(emptyToUndefined, z.string().max(80).optional()),
+    excludeEquipmentTypeId: z.preprocess(emptyToUndefined, z.string().uuid().optional()),
+    measurementType: z.preprocess(emptyToUndefined, z.string().max(64).optional()),
     limit: z.preprocess(
       emptyToUndefined,
-      z.coerce
-        .number()
-        .int()
-        .min(1)
-        .max(AI_COACH_SEARCH_EXERCISES_MAX_RESULTS)
-        .optional(),
+      z.coerce.number().int().min(1).max(AI_COACH_SEARCH_EXERCISES_MAX_RESULTS).optional(),
     ),
   })
   .strict()
@@ -240,9 +202,7 @@ export const searchExercisesToolArgsSchema = z
     }
   });
 
-export type SearchExercisesToolArgs = z.infer<
-  typeof searchExercisesToolArgsSchema
->;
+export type SearchExercisesToolArgs = z.infer<typeof searchExercisesToolArgsSchema>;
 
 export const getActiveProgramToolArgsSchema = z.object({}).strict();
 
@@ -308,9 +268,7 @@ export function isAiCoachMutationFollowUp(text: string): boolean {
     /appliqu/.test(normalized) ||
     /modifi/.test(normalized) ||
     /supprim/.test(normalized) ||
-    /change\s+(ma|mon|la|le|mes|tes)?\s*(charge|programme|exercice|cible)/.test(
-      normalized,
-    ) ||
+    /change\s+(ma|mon|la|le|mes|tes)?\s*(charge|programme|exercice|cible)/.test(normalized) ||
     /change\s+.*\b(kg|charge)\b/.test(normalized) ||
     /passe\s+.*(kg|à\s+\d)/.test(normalized) ||
     /mets?\s+.*(kg|à\s+\d)/.test(normalized) ||
@@ -322,9 +280,7 @@ export function filterAiCoachFollowUps(
   followUps: readonly string[],
   max = AI_COACH_MAX_FOLLOW_UPS,
 ): string[] {
-  return followUps
-    .filter((item) => !isAiCoachMutationFollowUp(item))
-    .slice(0, max);
+  return followUps.filter((item) => !isAiCoachMutationFollowUp(item)).slice(0, max);
 }
 
 export const AI_COACH_CHAT_SYSTEM_INSTRUCTIONS = [
@@ -366,8 +322,7 @@ export type AiCoachToolDefinition = {
 export const AI_COACH_TOOL_DEFINITIONS: AiCoachToolDefinition[] = [
   {
     name: 'get_exercise_coach_summary',
-    description:
-      'Synthèse Coach déterministe (statut, reco charge, plateau, progression).',
+    description: 'Synthèse Coach déterministe (statut, reco charge, plateau, progression).',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -455,14 +410,12 @@ export const AI_COACH_TOOL_DEFINITIONS: AiCoachToolDefinition[] = [
         search: { type: 'string', description: 'Alias de query' },
         muscleGroup: {
           type: 'string',
-          description:
-            'Label, code ou concept (Dos, biceps, bras, jambes, pecs, full body)',
+          description: 'Label, code ou concept (Dos, biceps, bras, jambes, pecs, full body)',
         },
         muscleGroupId: { type: 'string', format: 'uuid' },
         equipmentType: {
           type: 'string',
-          description:
-            'Contrainte stricte uniquement (ex. Haltères si « uniquement haltères »)',
+          description: 'Contrainte stricte uniquement (ex. Haltères si « uniquement haltères »)',
         },
         equipmentTypeId: { type: 'string', format: 'uuid' },
         excludeEquipmentType: {
@@ -623,10 +576,7 @@ export type AiCoachConversationTurnResult =
       assistantContent: string | null;
     };
 
-export function encodeAiCoachConversationCursor(input: {
-  updatedAt: string;
-  id: string;
-}): string {
+export function encodeAiCoachConversationCursor(input: { updatedAt: string; id: string }): string {
   return Buffer.from(
     JSON.stringify({ version: 1, updatedAt: input.updatedAt, id: input.id }),
     'utf8',
@@ -637,9 +587,11 @@ export function decodeAiCoachConversationCursor(
   cursor: string,
 ): { updatedAt: string; id: string } | null {
   try {
-    const parsed = JSON.parse(
-      Buffer.from(cursor, 'base64url').toString('utf8'),
-    ) as { version?: number; updatedAt?: string; id?: string };
+    const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as {
+      version?: number;
+      updatedAt?: string;
+      id?: string;
+    };
     if (
       parsed.version !== 1 ||
       typeof parsed.updatedAt !== 'string' ||
@@ -653,10 +605,7 @@ export function decodeAiCoachConversationCursor(
   }
 }
 
-export function encodeAiCoachMessageCursor(input: {
-  createdAt: string;
-  id: string;
-}): string {
+export function encodeAiCoachMessageCursor(input: { createdAt: string; id: string }): string {
   return Buffer.from(
     JSON.stringify({ version: 1, createdAt: input.createdAt, id: input.id }),
     'utf8',
@@ -667,9 +616,11 @@ export function decodeAiCoachMessageCursor(
   cursor: string,
 ): { createdAt: string; id: string } | null {
   try {
-    const parsed = JSON.parse(
-      Buffer.from(cursor, 'base64url').toString('utf8'),
-    ) as { version?: number; createdAt?: string; id?: string };
+    const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as {
+      version?: number;
+      createdAt?: string;
+      id?: string;
+    };
     if (
       parsed.version !== 1 ||
       typeof parsed.createdAt !== 'string' ||

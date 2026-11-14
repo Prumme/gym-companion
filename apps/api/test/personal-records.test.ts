@@ -17,8 +17,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -28,11 +27,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -58,10 +53,7 @@ async function createStartableTemplate(
   prisma: PrismaService,
   name: string,
   measurementType:
-    | 'WEIGHT_REPS'
-    | 'DURATION'
-    | 'DISTANCE_DURATION'
-    | 'BODYWEIGHT_REPS' = 'WEIGHT_REPS',
+    'WEIGHT_REPS' | 'DURATION' | 'DISTANCE_DURATION' | 'BODYWEIGHT_REPS' = 'WEIGHT_REPS',
   exerciseOverrideId?: string,
 ): Promise<Startable> {
   const exercise = exerciseOverrideId
@@ -89,9 +81,7 @@ async function createStartableTemplate(
     .expect(201);
   const templateId = tpl.body.data.workoutTemplates[0].id as string;
   const ex = await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       exerciseId: exercise.id,
@@ -156,9 +146,7 @@ async function createStartableTemplate(
             };
 
   await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`)
     .set('Authorization', `Bearer ${token}`)
     .send(setPayload)
     .expect(201);
@@ -215,9 +203,7 @@ async function completeSet(
     throw new Error('Session de test sans exercice/série.');
   }
   const response = await request(app.getHttpServer())
-    .patch(
-      `/api/v1/workouts/${session.id}/exercises/${exercise.id}/sets/${set.id}`,
-    )
+    .patch(`/api/v1/workouts/${session.id}/exercises/${exercise.id}/sets/${set.id}`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       ...actuals,
@@ -274,20 +260,8 @@ describe('Personal records API (4.1)', () => {
 
     tokenA = await registerUser(app, `pr-a-${stamp}@example.com`, 'PR A');
     tokenB = await registerUser(app, `pr-b-${stamp}@example.com`, 'PR B');
-    weightTpl = await createStartableTemplate(
-      app,
-      tokenA,
-      prisma,
-      `W-${stamp}`,
-      'WEIGHT_REPS',
-    );
-    durationTpl = await createStartableTemplate(
-      app,
-      tokenA,
-      prisma,
-      `D-${stamp}`,
-      'DURATION',
-    );
+    weightTpl = await createStartableTemplate(app, tokenA, prisma, `W-${stamp}`, 'WEIGHT_REPS');
+    durationTpl = await createStartableTemplate(app, tokenA, prisma, `D-${stamp}`, 'DURATION');
     const userAId = (
       await prisma.user.findUniqueOrThrow({
         where: { email: `pr-a-${stamp}@example.com` },
@@ -327,9 +301,7 @@ describe('Personal records API (4.1)', () => {
   });
 
   it('exige l’auth et retourne une liste vide', async () => {
-    await request(app.getHttpServer())
-      .get('/api/v1/personal-records')
-      .expect(401);
+    await request(app.getHttpServer()).get('/api/v1/personal-records').expect(401);
 
     const empty = await request(app.getHttpServer())
       .get('/api/v1/personal-records')
@@ -340,12 +312,7 @@ describe('Personal records API (4.1)', () => {
   });
 
   it('exclut ACTIVE / PAUSED / CANCELLED et crée un record après COMPLETE', async () => {
-    const active = await startWorkout(
-      app,
-      tokenA,
-      weightTpl.templateId,
-      '2026-08-01',
-    );
+    const active = await startWorkout(app, tokenA, weightTpl.templateId, '2026-08-01');
     await completeSet(
       app,
       tokenA,
@@ -412,12 +379,7 @@ describe('Personal records API (4.1)', () => {
     expect(maxWeight).not.toHaveProperty('ownerUserId');
     expect(JSON.stringify(records.body)).not.toContain('ownerUserId');
 
-    const cancelled = await startWorkout(
-      app,
-      tokenA,
-      weightTpl.templateId,
-      '2026-08-02',
-    );
+    const cancelled = await startWorkout(app, tokenA, weightTpl.templateId, '2026-08-02');
     await completeSet(
       app,
       tokenA,
@@ -451,19 +413,13 @@ describe('Personal records API (4.1)', () => {
       .expect(200);
     const still100 = afterCancel.body.data.find(
       (r: { recordType: string; exerciseId: string }) =>
-        r.recordType === 'MAX_WEIGHT' &&
-        r.exerciseId === weightTpl.exerciseId,
+        r.recordType === 'MAX_WEIGHT' && r.exerciseId === weightTpl.exerciseId,
     );
     expect(still100.value).toBe(100);
   });
 
   it('exclut PARTIAL / FAILED / WARMUP et gère tie-break / meilleurs records', async () => {
-    const session = await startWorkout(
-      app,
-      tokenA,
-      weightTpl.templateId,
-      '2026-08-03',
-    );
+    const session = await startWorkout(app, tokenA, weightTpl.templateId, '2026-08-03');
     const exercise = session.exercises[0];
     if (!exercise) {
       throw new Error('Session de test sans exercice.');
@@ -552,12 +508,7 @@ describe('Personal records API (4.1)', () => {
     expect(maxWeight.value).toBe(110);
     expect(maxWeight.source.workoutSetId).not.toBe(warmup.id);
 
-    const highReps = await startWorkout(
-      app,
-      tokenA,
-      weightTpl.templateId,
-      '2026-08-04',
-    );
+    const highReps = await startWorkout(app, tokenA, weightTpl.templateId, '2026-08-04');
     await completeSet(
       app,
       tokenA,
@@ -577,9 +528,7 @@ describe('Personal records API (4.1)', () => {
     await completeWorkout(app, tokenA, highReps, `complete-reps-${stamp}`);
 
     const filtered = await request(app.getHttpServer())
-      .get(
-        `/api/v1/personal-records?exerciseId=${weightTpl.exerciseId}&recordType=MAX_REPS`,
-      )
+      .get(`/api/v1/personal-records?exerciseId=${weightTpl.exerciseId}&recordType=MAX_REPS`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     expect(filtered.body.data).toHaveLength(1);
@@ -588,12 +537,7 @@ describe('Personal records API (4.1)', () => {
   });
 
   it('supporte durée, distance, exercice archivé, rename snapshot et isolation', async () => {
-    const durSession = await startWorkout(
-      app,
-      tokenA,
-      durationTpl.templateId,
-      '2026-08-05',
-    );
+    const durSession = await startWorkout(app, tokenA, durationTpl.templateId, '2026-08-05');
     await completeSet(
       app,
       tokenA,
@@ -612,12 +556,7 @@ describe('Personal records API (4.1)', () => {
     );
     await completeWorkout(app, tokenA, durSession, `dur-complete-${stamp}`);
 
-    const distSession = await startWorkout(
-      app,
-      tokenA,
-      distanceTpl.templateId,
-      '2026-08-06',
-    );
+    const distSession = await startWorkout(app, tokenA, distanceTpl.templateId, '2026-08-06');
     await completeSet(
       app,
       tokenA,
@@ -692,8 +631,7 @@ describe('Personal records API (4.1)', () => {
           .expect(200)
       ).body.data.find(
         (r: { exerciseId: string; recordType: string }) =>
-          r.exerciseId === weightTpl.exerciseId &&
-          r.recordType === 'MAX_WEIGHT',
+          r.exerciseId === weightTpl.exerciseId && r.recordType === 'MAX_WEIGHT',
       )?.exercise.name ?? null;
 
     await prisma.exercise.update({
@@ -702,9 +640,7 @@ describe('Personal records API (4.1)', () => {
     });
 
     const afterRename = await request(app.getHttpServer())
-      .get(
-        `/api/v1/personal-records?exerciseId=${weightTpl.exerciseId}&recordType=MAX_WEIGHT`,
-      )
+      .get(`/api/v1/personal-records?exerciseId=${weightTpl.exerciseId}&recordType=MAX_WEIGHT`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     expect(afterRename.body.data[0].exercise.name).toBe(snapshotName);
@@ -748,8 +684,6 @@ describe('Personal records API (4.1)', () => {
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     expect(page2.body.data).toHaveLength(1);
-    expect(page2.body.data[0].source.workoutSetId).not.toBe(
-      page1.body.data[0].source.workoutSetId,
-    );
+    expect(page2.body.data[0].source.workoutSetId).not.toBe(page1.body.data[0].source.workoutSetId);
   });
 });

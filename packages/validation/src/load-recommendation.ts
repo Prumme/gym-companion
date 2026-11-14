@@ -16,15 +16,10 @@ export const LOAD_RECOMMENDATION_RIR_TOLERANCE = 1;
 export const LOAD_RECOMMENDATION_RPE_TOLERANCE = 1;
 /** Version du moteur déterministe (jalon 5.1 / 5.2). */
 export const LOAD_RECOMMENDATION_ENGINE_VERSION = 'LOAD_RECOMMENDATION_V1' as const;
-export type LoadRecommendationEngineVersion =
-  typeof LOAD_RECOMMENDATION_ENGINE_VERSION;
+export type LoadRecommendationEngineVersion = typeof LOAD_RECOMMENDATION_ENGINE_VERSION;
 
 export type LoadRecommendationAction =
-  | 'INCREASE'
-  | 'HOLD'
-  | 'DECREASE'
-  | 'INSUFFICIENT_DATA'
-  | 'REVIEW';
+  'INCREASE' | 'HOLD' | 'DECREASE' | 'INSUFFICIENT_DATA' | 'REVIEW';
 
 export type LoadRecommendationReason =
   | 'TARGET_RANGE_REACHED'
@@ -45,46 +40,22 @@ export type LoadRecommendationReason =
   | 'SINGLE_UNDERPERFORMANCE'
   | 'COMPARABLE_LOAD_MISMATCH';
 
-export type LoadIncrementSource =
-  | 'USER_EXERCISE_PREFERENCE'
-  | 'SYSTEM_DEFAULT';
+export type LoadIncrementSource = 'USER_EXERCISE_PREFERENCE' | 'SYSTEM_DEFAULT';
 
 export type SetTargetAssessment =
-  | 'ABOVE_TARGET'
-  | 'AT_TOP_OF_RANGE'
-  | 'IN_RANGE'
-  | 'BELOW_RANGE'
-  | 'FAILED'
-  | 'NOT_ASSESSABLE';
+  'ABOVE_TARGET' | 'AT_TOP_OF_RANGE' | 'IN_RANGE' | 'BELOW_RANGE' | 'FAILED' | 'NOT_ASSESSABLE';
 
-export type EffortAssessment =
-  | 'EASIER'
-  | 'ON_TARGET'
-  | 'HARDER'
-  | 'NOT_ASSESSABLE';
+export type EffortAssessment = 'EASIER' | 'ON_TARGET' | 'HARDER' | 'NOT_ASSESSABLE';
 
-export type WorkoutUnderperformanceKind =
-  | 'NONE'
-  | 'SIGNIFICANT'
-  | 'NOT_ASSESSABLE';
+export type WorkoutUnderperformanceKind = 'NONE' | 'SIGNIFICANT' | 'NOT_ASSESSABLE';
 
 export type EffortTrackingModeForLoad = 'NONE' | 'RIR' | 'RPE';
 
 export type WorkoutSetTypeForLoad =
-  | 'WARMUP'
-  | 'WORKING'
-  | 'BACKOFF'
-  | 'DROP_SET'
-  | 'AMRAP'
-  | 'FAILURE_OPTIONAL';
+  'WARMUP' | 'WORKING' | 'BACKOFF' | 'DROP_SET' | 'AMRAP' | 'FAILURE_OPTIONAL';
 
 export type WorkoutSetStatusForLoad =
-  | 'PENDING'
-  | 'COMPLETED'
-  | 'PARTIAL'
-  | 'FAILED'
-  | 'SKIPPED'
-  | 'CANCELLED';
+  'PENDING' | 'COMPLETED' | 'PARTIAL' | 'FAILED' | 'SKIPPED' | 'CANCELLED';
 
 /** Séries cibles du modèle (entrée moteur). */
 export type TemplateSetTargetInput = {
@@ -173,10 +144,7 @@ export type LoadRecommendationResult = {
   recommendationFingerprint: string;
 };
 
-export type LoadRecommendationDecisionType =
-  | 'ACCEPTED'
-  | 'ADJUSTED'
-  | 'IGNORED';
+export type LoadRecommendationDecisionType = 'ACCEPTED' | 'ADJUSTED' | 'IGNORED';
 
 function isWorkingSetType(setType: string): boolean {
   return setType === 'WORKING';
@@ -234,8 +202,7 @@ export function buildLoadRecommendationDecisionPayloadFingerprint(input: {
   return JSON.stringify({
     recommendationFingerprint: input.recommendationFingerprint,
     decision: input.decision,
-    adjustedWeightKg:
-      input.adjustedWeightKg === undefined ? null : input.adjustedWeightKg,
+    adjustedWeightKg: input.adjustedWeightKg === undefined ? null : input.adjustedWeightKg,
     userNote: input.userNote ?? null,
   });
 }
@@ -247,16 +214,8 @@ export function isDecisionAllowedForAction(
   if (action === 'REVIEW' || action === 'INSUFFICIENT_DATA') {
     return decision === 'IGNORED';
   }
-  if (
-    action === 'INCREASE' ||
-    action === 'HOLD' ||
-    action === 'DECREASE'
-  ) {
-    return (
-      decision === 'ACCEPTED' ||
-      decision === 'ADJUSTED' ||
-      decision === 'IGNORED'
-    );
+  if (action === 'INCREASE' || action === 'HOLD' || action === 'DECREASE') {
+    return decision === 'ACCEPTED' || decision === 'ADJUSTED' || decision === 'IGNORED';
   }
   return false;
 }
@@ -280,8 +239,7 @@ export function resolveAppliedWeightKg(input: {
     return {
       ok: false,
       code: 'LOAD_RECOMMENDATION_NOT_ACTIONABLE',
-      message:
-        'Cette recommandation ne peut pas être appliquée via cette décision.',
+      message: 'Cette recommandation ne peut pas être appliquée via cette décision.',
     };
   }
 
@@ -357,10 +315,7 @@ export function resolveAppliedWeightKg(input: {
 /**
  * Arrondi fiable vers un multiple de l’incrément (évite les flottants parasites).
  */
-export function roundToLoadIncrement(
-  weightKg: number,
-  incrementKg: number,
-): number {
+export function roundToLoadIncrement(weightKg: number, incrementKg: number): number {
   if (!(incrementKg > 0) || !Number.isFinite(weightKg)) {
     return weightKg;
   }
@@ -369,18 +324,12 @@ export function roundToLoadIncrement(
   return Math.round(raw * 1000) / 1000;
 }
 
-export function resolveLoadIncrement(_input?: {
-  userExerciseIncrementKg?: number | null;
-}): {
+export function resolveLoadIncrement(_input?: { userExerciseIncrementKg?: number | null }): {
   incrementKg: number;
   incrementSource: LoadIncrementSource;
 } {
   const userInc = _input?.userExerciseIncrementKg;
-  if (
-    userInc != null &&
-    Number.isFinite(userInc) &&
-    userInc > 0
-  ) {
+  if (userInc != null && Number.isFinite(userInc) && userInc > 0) {
     return {
       incrementKg: userInc,
       incrementSource: 'USER_EXERCISE_PREFERENCE',
@@ -397,11 +346,7 @@ export function computeSuggestedWeightKg(
   currentTargetWeightKg: number | null,
   incrementKg: number,
 ): { suggestedWeightKg: number | null; adjustmentKg: number | null } {
-  if (
-    action === 'REVIEW' ||
-    action === 'INSUFFICIENT_DATA' ||
-    currentTargetWeightKg == null
-  ) {
+  if (action === 'REVIEW' || action === 'INSUFFICIENT_DATA' || currentTargetWeightKg == null) {
     return { suggestedWeightKg: null, adjustmentKg: null };
   }
 
@@ -413,10 +358,7 @@ export function computeSuggestedWeightKg(
   }
 
   if (action === 'INCREASE') {
-    const suggested = roundToLoadIncrement(
-      currentTargetWeightKg + incrementKg,
-      incrementKg,
-    );
+    const suggested = roundToLoadIncrement(currentTargetWeightKg + incrementKg, incrementKg);
     return {
       suggestedWeightKg: suggested,
       adjustmentKg: Math.round((suggested - currentTargetWeightKg) * 1000) / 1000,
@@ -424,13 +366,9 @@ export function computeSuggestedWeightKg(
   }
 
   // DECREASE : −2 × incrément, plancher à un incrément (> 0).
-  const raw = Math.max(
-    currentTargetWeightKg - 2 * incrementKg,
-    incrementKg,
-  );
+  const raw = Math.max(currentTargetWeightKg - 2 * incrementKg, incrementKg);
   const suggested = roundToLoadIncrement(raw, incrementKg);
-  const safe =
-    suggested > 0 ? suggested : roundToLoadIncrement(incrementKg, incrementKg);
+  const safe = suggested > 0 ? suggested : roundToLoadIncrement(incrementKg, incrementKg);
   return {
     suggestedWeightKg: safe,
     adjustmentKg: Math.round((safe - currentTargetWeightKg) * 1000) / 1000,
@@ -566,20 +504,14 @@ export function resolveLoadTargetFromTemplateSets(
     return {
       ok: false,
       action: allMissing ? 'INSUFFICIENT_DATA' : 'REVIEW',
-      reasons: allMissing
-        ? ['NO_TARGET_WEIGHT']
-        : ['UNSUPPORTED_TARGET_CONFIGURATION'],
+      reasons: allMissing ? ['NO_TARGET_WEIGHT'] : ['UNSUPPORTED_TARGET_CONFIGURATION'],
     };
   }
 
   const weightHomogeneous = weights.every(
-    (w) =>
-      w != null &&
-      firstWeight != null &&
-      Math.abs(w - firstWeight) < 0.0005,
+    (w) => w != null && firstWeight != null && Math.abs(w - firstWeight) < 0.0005,
   );
-  const repsHomogeneous = mins.every((m) => m === firstMin) &&
-    maxs.every((m) => m === firstMax);
+  const repsHomogeneous = mins.every((m) => m === firstMin) && maxs.every((m) => m === firstMax);
   const rirHomogeneous = rirs.every((r) => r === rirs[0]);
   const rpeHomogeneous = rpes.every((r) => {
     const first = rpes[0];
@@ -596,12 +528,7 @@ export function resolveLoadTargetFromTemplateSets(
     };
   }
 
-  if (
-    firstMin == null ||
-    firstMax == null ||
-    !(firstMin > 0) ||
-    !(firstMax >= firstMin)
-  ) {
+  if (firstMin == null || firstMax == null || !(firstMin > 0) || !(firstMax >= firstMin)) {
     return {
       ok: false,
       action: 'INSUFFICIENT_DATA',
@@ -671,12 +598,7 @@ export function assessWorkoutPerformance(
   const failedSetCount = working.filter((s) => s.status === 'FAILED').length;
 
   const performedReps = working
-    .filter(
-      (s) =>
-        s.status === 'COMPLETED' ||
-        s.status === 'PARTIAL' ||
-        s.status === 'FAILED',
-    )
+    .filter((s) => s.status === 'COMPLETED' || s.status === 'PARTIAL' || s.status === 'FAILED')
     .map((s) => s.actualReps)
     .filter((r): r is number => r != null && Number.isFinite(r));
 
@@ -688,20 +610,18 @@ export function assessWorkoutPerformance(
     .filter((r): r is number => r != null && Number.isFinite(r));
 
   const effortDataUsed =
-    effortMode !== 'NONE' &&
-    effortAssessments.some((e) => e !== 'NOT_ASSESSABLE');
+    effortMode !== 'NONE' && effortAssessments.some((e) => e !== 'NOT_ASSESSABLE');
 
   const hasPartialOrFailed =
-    partialSetCount > 0 ||
-    failedSetCount > 0 ||
-    assessments.includes('FAILED');
+    partialSetCount > 0 || failedSetCount > 0 || assessments.includes('FAILED');
 
   const allAssessableCompleted =
     assessable.length > 0 &&
-    assessable.length === working.filter((s) => {
-      const a = assessSetAgainstTarget(s, target);
-      return a !== 'NOT_ASSESSABLE';
-    }).length &&
+    assessable.length ===
+      working.filter((s) => {
+        const a = assessSetAgainstTarget(s, target);
+        return a !== 'NOT_ASSESSABLE';
+      }).length &&
     !hasPartialOrFailed &&
     working.every((s) => {
       const a = assessSetAgainstTarget(s, target);
@@ -710,29 +630,20 @@ export function assessWorkoutPerformance(
 
   const relevant = assessable;
   const allAtTopOrAbove =
-    relevant.length > 0 &&
-    relevant.every((a) => a === 'AT_TOP_OF_RANGE' || a === 'ABOVE_TARGET');
+    relevant.length > 0 && relevant.every((a) => a === 'AT_TOP_OF_RANGE' || a === 'ABOVE_TARGET');
 
   const allInRangeOrAbove =
     relevant.length > 0 &&
-    relevant.every(
-      (a) =>
-        a === 'IN_RANGE' ||
-        a === 'AT_TOP_OF_RANGE' ||
-        a === 'ABOVE_TARGET',
-    );
+    relevant.every((a) => a === 'IN_RANGE' || a === 'AT_TOP_OF_RANGE' || a === 'ABOVE_TARGET');
 
   const belowCount = relevant.filter((a) => a === 'BELOW_RANGE' || a === 'FAILED').length;
-  const majorityBelowRange =
-    relevant.length > 0 && belowCount > relevant.length / 2;
+  const majorityBelowRange = relevant.length > 0 && belowCount > relevant.length / 2;
 
   const hardCount = effortAssessments.filter((e) => e === 'HARDER').length;
   const effortExcessivelyHard =
     effortDataUsed &&
     hardCount > 0 &&
-    hardCount >= Math.ceil(
-      effortAssessments.filter((e) => e !== 'NOT_ASSESSABLE').length / 2,
-    );
+    hardCount >= Math.ceil(effortAssessments.filter((e) => e !== 'NOT_ASSESSABLE').length / 2);
 
   const effortOnOrEasier =
     !effortDataUsed ||
@@ -745,8 +656,7 @@ export function assessWorkoutPerformance(
     underperformance = 'NOT_ASSESSABLE';
   } else if (
     majorityBelowRange ||
-    (partialSetCount + failedSetCount >= Math.ceil(working.length / 2) &&
-      working.length > 0) ||
+    (partialSetCount + failedSetCount >= Math.ceil(working.length / 2) && working.length > 0) ||
     effortExcessivelyHard
   ) {
     underperformance = 'SIGNIFICANT';
@@ -755,8 +665,7 @@ export function assessWorkoutPerformance(
   const weightSamples = working
     .map((s) => s.targetWeightKg ?? s.actualWeightKg)
     .filter((w): w is number => w != null && Number.isFinite(w) && w > 0);
-  const comparableTargetWeightKg =
-    weightSamples.length > 0 ? weightSamples[0]! : null;
+  const comparableTargetWeightKg = weightSamples.length > 0 ? weightSamples[0]! : null;
 
   return {
     assessments,
@@ -780,11 +689,7 @@ export function assessWorkoutPerformance(
   };
 }
 
-function weightsComparable(
-  a: number | null,
-  b: number | null,
-  incrementKg: number,
-): boolean {
+function weightsComparable(a: number | null, b: number | null, incrementKg: number): boolean {
   if (a == null || b == null) {
     return false;
   }
@@ -821,10 +726,7 @@ export type ResolveLoadRecommendationInput = {
 };
 
 function attachIdentity(
-  partial: Omit<
-    LoadRecommendationResult,
-    'engineVersion' | 'recommendationFingerprint'
-  >,
+  partial: Omit<LoadRecommendationResult, 'engineVersion' | 'recommendationFingerprint'>,
   input: ResolveLoadRecommendationInput,
 ): LoadRecommendationResult {
   const workingSets = input.templateSets
@@ -901,10 +803,7 @@ function emptyResult(
 export function resolveLoadRecommendation(
   input: ResolveLoadRecommendationInput,
 ): LoadRecommendationResult {
-  const targetResult = resolveLoadTargetFromTemplateSets(
-    input.templateSets,
-    input.measurementType,
-  );
+  const targetResult = resolveLoadTargetFromTemplateSets(input.templateSets, input.measurementType);
 
   if (!targetResult.ok) {
     return emptyResult(
@@ -929,10 +828,7 @@ export function resolveLoadRecommendation(
     userExerciseIncrementKg: input.userExerciseIncrementKg,
   });
 
-  const workouts = input.recentWorkouts.slice(
-    0,
-    LOAD_RECOMMENDATION_HISTORY_LIMIT,
-  );
+  const workouts = input.recentWorkouts.slice(0, LOAD_RECOMMENDATION_HISTORY_LIMIT);
 
   if (workouts.length === 0) {
     return emptyResult(
@@ -950,9 +846,7 @@ export function resolveLoadRecommendation(
       const assessments = workouts.map((w) =>
         assessWorkoutPerformance(w.sets, target, input.effortTrackingMode),
       );
-      const evidence = workouts.map((w, i) =>
-        buildEvidenceWorkout(w, assessments[i]!),
-      );
+      const evidence = workouts.map((w, i) => buildEvidenceWorkout(w, assessments[i]!));
       return emptyResult(
         {
           action: 'REVIEW',
@@ -971,9 +865,7 @@ export function resolveLoadRecommendation(
   );
 
   const latest = assessments[0]!;
-  const evidence = workouts.map((w, i) =>
-    buildEvidenceWorkout(w, assessments[i]!),
-  );
+  const evidence = workouts.map((w, i) => buildEvidenceWorkout(w, assessments[i]!));
 
   if (
     latest.assessments.every((a) => a === 'NOT_ASSESSABLE') ||
@@ -993,11 +885,7 @@ export function resolveLoadRecommendation(
 
   if (
     latest.comparableTargetWeightKg != null &&
-    !weightsComparable(
-      latest.comparableTargetWeightKg,
-      target.weightKg,
-      incrementKg,
-    )
+    !weightsComparable(latest.comparableTargetWeightKg, target.weightKg, incrementKg)
   ) {
     return emptyResult(
       {
@@ -1035,11 +923,7 @@ export function resolveLoadRecommendation(
       reasons.push('INSUFFICIENT_EFFORT_DATA');
     }
 
-    const suggestion = computeSuggestedWeightKg(
-      'INCREASE',
-      target.weightKg,
-      incrementKg,
-    );
+    const suggestion = computeSuggestedWeightKg('INCREASE', target.weightKg, incrementKg);
     return attachIdentity(
       {
         action: 'INCREASE',
@@ -1080,11 +964,7 @@ export function resolveLoadRecommendation(
       reasons.push('EFFORT_TOO_HIGH');
     }
 
-    const suggestion = computeSuggestedWeightKg(
-      'DECREASE',
-      target.weightKg,
-      incrementKg,
-    );
+    const suggestion = computeSuggestedWeightKg('DECREASE', target.weightKg, incrementKg);
     return attachIdentity(
       {
         action: 'DECREASE',
@@ -1131,21 +1011,14 @@ export function resolveLoadRecommendation(
       reasons.push('EFFORT_ON_TARGET');
     } else if (latest.effortDataUsed && latest.effortExcessivelyHard) {
       reasons.push('EFFORT_TOO_HIGH');
-    } else if (
-      input.effortTrackingMode !== 'NONE' &&
-      !latest.effortDataUsed
-    ) {
+    } else if (input.effortTrackingMode !== 'NONE' && !latest.effortDataUsed) {
       reasons.push('INSUFFICIENT_EFFORT_DATA');
     }
   } else {
     reasons.push('TARGET_RANGE_PARTIALLY_REACHED');
   }
 
-  const suggestion = computeSuggestedWeightKg(
-    'HOLD',
-    target.weightKg,
-    incrementKg,
-  );
+  const suggestion = computeSuggestedWeightKg('HOLD', target.weightKg, incrementKg);
   return attachIdentity(
     {
       action: 'HOLD',
@@ -1167,7 +1040,6 @@ export function resolveLoadRecommendation(
   );
 }
 
-
 const loadRecommendationClientCommandIdSchema = z
   .string()
   .trim()
@@ -1175,11 +1047,7 @@ const loadRecommendationClientCommandIdSchema = z
   .max(128)
   .regex(/^[A-Za-z0-9._:-]+$/, 'Identifiant de commande invalide.');
 
-export const loadRecommendationDecisionTypeSchema = z.enum([
-  'ACCEPTED',
-  'ADJUSTED',
-  'IGNORED',
-]);
+export const loadRecommendationDecisionTypeSchema = z.enum(['ACCEPTED', 'ADJUSTED', 'IGNORED']);
 
 export const decideLoadRecommendationSchema = z
   .object({
@@ -1220,9 +1088,7 @@ export const decideLoadRecommendationSchema = z
     }
   });
 
-export type DecideLoadRecommendationInput = z.infer<
-  typeof decideLoadRecommendationSchema
->;
+export type DecideLoadRecommendationInput = z.infer<typeof decideLoadRecommendationSchema>;
 
 const emptyQueryToUndefined = (value: unknown) => {
   if (value === undefined || value === null) return undefined;
@@ -1233,10 +1099,7 @@ const emptyQueryToUndefined = (value: unknown) => {
 export const loadRecommendationDecisionsQuerySchema = z
   .object({
     cursor: z.preprocess(emptyQueryToUndefined, z.string().min(1).optional()),
-    limit: z.preprocess(
-      emptyQueryToUndefined,
-      z.coerce.number().int().min(1).max(50).optional(),
-    ),
+    limit: z.preprocess(emptyQueryToUndefined, z.coerce.number().int().min(1).max(50).optional()),
   })
   .strict();
 

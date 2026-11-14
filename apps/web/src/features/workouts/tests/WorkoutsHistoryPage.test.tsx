@@ -15,8 +15,7 @@ const getMe = vi.fn();
 
 vi.mock('../api/workout-api', () => ({
   listWorkoutHistory: (...args: unknown[]) => listWorkoutHistory(...args),
-  getWorkoutSessionDetail: (...args: unknown[]) =>
-    getWorkoutSessionDetail(...args),
+  getWorkoutSessionDetail: (...args: unknown[]) => getWorkoutSessionDetail(...args),
   getActiveWorkoutSession: vi.fn(),
   createWorkoutSession: vi.fn(),
   updateWorkoutSet: vi.fn(),
@@ -31,9 +30,7 @@ vi.mock('@/features/profile/api/profile-api', () => ({
 }));
 
 vi.mock('../offline/store', async () => {
-  const actual = await vi.importActual<typeof import('../offline/store')>(
-    '../offline/store',
-  );
+  const actual = await vi.importActual<typeof import('../offline/store')>('../offline/store');
   return {
     ...actual,
     listPendingTerminalSnapshots: vi.fn().mockResolvedValue([]),
@@ -67,9 +64,7 @@ function meResponse() {
   };
 }
 
-function historyItem(
-  overrides: Partial<WorkoutHistoryListItem> = {},
-): WorkoutHistoryListItem {
+function historyItem(overrides: Partial<WorkoutHistoryListItem> = {}): WorkoutHistoryListItem {
   return {
     id: 'hist-1',
     name: 'Séance Push',
@@ -118,10 +113,7 @@ function renderHistory(initialEntry = '/workouts') {
       <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
           <Route path="/workouts" element={<WorkoutsHistoryPage />} />
-          <Route
-            path="/workouts/:workoutSessionId"
-            element={<WorkoutSessionDetailPage />}
-          />
+          <Route path="/workouts/:workoutSessionId" element={<WorkoutSessionDetailPage />} />
           <Route path="/workouts/active" element={<div>Active page</div>} />
           <Route path="/planning" element={<div>Planning page</div>} />
           <Route path="/programs" element={<div>Programs page</div>} />
@@ -188,13 +180,9 @@ describe('WorkoutsHistoryPage', () => {
       pagination: { nextCursor: null, hasMore: false },
     });
     renderHistory();
-    expect(
-      await screen.findByText('Aucune séance dans l’historique'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Aucune séance dans l’historique')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /planning/i })).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /programmes/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /programmes/i })).toBeInTheDocument();
   });
 
   it('exporte les séances sélectionnées en JSON copiable', async () => {
@@ -352,14 +340,10 @@ describe('WorkoutsHistoryPage', () => {
     );
     renderHistory('/workouts?status=COMPLETED');
     expect(await screen.findByText('Séance Push')).toBeInTheDocument();
-    await user.click(
-      screen.getByRole('link', { name: /Ouvrir la séance Séance Push/i }),
-    );
+    await user.click(screen.getByRole('link', { name: /Ouvrir la séance Séance Push/i }));
     expect(await screen.findByText(/Séance complétée|Progression/i)).toBeInTheDocument();
     expect(screen.getByText('10 répétitions')).toBeInTheDocument();
-    await user.click(
-      screen.getByRole('link', { name: /Retour à l’historique/i }),
-    );
+    await user.click(screen.getByRole('link', { name: /Retour à l’historique/i }));
     expect(await screen.findByText('Historique')).toBeInTheDocument();
     expect(listWorkoutHistory).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'COMPLETED' }),
@@ -386,10 +370,7 @@ describe('WorkoutSessionDetailPage historique', () => {
       <QueryClientProvider client={client}>
         <MemoryRouter initialEntries={[`/workouts/${id}`]}>
           <Routes>
-            <Route
-              path="/workouts/:workoutSessionId"
-              element={<WorkoutSessionDetailPage />}
-            />
+            <Route path="/workouts/:workoutSessionId" element={<WorkoutSessionDetailPage />} />
             <Route path="/workouts/active" element={<div>Active page</div>} />
             <Route path="/workouts" element={<div>History page</div>} />
           </Routes>
@@ -489,9 +470,7 @@ describe('WorkoutSessionDetailPage historique', () => {
   });
 
   it('redirige une séance active vers /workouts/active', async () => {
-    getWorkoutSessionDetail.mockResolvedValue(
-      createWorkoutSessionDetail({ status: 'ACTIVE' }),
-    );
+    getWorkoutSessionDetail.mockResolvedValue(createWorkoutSessionDetail({ status: 'ACTIVE' }));
     renderDetail('hist-1');
     expect(await screen.findByText('Active page')).toBeInTheDocument();
   });

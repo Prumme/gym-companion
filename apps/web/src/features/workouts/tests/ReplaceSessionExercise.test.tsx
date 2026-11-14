@@ -12,13 +12,10 @@ const listExercises = vi.fn();
 const getExercise = vi.fn();
 
 vi.mock('../api/workout-api', async () => {
-  const actual = await vi.importActual<typeof import('../api/workout-api')>(
-    '../api/workout-api',
-  );
+  const actual = await vi.importActual<typeof import('../api/workout-api')>('../api/workout-api');
   return {
     ...actual,
-    replaceWorkoutSessionExercise: (...args: unknown[]) =>
-      replaceWorkoutSessionExercise(...args),
+    replaceWorkoutSessionExercise: (...args: unknown[]) => replaceWorkoutSessionExercise(...args),
     addWorkoutSessionSet: vi.fn(),
     addWorkoutSessionExercise: vi.fn(),
   };
@@ -35,9 +32,7 @@ vi.mock('../offline/store', () => ({
   persistServerSnapshot: vi.fn().mockResolvedValue(undefined),
 }));
 
-function renderPanel(
-  overrides: Partial<Parameters<typeof ActiveExercisePanel>[0]> = {},
-) {
+function renderPanel(overrides: Partial<Parameters<typeof ActiveExercisePanel>[0]> = {}) {
   const session = createWorkoutSessionDetail({
     status: 'ACTIVE',
     version: 3,
@@ -75,19 +70,19 @@ function renderPanel(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
           <div data-testid="exercise-host" style={{ transform: 'translateX(0px)' }}>
-          <ActiveExercisePanel
-          session={session}
-          exercise={exercise}
-          effortTrackingMode="RIR"
-          canRecordSets
-          nextPendingSetId="ws-1"
-          exerciseIndex={0}
-          totalExercises={1}
-          hasNextExercise={false}
-          onVersionConflict={vi.fn()}
-          onSetRecorded={vi.fn()}
-          {...overrides}
-        />
+            <ActiveExercisePanel
+              session={session}
+              exercise={exercise}
+              effortTrackingMode="RIR"
+              canRecordSets
+              nextPendingSetId="ws-1"
+              exerciseIndex={0}
+              totalExercises={1}
+              hasNextExercise={false}
+              onVersionConflict={vi.fn()}
+              onSetRecorded={vi.fn()}
+              {...overrides}
+            />
           </div>
         </MemoryRouter>
       </QueryClientProvider>,
@@ -192,12 +187,8 @@ describe('Replace session exercise UI', () => {
 
     renderPanel();
 
-    await user.click(
-      screen.getByRole('button', { name: 'Actions de l’exercice' }),
-    );
-    await user.click(
-      screen.getByRole('menuitem', { name: 'Remplacer l’exercice' }),
-    );
+    await user.click(screen.getByRole('button', { name: 'Actions de l’exercice' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Remplacer l’exercice' }));
 
     const dialog = await screen.findByRole('dialog');
     expect(
@@ -217,11 +208,10 @@ describe('Replace session exercise UI', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Remplacer' }));
 
     await waitFor(() => {
-      expect(replaceWorkoutSessionExercise).toHaveBeenCalledWith(
-        expect.any(String),
-        'se-1',
-        { exerciseId: 'ex-hack', expectedVersion: 3 },
-      );
+      expect(replaceWorkoutSessionExercise).toHaveBeenCalledWith(expect.any(String), 'se-1', {
+        exerciseId: 'ex-hack',
+        expectedVersion: 3,
+      });
     });
 
     await waitFor(() => {
@@ -263,24 +253,16 @@ describe('Replace session exercise UI', () => {
       exercise: session.exercises[0]!,
     });
 
-    await user.click(
-      screen.getByRole('button', { name: 'Actions de l’exercice' }),
-    );
-    expect(
-      screen.getByRole('menuitem', { name: 'Remplacer l’exercice' }),
-    ).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Actions de l’exercice' }));
+    expect(screen.getByRole('menuitem', { name: 'Remplacer l’exercice' })).toBeDisabled();
   });
 
   it('affiche le remplacement hors du cadre transformé du swipe', async () => {
     const user = userEvent.setup();
     renderPanel();
 
-    await user.click(
-      screen.getByRole('button', { name: 'Actions de l’exercice' }),
-    );
-    await user.click(
-      screen.getByRole('menuitem', { name: 'Remplacer l’exercice' }),
-    );
+    await user.click(screen.getByRole('button', { name: 'Actions de l’exercice' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Remplacer l’exercice' }));
 
     const dialog = await screen.findByRole('dialog');
     const host = screen.getByTestId('exercise-host');
@@ -294,16 +276,11 @@ describe('Replace session exercise UI', () => {
     const user = userEvent.setup();
     renderPanel({ browserOffline: true });
 
-    await user.click(
-      screen.getByRole('button', { name: 'Actions de l’exercice' }),
-    );
+    await user.click(screen.getByRole('button', { name: 'Actions de l’exercice' }));
     const item = screen.getByRole('menuitem', {
       name: 'Remplacer l’exercice',
     });
     expect(item).toBeDisabled();
-    expect(item).toHaveAttribute(
-      'title',
-      'Connexion nécessaire pour remplacer un exercice.',
-    );
+    expect(item).toHaveAttribute('title', 'Connexion nécessaire pour remplacer un exercice.');
   });
 });

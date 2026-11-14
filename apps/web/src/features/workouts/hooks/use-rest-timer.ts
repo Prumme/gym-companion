@@ -17,7 +17,16 @@ import {
 type UseRestTimerOptions = {
   workoutSessionId: string | null;
   enabled?: boolean;
+  /**
+   * Appelé une seule fois quand un repos expire pendant que la page est ouverte.
+   * Jamais pour une minuterie déjà expirée au chargement (rechargement, retour sur la page).
+   */
+  onExpired?: () => void;
 };
+
+function isExpiredAt(state: RestTimerPersistedState | null, nowMs: number): boolean {
+  return Boolean(state && !state.isPaused && getRemainingSeconds(state, nowMs) <= 0);
+}
 
 function subscribeVisibility(onStoreChange: () => void) {
   const onVisibility = () => onStoreChange();
@@ -33,14 +42,18 @@ function getVisibilitySnapshot() {
   return document.visibilityState;
 }
 
-export function useRestTimer({
-  workoutSessionId,
-  enabled = true,
-}: UseRestTimerOptions) {
+export function useRestTimer({ workoutSessionId, enabled = true, onExpired }: UseRestTimerOptions) {
   const [state, setState] = useState<RestTimerPersistedState | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [justExpired, setJustExpired] = useState(false);
   const expiredNotifiedRef = useRef(false);
+  /** Minuterie restaurée déjà expirée : bannière affichée, mais aucun signal rejoué. */
+  const expiredOnRestoreRef = useRef(false);
+  const onExpiredRef = useRef(onExpired);
+
+  useEffect(() => {
+    onExpiredRef.current = onExpired;
+  }, [onExpired]);
   const visibility = useSyncExternalStore(
     subscribeVisibility,
     getVisibilitySnapshot,
@@ -59,6 +72,7 @@ export function useRestTimer({
     );
     setState(stored);
     expiredNotifiedRef.current = false;
+    expiredOnRestoreRef.current = isExpiredAt(stored, Date.now());
     setJustExpired(false);
   }, [workoutSessionId, enabled]);
 
@@ -91,6 +105,10 @@ export function useRestTimer({
       if (workoutSessionId) {
         clearRestTimerStorage(workoutSessionId);
       }
+      if (!expiredOnRestoreRef.current) {
+        onExpiredRef.current?.();
+      }
+      expiredOnRestoreRef.current = false;
     }
   }, [isExpired, state, workoutSessionId]);
 
@@ -100,6 +118,7 @@ export function useRestTimer({
         return;
       }
       expiredNotifiedRef.current = false;
+      expiredOnRestoreRef.current = false;
       setJustExpired(false);
       setState(
         createRestTimerState({
@@ -133,6 +152,7 @@ export function useRestTimer({
     setState((current) => (current ? adjustRestTimer(current, delta) : current));
     if (delta > 0) {
       expiredNotifiedRef.current = false;
+      expiredOnRestoreRef.current = false;
       setJustExpired(false);
     }
   }, []);

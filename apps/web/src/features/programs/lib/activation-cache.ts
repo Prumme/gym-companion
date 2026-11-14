@@ -1,8 +1,4 @@
-import type {
-  ActiveProgramSummary,
-  ProgramDetail,
-  ProgramSchedule,
-} from '@gym-companion/shared';
+import type { ActiveProgramSummary, ProgramDetail, ProgramSchedule } from '@gym-companion/shared';
 import type { QueryClient } from '@tanstack/react-query';
 
 import { programQueryKeys } from '../api/program-query-keys';
@@ -52,23 +48,18 @@ export function syncAfterActivation(
   if (previousProgramId && previousProgramId !== newProgramId) {
     queryClient.setQueryData(
       programQueryKeys.detail(previousProgramId),
-      (current: ProgramDetail | undefined) =>
-        patchDetailIsCurrent(current, false),
+      (current: ProgramDetail | undefined) => patchDetailIsCurrent(current, false),
     );
   }
 
   void queryClient.invalidateQueries({ queryKey: programQueryKeys.lists() });
 }
 
-export function syncAfterDeactivation(
-  queryClient: QueryClient,
-  programId: string,
-) {
+export function syncAfterDeactivation(queryClient: QueryClient, programId: string) {
   syncActiveProgramCache(queryClient, null);
   queryClient.setQueryData(
     programQueryKeys.detail(programId),
-    (current: ProgramDetail | undefined) =>
-      patchDetailIsCurrent(current, false),
+    (current: ProgramDetail | undefined) => patchDetailIsCurrent(current, false),
   );
   void queryClient.invalidateQueries({ queryKey: programQueryKeys.lists() });
 }
@@ -80,9 +71,7 @@ export function syncAfterScheduleReplace(
 ) {
   syncScheduleCache(queryClient, programId, schedule);
 
-  const active = queryClient.getQueryData<ActiveProgramSummary | null>(
-    programQueryKeys.active(),
-  );
+  const active = queryClient.getQueryData<ActiveProgramSummary | null>(programQueryKeys.active());
   if (active?.program.id === programId) {
     syncActiveProgramCache(queryClient, { ...active, schedule });
   }

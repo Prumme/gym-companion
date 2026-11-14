@@ -15,10 +15,7 @@ describe('coaching invalidation (5.1)', () => {
       invalidateQueries,
     } as unknown as QueryClient;
 
-    applyLifecycleToCacheForTest(
-      queryClient,
-      createWorkoutSessionDetail({ status: 'ACTIVE' }),
-    );
+    applyLifecycleToCacheForTest(queryClient, createWorkoutSessionDetail({ status: 'ACTIVE' }));
     expect(invalidateQueries).not.toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: coachingQueryKeys.all }),
     );

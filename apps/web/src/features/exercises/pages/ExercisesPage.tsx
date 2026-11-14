@@ -42,10 +42,7 @@ function dedupeExercises(items: ExerciseListItem[]): ExerciseListItem[] {
 
 export function ExercisesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const filters = useMemo(
-    () => parseExerciseListSearchParams(searchParams),
-    [searchParams],
-  );
+  const filters = useMemo(() => parseExerciseListSearchParams(searchParams), [searchParams]);
 
   const [searchInput, setSearchInput] = useState(filters.search ?? '');
   const debouncedSearch = useDebouncedValue(searchInput, 300);
@@ -85,14 +82,10 @@ export function ExercisesPage() {
     [listQuery.data],
   );
 
-  const nonSearchFilters = useMemo(
-    () => ({ ...filters, search: undefined }),
-    [filters],
-  );
+  const nonSearchFilters = useMemo(() => ({ ...filters, search: undefined }), [filters]);
   const activeFilterCount = countActiveExerciseFilters(nonSearchFilters);
   const hasAnyFilter = countActiveExerciseFilters(filters) > 0;
-  const showCreateInEmptyState =
-    !hasAnyFilter || filters.source === 'USER';
+  const showCreateInEmptyState = !hasAnyFilter || filters.source === 'USER';
   const isInitialLoading = listQuery.isLoading;
 
   function applyFiltersToUrl(next: ExerciseListFilters) {
@@ -175,11 +168,7 @@ export function ExercisesPage() {
             onClick={() => setFiltersOpen(true)}
             aria-expanded={filtersOpen}
             aria-controls="exercise-filters-panel"
-            aria-label={
-              activeFilterCount > 0
-                ? `Filtres, ${activeFilterCount} actifs`
-                : 'Filtres'
-            }
+            aria-label={activeFilterCount > 0 ? `Filtres, ${activeFilterCount} actifs` : 'Filtres'}
           >
             <Filter className="size-4" aria-hidden="true" />
             Filtres
@@ -197,9 +186,7 @@ export function ExercisesPage() {
             onChange={applyDesktopFilters}
             muscleGroups={muscleGroupsQuery.data ?? []}
             equipmentTypes={equipmentTypesQuery.data ?? []}
-            referencesLoading={
-              muscleGroupsQuery.isLoading || equipmentTypesQuery.isLoading
-            }
+            referencesLoading={muscleGroupsQuery.isLoading || equipmentTypesQuery.isLoading}
           />
         </div>
 
@@ -229,8 +216,7 @@ export function ExercisesPage() {
             aria-label="Filtres des exercices"
             className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-[var(--radius-surface)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-lg"
             style={{
-              paddingBottom:
-                'calc(var(--space-6) + env(safe-area-inset-bottom, 0px))',
+              paddingBottom: 'calc(var(--space-6) + env(safe-area-inset-bottom, 0px))',
             }}
             onClick={(event) => event.stopPropagation()}
           >
@@ -250,9 +236,7 @@ export function ExercisesPage() {
               onChange={setDraftFilters}
               muscleGroups={muscleGroupsQuery.data ?? []}
               equipmentTypes={equipmentTypesQuery.data ?? []}
-              referencesLoading={
-                muscleGroupsQuery.isLoading || equipmentTypesQuery.isLoading
-              }
+              referencesLoading={muscleGroupsQuery.isLoading || equipmentTypesQuery.isLoading}
               showActions
               onApply={() => {
                 applyFiltersToUrl({
@@ -290,10 +274,7 @@ export function ExercisesPage() {
           role="alert"
         >
           <p className="text-sm text-[var(--danger)]">
-            {getApiErrorMessage(
-              listQuery.error,
-              'Impossible de charger les exercices.',
-            )}
+            {getApiErrorMessage(listQuery.error, 'Impossible de charger les exercices.')}
           </p>
           <Button
             type="button"
@@ -344,10 +325,7 @@ export function ExercisesPage() {
               role="alert"
             >
               <p className="text-sm text-[var(--danger)]">
-                {getApiErrorMessage(
-                  listQuery.error,
-                  'Impossible de charger la suite.',
-                )}
+                {getApiErrorMessage(listQuery.error, 'Impossible de charger la suite.')}
               </p>
               <Button
                 type="button"

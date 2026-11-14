@@ -19,11 +19,7 @@ function statusExtraLabel(status: string): string | null {
   return null;
 }
 
-export function SharedParticipantRow({
-  member,
-  online,
-  showProgress,
-}: SharedParticipantRowProps) {
+export function SharedParticipantRow({ member, online, showProgress }: SharedParticipantRowProps) {
   const workout = member.memberWorkout;
   const progress = workout.progress;
   const current = workout.currentExercise;
@@ -47,29 +43,19 @@ export function SharedParticipantRow({
             ) : null}
           </p>
           {showProgress && current ? (
-            <p className="mt-0.5 truncate text-sm text-[var(--foreground)]">
-              {current.name}
-            </p>
+            <p className="mt-0.5 truncate text-sm text-[var(--foreground)]">{current.name}</p>
           ) : null}
           {showProgress &&
           !current &&
           (workout.status === 'ACTIVE' || workout.status === 'PAUSED') ? (
-            <p className="mt-0.5 text-sm text-[var(--muted)]">
-              Aucun exercice sélectionné
-            </p>
+            <p className="mt-0.5 text-sm text-[var(--muted)]">Aucun exercice sélectionné</p>
           ) : null}
           {!showProgress ? (
             <p className="mt-0.5 text-sm text-[var(--muted)]">
-              {online === true
-                ? 'En ligne'
-                : online === false
-                  ? 'Hors ligne'
-                  : 'Présence inconnue'}
+              {online === true ? 'En ligne' : online === false ? 'Hors ligne' : 'Présence inconnue'}
             </p>
           ) : null}
-          {statusExtra ? (
-            <p className="text-xs text-[var(--muted)]">{statusExtra}</p>
-          ) : null}
+          {statusExtra ? <p className="text-xs text-[var(--muted)]">{statusExtra}</p> : null}
         </div>
         <SharedPresenceDot online={online} />
       </div>
@@ -78,10 +64,7 @@ export function SharedParticipantRow({
         <div className="flex flex-col gap-1">
           <div className="flex items-baseline justify-between gap-2 text-sm text-[var(--muted)]">
             <span>
-              {formatSharedSetProgress(
-                progress.processedSetCount,
-                progress.totalSetCount,
-              )}
+              {formatSharedSetProgress(progress.processedSetCount, progress.totalSetCount)}
             </span>
             <span className="tabular-nums">{percent} %</span>
           </div>

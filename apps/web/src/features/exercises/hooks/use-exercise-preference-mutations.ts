@@ -11,10 +11,7 @@ import type {
 } from '@gym-companion/shared';
 import type { UpdateExercisePreferenceInput } from '@gym-companion/validation';
 
-import {
-  resetExercisePreference,
-  updateExercisePreference,
-} from '../api/exercise-api';
+import { resetExercisePreference, updateExercisePreference } from '../api/exercise-api';
 import { exerciseQueryKeys } from '../api/exercise-query-keys';
 import type { ExerciseListFilters } from '../api/exercise-query-options';
 import {
@@ -23,9 +20,7 @@ import {
   updateExerciseInInfiniteData,
   type ExerciseInfiniteData,
 } from '../lib/exercise-cache';
-import {
-  DEFAULT_EXERCISE_USER_PREFERENCE,
-} from '../lib/exercise-preference';
+import { DEFAULT_EXERCISE_USER_PREFERENCE } from '../lib/exercise-preference';
 
 type ListQuerySnapshot = Array<[QueryKey, InfiniteData<ExerciseListResponse> | undefined]>;
 
@@ -65,9 +60,8 @@ function applyOptimisticPreference(
     });
   }
 
-  queryClient.setQueryData<ExerciseDetail>(
-    exerciseQueryKeys.detail(exerciseId),
-    (current) => (current ? applyPreferenceToDetail(current, preference) : current),
+  queryClient.setQueryData<ExerciseDetail>(exerciseQueryKeys.detail(exerciseId), (current) =>
+    current ? applyPreferenceToDetail(current, preference) : current,
   );
 
   queryClient.setQueryData<ExerciseUserPreference>(
@@ -84,9 +78,7 @@ function snapshotPreferenceCaches(
     previousLists: queryClient.getQueriesData<InfiniteData<ExerciseListResponse>>({
       queryKey: exerciseQueryKeys.lists(),
     }),
-    previousDetail: queryClient.getQueryData<ExerciseDetail>(
-      exerciseQueryKeys.detail(exerciseId),
-    ),
+    previousDetail: queryClient.getQueryData<ExerciseDetail>(exerciseQueryKeys.detail(exerciseId)),
     previousPreference: queryClient.getQueryData<ExerciseUserPreference>(
       exerciseQueryKeys.preference(exerciseId),
     ),
@@ -102,16 +94,10 @@ function restorePreferenceCaches(
     queryClient.setQueryData(key, data);
   }
   if (context.previousDetail !== undefined) {
-    queryClient.setQueryData(
-      exerciseQueryKeys.detail(exerciseId),
-      context.previousDetail,
-    );
+    queryClient.setQueryData(exerciseQueryKeys.detail(exerciseId), context.previousDetail);
   }
   if (context.previousPreference !== undefined) {
-    queryClient.setQueryData(
-      exerciseQueryKeys.preference(exerciseId),
-      context.previousPreference,
-    );
+    queryClient.setQueryData(exerciseQueryKeys.preference(exerciseId), context.previousPreference);
   }
 }
 
@@ -168,11 +154,7 @@ export function useResetExercisePreferenceMutation() {
     onMutate: async (exerciseId) => {
       await queryClient.cancelQueries({ queryKey: exerciseQueryKeys.all });
       const context = snapshotPreferenceCaches(queryClient, exerciseId);
-      applyOptimisticPreference(
-        queryClient,
-        exerciseId,
-        DEFAULT_EXERCISE_USER_PREFERENCE,
-      );
+      applyOptimisticPreference(queryClient, exerciseId, DEFAULT_EXERCISE_USER_PREFERENCE);
       return context;
     },
     onError: (_error, exerciseId, context) => {
@@ -181,11 +163,7 @@ export function useResetExercisePreferenceMutation() {
       }
     },
     onSuccess: (_data, exerciseId) => {
-      applyOptimisticPreference(
-        queryClient,
-        exerciseId,
-        DEFAULT_EXERCISE_USER_PREFERENCE,
-      );
+      applyOptimisticPreference(queryClient, exerciseId, DEFAULT_EXERCISE_USER_PREFERENCE);
     },
     onSettled: async (_data, _error, exerciseId) => {
       await settlePreferenceCaches(queryClient, exerciseId);

@@ -14,9 +14,7 @@ const WEIGHT_RECORD_MEASUREMENTS = new Set<ExerciseMeasurementType>([
   'WEIGHT_DURATION',
 ]);
 
-export function supportsWeightLoadCue(
-  measurementType: ExerciseMeasurementType,
-): boolean {
+export function supportsWeightLoadCue(measurementType: ExerciseMeasurementType): boolean {
   return WEIGHT_RECORD_MEASUREMENTS.has(measurementType);
 }
 

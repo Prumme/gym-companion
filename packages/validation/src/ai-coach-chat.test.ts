@@ -15,12 +15,12 @@ import {
 
 describe('ai-coach-chat (5.6 + jalon 8 structuré)', () => {
   it('registre lecture seule sans outil de mutation', () => {
-    expect(() =>
-      assertReadOnlyToolRegistry(AI_COACH_READ_ONLY_TOOL_NAMES),
-    ).not.toThrow();
-    expect(AI_COACH_READ_ONLY_TOOL_NAMES.every((name) => name.startsWith('get_') || name === 'search_exercises')).toBe(
-      true,
-    );
+    expect(() => assertReadOnlyToolRegistry(AI_COACH_READ_ONLY_TOOL_NAMES)).not.toThrow();
+    expect(
+      AI_COACH_READ_ONLY_TOOL_NAMES.every(
+        (name) => name.startsWith('get_') || name === 'search_exercises',
+      ),
+    ).toBe(true);
     expect(AI_COACH_MAX_TOOL_CALLS_PER_TURN).toBe(4);
   });
 
@@ -33,15 +33,13 @@ describe('ai-coach-chat (5.6 + jalon 8 structuré)', () => {
   });
 
   it('refuse un outil d’écriture dans le registre', () => {
-    expect(() =>
-      assertReadOnlyToolRegistry(['get_personal_records', 'apply_load']),
-    ).toThrow(/Unknown AI coach tool|Forbidden/);
+    expect(() => assertReadOnlyToolRegistry(['get_personal_records', 'apply_load'])).toThrow(
+      /Unknown AI coach tool|Forbidden/,
+    );
   });
 
   it('refuse un outil "search_web" (distinct de search_exercises)', () => {
-    expect(() =>
-      assertReadOnlyToolRegistry(['search_web']),
-    ).toThrow(/Unknown AI coach tool/);
+    expect(() => assertReadOnlyToolRegistry(['search_web'])).toThrow(/Unknown AI coach tool/);
   });
 
   it('valide le message utilisateur', () => {
@@ -106,9 +104,7 @@ describe('ai-coach-chat (5.6 + jalon 8 structuré)', () => {
       clientCommandId: '22222222-2222-2222-2222-222222222222',
     });
     expect(leakedId.success).toBe(false);
-    expect(leakedId.success ? null : leakedId.error.issues[0]?.code).toBe(
-      'unrecognized_keys',
-    );
+    expect(leakedId.success ? null : leakedId.error.issues[0]?.code).toBe('unrecognized_keys');
   });
 
   it('valide une réponse chat structurée discussion', () => {
@@ -208,9 +204,7 @@ describe('ai-coach-chat (5.6 + jalon 8 structuré)', () => {
   });
 
   it('valide search_exercises : labels + au moins un critère', () => {
-    expect(
-      searchExercisesToolArgsSchema.safeParse({ muscleGroup: 'Dos' }).success,
-    ).toBe(true);
+    expect(searchExercisesToolArgsSchema.safeParse({ muscleGroup: 'Dos' }).success).toBe(true);
     expect(
       searchExercisesToolArgsSchema.safeParse({
         query: 'tractions',
@@ -223,20 +217,18 @@ describe('ai-coach-chat (5.6 + jalon 8 structuré)', () => {
       }).success,
     ).toBe(true);
     expect(searchExercisesToolArgsSchema.safeParse({}).success).toBe(false);
-    expect(
-      searchExercisesToolArgsSchema.safeParse({ limit: 5 }).success,
-    ).toBe(false);
-    const def = AI_COACH_TOOL_DEFINITIONS.find(
-      (tool) => tool.name === 'search_exercises',
-    );
+    expect(searchExercisesToolArgsSchema.safeParse({ limit: 5 }).success).toBe(false);
+    const def = AI_COACH_TOOL_DEFINITIONS.find((tool) => tool.name === 'search_exercises');
     expect(def?.parameters.properties).toHaveProperty('muscleGroup');
     expect(def?.parameters.properties).toHaveProperty('equipmentType');
   });
 
   it('rejoue l’historique assistant en wire JSON (TURN 2 Structured Outputs)', () => {
-    const wire = JSON.parse(
-      buildAiCoachHistoryAssistantWireContent('Bonjour !'),
-    ) as { t: string; x: string; d: null };
+    const wire = JSON.parse(buildAiCoachHistoryAssistantWireContent('Bonjour !')) as {
+      t: string;
+      x: string;
+      d: null;
+    };
     expect(wire).toEqual({
       t: 'd',
       x: 'Bonjour !',

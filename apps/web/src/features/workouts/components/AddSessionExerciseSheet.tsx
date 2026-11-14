@@ -47,10 +47,7 @@ export function AddSessionExerciseSheet({
   const [searchInput, setSearchInput] = useState('');
   const debouncedSearch = useDebouncedValue(searchInput, 300);
   const [selected, setSelected] = useState<ExerciseListItem | null>(null);
-  const present = useMemo(
-    () => new Set(presentExerciseIds),
-    [presentExerciseIds],
-  );
+  const present = useMemo(() => new Set(presentExerciseIds), [presentExerciseIds]);
 
   useEffect(() => {
     if (!open) return;
@@ -67,15 +64,11 @@ export function AddSessionExerciseSheet({
   });
 
   const searchResults = useMemo(
-    () =>
-      dedupeExercises(
-        searchQuery.data?.pages.flatMap((page) => page.data) ?? [],
-      ),
+    () => dedupeExercises(searchQuery.data?.pages.flatMap((page) => page.data) ?? []),
     [searchQuery.data],
   );
 
-  const selectedAlreadyPresent =
-    selected != null && present.has(selected.id);
+  const selectedAlreadyPresent = selected != null && present.has(selected.id);
 
   if (!open) {
     return null;
@@ -138,8 +131,7 @@ export function AddSessionExerciseSheet({
           ) : null}
           {selectedAlreadyPresent ? (
             <p className="mb-3 text-sm text-[var(--danger)]" role="alert">
-              Cet exercice est déjà présent dans la séance. Ajoute plutôt une
-              série supplémentaire.
+              Cet exercice est déjà présent dans la séance. Ajoute plutôt une série supplémentaire.
             </p>
           ) : null}
 
@@ -152,15 +144,10 @@ export function AddSessionExerciseSheet({
             ) : null}
             {searchQuery.isError ? (
               <p className="text-sm text-[var(--danger)]" role="alert">
-                {getApiErrorMessage(
-                  searchQuery.error,
-                  'Impossible de charger le catalogue.',
-                )}
+                {getApiErrorMessage(searchQuery.error, 'Impossible de charger le catalogue.')}
               </p>
             ) : null}
-            {!searchQuery.isLoading &&
-            !searchQuery.isError &&
-            searchResults.length === 0 ? (
+            {!searchQuery.isLoading && !searchQuery.isError && searchResults.length === 0 ? (
               <p className="text-sm text-[var(--muted)]" role="status">
                 Aucun exercice trouvé.
               </p>
@@ -180,9 +167,7 @@ export function AddSessionExerciseSheet({
                       }`}
                     >
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium">
-                          {exercise.name}
-                        </span>
+                        <span className="block truncate text-sm font-medium">{exercise.name}</span>
                         <span className="mt-0.5 block truncate text-xs text-[var(--muted)]">
                           {exerciseMeta(exercise)}
                           {alreadyPresent ? ' · déjà dans la séance' : ''}

@@ -1,10 +1,6 @@
 import { NavLink } from 'react-router-dom';
 
-import {
-  isNavItemActive,
-  moreNavGroups,
-  primaryNavItems,
-} from '@/app/navigation/nav-config';
+import { isNavItemActive, moreNavGroups, primaryNavItems } from '@/app/navigation/nav-config';
 import { cn } from '@/lib/utils';
 
 type AppSidebarProps = {

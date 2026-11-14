@@ -10,12 +10,8 @@ describe('shared-workout-realtime (Shared 5.3)', () => {
     expect(sharedWorkoutRoomSubscribeBodySchema.parse({ roomId })).toEqual({
       roomId,
     });
-    expect(() =>
-      sharedWorkoutRoomSubscribeBodySchema.parse({ roomId, extra: true }),
-    ).toThrow();
-    expect(() =>
-      sharedWorkoutRoomSubscribeBodySchema.parse({ roomId: 'bad' }),
-    ).toThrow();
+    expect(() => sharedWorkoutRoomSubscribeBodySchema.parse({ roomId, extra: true })).toThrow();
+    expect(() => sharedWorkoutRoomSubscribeBodySchema.parse({ roomId: 'bad' })).toThrow();
     expect(sharedWorkoutRoomUnsubscribeBodySchema.parse({ roomId })).toEqual({
       roomId,
     });

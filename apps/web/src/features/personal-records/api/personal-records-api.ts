@@ -1,7 +1,4 @@
-import type {
-  PersonalRecord,
-  PersonalRecordListResponse,
-} from '@gym-companion/shared';
+import type { PersonalRecord, PersonalRecordListResponse } from '@gym-companion/shared';
 import type { PersonalRecordsQuery } from '@gym-companion/validation';
 
 import { apiFetch } from '@/lib/api/client';
@@ -22,9 +19,7 @@ function appendIfPresent(
   params.set(key, String(value));
 }
 
-export function buildPersonalRecordsSearchParams(
-  query: PersonalRecordsListQuery,
-): URLSearchParams {
+export function buildPersonalRecordsSearchParams(query: PersonalRecordsListQuery): URLSearchParams {
   const params = new URLSearchParams();
   appendIfPresent(params, 'exerciseId', query.exerciseId);
   appendIfPresent(params, 'recordType', query.recordType);
@@ -43,9 +38,7 @@ export async function listPersonalRecords(
   );
 }
 
-export async function listExercisePersonalRecords(
-  exerciseId: string,
-): Promise<PersonalRecord[]> {
+export async function listExercisePersonalRecords(exerciseId: string): Promise<PersonalRecord[]> {
   const response = await apiFetch<{ data: PersonalRecord[] }>(
     `/api/v1/exercises/${exerciseId}/personal-records`,
   );

@@ -17,10 +17,7 @@ type ProgramActivationActionsProps = {
  * Current state is shown via the header ACTIF badge;
  * deactivate lives in the program `…` menu.
  */
-export function ProgramActivationActions({
-  program,
-  onStatus,
-}: ProgramActivationActionsProps) {
+export function ProgramActivationActions({ program, onStatus }: ProgramActivationActionsProps) {
   const activeQuery = useQuery(activeProgramQueryOptions());
   const [activateOpen, setActivateOpen] = useState(false);
 
@@ -37,11 +34,7 @@ export function ProgramActivationActions({
       <p className="text-sm text-[var(--muted)]">
         Active ce programme pour le suivre dans ton planning hebdomadaire.
       </p>
-      <Button
-        type="button"
-        className="w-full sm:w-auto"
-        onClick={() => setActivateOpen(true)}
-      >
+      <Button type="button" className="w-full sm:w-auto" onClick={() => setActivateOpen(true)}>
         Utiliser ce programme
       </Button>
       <ActivateProgramDialog
@@ -49,9 +42,7 @@ export function ProgramActivationActions({
         programId={program.id}
         programName={program.name}
         currentProgramId={
-          activeProgram && activeProgram.program.id !== program.id
-            ? activeProgram.program.id
-            : null
+          activeProgram && activeProgram.program.id !== program.id ? activeProgram.program.id : null
         }
         currentProgramName={
           activeProgram && activeProgram.program.id !== program.id

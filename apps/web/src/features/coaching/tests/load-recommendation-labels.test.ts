@@ -44,23 +44,15 @@ const sample: LoadRecommendation = {
 describe('load-recommendation-labels (5.1 + 5.2)', () => {
   it('formate les poids et libellés de décision', () => {
     expect(formatLoadWeightKg(82.5)).toMatch(/82,5 kg/);
-    expect(formatLoadWeightTransition(80, 82.5)).toMatch(
-      /80\s*kg\s*→\s*82,5\s*kg/,
-    );
-    expect(getLoadRecommendationActionLabel('DECREASE')).toBe(
-      'Réduire la charge',
-    );
+    expect(formatLoadWeightTransition(80, 82.5)).toMatch(/80\s*kg\s*→\s*82,5\s*kg/);
+    expect(getLoadRecommendationActionLabel('DECREASE')).toBe('Réduire la charge');
     expect(getLoadRecommendationDecisionLabel('ACCEPTED')).toBe('Acceptée');
     expect(getLoadRecommendationDecisionLabel('ADJUSTED')).toBe('Ajustée');
     expect(getLoadRecommendationDecisionLabel('IGNORED')).toBe('Ignorée');
     expect(isLoadRecommendationActionable('INCREASE')).toBe(true);
     expect(isLoadRecommendationActionable('REVIEW')).toBe(false);
-    expect(getPrimaryLoadRecommendationMessage(sample)).toMatch(
-      /haut de ta plage/i,
-    );
-    expect(formatEvidenceSummary(sample)).toBe(
-      'Basé sur 2 séances récentes.',
-    );
+    expect(getPrimaryLoadRecommendationMessage(sample)).toMatch(/haut de ta plage/i);
+    expect(formatEvidenceSummary(sample)).toBe('Basé sur 2 séances récentes.');
     expect(
       formatDecisionHistoryLine({
         recommendationAction: 'INCREASE',

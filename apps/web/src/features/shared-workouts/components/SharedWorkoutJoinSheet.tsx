@@ -14,10 +14,7 @@ type SharedWorkoutJoinSheetProps = {
   onClose: () => void;
 };
 
-export function SharedWorkoutJoinSheet({
-  open,
-  onClose,
-}: SharedWorkoutJoinSheetProps) {
+export function SharedWorkoutJoinSheet({ open, onClose }: SharedWorkoutJoinSheetProps) {
   const titleId = useId();
   const helperId = useId();
   const errorId = useId();
@@ -85,8 +82,7 @@ export function SharedWorkoutJoinSheet({
         aria-labelledby={titleId}
         className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-[var(--radius-surface)] border border-[var(--border)] bg-[var(--surface)] px-[var(--space-4)] pt-[var(--space-4)] shadow-lg md:inset-x-auto md:right-4 md:bottom-4 md:left-auto md:w-full md:max-w-md md:rounded-[var(--radius-surface)]"
         style={{
-          paddingBottom:
-            'calc(var(--space-6) + env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'calc(var(--space-6) + env(safe-area-inset-bottom, 0px))',
         }}
       >
         <div className="mb-[var(--space-4)] flex items-center justify-between gap-3">

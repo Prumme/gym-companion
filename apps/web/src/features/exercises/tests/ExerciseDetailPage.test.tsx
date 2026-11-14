@@ -25,22 +25,17 @@ const {
 }));
 
 vi.mock('@/features/personal-records/api/personal-records-api', () => ({
-  listExercisePersonalRecords: (...args: unknown[]) =>
-    listExercisePersonalRecords(...args),
+  listExercisePersonalRecords: (...args: unknown[]) => listExercisePersonalRecords(...args),
   listPersonalRecords: vi.fn(),
 }));
 
 vi.mock('../api/exercise-api', async () => {
-  const actual = await vi.importActual<typeof import('../api/exercise-api')>(
-    '../api/exercise-api',
-  );
+  const actual = await vi.importActual<typeof import('../api/exercise-api')>('../api/exercise-api');
   return {
     ...actual,
     getExercise: (...args: unknown[]) => getExercise(...args),
-    updateExercisePreference: (...args: unknown[]) =>
-      updateExercisePreference(...args),
-    resetExercisePreference: (...args: unknown[]) =>
-      resetExercisePreference(...args),
+    updateExercisePreference: (...args: unknown[]) => updateExercisePreference(...args),
+    resetExercisePreference: (...args: unknown[]) => resetExercisePreference(...args),
     archiveExercise: (...args: unknown[]) => archiveExercise(...args),
     restoreExercise: (...args: unknown[]) => restoreExercise(...args),
   };
@@ -50,9 +45,7 @@ function createDetail(overrides: Record<string, unknown> = {}) {
   const base = createExerciseListItem();
   return {
     ...base,
-    secondaryMuscleGroups: [
-      { id: 't', code: 'triceps', name: 'Triceps', parentId: null },
-    ],
+    secondaryMuscleGroups: [{ id: 't', code: 'triceps', name: 'Triceps', parentId: null }],
     compatibleEquipmentTypes: [
       {
         equipmentType: {
@@ -125,14 +118,16 @@ describe('ExerciseDetailPage preferences', () => {
       await screen.findByRole('heading', { name: 'Développé couché à la barre' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Préférences')).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /Voir ma progression/i }),
-    ).toHaveAttribute('href', '/progress/exercises/exercise-1');
+    expect(screen.getByRole('link', { name: /Voir ma progression/i })).toHaveAttribute(
+      'href',
+      '/progress/exercises/exercise-1',
+    );
     expect(screen.getByText('Autorisées')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /modifier l’exercice/i })).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: '← Exercices' }),
-    ).toHaveAttribute('href', '/exercises?favoriteOnly=true');
+    expect(screen.getByRole('link', { name: '← Exercices' })).toHaveAttribute(
+      'href',
+      '/exercises?favoriteOnly=true',
+    );
   });
 
   it('opens preference form limited to compatible equipment', async () => {
@@ -148,11 +143,7 @@ describe('ExerciseDetailPage preferences', () => {
     const options = within(select)
       .getAllByRole('option')
       .map((option) => option.textContent);
-    expect(options).toEqual([
-      'Aucun équipement préféré',
-      'Barre',
-      'Haltères',
-    ]);
+    expect(options).toEqual(['Aucun équipement préféré', 'Barre', 'Haltères']);
   });
 
   it('validates invalid rest seconds', async () => {
@@ -189,9 +180,7 @@ describe('ExerciseDetailPage preferences', () => {
 
     const dialog = screen.getByRole('dialog');
     await user.click(within(dialog).getByLabelText('Favori'));
-    await user.click(
-      within(dialog).getByLabelText(/Ne pas proposer automatiquement cet exercice/),
-    );
+    await user.click(within(dialog).getByLabelText(/Ne pas proposer automatiquement cet exercice/));
     await user.selectOptions(
       within(dialog).getByLabelText('Équipement préféré'),
       '22222222-2222-2222-2222-222222222222',
@@ -208,9 +197,7 @@ describe('ExerciseDetailPage preferences', () => {
         restSecondsOverride: 90,
       });
     });
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Préférences enregistrées.',
-    );
+    expect(await screen.findByRole('status')).toHaveTextContent('Préférences enregistrées.');
   });
 
   it('keeps detail visible when preference save fails', async () => {
@@ -249,12 +236,8 @@ describe('ExerciseDetailPage preferences', () => {
 
     renderDetail();
     await screen.findByRole('heading', { name: 'Développé couché à la barre' });
-    await user.click(
-      screen.getByRole('button', { name: 'Réinitialiser les préférences' }),
-    );
-    expect(
-      screen.getByRole('alertdialog'),
-    ).toHaveTextContent('Réinitialiser tes préférences');
+    await user.click(screen.getByRole('button', { name: 'Réinitialiser les préférences' }));
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('Réinitialiser tes préférences');
     await user.click(screen.getByRole('button', { name: 'Réinitialiser' }));
 
     await waitFor(() => {
@@ -274,9 +257,7 @@ describe('ExerciseDetailPage preferences', () => {
   });
 
   it('shows archived badge', async () => {
-    getExercise.mockResolvedValue(
-      createDetail({ archivedAt: '2026-08-01T00:00:00.000Z' }),
-    );
+    getExercise.mockResolvedValue(createDetail({ archivedAt: '2026-08-01T00:00:00.000Z' }));
     renderDetail();
     expect(await screen.findByText('Archivé')).toBeInTheDocument();
   });
@@ -298,9 +279,7 @@ describe('ExerciseDetailPage management', () => {
     renderDetail();
     await screen.findByRole('heading', { name: 'Développé couché à la barre' });
     expect(screen.queryByText('Gestion de l’exercice')).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: /Modifier l’exercice/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Modifier l’exercice/i })).not.toBeInTheDocument();
   });
 
   it('archives a personal exercise after confirmation and preserves preferences', async () => {
@@ -326,14 +305,13 @@ describe('ExerciseDetailPage management', () => {
 
     renderDetail('user-ex-1');
     await screen.findByRole('heading', { name: 'Curl perso' });
-    expect(
-      screen.getByRole('link', { name: /Modifier l’exercice/i }),
-    ).toHaveAttribute('href', '/exercises/user-ex-1/edit');
+    expect(screen.getByRole('link', { name: /Modifier l’exercice/i })).toHaveAttribute(
+      'href',
+      '/exercises/user-ex-1/edit',
+    );
 
     await user.click(screen.getByRole('button', { name: /Archiver l’exercice/i }));
-    expect(screen.getByRole('alertdialog')).toHaveTextContent(
-      'Archiver cet exercice ?',
-    );
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('Archiver cet exercice ?');
     await user.click(screen.getByRole('button', { name: 'Annuler' }));
     expect(archiveExercise).not.toHaveBeenCalled();
 
@@ -377,9 +355,7 @@ describe('ExerciseDetailPage management', () => {
 
     renderDetail('user-ex-2');
     await screen.findByRole('heading', { name: 'Row perso' });
-    expect(
-      screen.queryByRole('link', { name: /Modifier l’exercice/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Modifier l’exercice/i })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Restaurer l’exercice/i }));
     await user.click(
@@ -392,9 +368,7 @@ describe('ExerciseDetailPage management', () => {
       expect(restoreExercise).toHaveBeenCalledWith('user-ex-2');
     });
     expect(await screen.findByText('Exercice restauré.')).toBeInTheDocument();
-    expect(
-      await screen.findByRole('link', { name: /Modifier l’exercice/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /Modifier l’exercice/i })).toBeInTheDocument();
     expect(screen.queryByText('Archivé')).not.toBeInTheDocument();
   });
 });

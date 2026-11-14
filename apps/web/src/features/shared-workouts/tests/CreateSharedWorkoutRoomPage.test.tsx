@@ -9,8 +9,7 @@ import { CreateSharedWorkoutRoomPage } from '../pages/CreateSharedWorkoutRoomPag
 const createSharedWorkoutRoom = vi.fn();
 
 vi.mock('../api/shared-workouts-api', () => ({
-  createSharedWorkoutRoom: (...args: unknown[]) =>
-    createSharedWorkoutRoom(...args),
+  createSharedWorkoutRoom: (...args: unknown[]) => createSharedWorkoutRoom(...args),
 }));
 
 function renderPage() {
@@ -21,14 +20,8 @@ function renderPage() {
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={['/shared-workouts/new']}>
         <Routes>
-          <Route
-            path="/shared-workouts/new"
-            element={<CreateSharedWorkoutRoomPage />}
-          />
-          <Route
-            path="/shared-workouts/:roomId"
-            element={<p>Lobby room</p>}
-          />
+          <Route path="/shared-workouts/new" element={<CreateSharedWorkoutRoomPage />} />
+          <Route path="/shared-workouts/:roomId" element={<p>Lobby room</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -46,14 +39,9 @@ describe('CreateSharedWorkoutRoomPage', () => {
 
     renderPage();
 
-    expect(
-      screen.getByRole('heading', { name: /créer une salle/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /créer une salle/i })).toBeInTheDocument();
 
-    await user.type(
-      screen.getByLabelText(/nom de la salle/i),
-      'Ma salle',
-    );
+    await user.type(screen.getByLabelText(/nom de la salle/i), 'Ma salle');
     await user.click(screen.getByRole('button', { name: /créer la salle/i }));
 
     await waitFor(() => {

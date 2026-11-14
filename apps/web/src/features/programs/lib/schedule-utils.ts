@@ -24,9 +24,7 @@ export function todayLocalDateString(): string {
   return `${year}-${month}-${day}`;
 }
 
-export function templateToScheduleRef(
-  template: WorkoutTemplateDetail,
-): ProgramScheduleTemplateRef {
+export function templateToScheduleRef(template: WorkoutTemplateDetail): ProgramScheduleTemplateRef {
   return {
     id: template.id,
     name: template.name,
@@ -45,15 +43,11 @@ export function scheduleEntryToDraft(entry: ProgramScheduleEntry): DraftSchedule
   };
 }
 
-export function scheduleToDraftEntries(
-  schedule: ProgramSchedule,
-): DraftScheduleEntry[] {
+export function scheduleToDraftEntries(schedule: ProgramSchedule): DraftScheduleEntry[] {
   return schedule.entries.map(scheduleEntryToDraft);
 }
 
-export function reindexDraftEntries(
-  entries: DraftScheduleEntry[],
-): DraftScheduleEntry[] {
+export function reindexDraftEntries(entries: DraftScheduleEntry[]): DraftScheduleEntry[] {
   const byWeekday = new Map<Weekday, DraftScheduleEntry[]>();
   for (const weekday of WEEKDAY_VALUES) {
     byWeekday.set(weekday, []);
@@ -133,9 +127,7 @@ export function changeDraftEntryWeekday(
   const dayCount = entriesForWeekday(entries, weekday).length;
   return reindexDraftEntries(
     entries.map((entry) =>
-      entry.clientId === clientId
-        ? { ...entry, weekday, position: dayCount }
-        : entry,
+      entry.clientId === clientId ? { ...entry, weekday, position: dayCount } : entry,
     ),
   );
 }
@@ -144,9 +136,7 @@ export function removeDraftEntry(
   entries: DraftScheduleEntry[],
   clientId: string,
 ): DraftScheduleEntry[] {
-  return reindexDraftEntries(
-    entries.filter((entry) => entry.clientId !== clientId),
-  );
+  return reindexDraftEntries(entries.filter((entry) => entry.clientId !== clientId));
 }
 
 export function addDraftEntry(

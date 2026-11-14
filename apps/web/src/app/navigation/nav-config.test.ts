@@ -12,11 +12,7 @@ import {
 describe('nav-config', () => {
   it('primary nav has exactly 3 métier destinations', () => {
     expect(primaryNavItems).toHaveLength(3);
-    expect(primaryNavItems.map((i) => i.id)).toEqual([
-      'home',
-      'training',
-      'progress',
-    ]);
+    expect(primaryNavItems.map((i) => i.id)).toEqual(['home', 'training', 'progress']);
   });
 
   it('forbids secondary destinations in bottom nav paths list', () => {
@@ -50,12 +46,7 @@ describe('nav-config', () => {
   });
 
   it('more menu includes exercises shared coach profile', () => {
-    expect(moreNavItems.map((i) => i.id)).toEqual([
-      'exercises',
-      'shared',
-      'coach',
-      'profile',
-    ]);
+    expect(moreNavItems.map((i) => i.id)).toEqual(['exercises', 'shared', 'coach', 'profile']);
   });
 
   it('more menu is organized in groups without settings', () => {
@@ -64,8 +55,6 @@ describe('nav-config', () => {
       'coaching-more',
       'account-more',
     ]);
-    expect(
-      moreNavItems.some((item) => item.to.includes('settings')),
-    ).toBe(false);
+    expect(moreNavItems.some((item) => item.to.includes('settings'))).toBe(false);
   });
 });

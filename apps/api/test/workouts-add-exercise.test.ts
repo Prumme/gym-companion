@@ -17,8 +17,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.JWT_ACCESS_SECRET =
     process.env.JWT_ACCESS_SECRET ?? 'test-jwt-access-secret-at-least-32-chars!!';
@@ -28,11 +27,7 @@ function applyTestEnv() {
   process.env.LOG_LEVEL = 'error';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -80,9 +75,7 @@ describe('Add workout session exercise / set API', () => {
 
     tokenA = await registerUser(app, emailA, 'Add Ex A');
     tokenB = await registerUser(app, emailB, 'Add Ex B');
-    userAId = (
-      await prisma.user.findFirstOrThrow({ where: { email: emailA } })
-    ).id;
+    userAId = (await prisma.user.findFirstOrThrow({ where: { email: emailA } })).id;
 
     const weightExercises = await prisma.exercise.findMany({
       where: {
@@ -141,9 +134,7 @@ describe('Add workout session exercise / set API', () => {
         where: { id: exerciseId },
       });
       const added = await request(app.getHttpServer())
-        .post(
-          `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-        )
+        .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
         .set('Authorization', `Bearer ${tokenA}`)
         .send({
           exerciseId,
@@ -298,8 +289,7 @@ describe('Add workout session exercise / set API', () => {
       })
       .expect(201);
     const added = response.body.data.exercises.find(
-      (exercise: { sourceExerciseId: string }) =>
-        exercise.sourceExerciseId === personalExerciseId,
+      (exercise: { sourceExerciseId: string }) => exercise.sourceExerciseId === personalExerciseId,
     );
     expect(added).toBeDefined();
     expect(added.sets).toHaveLength(1);
@@ -310,9 +300,7 @@ describe('Add workout session exercise / set API', () => {
     const foreign = await prisma.exercise.create({
       data: {
         source: 'USER',
-        ownerUserId: (
-          await prisma.user.findFirstOrThrow({ where: { email: emailB } })
-        ).id,
+        ownerUserId: (await prisma.user.findFirstOrThrow({ where: { email: emailB } })).id,
         name: `Foreign ${stamp}`,
         normalizedName: `foreign-${stamp}`,
         primaryMuscleGroupId: muscle.id,
@@ -346,9 +334,7 @@ describe('Add workout session exercise / set API', () => {
 
   it('adds WORKING sets without inventing targets and numbers them sequentially', async () => {
     const before = await getActive();
-    const adHoc = before.exercises.find(
-      (exercise) => exercise.sourceExerciseId === legExtensionId,
-    );
+    const adHoc = before.exercises.find((exercise) => exercise.sourceExerciseId === legExtensionId);
     expect(adHoc).toBeDefined();
 
     const first = await request(app.getHttpServer())
@@ -377,9 +363,7 @@ describe('Add workout session exercise / set API', () => {
       })
       .expect(201);
     expect(
-      replay.body.data.exercises.find(
-        (exercise: { id: string }) => exercise.id === adHoc!.id,
-      ).sets,
+      replay.body.data.exercises.find((exercise: { id: string }) => exercise.id === adHoc!.id).sets,
     ).toHaveLength(2);
 
     const second = await request(app.getHttpServer())
@@ -392,9 +376,7 @@ describe('Add workout session exercise / set API', () => {
     const afterSecond = second.body.data.exercises.find(
       (exercise: { id: string }) => exercise.id === adHoc!.id,
     );
-    expect(afterSecond.sets.map((set: { position: number }) => set.position)).toEqual(
-      [0, 1, 2],
-    );
+    expect(afterSecond.sets.map((set: { position: number }) => set.position)).toEqual([0, 1, 2]);
   });
 
   it('adds a set on a template-sourced exercise without copying targets', async () => {
@@ -406,9 +388,7 @@ describe('Add workout session exercise / set API', () => {
     const originalCount = templateExercise!.sets.length;
 
     const response = await request(app.getHttpServer())
-      .post(
-        `/api/v1/workouts/${sessionId}/exercises/${templateExercise!.id}/sets`,
-      )
+      .post(`/api/v1/workouts/${sessionId}/exercises/${templateExercise!.id}/sets`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ expectedVersion: active.version })
       .expect(201);
@@ -425,9 +405,7 @@ describe('Add workout session exercise / set API', () => {
   it('refuses a set on an exercise that does not belong to the session', async () => {
     const active = await getActive();
     const response = await request(app.getHttpServer())
-      .post(
-        `/api/v1/workouts/${sessionId}/exercises/11111111-1111-4111-8111-111111111111/sets`,
-      )
+      .post(`/api/v1/workouts/${sessionId}/exercises/11111111-1111-4111-8111-111111111111/sets`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ expectedVersion: active.version })
       .expect(404);
@@ -436,18 +414,14 @@ describe('Add workout session exercise / set API', () => {
 
   it('deletes a set, recompacts positions and refuses the last remaining set', async () => {
     const before = await getActive();
-    const adHoc = before.exercises.find(
-      (exercise) => exercise.sourceExerciseId === legExtensionId,
-    );
+    const adHoc = before.exercises.find((exercise) => exercise.sourceExerciseId === legExtensionId);
     expect(adHoc).toBeDefined();
     expect(adHoc!.sets.length).toBeGreaterThanOrEqual(2);
     const removedId = adHoc!.sets[0]!.id as string;
     const remainingIds = adHoc!.sets.slice(1).map((set) => set.id);
 
     const deleted = await request(app.getHttpServer())
-      .delete(
-        `/api/v1/workouts/${sessionId}/exercises/${adHoc!.id}/sets/${removedId}`,
-      )
+      .delete(`/api/v1/workouts/${sessionId}/exercises/${adHoc!.id}/sets/${removedId}`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ expectedVersion: before.version })
       .expect(200);
@@ -460,22 +434,17 @@ describe('Add workout session exercise / set API', () => {
     expect(after.sets.map((set: { position: number }) => set.position)).toEqual(
       remainingIds.map((_, index) => index),
     );
-    expect(
-      await prisma.workoutSet.findUnique({ where: { id: removedId } }),
-    ).toBeNull();
+    expect(await prisma.workoutSet.findUnique({ where: { id: removedId } })).toBeNull();
 
     const bench = after
       ? deleted.body.data.exercises.find(
-          (exercise: { sourceExerciseId: string }) =>
-            exercise.sourceExerciseId === benchId,
+          (exercise: { sourceExerciseId: string }) => exercise.sourceExerciseId === benchId,
         )
       : null;
     expect(bench).toBeDefined();
     expect(bench.sets).toHaveLength(1);
     const last = await request(app.getHttpServer())
-      .delete(
-        `/api/v1/workouts/${sessionId}/exercises/${bench.id}/sets/${bench.sets[0].id}`,
-      )
+      .delete(`/api/v1/workouts/${sessionId}/exercises/${bench.id}/sets/${bench.sets[0].id}`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ expectedVersion: deleted.body.data.version })
       .expect(400);
@@ -484,21 +453,15 @@ describe('Add workout session exercise / set API', () => {
 
   it('requires auth and isolates delete to the owner', async () => {
     const active = await getActive();
-    const adHoc = active.exercises.find(
-      (exercise) => exercise.sourceExerciseId === legExtensionId,
-    );
+    const adHoc = active.exercises.find((exercise) => exercise.sourceExerciseId === legExtensionId);
     const setId = adHoc!.sets[0]!.id;
     await request(app.getHttpServer())
-      .delete(
-        `/api/v1/workouts/${sessionId}/exercises/${adHoc!.id}/sets/${setId}`,
-      )
+      .delete(`/api/v1/workouts/${sessionId}/exercises/${adHoc!.id}/sets/${setId}`)
       .send({ expectedVersion: active.version })
       .expect(401);
 
     const foreign = await request(app.getHttpServer())
-      .delete(
-        `/api/v1/workouts/${sessionId}/exercises/${adHoc!.id}/sets/${setId}`,
-      )
+      .delete(`/api/v1/workouts/${sessionId}/exercises/${adHoc!.id}/sets/${setId}`)
       .set('Authorization', `Bearer ${tokenB}`)
       .send({ expectedVersion: active.version })
       .expect(404);
@@ -514,9 +477,10 @@ describe('Add workout session exercise / set API', () => {
       (row: { id: string }) => row.id === templateId,
     );
     expect(template.exercises).toHaveLength(2);
-    expect(
-      template.exercises.map((row: { exercise: { id: string } }) => row.exercise.id),
-    ).toEqual([legPressId, benchId]);
+    expect(template.exercises.map((row: { exercise: { id: string } }) => row.exercise.id)).toEqual([
+      legPressId,
+      benchId,
+    ]);
   });
 
   it('records ad-hoc performance in history, progress and records after complete', async () => {
@@ -527,9 +491,7 @@ describe('Add workout session exercise / set API', () => {
     expect(adHocId).toBeDefined();
 
     let version = active.version;
-    while (
-      active.exercises.find((exercise) => exercise.id === adHocId)!.sets.length < 3
-    ) {
+    while (active.exercises.find((exercise) => exercise.id === adHocId)!.sets.length < 3) {
       const added = await request(app.getHttpServer())
         .post(`/api/v1/workouts/${sessionId}/exercises/${adHocId}/sets`)
         .set('Authorization', `Bearer ${tokenA}`)
@@ -551,9 +513,7 @@ describe('Add workout session exercise / set API', () => {
     for (let index = 0; index < 3; index += 1) {
       const set = adHoc!.sets[index]!;
       const patched = await request(app.getHttpServer())
-        .patch(
-          `/api/v1/workouts/${sessionId}/exercises/${adHoc!.id}/sets/${set.id}`,
-        )
+        .patch(`/api/v1/workouts/${sessionId}/exercises/${adHoc!.id}/sets/${set.id}`)
         .set('Authorization', `Bearer ${tokenA}`)
         .send({
           status: 'COMPLETED',
@@ -583,8 +543,7 @@ describe('Add workout session exercise / set API', () => {
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     const names = history.body.data.exercises.map(
-      (exercise: { exerciseName: string; sourceExerciseId: string }) =>
-        exercise.sourceExerciseId,
+      (exercise: { exerciseName: string; sourceExerciseId: string }) => exercise.sourceExerciseId,
     );
     expect(names).toContain(legPressId);
     expect(names).toContain(benchId);
@@ -606,9 +565,7 @@ describe('Add workout session exercise / set API', () => {
     expect(progress.body.data.points.length).toBeGreaterThanOrEqual(1);
 
     const lastSets = await request(app.getHttpServer())
-      .get(
-        `/api/v1/progress/last-working-sets?exerciseIds=${legExtensionId},${benchId}`,
-      )
+      .get(`/api/v1/progress/last-working-sets?exerciseIds=${legExtensionId},${benchId}`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     const last = (

@@ -76,18 +76,12 @@ function workoutsOf(
 ): CoachWorkoutProposal[] {
   if (kind === 'WORKOUT') {
     if (!workout) {
-      throw new AiCoachProposalBusinessError(
-        'data.workout manquant.',
-        'PROPOSAL_DATA_MISSING',
-      );
+      throw new AiCoachProposalBusinessError('data.workout manquant.', 'PROPOSAL_DATA_MISSING');
     }
     return [workout];
   }
   if (!program) {
-    throw new AiCoachProposalBusinessError(
-      'data.program manquant.',
-      'PROPOSAL_DATA_MISSING',
-    );
+    throw new AiCoachProposalBusinessError('data.program manquant.', 'PROPOSAL_DATA_MISSING');
   }
   return program.workouts;
 }
@@ -150,9 +144,7 @@ export async function validateProposalContext(
   const exerciseIds = [...new Set(exercises.map((item) => item.exerciseId))];
   const equipmentTypeIds = [
     ...new Set(
-      exercises
-        .map((item) => item.equipmentTypeId)
-        .filter((id): id is string => id != null),
+      exercises.map((item) => item.equipmentTypeId).filter((id): id is string => id != null),
     ),
   ];
 
@@ -191,9 +183,7 @@ export async function validateProposalContext(
           select: { id: true, name: true },
         })
       : [];
-  const equipmentMap = new Map<string, EquipmentInfo>(
-    equipmentRows.map((row) => [row.id, row]),
-  );
+  const equipmentMap = new Map<string, EquipmentInfo>(equipmentRows.map((row) => [row.id, row]));
   // Équipements inventés / inactifs → retirés au sanitize (pas d’échec dur).
 
   const sanitizedWorkouts = workouts.map((item) =>
@@ -214,10 +204,7 @@ export async function validateProposalContext(
       }
       for (let si = 0; si < exercise.sets.length; si += 1) {
         const set = exercise.sets[si]!;
-        const validation = validateWorkoutTemplateSetTargets(
-          info.measurementType,
-          set,
-        );
+        const validation = validateWorkoutTemplateSetTargets(info.measurementType, set);
         if (!validation.ok) {
           throw new AiCoachProposalBusinessError(
             `Cible de série invalide pour « ${info.name} » : ${validation.message}`,
@@ -258,11 +245,9 @@ export async function validateProposalContext(
         })),
       );
       if (!validation.ok) {
-        throw new AiCoachProposalBusinessError(
-          validation.message,
-          'PROPOSAL_PROGRAM_INVALID',
-          { scheduleError: validation.code },
-        );
+        throw new AiCoachProposalBusinessError(validation.message, 'PROPOSAL_PROGRAM_INVALID', {
+          scheduleError: validation.code,
+        });
       }
     }
   }
@@ -291,9 +276,7 @@ function summarizeSetForLog(set: CoachProposalSet): Record<string, unknown> {
  * Feedback machine compact pour UNE tentative de repair OpenAI.
  * Pas de payload complet, pas d’historique.
  */
-export function buildProposalRepairFeedback(
-  error: AiCoachProposalBusinessError,
-): string {
+export function buildProposalRepairFeedback(error: AiCoachProposalBusinessError): string {
   const compact: Record<string, unknown> = {
     reason: error.code,
     exerciseId: error.details.exerciseId ?? null,
@@ -323,44 +306,34 @@ export function buildProposalPreview(
   program: CoachProgramProposal | null,
   context: AiCoachProposalContext,
 ): AiCoachProposalPreview {
-  const toPreviewWorkout = (
-    item: CoachWorkoutProposal,
-  ): AiCoachProposalPreviewWorkout => ({
+  const toPreviewWorkout = (item: CoachWorkoutProposal): AiCoachProposalPreviewWorkout => ({
     name: item.name,
     estimatedDurationMinutes: item.estimatedDurationMinutes,
-    exercises: item.exercises.map(
-      (exercise): AiCoachProposalPreviewExercise => {
-        const info = context.exerciseMap.get(exercise.exerciseId);
-        const equipment = exercise.equipmentTypeId
-          ? context.equipmentMap.get(exercise.equipmentTypeId) ?? null
-          : null;
-        return {
-          exerciseId: exercise.exerciseId,
-          exerciseName: info?.name ?? 'Exercice',
-          measurementType: info?.measurementType ?? 'WEIGHT_REPS',
-          equipmentTypeId: exercise.equipmentTypeId,
-          equipmentName: equipment?.name ?? null,
-          notes: exercise.notes,
-          sets: exercise.sets.map((set) => ({ ...set })),
-        };
-      },
-    ),
+    exercises: item.exercises.map((exercise): AiCoachProposalPreviewExercise => {
+      const info = context.exerciseMap.get(exercise.exerciseId);
+      const equipment = exercise.equipmentTypeId
+        ? (context.equipmentMap.get(exercise.equipmentTypeId) ?? null)
+        : null;
+      return {
+        exerciseId: exercise.exerciseId,
+        exerciseName: info?.name ?? 'Exercice',
+        measurementType: info?.measurementType ?? 'WEIGHT_REPS',
+        equipmentTypeId: exercise.equipmentTypeId,
+        equipmentName: equipment?.name ?? null,
+        notes: exercise.notes,
+        sets: exercise.sets.map((set) => ({ ...set })),
+      };
+    }),
   });
 
   if (kind === 'WORKOUT') {
     if (!workout) {
-      throw new AiCoachProposalBusinessError(
-        'data.workout manquant.',
-        'PROPOSAL_DATA_MISSING',
-      );
+      throw new AiCoachProposalBusinessError('data.workout manquant.', 'PROPOSAL_DATA_MISSING');
     }
     return { kind: 'WORKOUT', workout: toPreviewWorkout(workout) };
   }
   if (!program) {
-    throw new AiCoachProposalBusinessError(
-      'data.program manquant.',
-      'PROPOSAL_DATA_MISSING',
-    );
+    throw new AiCoachProposalBusinessError('data.program manquant.', 'PROPOSAL_DATA_MISSING');
   }
   return {
     kind: 'PROGRAM',

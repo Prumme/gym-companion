@@ -52,10 +52,7 @@ export function ScheduleDaySheet({
 
   useEffect(() => {
     if (!open || !weekday) return;
-    const entries = entriesForWeekday(
-      scheduleToDraftEntries(schedule),
-      weekday,
-    );
+    const entries = entriesForWeekday(scheduleToDraftEntries(schedule), weekday);
     setSelectedTemplateId(entries[0]?.workoutTemplateId ?? '');
     setError(null);
   }, [open, weekday, schedule]);
@@ -97,11 +94,7 @@ export function ScheduleDaySheet({
       return;
     }
 
-    const nextDraft = setDraftDaySingleTemplate(
-      scheduleToDraftEntries(schedule),
-      day,
-      template,
-    );
+    const nextDraft = setDraftDaySingleTemplate(scheduleToDraftEntries(schedule), day, template);
 
     try {
       await replaceMutation.mutateAsync({
@@ -111,20 +104,14 @@ export function ScheduleDaySheet({
       onSaved?.();
       onClose();
     } catch (err) {
-      setError(
-        getApiErrorMessage(err, 'Impossible d’enregistrer le planning.'),
-      );
+      setError(getApiErrorMessage(err, 'Impossible d’enregistrer le planning.'));
     }
   }
 
   async function handleRemove() {
     setSelectedTemplateId('');
     setError(null);
-    const nextDraft = setDraftDaySingleTemplate(
-      scheduleToDraftEntries(schedule),
-      day,
-      null,
-    );
+    const nextDraft = setDraftDaySingleTemplate(scheduleToDraftEntries(schedule), day, null);
     try {
       await replaceMutation.mutateAsync({
         programId,
@@ -133,9 +120,7 @@ export function ScheduleDaySheet({
       onSaved?.();
       onClose();
     } catch (err) {
-      setError(
-        getApiErrorMessage(err, 'Impossible de retirer la séance.'),
-      );
+      setError(getApiErrorMessage(err, 'Impossible de retirer la séance.'));
     }
   }
 
@@ -153,8 +138,7 @@ export function ScheduleDaySheet({
         aria-labelledby={titleId}
         className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-[var(--radius-surface)] border border-[var(--border)] bg-[var(--surface)] px-[var(--space-4)] pt-[var(--space-4)] shadow-lg md:inset-x-auto md:right-4 md:bottom-4 md:left-auto md:w-full md:max-w-md md:rounded-[var(--radius-surface)]"
         style={{
-          paddingBottom:
-            'calc(var(--space-6) + env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'calc(var(--space-6) + env(safe-area-inset-bottom, 0px))',
         }}
       >
         <div className="mb-[var(--space-4)] flex items-center justify-between gap-3">
@@ -187,9 +171,7 @@ export function ScheduleDaySheet({
 
         {templates.length === 0 && detailQuery.isSuccess ? (
           <div className="flex flex-col gap-3">
-            <p className="text-sm text-[var(--muted)]">
-              Aucune séance dans ce programme.
-            </p>
+            <p className="text-sm text-[var(--muted)]">Aucune séance dans ce programme.</p>
             <Link
               to={`/programs/${programId}`}
               className="text-sm font-medium text-[var(--foreground)] underline-offset-2 hover:underline"
@@ -203,9 +185,7 @@ export function ScheduleDaySheet({
         {templates.length > 0 ? (
           <div className="flex flex-col gap-4">
             <label className="flex flex-col gap-1.5 text-sm">
-              <span className="font-medium text-[var(--foreground)]">
-                Séance prévue
-              </span>
+              <span className="font-medium text-[var(--foreground)]">Séance prévue</span>
               <select
                 value={selectedTemplateId}
                 onChange={(event) => setSelectedTemplateId(event.target.value)}
@@ -223,8 +203,8 @@ export function ScheduleDaySheet({
 
             {multiSessions ? (
               <p className="text-sm text-[var(--muted)]">
-                Plusieurs séances sont planifiées ce jour. L’enregistrement ici
-                n’en conserve qu’une.{' '}
+                Plusieurs séances sont planifiées ce jour. L’enregistrement ici n’en conserve
+                qu’une.{' '}
                 <Link
                   to={`/programs/${programId}/schedule`}
                   className="font-medium text-[var(--foreground)] underline-offset-2 hover:underline"

@@ -3,10 +3,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { todayLocalDateString } from '@/features/programs/lib/schedule-utils';
 
 import { progressQueryKeys } from '../api/progress-query-keys';
-import {
-  buildOverviewSearchParams,
-  parseOverviewSearchParams,
-} from '../lib/overview-filters';
+import { buildOverviewSearchParams, parseOverviewSearchParams } from '../lib/overview-filters';
 import {
   buildProgressSearchParams,
   parseProgressSearchParams,
@@ -33,9 +30,7 @@ describe('progress period URL (Tout)', () => {
   });
 
   it('period=all → tout l’historique (from/to absents)', () => {
-    const parsed = parseProgressSearchParams(
-      new URLSearchParams('period=all'),
-    );
+    const parsed = parseProgressSearchParams(new URLSearchParams('period=all'));
     expect(parsed).toEqual({
       metric: undefined,
       from: undefined,
@@ -85,9 +80,7 @@ describe('progress period URL (Tout)', () => {
   });
 
   it('période personnalisée conserve from/to', () => {
-    const parsed = parseProgressSearchParams(
-      new URLSearchParams('from=2026-02-01&to=2026-03-15'),
-    );
+    const parsed = parseProgressSearchParams(new URLSearchParams('from=2026-02-01&to=2026-03-15'));
     expect(parsed.period).toBe('custom');
     expect(parsed.from).toBe('2026-02-01');
     expect(parsed.to).toBe('2026-03-15');
@@ -141,9 +134,7 @@ describe('overview period URL (Tout)', () => {
   });
 
   it('period=all → tout', () => {
-    const parsed = parseOverviewSearchParams(
-      new URLSearchParams('period=all'),
-    );
+    const parsed = parseOverviewSearchParams(new URLSearchParams('period=all'));
     expect(parsed.period).toBe('all');
     expect(parsed.from).toBeUndefined();
     expect(parsed.to).toBeUndefined();

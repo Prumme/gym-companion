@@ -161,14 +161,10 @@ export function WorkoutLifecycleActions({
     cancelMutation.isPending;
 
   const versionConflict =
-    (pauseMutation.error as ApiRequestError | null)?.code ===
-      'WORKOUT_VERSION_CONFLICT' ||
-    (resumeMutation.error as ApiRequestError | null)?.code ===
-      'WORKOUT_VERSION_CONFLICT' ||
-    (completeMutation.error as ApiRequestError | null)?.code ===
-      'WORKOUT_VERSION_CONFLICT' ||
-    (cancelMutation.error as ApiRequestError | null)?.code ===
-      'WORKOUT_VERSION_CONFLICT';
+    (pauseMutation.error as ApiRequestError | null)?.code === 'WORKOUT_VERSION_CONFLICT' ||
+    (resumeMutation.error as ApiRequestError | null)?.code === 'WORKOUT_VERSION_CONFLICT' ||
+    (completeMutation.error as ApiRequestError | null)?.code === 'WORKOUT_VERSION_CONFLICT' ||
+    (cancelMutation.error as ApiRequestError | null)?.code === 'WORKOUT_VERSION_CONFLICT';
 
   return (
     <div className="flex flex-col gap-2">
@@ -259,20 +255,17 @@ export function WorkoutLifecycleActions({
                 {progress.pendingSets === 1 ? '' : 's'}
               </li>
               <li>
-                {progress.treatedExercises}/{progress.totalExercises} exercices
-                traités
+                {progress.treatedExercises}/{progress.totalExercises} exercices traités
               </li>
               <li>
-                Terminées {progress.completedSets} · Partielles{' '}
-                {progress.partialSets} · Échouées {progress.failedSets} ·
-                Ignorées {progress.skippedSets}
+                Terminées {progress.completedSets} · Partielles {progress.partialSets} · Échouées{' '}
+                {progress.failedSets} · Ignorées {progress.skippedSets}
               </li>
             </ul>
             {progress.pendingSets > 0 ? (
               <p className="mt-2 text-sm text-[var(--muted)]" role="status">
-                Certaines séries sont encore à faire. {progress.pendingSets}{' '}
-                série{progress.pendingSets === 1 ? '' : 's'} sur{' '}
-                {progress.totalSets}{' '}
+                Certaines séries sont encore à faire. {progress.pendingSets} série
+                {progress.pendingSets === 1 ? '' : 's'} sur {progress.totalSets}{' '}
                 {progress.pendingSets === 1 ? 'est' : 'sont'} encore à faire.
               </p>
             ) : null}
@@ -294,10 +287,7 @@ export function WorkoutLifecycleActions({
                 className="min-h-12 w-24 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--background)] px-3 text-base tabular-nums"
               />
             </label>
-            <label
-              className="mt-3 flex flex-col gap-1 text-sm"
-              htmlFor={notesId}
-            >
+            <label className="mt-3 flex flex-col gap-1 text-sm" htmlFor={notesId}>
               <span className="font-medium">Notes (facultatif)</span>
               <textarea
                 id={notesId}
@@ -308,13 +298,9 @@ export function WorkoutLifecycleActions({
               />
             </label>
             {completeMutation.error &&
-            (completeMutation.error as ApiRequestError).code !==
-              'WORKOUT_VERSION_CONFLICT' ? (
+            (completeMutation.error as ApiRequestError).code !== 'WORKOUT_VERSION_CONFLICT' ? (
               <p className="mt-2 text-sm text-[var(--danger)]" role="alert">
-                {getApiErrorMessage(
-                  completeMutation.error,
-                  'Impossible de terminer la séance.',
-                )}
+                {getApiErrorMessage(completeMutation.error, 'Impossible de terminer la séance.')}
               </p>
             ) : null}
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
@@ -363,13 +349,10 @@ export function WorkoutLifecycleActions({
               Annuler cette séance ?
             </h3>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              La séance sera conservée dans tes données avec le statut Annulée.
-              Les séries déjà enregistrées seront conservées.
+              La séance sera conservée dans tes données avec le statut Annulée. Les séries déjà
+              enregistrées seront conservées.
             </p>
-            <label
-              className="mt-3 flex flex-col gap-1 text-sm"
-              htmlFor={reasonId}
-            >
+            <label className="mt-3 flex flex-col gap-1 text-sm" htmlFor={reasonId}>
               <span className="font-medium">Motif de l’annulation</span>
               <textarea
                 id={reasonId}
@@ -380,13 +363,9 @@ export function WorkoutLifecycleActions({
               />
             </label>
             {cancelMutation.error &&
-            (cancelMutation.error as ApiRequestError).code !==
-              'WORKOUT_VERSION_CONFLICT' ? (
+            (cancelMutation.error as ApiRequestError).code !== 'WORKOUT_VERSION_CONFLICT' ? (
               <p className="mt-2 text-sm text-[var(--danger)]" role="alert">
-                {getApiErrorMessage(
-                  cancelMutation.error,
-                  'Impossible d’annuler la séance.',
-                )}
+                {getApiErrorMessage(cancelMutation.error, 'Impossible d’annuler la séance.')}
               </p>
             ) : null}
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">

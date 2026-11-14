@@ -18,17 +18,14 @@ const { getMe } = vi.hoisted(() => ({
 
 vi.mock('../api/coaching-api', () => ({
   getCoachingOverview: (...args: unknown[]) => getCoachingOverview(...args),
-  getExerciseCoachSummary: (...args: unknown[]) =>
-    getExerciseCoachSummary(...args),
+  getExerciseCoachSummary: (...args: unknown[]) => getExerciseCoachSummary(...args),
 }));
 
 vi.mock('@/features/profile/api/profile-api', () => ({
   getMe: (...args: unknown[]) => getMe(...args),
 }));
 
-function baseSummary(
-  overrides: Partial<ExerciseCoachSummary> = {},
-): ExerciseCoachSummary {
+function baseSummary(overrides: Partial<ExerciseCoachSummary> = {}): ExerciseCoachSummary {
   return {
     exercise: {
       id: 'ex-1',
@@ -40,8 +37,7 @@ function baseSummary(
     status: 'WATCH',
     headline: {
       title: 'Progression à surveiller',
-      description:
-        'Tes performances sont restées proches sur plusieurs séances récentes.',
+      description: 'Tes performances sont restées proches sur plusieurs séances récentes.',
     },
     loadRecommendation: {
       action: 'HOLD',
@@ -190,9 +186,10 @@ describe('Coach frontend (5.4)', () => {
     await screen.findByText('80 kg');
     expect(screen.getAllByText('Progression à surveiller').length).toBeGreaterThan(0);
     expect(screen.getByText(/Prochaine séance/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Voir la recommandation' }),
-    ).toHaveAttribute('href', '/programs/prog-1');
+    expect(screen.getByRole('link', { name: 'Voir la recommandation' })).toHaveAttribute(
+      'href',
+      '/programs/prog-1',
+    );
     expect(screen.getByText(/Explication IA/i)).toBeInTheDocument();
   });
 

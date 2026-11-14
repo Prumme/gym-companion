@@ -22,9 +22,7 @@ export function programListInfiniteQueryOptions(filters: ProgramListFilters) {
       }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
-      lastPage.pagination.hasMore
-        ? (lastPage.pagination.nextCursor ?? undefined)
-        : undefined,
+      lastPage.pagination.hasMore ? (lastPage.pagination.nextCursor ?? undefined) : undefined,
   });
 }
 

@@ -21,13 +21,10 @@ type ActiveWorkoutResumeCardProps = {
   session: WorkoutSessionDetail;
 };
 
-export function ActiveWorkoutResumeCard({
-  session,
-}: ActiveWorkoutResumeCardProps) {
+export function ActiveWorkoutResumeCard({ session }: ActiveWorkoutResumeCardProps) {
   const progress = computeWorkoutProgress(session);
   const startedLabel = formatStartedAtTime(session.startedAt, session.timezone);
-  const inProgress =
-    session.status === 'ACTIVE' || session.status === 'PAUSED';
+  const inProgress = session.status === 'ACTIVE' || session.status === 'PAUSED';
 
   if (!inProgress) {
     return null;
@@ -39,9 +36,7 @@ export function ActiveWorkoutResumeCard({
         {session.status === 'PAUSED' ? 'Séance en pause' : 'Séance en cours'}
       </p>
       <h2 className="mt-1 text-lg font-semibold">{session.name}</h2>
-      <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-        Démarrée à {startedLabel}
-      </p>
+      <p className="mt-1 text-sm text-[var(--muted-foreground)]">Démarrée à {startedLabel}</p>
       <p className="mt-1 text-sm tabular-nums text-[var(--muted-foreground)]">
         {progress.recordedSets} / {progress.totalSets} séries
       </p>

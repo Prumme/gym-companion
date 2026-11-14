@@ -63,9 +63,7 @@ const SESSION_A_MATCHERS: Array<(name: string) => boolean> = [
 
 describe('SYSTEM exercise seed dataset', () => {
   const muscleCodes = new Set(referenceData.muscleGroups.map((item) => item.code));
-  const equipmentCodes = new Set(
-    referenceData.equipmentTypes.map((item) => item.code),
-  );
+  const equipmentCodes = new Set(referenceData.equipmentTypes.map((item) => item.code));
 
   it('contient un catalogue SYSTEM large (≥ 100)', () => {
     expect(SYSTEM_EXERCISE_SEEDS.length).toBeGreaterThanOrEqual(100);
@@ -74,9 +72,7 @@ describe('SYSTEM exercise seed dataset', () => {
 
   it('n’a ni slug ni nom normalisé dupliqué', () => {
     const slugs = SYSTEM_EXERCISE_SEEDS.map((item) => item.slug);
-    const norms = SYSTEM_EXERCISE_SEEDS.map((item) =>
-      normalizeExerciseName(item.name),
-    );
+    const norms = SYSTEM_EXERCISE_SEEDS.map((item) => normalizeExerciseName(item.name));
     expect(new Set(slugs).size).toBe(slugs.length);
     expect(new Set(norms).size).toBe(norms.length);
   });
@@ -91,9 +87,7 @@ describe('SYSTEM exercise seed dataset', () => {
       for (const code of item.compatibleEquipmentCodes) {
         expect(equipmentCodes.has(code)).toBe(true);
       }
-      expect(
-        item.compatibleEquipmentCodes.includes(item.defaultEquipmentCode),
-      ).toBe(true);
+      expect(item.compatibleEquipmentCodes.includes(item.defaultEquipmentCode)).toBe(true);
       expect(MEASUREMENT_TYPES.has(item.measurementType)).toBe(true);
     }
   });
@@ -102,9 +96,7 @@ describe('SYSTEM exercise seed dataset', () => {
     const names = SYSTEM_EXERCISE_SEEDS.map((item) => item.name);
     for (const snippet of REQUIRED_NAME_SNIPPETS) {
       expect(
-        names.some((name) =>
-          name.toLowerCase().includes(snippet.toLowerCase()),
-        ),
+        names.some((name) => name.toLowerCase().includes(snippet.toLowerCase())),
         `missing snippet: ${snippet}`,
       ).toBe(true);
     }

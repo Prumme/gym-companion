@@ -17,8 +17,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -28,11 +27,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -71,9 +66,7 @@ async function createStartableTemplate(
     .expect(201);
   const templateId = tpl.body.data.workoutTemplates[0].id as string;
   const ex = await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       exerciseId: system.id,
@@ -84,9 +77,7 @@ async function createStartableTemplate(
     .expect(201);
   const teId = ex.body.data.workoutTemplates[0].exercises[0].id as string;
   await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       setType: 'WORKING',
@@ -127,8 +118,7 @@ describe('Workout metrics API (4.2)', () => {
     await seedSystemExercises(prisma);
     tokenA = await registerUser(app, `wm-a-${stamp}@example.com`, 'WM A');
     tokenB = await registerUser(app, `wm-b-${stamp}@example.com`, 'WM B');
-    templateA = (await createStartableTemplate(app, tokenA, prisma, `A-${stamp}`))
-      .templateId;
+    templateA = (await createStartableTemplate(app, tokenA, prisma, `A-${stamp}`)).templateId;
     await createStartableTemplate(app, tokenB, prisma, `B-${stamp}`);
   }, 120_000);
 
@@ -173,9 +163,7 @@ describe('Workout metrics API (4.2)', () => {
       throw new Error('missing set');
     }
     const response = await request(app.getHttpServer())
-      .patch(
-        `/api/v1/workouts/${session.id}/exercises/${exercise.id}/sets/${set.id}`,
-      )
+      .patch(`/api/v1/workouts/${session.id}/exercises/${exercise.id}/sets/${set.id}`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         ...actuals,
@@ -188,9 +176,7 @@ describe('Workout metrics API (4.2)', () => {
   }
 
   it('ACTIVE / PAUSED / CANCELLED → metrics null ; COMPLETED → métriques', async () => {
-    await request(app.getHttpServer())
-      .get('/api/v1/workouts/active')
-      .expect(401);
+    await request(app.getHttpServer()).get('/api/v1/workouts/active').expect(401);
 
     const session = await start('2026-08-10');
     expect(session.metrics).toBeNull();
@@ -254,17 +240,13 @@ describe('Workout metrics API (4.2)', () => {
       .get(`/api/v1/workouts/${session.id}`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    expect(detail.body.data.metrics.performance.workingExternalVolumeKg).toBe(
-      500,
-    );
+    expect(detail.body.data.metrics.performance.workingExternalVolumeKg).toBe(500);
 
     const history = await request(app.getHttpServer())
       .get('/api/v1/workouts?status=COMPLETED')
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    const item = history.body.data.find(
-      (row: { id: string }) => row.id === session.id,
-    );
+    const item = history.body.data.find((row: { id: string }) => row.id === session.id);
     expect(item.summary.totalReps).toBe(8);
     expect(item.summary.workingExternalVolumeKg).toBe(500);
 

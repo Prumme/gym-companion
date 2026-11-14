@@ -1,14 +1,5 @@
-import {
-  HttpException,
-  HttpStatus,
-  Inject,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
-import type {
-  ExerciseCoachExplanationResponse,
-  ExerciseCoachSummary,
-} from '@gym-companion/shared';
+import { HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
+import type { ExerciseCoachExplanationResponse, ExerciseCoachSummary } from '@gym-companion/shared';
 import {
   AI_COACH_EXPLANATION_SCHEMA_VERSION,
   AI_COACH_PROMPT_VERSION,
@@ -21,11 +12,7 @@ import {
 import { AppConfigService } from '../../../config/app-config.service';
 import { CoachSummaryService } from '../coach-summary.service';
 import { AiCoachRateLimiter } from './ai-coach-rate-limiter';
-import {
-  AI_COACH_PROVIDER,
-  AiCoachProviderError,
-  type AiCoachProvider,
-} from './ai-coach-provider';
+import { AI_COACH_PROVIDER, AiCoachProviderError, type AiCoachProvider } from './ai-coach-provider';
 
 @Injectable()
 export class AiCoachExplanationService {
@@ -37,9 +24,7 @@ export class AiCoachExplanationService {
     private readonly coachSummaryService: CoachSummaryService,
     @Inject(AI_COACH_PROVIDER) private readonly provider: AiCoachProvider,
   ) {
-    this.rateLimiter = new AiCoachRateLimiter(
-      this.config.aiCoachRateLimitPerMinute,
-    );
+    this.rateLimiter = new AiCoachRateLimiter(this.config.aiCoachRateLimitPerMinute);
   }
 
   isAvailable(): boolean {
@@ -71,9 +56,7 @@ export class AiCoachExplanationService {
       );
     }
 
-    const parsedBody = generateExerciseCoachExplanationBodySchema.safeParse(
-      body ?? {},
-    );
+    const parsedBody = generateExerciseCoachExplanationBodySchema.safeParse(body ?? {});
     if (!parsedBody.success) {
       throw new HttpException(
         {
@@ -87,11 +70,7 @@ export class AiCoachExplanationService {
     const focus = parsedBody.data.focus as AiCoachExplanationFocus;
     const startedAt = Date.now();
 
-    const summary = await this.coachSummaryService.getExerciseCoachSummary(
-      userId,
-      exerciseId,
-      {},
-    );
+    const summary = await this.coachSummaryService.getExerciseCoachSummary(userId, exerciseId, {});
 
     const llmInput = buildAiCoachExplanationInput({
       focus,
@@ -161,10 +140,7 @@ export class AiCoachExplanationService {
         },
       };
     } catch (error) {
-      const code =
-        error instanceof AiCoachProviderError
-          ? error.code
-          : 'AI_COACH_UNAVAILABLE';
+      const code = error instanceof AiCoachProviderError ? error.code : 'AI_COACH_UNAVAILABLE';
 
       this.logger.warn({
         event: 'ai_coach_explanation',
@@ -188,10 +164,7 @@ export class AiCoachExplanationService {
   }
 
   /** Exposé pour tests de payload à partir d’un summary déjà chargé. */
-  buildPayloadForSummary(
-    summary: ExerciseCoachSummary,
-    focus: AiCoachExplanationFocus,
-  ) {
+  buildPayloadForSummary(summary: ExerciseCoachSummary, focus: AiCoachExplanationFocus) {
     return buildAiCoachExplanationInput({
       focus,
       exerciseName: summary.exercise.name,

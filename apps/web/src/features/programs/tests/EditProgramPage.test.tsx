@@ -12,9 +12,7 @@ const getProgram = vi.fn();
 const updateProgram = vi.fn();
 
 vi.mock('../api/program-api', async () => {
-  const actual = await vi.importActual<typeof import('../api/program-api')>(
-    '../api/program-api',
-  );
+  const actual = await vi.importActual<typeof import('../api/program-api')>('../api/program-api');
   return {
     ...actual,
     getProgram: (...args: unknown[]) => getProgram(...args),
@@ -50,9 +48,7 @@ describe('EditProgramPage', () => {
 
   it('prefills and updates general info', async () => {
     const user = userEvent.setup();
-    updateProgram.mockResolvedValue(
-      createProgramDetail({ name: 'Push Pull Legs V2' }),
-    );
+    updateProgram.mockResolvedValue(createProgramDetail({ name: 'Push Pull Legs V2' }));
 
     renderEdit();
     const nameInput = await screen.findByLabelText(/^Nom/);
@@ -80,8 +76,6 @@ describe('EditProgramPage', () => {
         },
       }),
     );
-    expect(
-      await screen.findByText(/archivé ou non modifiable/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/archivé ou non modifiable/i)).toBeInTheDocument();
   });
 });

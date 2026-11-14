@@ -41,9 +41,7 @@ export function ProgramCard({ program }: ProgramCardProps) {
         >
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h2 className="truncate text-base font-semibold tracking-tight">
-                {program.name}
-              </h2>
+              <h2 className="truncate text-base font-semibold tracking-tight">{program.name}</h2>
               {program.isCurrent ? (
                 <StatusBadge tone="active">Actif</StatusBadge>
               ) : isArchived ? (
@@ -58,10 +56,7 @@ export function ProgramCard({ program }: ProgramCardProps) {
             </p>
           </div>
         </Link>
-        <ContextMenu
-          label={`Actions pour ${program.name}`}
-          items={menuItems}
-        />
+        <ContextMenu label={`Actions pour ${program.name}`} items={menuItems} />
       </div>
     </li>
   );

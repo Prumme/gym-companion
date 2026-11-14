@@ -17,10 +17,7 @@ export function TrainingHubPage() {
               <CardLink to={item.to} aria-label={item.label}>
                 <div className="flex items-center gap-3">
                   <span className="inline-flex size-10 items-center justify-center rounded-[var(--radius-control)] bg-[var(--background)]">
-                    <Icon
-                      className="size-5 text-[var(--muted-foreground)]"
-                      aria-hidden="true"
-                    />
+                    <Icon className="size-5 text-[var(--muted-foreground)]" aria-hidden="true" />
                   </span>
                   <span className="text-base font-semibold">{item.label}</span>
                 </div>

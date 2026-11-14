@@ -73,9 +73,7 @@ export function ProgramForm({
     if (!dirty || pending) {
       return true;
     }
-    return window.confirm(
-      'Des modifications non enregistrées seront perdues. Continuer ?',
-    );
+    return window.confirm('Des modifications non enregistrées seront perdues. Continuer ?');
   }
 
   return (
@@ -126,30 +124,20 @@ export function ProgramForm({
         ) : null}
       </label>
 
-      <label
-        className="flex flex-col gap-1.5 text-sm"
-        htmlFor="program-description"
-      >
+      <label className="flex flex-col gap-1.5 text-sm" htmlFor="program-description">
         <span className="font-medium">
-          Description{' '}
-          <span className="font-normal text-[var(--muted)]">(facultatif)</span>
+          Description <span className="font-normal text-[var(--muted)]">(facultatif)</span>
         </span>
         <textarea
           id="program-description"
           rows={3}
           className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--background)] px-3 py-2 outline-none focus:border-[var(--primary)]"
           aria-invalid={Boolean(errors.description)}
-          aria-describedby={
-            errors.description ? 'program-description-error' : undefined
-          }
+          aria-describedby={errors.description ? 'program-description-error' : undefined}
           {...register('description')}
         />
         {errors.description ? (
-          <span
-            id="program-description-error"
-            className="text-[var(--danger)]"
-            role="alert"
-          >
+          <span id="program-description-error" className="text-[var(--danger)]" role="alert">
             {errors.description.message}
           </span>
         ) : null}

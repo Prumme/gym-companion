@@ -1,7 +1,4 @@
-import type {
-  EquipmentTypeReference,
-  MuscleGroupReference,
-} from '@gym-companion/shared';
+import type { EquipmentTypeReference, MuscleGroupReference } from '@gym-companion/shared';
 
 type MuscleGroupRow = {
   id: string;

@@ -79,10 +79,9 @@ describe('useScreenWakeLock', () => {
     const sentinel = createMockSentinel();
     request.mockResolvedValue(sentinel);
 
-    const { rerender } = renderHook(
-      ({ active }) => useScreenWakeLock(active),
-      { initialProps: { active: true } },
-    );
+    const { rerender } = renderHook(({ active }) => useScreenWakeLock(active), {
+      initialProps: { active: true },
+    });
 
     await act(async () => {
       await Promise.resolve();
@@ -166,10 +165,9 @@ describe('useScreenWakeLock', () => {
     const sentinel = createMockSentinel();
     request.mockResolvedValue(sentinel);
 
-    const { rerender } = renderHook(
-      ({ active }) => useScreenWakeLock(active),
-      { initialProps: { active: true } },
-    );
+    const { rerender } = renderHook(({ active }) => useScreenWakeLock(active), {
+      initialProps: { active: true },
+    });
 
     await act(async () => {
       await Promise.resolve();

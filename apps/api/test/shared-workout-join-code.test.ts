@@ -18,8 +18,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -29,11 +28,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -55,11 +50,7 @@ async function registerUser(
   };
 }
 
-async function createRoom(
-  app: INestApplication,
-  ownerToken: string,
-  name: string,
-) {
+async function createRoom(app: INestApplication, ownerToken: string, name: string) {
   const created = await request(app.getHttpServer())
     .post('/api/v1/shared-workouts')
     .set('Authorization', `Bearer ${ownerToken}`)
@@ -71,11 +62,7 @@ async function createRoom(
   };
 }
 
-async function getOwnerJoinCode(
-  app: INestApplication,
-  ownerToken: string,
-  roomId: string,
-) {
+async function getOwnerJoinCode(app: INestApplication, ownerToken: string, roomId: string) {
   const detail = await request(app.getHttpServer())
     .get(`/api/v1/shared-workouts/${roomId}`)
     .set('Authorization', `Bearer ${ownerToken}`)
@@ -133,11 +120,7 @@ describe('Shared workout join code API (Shared 5.2)', () => {
   });
 
   it('create room exposes formatted join code to owner only', async () => {
-    const { roomId, joinCode } = await createRoom(
-      app,
-      tokenA,
-      `Create code ${stamp}`,
-    );
+    const { roomId, joinCode } = await createRoom(app, tokenA, `Create code ${stamp}`);
     expect(joinCode).toMatch(/^[A-Z2-9]{3}-[A-Z2-9]{3}$/);
 
     const ownerDetail = await request(app.getHttpServer())
@@ -165,8 +148,7 @@ describe('Shared workout join code API (Shared 5.2)', () => {
     expect(joined.body.data.members).toHaveLength(2);
     expect(
       joined.body.data.members.some(
-        (m: { userId: string; role: string }) =>
-          m.userId === userIdB && m.role === 'MEMBER',
+        (m: { userId: string; role: string }) => m.userId === userIdB && m.role === 'MEMBER',
       ),
     ).toBe(true);
 
@@ -274,9 +256,7 @@ describe('Shared workout join code API (Shared 5.2)', () => {
       .get('/api/v1/shared-workouts')
       .set('Authorization', `Bearer ${tokenB}`)
       .expect(200);
-    expect(
-      listB.body.data.some((item: { id: string }) => item.id === roomId),
-    ).toBe(false);
+    expect(listB.body.data.some((item: { id: string }) => item.id === roomId)).toBe(false);
 
     await request(app.getHttpServer())
       .post('/api/v1/shared-workouts/join')

@@ -67,9 +67,7 @@ export const programImportExerciseV1Schema = z
   })
   .strict();
 
-export type ProgramImportExerciseV1 = z.infer<
-  typeof programImportExerciseV1Schema
->;
+export type ProgramImportExerciseV1 = z.infer<typeof programImportExerciseV1Schema>;
 
 export const programImportWorkoutV1Schema = z
   .object({
@@ -86,9 +84,7 @@ export const programImportWorkoutV1Schema = z
   })
   .strict();
 
-export type ProgramImportWorkoutV1 = z.infer<
-  typeof programImportWorkoutV1Schema
->;
+export type ProgramImportWorkoutV1 = z.infer<typeof programImportWorkoutV1Schema>;
 
 export const programImportProgramV1Schema = z
   .object({
@@ -98,16 +94,11 @@ export const programImportProgramV1Schema = z
     workouts: z
       .array(programImportWorkoutV1Schema)
       .min(1, 'Au moins une séance est requise.')
-      .max(
-        PROGRAM_IMPORT_MAX_WORKOUTS,
-        `Maximum ${PROGRAM_IMPORT_MAX_WORKOUTS} séances.`,
-      ),
+      .max(PROGRAM_IMPORT_MAX_WORKOUTS, `Maximum ${PROGRAM_IMPORT_MAX_WORKOUTS} séances.`),
   })
   .strict();
 
-export type ProgramImportProgramV1 = z.infer<
-  typeof programImportProgramV1Schema
->;
+export type ProgramImportProgramV1 = z.infer<typeof programImportProgramV1Schema>;
 
 export const programImportPayloadV1Schema = z
   .object({
@@ -116,9 +107,7 @@ export const programImportPayloadV1Schema = z
   })
   .strict();
 
-export type ProgramImportPayloadV1 = z.infer<
-  typeof programImportPayloadV1Schema
->;
+export type ProgramImportPayloadV1 = z.infer<typeof programImportPayloadV1Schema>;
 
 export const PROGRAM_IMPORT_ERROR_CODES = [
   'JSON_SYNTAX',
@@ -178,9 +167,7 @@ export function measureJsonPayloadBytes(value: unknown): number {
   return new TextEncoder().encode(JSON.stringify(value)).length;
 }
 
-export function formatSystemExerciseCatalogLine(
-  item: ProgramImportExerciseCatalogEntry,
-): string {
+export function formatSystemExerciseCatalogLine(item: ProgramImportExerciseCatalogEntry): string {
   return `${item.slug} | ${item.name} | ${item.primaryMuscleCode} | ${item.defaultEquipmentCode} | ${item.measurementType}`;
 }
 
@@ -246,10 +233,7 @@ function mapZodIssue(issue: z.ZodIssue): ProgramImportIssue {
     };
   }
 
-  if (
-    issue.code === z.ZodIssueCode.too_small ||
-    issue.code === z.ZodIssueCode.too_big
-  ) {
+  if (issue.code === z.ZodIssueCode.too_small || issue.code === z.ZodIssueCode.too_big) {
     if (issue.code === z.ZodIssueCode.too_small && issue.type === 'string') {
       return {
         path,
@@ -294,12 +278,9 @@ function readSchemaVersion(raw: unknown): unknown {
 }
 
 export type ProgramImportParseResult =
-  | { ok: true; data: ProgramImportPayloadV1 }
-  | { ok: false; errors: ProgramImportIssue[] };
+  { ok: true; data: ProgramImportPayloadV1 } | { ok: false; errors: ProgramImportIssue[] };
 
-export function parseProgramImportPayload(
-  raw: unknown,
-): ProgramImportParseResult {
+export function parseProgramImportPayload(raw: unknown): ProgramImportParseResult {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
     return {
       ok: false,
@@ -541,11 +522,7 @@ function levenshtein(a: string, b: string): number {
   for (let i = 1; i <= a.length; i += 1) {
     for (let j = 1; j <= b.length; j += 1) {
       const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      dp[i]![j] = Math.min(
-        dp[i - 1]![j]! + 1,
-        dp[i]![j - 1]! + 1,
-        dp[i - 1]![j - 1]! + cost,
-      );
+      dp[i]![j] = Math.min(dp[i - 1]![j]! + 1, dp[i]![j - 1]! + 1, dp[i - 1]![j - 1]! + cost);
     }
   }
   return dp[a.length]![b.length]!;
@@ -564,10 +541,8 @@ export function suggestExerciseSlugs(
     .filter((slug) => slug !== needle)
     .map((slug) => {
       const distance = levenshtein(needle, slug);
-      const prefixBonus =
-        slug.startsWith(needle) || needle.startsWith(slug) ? -1 : 0;
-      const containsBonus =
-        slug.includes(needle) || needle.includes(slug) ? -1 : 0;
+      const prefixBonus = slug.startsWith(needle) || needle.startsWith(slug) ? -1 : 0;
+      const containsBonus = slug.includes(needle) || needle.includes(slug) ? -1 : 0;
       return { slug, score: distance + prefixBonus + containsBonus, distance };
     })
     .filter((item) => item.distance <= 6)

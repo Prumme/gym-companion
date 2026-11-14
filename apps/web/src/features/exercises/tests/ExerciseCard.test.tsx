@@ -11,13 +11,10 @@ import { createExerciseListItem } from './fixtures';
 const updateExercisePreference = vi.fn();
 
 vi.mock('../api/exercise-api', async () => {
-  const actual = await vi.importActual<typeof import('../api/exercise-api')>(
-    '../api/exercise-api',
-  );
+  const actual = await vi.importActual<typeof import('../api/exercise-api')>('../api/exercise-api');
   return {
     ...actual,
-    updateExercisePreference: (...args: unknown[]) =>
-      updateExercisePreference(...args),
+    updateExercisePreference: (...args: unknown[]) => updateExercisePreference(...args),
   };
 });
 
@@ -50,9 +47,10 @@ describe('ExerciseCard favorites', () => {
 
   it('renders a non-favorite card with add action', () => {
     renderCard();
-    expect(
-      screen.getByRole('button', { name: 'Ajouter aux favoris' }),
-    ).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Ajouter aux favoris' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
   });
 
   it('renders a favorite card with remove action', () => {
@@ -66,9 +64,10 @@ describe('ExerciseCard favorites', () => {
         },
       }),
     );
-    expect(
-      screen.getByRole('button', { name: 'Retirer des favoris' }),
-    ).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Retirer des favoris' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
   it('toggles favorite without navigating', async () => {
@@ -108,15 +107,14 @@ describe('ExerciseCard favorites', () => {
 
   it('keeps detail navigation on the title link', () => {
     renderCard(createExerciseListItem({ id: 'ex-9', name: 'Squat' }));
-    expect(
-      screen.getByRole('link', { name: 'Voir le détail de Squat' }),
-    ).toHaveAttribute('href', '/exercises/ex-9');
+    expect(screen.getByRole('link', { name: 'Voir le détail de Squat' })).toHaveAttribute(
+      'href',
+      '/exercises/ex-9',
+    );
   });
 
   it('renders archived badge', () => {
-    renderCard(
-      createExerciseListItem({ archivedAt: '2026-08-01T00:00:00.000Z' }),
-    );
+    renderCard(createExerciseListItem({ archivedAt: '2026-08-01T00:00:00.000Z' }));
     expect(screen.getByText('Archivé')).toBeInTheDocument();
   });
 });

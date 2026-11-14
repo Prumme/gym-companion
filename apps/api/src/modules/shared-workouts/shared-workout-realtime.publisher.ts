@@ -86,10 +86,7 @@ export class SharedWorkoutRealtimePublisher {
 
   private findSocket(socketId: string) {
     if (!this.nsp) return undefined;
-    const sockets = this.nsp.sockets as Map<
-      string,
-      { leave: (r: string) => void }
-    >;
+    const sockets = this.nsp.sockets as Map<string, { leave: (r: string) => void }>;
     return sockets.get(socketId);
   }
 }

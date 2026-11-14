@@ -1,13 +1,5 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
-import type {
-  PersonalRecord,
-  PersonalRecordListResponse,
-} from '@gym-companion/shared';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import type { PersonalRecord, PersonalRecordListResponse } from '@gym-companion/shared';
 import {
   comparePersonalRecordsSort,
   decodePersonalRecordsCursor,
@@ -26,10 +18,7 @@ import {
 import type { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../database/prisma/prisma.service';
-import {
-  toPersonalRecord,
-  type CatalogExerciseInfo,
-} from './personal-records.mapper';
+import { toPersonalRecord, type CatalogExerciseInfo } from './personal-records.mapper';
 
 function decimalToNumber(value: unknown): number | null {
   if (value == null) {
@@ -86,9 +75,7 @@ export class PersonalRecordsService {
     }
     const query = parsed.data;
 
-    let cursorPayload:
-      | ReturnType<typeof decodePersonalRecordsCursor>
-      | undefined;
+    let cursorPayload: ReturnType<typeof decodePersonalRecordsCursor> | undefined;
     if (query.cursor) {
       try {
         cursorPayload = decodePersonalRecordsCursor(query.cursor);
@@ -140,10 +127,7 @@ export class PersonalRecordsService {
     };
   }
 
-  async listForExercise(
-    userId: string,
-    exerciseId: string,
-  ): Promise<PersonalRecord[]> {
+  async listForExercise(userId: string, exerciseId: string): Promise<PersonalRecord[]> {
     await this.assertExerciseAccessible(userId, exerciseId);
     return this.computeRecords(userId, { exerciseId });
   }
@@ -186,9 +170,7 @@ export class PersonalRecordsService {
       status: 'COMPLETED',
       setType: { not: 'WARMUP' },
       workoutSessionExercise: {
-        sourceExerciseId: filters.exerciseId
-          ? filters.exerciseId
-          : { not: null },
+        sourceExerciseId: filters.exerciseId ? filters.exerciseId : { not: null },
         workoutSession: {
           ownerUserId: userId,
           status: 'COMPLETED',
@@ -263,14 +245,10 @@ export class PersonalRecordsService {
 
     let selected = selectCurrentPersonalRecordsWithType(candidates);
     if (filters.recordType) {
-      selected = selected.filter(
-        (entry) => entry.recordType === filters.recordType,
-      );
+      selected = selected.filter((entry) => entry.recordType === filters.recordType);
     }
 
-    const exerciseIds = [
-      ...new Set(selected.map((entry) => entry.candidate.sourceExerciseId)),
-    ];
+    const exerciseIds = [...new Set(selected.map((entry) => entry.candidate.sourceExerciseId))];
     const catalogRows =
       exerciseIds.length > 0
         ? await this.prisma.exercise.findMany({
@@ -324,9 +302,7 @@ export class PersonalRecordsService {
   }
 
   private logIncoherentCompletedSet(candidate: PersonalRecordCandidate) {
-    const types = resolveRecordTypesForMeasurement(
-      candidate.measurementTypeSnapshot,
-    );
+    const types = resolveRecordTypesForMeasurement(candidate.measurementTypeSnapshot);
     const missingAll = types.every(
       (type) => getPersonalRecordPrincipalValue(type, candidate) == null,
     );

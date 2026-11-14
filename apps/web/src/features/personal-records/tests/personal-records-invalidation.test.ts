@@ -13,34 +13,22 @@ describe('personal records cache invalidation rules', () => {
       invalidateQueries,
     } as unknown as QueryClient;
 
-    applyLifecycleToCacheForTest(
-      queryClient,
-      createWorkoutSessionDetail({ status: 'ACTIVE' }),
-    );
+    applyLifecycleToCacheForTest(queryClient, createWorkoutSessionDetail({ status: 'ACTIVE' }));
     expect(invalidateQueries).not.toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: personalRecordQueryKeys.all }),
     );
 
-    applyLifecycleToCacheForTest(
-      queryClient,
-      createWorkoutSessionDetail({ status: 'PAUSED' }),
-    );
+    applyLifecycleToCacheForTest(queryClient, createWorkoutSessionDetail({ status: 'PAUSED' }));
     expect(invalidateQueries).not.toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: personalRecordQueryKeys.all }),
     );
 
-    applyLifecycleToCacheForTest(
-      queryClient,
-      createWorkoutSessionDetail({ status: 'CANCELLED' }),
-    );
+    applyLifecycleToCacheForTest(queryClient, createWorkoutSessionDetail({ status: 'CANCELLED' }));
     expect(invalidateQueries).not.toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: personalRecordQueryKeys.all }),
     );
 
-    applyLifecycleToCacheForTest(
-      queryClient,
-      createWorkoutSessionDetail({ status: 'COMPLETED' }),
-    );
+    applyLifecycleToCacheForTest(queryClient, createWorkoutSessionDetail({ status: 'COMPLETED' }));
     expect(invalidateQueries).toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: personalRecordQueryKeys.all }),
     );

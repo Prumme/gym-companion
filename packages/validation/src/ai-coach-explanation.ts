@@ -16,8 +16,7 @@ export const AI_COACH_EXPLANATION_FOCUS_VALUES = [
   'PLATEAU',
 ] as const;
 
-export type AiCoachExplanationFocus =
-  (typeof AI_COACH_EXPLANATION_FOCUS_VALUES)[number];
+export type AiCoachExplanationFocus = (typeof AI_COACH_EXPLANATION_FOCUS_VALUES)[number];
 
 export const generateExerciseCoachExplanationBodySchema = z
   .object({
@@ -100,9 +99,7 @@ export const aiCoachExplanationInputSchema = z
   })
   .strict();
 
-export type AiCoachExplanationInput = z.infer<
-  typeof aiCoachExplanationInputSchema
->;
+export type AiCoachExplanationInput = z.infer<typeof aiCoachExplanationInputSchema>;
 
 export const aiCoachExplanationResultSchema = z
   .object({
@@ -113,9 +110,7 @@ export const aiCoachExplanationResultSchema = z
   })
   .strict();
 
-export type AiCoachExplanationResult = z.infer<
-  typeof aiCoachExplanationResultSchema
->;
+export type AiCoachExplanationResult = z.infer<typeof aiCoachExplanationResultSchema>;
 
 /** Source minimale pour le fingerprint (alignée sur le summary 5.4). */
 export type CoachSummaryFingerprintSource = {
@@ -174,14 +169,10 @@ function stableDigestHex(input: string): string {
     h3 = Math.imul(h3 ^ ((c << 1) + i), 0x01000193);
     h4 = Math.imul(h4 ^ ((c << 2) ^ i), 0x811c9dc5);
   }
-  return [h1, h2, h3, h4]
-    .map((value) => (value >>> 0).toString(16).padStart(8, '0'))
-    .join('');
+  return [h1, h2, h3, h4].map((value) => (value >>> 0).toString(16).padStart(8, '0')).join('');
 }
 
-export function computeCoachSummaryFingerprint(
-  source: CoachSummaryFingerprintSource,
-): string {
+export function computeCoachSummaryFingerprint(source: CoachSummaryFingerprintSource): string {
   return stableDigestHex(JSON.stringify(source));
 }
 
@@ -233,27 +224,18 @@ export function buildAiCoachExplanationInput(
   args: BuildAiCoachExplanationInputArgs,
 ): AiCoachExplanationInput {
   const includeLoad =
-    args.focus === 'GENERAL' || args.focus === 'LOAD'
-      ? args.loadRecommendation
-      : null;
-  const includePlateau =
-    args.focus === 'GENERAL' || args.focus === 'PLATEAU' ? args.plateau : null;
+    args.focus === 'GENERAL' || args.focus === 'LOAD' ? args.loadRecommendation : null;
+  const includePlateau = args.focus === 'GENERAL' || args.focus === 'PLATEAU' ? args.plateau : null;
   const includeProgress =
-    args.focus === 'GENERAL' ||
-    args.focus === 'PROGRESS' ||
-    args.focus === 'PLATEAU'
+    args.focus === 'GENERAL' || args.focus === 'PROGRESS' || args.focus === 'PLATEAU'
       ? args.progress
       : null;
   const includeStrength =
-    args.focus === 'GENERAL' ||
-    args.focus === 'PROGRESS' ||
-    args.focus === 'PLATEAU'
+    args.focus === 'GENERAL' || args.focus === 'PROGRESS' || args.focus === 'PLATEAU'
       ? args.strength
       : null;
   const includeDecision =
-    args.focus === 'GENERAL' || args.focus === 'LOAD'
-      ? args.recentDecision
-      : null;
+    args.focus === 'GENERAL' || args.focus === 'LOAD' ? args.recentDecision : null;
 
   const input: AiCoachExplanationInput = {
     schemaVersion: AI_COACH_EXPLANATION_SCHEMA_VERSION,
@@ -289,8 +271,7 @@ export function buildAiCoachExplanationInput(
       : null,
     strength: includeStrength
       ? {
-          latestEstimatedOneRepMaxKg:
-            includeStrength.latestEstimatedOneRepMaxKg,
+          latestEstimatedOneRepMaxKg: includeStrength.latestEstimatedOneRepMaxKg,
           bestEstimatedOneRepMaxKg: includeStrength.bestEstimatedOneRepMaxKg,
           changeKg: includeStrength.changeKg,
           changePercent: includeStrength.changePercent,
@@ -313,9 +294,7 @@ export function buildAiCoachExplanationInput(
   return aiCoachExplanationInputSchema.parse(input);
 }
 
-export function parseAiCoachExplanationResult(
-  value: unknown,
-): AiCoachExplanationResult {
+export function parseAiCoachExplanationResult(value: unknown): AiCoachExplanationResult {
   return aiCoachExplanationResultSchema.parse(value);
 }
 
@@ -355,9 +334,7 @@ export function buildAiCoachUserMessage(input: AiCoachExplanationInput): string 
 }
 
 /** Vérifie qu’un objet payload n’expose pas de champs sensibles. */
-export function assertAiCoachPayloadMinimized(
-  input: AiCoachExplanationInput,
-): void {
+export function assertAiCoachPayloadMinimized(input: AiCoachExplanationInput): void {
   const serialized = JSON.stringify(input);
   const forbidden = [
     'ownerUserId',

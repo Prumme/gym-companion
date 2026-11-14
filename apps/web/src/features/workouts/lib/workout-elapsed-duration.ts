@@ -8,10 +8,7 @@ export function computeElapsedDurationMs(session: {
   cancelledAt: string | null;
   status: string;
 }): number | null {
-  const endIso =
-    session.status === 'CANCELLED'
-      ? session.cancelledAt
-      : session.completedAt;
+  const endIso = session.status === 'CANCELLED' ? session.cancelledAt : session.completedAt;
   if (!endIso) {
     return null;
   }

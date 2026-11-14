@@ -39,9 +39,7 @@ function appendIfPresent(
   params.set(key, String(value));
 }
 
-export function buildProgramListSearchParams(
-  query: ProgramListQuery,
-): URLSearchParams {
+export function buildProgramListSearchParams(query: ProgramListQuery): URLSearchParams {
   const params = new URLSearchParams();
   if (query.includeArchived === true) {
     params.set('includeArchived', 'true');
@@ -51,14 +49,10 @@ export function buildProgramListSearchParams(
   return params;
 }
 
-export async function listPrograms(
-  query: ProgramListQuery = {},
-): Promise<ProgramListResponse> {
+export async function listPrograms(query: ProgramListQuery = {}): Promise<ProgramListResponse> {
   const params = buildProgramListSearchParams(query);
   const suffix = params.toString();
-  return apiFetch<ProgramListResponse>(
-    `/api/v1/programs${suffix ? `?${suffix}` : ''}`,
-  );
+  return apiFetch<ProgramListResponse>(`/api/v1/programs${suffix ? `?${suffix}` : ''}`);
 }
 
 export async function getProgram(programId: string): Promise<ProgramDetail> {
@@ -73,9 +67,7 @@ export function getProgramDetail(programId: string): Promise<ProgramDetail> {
   return getProgram(programId);
 }
 
-export async function createProgram(
-  input: CreateProgramInput,
-): Promise<ProgramDetail> {
+export async function createProgram(input: CreateProgramInput): Promise<ProgramDetail> {
   const response = await apiFetch<{ data: ProgramDetail }>('/api/v1/programs', {
     method: 'POST',
     body: JSON.stringify(input),
@@ -114,9 +106,7 @@ export async function restoreProgram(programId: string): Promise<ProgramDetail> 
 }
 
 export async function getActiveProgram(): Promise<ActiveProgramSummary | null> {
-  const response = await apiFetch<{ data: ActiveProgramSummary | null }>(
-    '/api/v1/programs/active',
-  );
+  const response = await apiFetch<{ data: ActiveProgramSummary | null }>('/api/v1/programs/active');
   return response.data;
 }
 
@@ -134,9 +124,7 @@ export async function activateProgram(
   return response.data;
 }
 
-export async function deactivateProgram(
-  programId: string,
-): Promise<ActiveProgramSummary | null> {
+export async function deactivateProgram(programId: string): Promise<ActiveProgramSummary | null> {
   const response = await apiFetch<{ data: ActiveProgramSummary | null }>(
     `/api/v1/programs/${encodeURIComponent(programId)}/deactivate`,
     { method: 'POST' },
@@ -144,9 +132,7 @@ export async function deactivateProgram(
   return response.data;
 }
 
-export async function getProgramSchedule(
-  programId: string,
-): Promise<ProgramSchedule> {
+export async function getProgramSchedule(programId: string): Promise<ProgramSchedule> {
   const response = await apiFetch<{ data: ProgramSchedule }>(
     `/api/v1/programs/${encodeURIComponent(programId)}/schedule`,
   );
@@ -270,11 +256,7 @@ export function deleteWorkoutTemplateExercise(
   workoutTemplateId: string,
   templateExerciseId: string,
 ): Promise<ProgramDetail> {
-  return removeWorkoutTemplateExercise(
-    programId,
-    workoutTemplateId,
-    templateExerciseId,
-  );
+  return removeWorkoutTemplateExercise(programId, workoutTemplateId, templateExerciseId);
 }
 
 export async function reorderWorkoutTemplateExercises(

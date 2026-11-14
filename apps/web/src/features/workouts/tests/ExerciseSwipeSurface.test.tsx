@@ -75,10 +75,7 @@ class TestPointerEvent extends MouseEvent {
   pointerId: number;
   pointerType: string;
 
-  constructor(
-    type: string,
-    init: MouseEventInit & { pointerId?: number; pointerType?: string },
-  ) {
+  constructor(type: string, init: MouseEventInit & { pointerId?: number; pointerType?: string }) {
     super(type, init);
     this.pointerId = init.pointerId ?? 1;
     this.pointerType = init.pointerType ?? 'touch';
@@ -116,9 +113,7 @@ describe('ExerciseSwipeSurface', () => {
     expect(onNext).toHaveBeenCalledTimes(1);
     expect(onPrevious).not.toHaveBeenCalled();
 
-    await user.click(
-      screen.getByRole('button', { name: /Aller à l'exercice suivant/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Aller à l'exercice suivant/i }));
     expect(onNext).toHaveBeenCalledTimes(2);
   });
 
@@ -127,9 +122,7 @@ describe('ExerciseSwipeSurface', () => {
     const { onPrevious } = renderSurface();
     swipe(screen.getByText('50 kg × 10'), 110, 6);
     expect(onPrevious).toHaveBeenCalledTimes(1);
-    await user.click(
-      screen.getByRole('button', { name: /Aller à l'exercice précédent/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Aller à l'exercice précédent/i }));
     expect(onPrevious).toHaveBeenCalledTimes(2);
   });
 
@@ -152,10 +145,7 @@ describe('ExerciseSwipeSurface', () => {
         exerciseKey="wse-1"
       >
         <p>50 kg × 10</p>
-        {createPortal(
-          <button type="button">Remplacer</button>,
-          document.body,
-        )}
+        {createPortal(<button type="button">Remplacer</button>, document.body)}
       </ExerciseSwipeSurface>,
     );
 
@@ -166,12 +156,8 @@ describe('ExerciseSwipeSurface', () => {
 
   it('n’applique pas de transform au repos, pour ne pas piéger les overlays', () => {
     renderSurface();
-    expect(
-      document.querySelector('[data-exercise-swipe-transform="false"]'),
-    ).not.toBeNull();
-    expect(
-      document.querySelector('[data-exercise-swipe-transform="true"]'),
-    ).toBeNull();
+    expect(document.querySelector('[data-exercise-swipe-transform="false"]')).not.toBeNull();
+    expect(document.querySelector('[data-exercise-swipe-transform="true"]')).toBeNull();
   });
 
   it('ne change pas d’exercice au bord de la liste', () => {

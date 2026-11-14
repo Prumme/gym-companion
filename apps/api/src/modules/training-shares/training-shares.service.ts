@@ -142,10 +142,7 @@ export class TrainingSharesService {
     return this.persistShare(userId, 'WORKOUT_TEMPLATE', snapshot);
   }
 
-  async getPreview(
-    token: string,
-    now: Date = new Date(),
-  ): Promise<TrainingSharePreviewResponse> {
+  async getPreview(token: string, now: Date = new Date()): Promise<TrainingSharePreviewResponse> {
     const share = await this.findShareByTokenOrThrow(token);
     this.assertShareUsable(share, now);
     const snapshot = this.parseSnapshotOrThrow(share.snapshot);
@@ -270,10 +267,7 @@ export class TrainingSharesService {
     return share;
   }
 
-  private assertShareUsable(
-    share: { id: string; expiresAt: Date; kind: string },
-    now: Date,
-  ): void {
+  private assertShareUsable(share: { id: string; expiresAt: Date; kind: string }, now: Date): void {
     if (isTrainingShareExpired(share.expiresAt, now)) {
       this.logger.warn({
         event: 'training_share.expired',
@@ -300,9 +294,7 @@ export class TrainingSharesService {
     }
   }
 
-  private async validateSnapshotForImport(
-    snapshot: TrainingShareSnapshot,
-  ): Promise<void> {
+  private async validateSnapshotForImport(snapshot: TrainingShareSnapshot): Promise<void> {
     const exerciseIds = collectExerciseIdsFromSnapshot(snapshot);
     const exercises =
       exerciseIds.length > 0
@@ -321,13 +313,10 @@ export class TrainingSharesService {
     if (exercises.length !== exerciseIds.length) {
       throw new BadRequestException({
         code: 'TRAINING_SHARE_EXERCISE_UNAVAILABLE',
-        message:
-          'Un ou plusieurs exercices de ce partage ne sont plus disponibles.',
+        message: 'Un ou plusieurs exercices de ce partage ne sont plus disponibles.',
       });
     }
-    const measurementById = new Map(
-      exercises.map((item) => [item.id, item.measurementType]),
-    );
+    const measurementById = new Map(exercises.map((item) => [item.id, item.measurementType]));
 
     const equipmentIds = collectEquipmentTypeIdsFromSnapshot(snapshot);
     if (equipmentIds.length > 0) {
@@ -338,23 +327,18 @@ export class TrainingSharesService {
       if (equipment.length !== equipmentIds.length) {
         throw new BadRequestException({
           code: 'TRAINING_SHARE_EQUIPMENT_UNAVAILABLE',
-          message:
-            'Un ou plusieurs équipements de ce partage ne sont plus disponibles.',
+          message: 'Un ou plusieurs équipements de ce partage ne sont plus disponibles.',
         });
       }
     }
 
-    const workouts =
-      snapshot.kind === 'PROGRAM' ? snapshot.workouts : [snapshot];
+    const workouts = snapshot.kind === 'PROGRAM' ? snapshot.workouts : [snapshot];
     for (const workout of workouts) {
       for (const exercise of workout.exercises) {
         const measurementType = measurementById.get(exercise.exerciseId);
         if (!measurementType) continue;
         for (const set of exercise.sets) {
-          const validation = validateWorkoutTemplateSetTargets(
-            measurementType,
-            set,
-          );
+          const validation = validateWorkoutTemplateSetTargets(measurementType, set);
           if (!validation.ok) {
             throw new BadRequestException({
               code: 'TRAINING_SHARE_SET_TARGET_INVALID',
@@ -379,15 +363,11 @@ export class TrainingSharesService {
         : [];
     const nameById = new Map(exercises.map((item) => [item.id, item]));
 
-    const mapWorkout = (
-      workout: SharedWorkoutTemplateBody,
-    ): TrainingShareWorkoutPreview => ({
+    const mapWorkout = (workout: SharedWorkoutTemplateBody): TrainingShareWorkoutPreview => ({
       name: workout.name,
       estimatedDurationMinutes: workout.estimatedDurationMinutes,
       exerciseCount: workout.exercises.length,
-      exercises: workout.exercises.map((exercise) =>
-        this.mapExercisePreview(exercise, nameById),
-      ),
+      exercises: workout.exercises.map((exercise) => this.mapExercisePreview(exercise, nameById)),
     });
 
     if (snapshot.kind === 'PROGRAM') {
@@ -407,9 +387,7 @@ export class TrainingSharesService {
       description: snapshot.description,
       estimatedDurationMinutes: snapshot.estimatedDurationMinutes,
       exerciseCount: snapshot.exercises.length,
-      exercises: snapshot.exercises.map((exercise) =>
-        this.mapExercisePreview(exercise, nameById),
-      ),
+      exercises: snapshot.exercises.map((exercise) => this.mapExercisePreview(exercise, nameById)),
     };
   }
 
@@ -418,10 +396,7 @@ export class TrainingSharesService {
       exerciseId: string;
       sets: SharedTemplateSet[];
     },
-    nameById: Map<
-      string,
-      { id: string; name: string; measurementType: string }
-    >,
+    nameById: Map<string, { id: string; name: string; measurementType: string }>,
   ): TrainingShareExercisePreview {
     const catalog = nameById.get(exercise.exerciseId);
     return {
@@ -473,15 +448,13 @@ export class TrainingSharesService {
     if (!body.destination) {
       throw new BadRequestException({
         code: 'TRAINING_SHARE_DESTINATION_REQUIRED',
-        message:
-          'Indique où ajouter la séance : nouveau programme ou programme existant.',
+        message: 'Indique où ajouter la séance : nouveau programme ou programme existant.',
       });
     }
 
     if (body.destination.type === 'NEW_PROGRAM') {
       const programName =
-        body.destination.programName.trim() ||
-        suggestProgramNameFromWorkoutTemplate(snapshot.name);
+        body.destination.programName.trim() || suggestProgramNameFromWorkoutTemplate(snapshot.name);
       const result = await this.prisma.$transaction(async (tx) => {
         const program = await tx.program.create({
           data: {
@@ -539,9 +512,7 @@ export class TrainingSharesService {
         where: { programId },
         select: { positionInProgram: true },
       });
-      const position = computeNextOrderedPosition(
-        existing.map((item) => item.positionInProgram),
-      );
+      const position = computeNextOrderedPosition(existing.map((item) => item.positionInProgram));
       const template = await tx.workoutTemplate.create({
         data: {
           ...this.templateCreateData(userId, snapshot, position),

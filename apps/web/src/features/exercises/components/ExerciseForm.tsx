@@ -1,7 +1,4 @@
-import type {
-  EquipmentTypeReference,
-  MuscleGroupReference,
-} from '@gym-companion/shared';
+import type { EquipmentTypeReference, MuscleGroupReference } from '@gym-companion/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -22,10 +19,7 @@ import {
   type ExerciseFormValues,
 } from '../lib/exercise-form';
 import { EquipmentCompatibilityEditor } from './EquipmentCompatibilityEditor';
-import {
-  MuscleGroupSelector,
-  SecondaryMuscleGroupSelector,
-} from './MuscleGroupSelector';
+import { MuscleGroupSelector, SecondaryMuscleGroupSelector } from './MuscleGroupSelector';
 
 type ExerciseFormProps = {
   mode: 'create' | 'edit';
@@ -83,9 +77,7 @@ export function ExerciseForm({
   const category = watch('category');
   const measurementOptions =
     category === 'CARDIO'
-      ? MEASUREMENT_TYPE_OPTIONS.filter((option) =>
-          CARDIO_MEASUREMENT_TYPES.includes(option.value),
-        )
+      ? MEASUREMENT_TYPE_OPTIONS.filter((option) => CARDIO_MEASUREMENT_TYPES.includes(option.value))
       : MEASUREMENT_TYPE_OPTIONS.filter((option) => option.value !== 'DISTANCE');
   const primaryMuscleGroupId = watch('primaryMuscleGroupId');
   const secondaryMuscleGroupIds = watch('secondaryMuscleGroupIds');
@@ -94,10 +86,7 @@ export function ExerciseForm({
   const currentValues = watch();
 
   useEffect(() => {
-    const next = normalizeSecondaryMuscleGroups(
-      primaryMuscleGroupId,
-      secondaryMuscleGroupIds,
-    );
+    const next = normalizeSecondaryMuscleGroups(primaryMuscleGroupId, secondaryMuscleGroupIds);
     if (
       next.length !== secondaryMuscleGroupIds.length ||
       next.some((id, index) => id !== secondaryMuscleGroupIds[index])
@@ -112,9 +101,7 @@ export function ExerciseForm({
     if (!dirty || pending) {
       return true;
     }
-    return window.confirm(
-      'Des modifications non enregistrées seront perdues. Continuer ?',
-    );
+    return window.confirm('Des modifications non enregistrées seront perdues. Continuer ?');
   }
 
   return (
@@ -144,11 +131,7 @@ export function ExerciseForm({
             {...register('name')}
           />
           {errors.name ? (
-            <p
-              id="exercise-name-error"
-              className="text-xs text-[var(--danger)]"
-              role="alert"
-            >
+            <p id="exercise-name-error" className="text-xs text-[var(--danger)]" role="alert">
               {errors.name.message}
             </p>
           ) : null}
@@ -350,9 +333,7 @@ export function ExerciseForm({
             disabled={pending}
             {...register('instructions')}
           />
-          <p className="text-xs text-[var(--muted-foreground)]">
-            {instructions.length}/4000
-          </p>
+          <p className="text-xs text-[var(--muted-foreground)]">{instructions.length}/4000</p>
           {errors.instructions ? (
             <p className="text-xs text-[var(--danger)]" role="alert">
               {errors.instructions.message}
@@ -362,10 +343,7 @@ export function ExerciseForm({
       </section>
 
       {submitError ? (
-        <div
-          className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-3"
-          role="alert"
-        >
+        <div className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-3" role="alert">
           <p className="text-sm text-[var(--danger)]">{submitError}</p>
         </div>
       ) : null}

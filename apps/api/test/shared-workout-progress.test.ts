@@ -20,8 +20,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -31,11 +30,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -84,9 +79,7 @@ async function createStartableTemplate(
     .expect(201);
   const templateId = tpl.body.data.workoutTemplates[0].id as string;
   const ex = await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       exerciseId: system.id,
@@ -98,9 +91,7 @@ async function createStartableTemplate(
   const teId = ex.body.data.workoutTemplates[0].exercises[0].id as string;
   for (let i = 0; i < setCount; i += 1) {
     await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`,
-      )
+      .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`)
       .set('Authorization', `Bearer ${token}`)
       .send({
         setType: 'WORKING',
@@ -119,11 +110,7 @@ async function createStartableTemplate(
   return { programId, templateId };
 }
 
-async function createActiveRoom(
-  app: INestApplication,
-  ownerToken: string,
-  name: string,
-) {
+async function createActiveRoom(app: INestApplication, ownerToken: string, name: string) {
   const created = await request(app.getHttpServer())
     .post('/api/v1/shared-workouts')
     .set('Authorization', `Bearer ${ownerToken}`)
@@ -174,34 +161,23 @@ async function cancelActiveWorkout(
     .expect(200);
 }
 
-async function cancelAnyActiveWorkout(
-  app: INestApplication,
-  token: string,
-) {
+async function cancelAnyActiveWorkout(app: INestApplication, token: string) {
   const active = await request(app.getHttpServer())
     .get('/api/v1/workouts/active')
     .set('Authorization', `Bearer ${token}`);
   if (active.status !== 200 || !active.body?.data) return;
-  await cancelActiveWorkout(
-    app,
-    token,
-    active.body.data.id,
-    active.body.data.version,
-  );
+  await cancelActiveWorkout(app, token, active.body.data.id, active.body.data.version);
 }
 
 function connectSocket(port: number, token: string): Promise<Socket> {
   return new Promise((resolve, reject) => {
-    const socket = io(
-      `http://127.0.0.1:${port}${SHARED_WORKOUT_SOCKET_NAMESPACE}`,
-      {
-        auth: { token },
-        transports: ['websocket'],
-        forceNew: true,
-        reconnection: false,
-        timeout: 5000,
-      },
-    );
+    const socket = io(`http://127.0.0.1:${port}${SHARED_WORKOUT_SOCKET_NAMESPACE}`, {
+      auth: { token },
+      transports: ['websocket'],
+      forceNew: true,
+      reconnection: false,
+      timeout: 5000,
+    });
     const timer = setTimeout(() => {
       socket.close();
       reject(new Error('socket connect timeout'));
@@ -218,11 +194,7 @@ function connectSocket(port: number, token: string): Promise<Socket> {
   });
 }
 
-function emitAck<T>(
-  socket: Socket,
-  event: string,
-  payload: unknown,
-): Promise<T> {
+function emitAck<T>(socket: Socket, event: string, payload: unknown): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`ack timeout ${event}`)), 5000);
     socket.emit(event, payload, (response: T) => {
@@ -259,10 +231,7 @@ describe('Shared workout progress (Shared 5.5)', () => {
     app.useGlobalFilters(new GlobalExceptionFilter(config));
     await app.listen(0);
     const address = app.getHttpServer().address();
-    port =
-      typeof address === 'object' && address && 'port' in address
-        ? address.port
-        : 0;
+    port = typeof address === 'object' && address && 'port' in address ? address.port : 0;
     prisma = app.get(PrismaService);
     await seedReferenceData(prisma);
     await seedSystemExercises(prisma);
@@ -275,10 +244,8 @@ describe('Shared workout progress (Shared 5.5)', () => {
     tokenB = b.token;
     tokenC = c.token;
 
-    templateA = (await createStartableTemplate(app, tokenA, prisma, `A-${stamp}`, 2))
-      .templateId;
-    templateB = (await createStartableTemplate(app, tokenB, prisma, `B-${stamp}`, 2))
-      .templateId;
+    templateA = (await createStartableTemplate(app, tokenA, prisma, `A-${stamp}`, 2)).templateId;
+    templateB = (await createStartableTemplate(app, tokenB, prisma, `B-${stamp}`, 2)).templateId;
   }, 120_000);
 
   afterAll(async () => {
@@ -321,26 +288,18 @@ describe('Shared workout progress (Shared 5.5)', () => {
       processedExerciseCount: 0,
       totalExerciseCount: 1,
     });
-    expect(JSON.stringify(detailBefore.body.data)).not.toMatch(
-      privacyLeakPattern(),
-    );
+    expect(JSON.stringify(detailBefore.body.data)).not.toMatch(privacyLeakPattern());
 
     const setCurrent = await request(app.getHttpServer())
-      .put(
-        `/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`,
-      )
+      .put(`/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ workoutSessionExerciseId: exerciseId })
       .expect(200);
-    expect(setCurrent.body.data.currentWorkoutSessionExerciseId).toBe(
-      exerciseId,
-    );
+    expect(setCurrent.body.data.currentWorkoutSessionExerciseId).toBe(exerciseId);
 
     // Idempotent
     const again = await request(app.getHttpServer())
-      .put(
-        `/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`,
-      )
+      .put(`/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ workoutSessionExerciseId: exerciseId })
       .expect(200);
@@ -350,24 +309,18 @@ describe('Shared workout progress (Shared 5.5)', () => {
       .get(`/api/v1/shared-workouts/${roomId}`)
       .set('Authorization', `Bearer ${tokenB}`)
       .expect(200);
-    const owner = detail.body.data.members.find(
-      (m: { userId: string }) => m.userId === userIdA,
-    );
+    const owner = detail.body.data.members.find((m: { userId: string }) => m.userId === userIdA);
     expect(owner.memberWorkout.currentExercise).toMatchObject({
       name: exercise.exerciseName,
       processedSetCount: 0,
       totalSetCount: 2,
     });
-    expect(owner.memberWorkout.currentExercise).not.toHaveProperty(
-      'workoutSessionExerciseId',
-    );
+    expect(owner.memberWorkout.currentExercise).not.toHaveProperty('workoutSessionExerciseId');
     expect(JSON.stringify(detail.body.data)).not.toMatch(privacyLeakPattern());
 
     // Cross-user: B cannot set A's exercise
     await request(app.getHttpServer())
-      .put(
-        `/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`,
-      )
+      .put(`/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`)
       .set('Authorization', `Bearer ${tokenB}`)
       .send({ workoutSessionExerciseId: exerciseId })
       .expect(400);
@@ -395,9 +348,7 @@ describe('Shared workout progress (Shared 5.5)', () => {
 
     // Complete one set → progress 1/2
     await request(app.getHttpServer())
-      .patch(
-        `/api/v1/workouts/${sessionId}/exercises/${exerciseId}/sets/${set0.id}`,
-      )
+      .patch(`/api/v1/workouts/${sessionId}/exercises/${exerciseId}/sets/${set0.id}`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         status: 'COMPLETED',
@@ -426,9 +377,7 @@ describe('Shared workout progress (Shared 5.5)', () => {
 
     // Clear current exercise
     await request(app.getHttpServer())
-      .put(
-        `/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`,
-      )
+      .put(`/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ workoutSessionExerciseId: null })
       .expect(200);
@@ -462,15 +411,12 @@ describe('Shared workout progress (Shared 5.5)', () => {
       .set('Authorization', `Bearer ${tokenB}`)
       .send({ workoutTemplateId: templateB })
       .expect(201);
-    const foreignExerciseId = createdB.body.data.workoutSession
-      .exercises[0].id as string;
+    const foreignExerciseId = createdB.body.data.workoutSession.exercises[0].id as string;
     const sessionB = createdB.body.data.workoutSession.id as string;
 
     // Cross-session / cross-user exercise → 404
     await request(app.getHttpServer())
-      .put(
-        `/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`,
-      )
+      .put(`/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ workoutSessionExerciseId: foreignExerciseId })
       .expect(404);
@@ -485,9 +431,7 @@ describe('Shared workout progress (Shared 5.5)', () => {
       })
       .expect(200);
     await request(app.getHttpServer())
-      .put(
-        `/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`,
-      )
+      .put(`/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ workoutSessionExerciseId: exerciseId })
       .expect(200);
@@ -507,9 +451,7 @@ describe('Shared workout progress (Shared 5.5)', () => {
       .expect(200);
 
     await request(app.getHttpServer())
-      .put(
-        `/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`,
-      )
+      .put(`/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ workoutSessionExerciseId: exerciseId })
       .expect(400);
@@ -531,9 +473,7 @@ describe('Shared workout progress (Shared 5.5)', () => {
       .send({ name: `Lobby ${stamp}` })
       .expect(201);
     await request(app.getHttpServer())
-      .put(
-        `/api/v1/shared-workouts/${lobby.body.data.id}/my-workout-session/current-exercise`,
-      )
+      .put(`/api/v1/shared-workouts/${lobby.body.data.id}/my-workout-session/current-exercise`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ workoutSessionExerciseId: null })
       .expect(400)
@@ -579,23 +519,17 @@ describe('Shared workout progress (Shared 5.5)', () => {
     expect(reasons).toContain('RENAMED');
 
     await request(app.getHttpServer())
-      .put(
-        `/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`,
-      )
+      .put(`/api/v1/shared-workouts/${roomId}/my-workout-session/current-exercise`)
       .set('Authorization', `Bearer ${tokenB}`)
       .send({ workoutSessionExerciseId: exerciseId })
       .expect(200);
     await new Promise((r) => setTimeout(r, 150));
     expect(reasons).toContain('MEMBER_CURRENT_EXERCISE_CHANGED');
 
-    const beforeProgress = reasons.filter(
-      (r) => r === 'MEMBER_WORKOUT_PROGRESS_CHANGED',
-    ).length;
+    const beforeProgress = reasons.filter((r) => r === 'MEMBER_WORKOUT_PROGRESS_CHANGED').length;
 
     await request(app.getHttpServer())
-      .patch(
-        `/api/v1/workouts/${sessionId}/exercises/${exerciseId}/sets/${set0.id}`,
-      )
+      .patch(`/api/v1/workouts/${sessionId}/exercises/${exerciseId}/sets/${set0.id}`)
       .set('Authorization', `Bearer ${tokenB}`)
       .send({
         status: 'COMPLETED',
@@ -611,15 +545,13 @@ describe('Shared workout progress (Shared 5.5)', () => {
       })
       .expect(200);
     await new Promise((r) => setTimeout(r, 80));
-    expect(
-      reasons.filter((r) => r === 'MEMBER_WORKOUT_PROGRESS_CHANGED').length,
-    ).toBe(beforeProgress + 1);
+    expect(reasons.filter((r) => r === 'MEMBER_WORKOUT_PROGRESS_CHANGED').length).toBe(
+      beforeProgress + 1,
+    );
 
     // Same processed status, change reps only → no progress event
     await request(app.getHttpServer())
-      .patch(
-        `/api/v1/workouts/${sessionId}/exercises/${exerciseId}/sets/${set0.id}`,
-      )
+      .patch(`/api/v1/workouts/${sessionId}/exercises/${exerciseId}/sets/${set0.id}`)
       .set('Authorization', `Bearer ${tokenB}`)
       .send({
         status: 'COMPLETED',
@@ -635,9 +567,9 @@ describe('Shared workout progress (Shared 5.5)', () => {
       })
       .expect(200);
     await new Promise((r) => setTimeout(r, 80));
-    expect(
-      reasons.filter((r) => r === 'MEMBER_WORKOUT_PROGRESS_CHANGED').length,
-    ).toBe(beforeProgress + 1);
+    expect(reasons.filter((r) => r === 'MEMBER_WORKOUT_PROGRESS_CHANGED').length).toBe(
+      beforeProgress + 1,
+    );
 
     // Room complete → further set updates do not broadcast
     await request(app.getHttpServer())
@@ -652,9 +584,7 @@ describe('Shared workout progress (Shared 5.5)', () => {
     ).length;
     const set1 = exercise.sets[1];
     await request(app.getHttpServer())
-      .patch(
-        `/api/v1/workouts/${sessionId}/exercises/${exerciseId}/sets/${set1.id}`,
-      )
+      .patch(`/api/v1/workouts/${sessionId}/exercises/${exerciseId}/sets/${set1.id}`)
       .set('Authorization', `Bearer ${tokenB}`)
       .send({
         status: 'COMPLETED',
@@ -670,9 +600,9 @@ describe('Shared workout progress (Shared 5.5)', () => {
       })
       .expect(200);
     await new Promise((r) => setTimeout(r, 80));
-    expect(
-      reasons.filter((r) => r === 'MEMBER_WORKOUT_PROGRESS_CHANGED').length,
-    ).toBe(progressAfterComplete);
+    expect(reasons.filter((r) => r === 'MEMBER_WORKOUT_PROGRESS_CHANGED').length).toBe(
+      progressAfterComplete,
+    );
 
     socketA.disconnect();
     await cancelActiveWorkout(app, tokenB, sessionId, 4);
@@ -706,9 +636,7 @@ describe('Shared workout progress (Shared 5.5)', () => {
     expect(ack.ok).toBe(true);
 
     await request(app.getHttpServer())
-      .patch(
-        `/api/v1/workouts/${sessionId}/exercises/${exercise.id}/sets/${exercise.sets[0].id}`,
-      )
+      .patch(`/api/v1/workouts/${sessionId}/exercises/${exercise.id}/sets/${exercise.sets[0].id}`)
       .set('Authorization', `Bearer ${tokenB}`)
       .send({
         status: 'COMPLETED',

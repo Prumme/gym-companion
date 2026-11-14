@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import type {
   ProgramDetail,
   ProgramImportError,
@@ -53,10 +49,7 @@ export class ProgramImportsService {
     private readonly programsService: ProgramsService,
   ) {}
 
-  async validate(
-    _userId: string,
-    raw: unknown,
-  ): Promise<ProgramImportValidateResponse> {
+  async validate(_userId: string, raw: unknown): Promise<ProgramImportValidateResponse> {
     const evaluated = await this.evaluate(raw);
     if (!evaluated.ok) {
       this.logger.log({
@@ -115,9 +108,7 @@ export class ProgramImportsService {
                   if (!catalog) {
                     throw new Error('PROGRAM_IMPORT_CATALOG_MISS');
                   }
-                  const targets = exercise.sets.map((set) =>
-                    programImportSetToTargetFields(set),
-                  );
+                  const targets = exercise.sets.map((set) => programImportSetToTargetFields(set));
                   return {
                     exerciseId: catalog.id,
                     position: exerciseIndex,
@@ -329,17 +320,10 @@ export class ProgramImportsService {
       description: payload.program.description ?? null,
       goal: payload.program.goal,
       workoutCount: workouts.length,
-      exerciseCount: workouts.reduce(
-        (sum, workout) => sum + workout.exercises.length,
-        0,
-      ),
+      exerciseCount: workouts.reduce((sum, workout) => sum + workout.exercises.length, 0),
       setCount: workouts.reduce(
         (sum, workout) =>
-          sum +
-          workout.exercises.reduce(
-            (inner, exercise) => inner + exercise.sets.length,
-            0,
-          ),
+          sum + workout.exercises.reduce((inner, exercise) => inner + exercise.sets.length, 0),
         0,
       ),
       workouts,

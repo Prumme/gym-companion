@@ -17,8 +17,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -28,11 +27,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -57,10 +52,7 @@ async function createStartableTemplate(
   prisma: PrismaService,
   name: string,
   measurementType:
-    | 'WEIGHT_REPS'
-    | 'DURATION'
-    | 'DISTANCE_DURATION'
-    | 'BODYWEIGHT_REPS' = 'WEIGHT_REPS',
+    'WEIGHT_REPS' | 'DURATION' | 'DISTANCE_DURATION' | 'BODYWEIGHT_REPS' = 'WEIGHT_REPS',
   exerciseOverrideId?: string,
   extraWarmup = false,
 ): Promise<Startable> {
@@ -89,9 +81,7 @@ async function createStartableTemplate(
     .expect(201);
   const templateId = tpl.body.data.workoutTemplates[0].id as string;
   const ex = await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       exerciseId: exercise.id,
@@ -157,9 +147,7 @@ async function createStartableTemplate(
 
   if (extraWarmup && measurementType === 'WEIGHT_REPS') {
     await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`,
-      )
+      .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`)
       .set('Authorization', `Bearer ${token}`)
       .send({
         setType: 'WARMUP',
@@ -177,9 +165,7 @@ async function createStartableTemplate(
   }
 
   await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${teId}/sets`)
     .set('Authorization', `Bearer ${token}`)
     .send(setPayload)
     .expect(201);
@@ -236,9 +222,7 @@ async function patchSet(
     throw new Error('Missing set');
   }
   const response = await request(app.getHttpServer())
-    .patch(
-      `/api/v1/workouts/${session.id}/exercises/${exercise.id}/sets/${set.id}`,
-    )
+    .patch(`/api/v1/workouts/${session.id}/exercises/${exercise.id}/sets/${set.id}`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       ...actuals,
@@ -312,13 +296,7 @@ describe('Exercise progress API (4.3)', () => {
 
     tokenA = await registerUser(app, `prog-a-${stamp}@example.com`, 'Prog A');
     tokenB = await registerUser(app, `prog-b-${stamp}@example.com`, 'Prog B');
-    weightTpl = await createStartableTemplate(
-      app,
-      tokenA,
-      prisma,
-      `W-${stamp}`,
-      'WEIGHT_REPS',
-    );
+    weightTpl = await createStartableTemplate(app, tokenA, prisma, `W-${stamp}`, 'WEIGHT_REPS');
     weightWarmupTpl = await createStartableTemplate(
       app,
       tokenA,
@@ -328,13 +306,7 @@ describe('Exercise progress API (4.3)', () => {
       weightTpl.exerciseId,
       true,
     );
-    durationTpl = await createStartableTemplate(
-      app,
-      tokenA,
-      prisma,
-      `D-${stamp}`,
-      'DURATION',
-    );
+    durationTpl = await createStartableTemplate(app, tokenA, prisma, `D-${stamp}`, 'DURATION');
     const userAId = (
       await prisma.user.findUniqueOrThrow({
         where: { email: `prog-a-${stamp}@example.com` },
@@ -387,10 +359,7 @@ describe('Exercise progress API (4.3)', () => {
     expect(response.body.data.points).toEqual([]);
     expect(response.body.data.summary).toBeNull();
     expect(response.body.data.selectedMetric).toBe('MAX_REPS');
-    expect(response.body.data.availableMetrics).toEqual([
-      'MAX_REPS',
-      'TOTAL_REPS',
-    ]);
+    expect(response.body.data.availableMetrics).toEqual(['MAX_REPS', 'TOTAL_REPS']);
   });
 
   it('authentification obligatoire', async () => {
@@ -473,18 +442,9 @@ describe('Exercise progress API (4.3)', () => {
     );
     await completeWorkout(app, tokenA, s3, `prog-c3-${stamp}`);
 
-    const s4 = await startWorkout(
-      app,
-      tokenA,
-      weightWarmupTpl.templateId,
-      '2026-08-01',
-    );
-    const warmupIndex = s4.exercises[0]!.sets.findIndex(
-      (set) => set.setType === 'WARMUP',
-    );
-    const workingIndex = s4.exercises[0]!.sets.findIndex(
-      (set) => set.setType === 'WORKING',
-    );
+    const s4 = await startWorkout(app, tokenA, weightWarmupTpl.templateId, '2026-08-01');
+    const warmupIndex = s4.exercises[0]!.sets.findIndex((set) => set.setType === 'WARMUP');
+    const workingIndex = s4.exercises[0]!.sets.findIndex((set) => set.setType === 'WORKING');
     await patchSet(
       app,
       tokenA,
@@ -544,17 +504,13 @@ describe('Exercise progress API (4.3)', () => {
     expect(all.body.data.summary.absoluteChange).toBe(20);
 
     const fromOnly = await request(app.getHttpServer())
-      .get(
-        `/api/v1/progress/exercises/${weightTpl.exerciseId}?metric=MAX_WEIGHT&from=2026-07-01`,
-      )
+      .get(`/api/v1/progress/exercises/${weightTpl.exerciseId}?metric=MAX_WEIGHT&from=2026-07-01`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     expect(fromOnly.body.data.points).toHaveLength(3);
 
     const toOnly = await request(app.getHttpServer())
-      .get(
-        `/api/v1/progress/exercises/${weightTpl.exerciseId}?metric=MAX_WEIGHT&to=2026-06-15`,
-      )
+      .get(`/api/v1/progress/exercises/${weightTpl.exerciseId}?metric=MAX_WEIGHT&to=2026-06-15`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     expect(toOnly.body.data.points).toHaveLength(1);
@@ -586,9 +542,7 @@ describe('Exercise progress API (4.3)', () => {
 
   it('date invalide / plage inversée / métrique incompatible', async () => {
     await request(app.getHttpServer())
-      .get(
-        `/api/v1/progress/exercises/${weightTpl.exerciseId}?from=not-a-date`,
-      )
+      .get(`/api/v1/progress/exercises/${weightTpl.exerciseId}?from=not-a-date`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(400)
       .expect((res) => {
@@ -596,9 +550,7 @@ describe('Exercise progress API (4.3)', () => {
       });
 
     await request(app.getHttpServer())
-      .get(
-        `/api/v1/progress/exercises/${weightTpl.exerciseId}?from=2026-08-01&to=2026-01-01`,
-      )
+      .get(`/api/v1/progress/exercises/${weightTpl.exerciseId}?from=2026-08-01&to=2026-01-01`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(400)
       .expect((res) => {
@@ -606,9 +558,7 @@ describe('Exercise progress API (4.3)', () => {
       });
 
     await request(app.getHttpServer())
-      .get(
-        `/api/v1/progress/exercises/${weightTpl.exerciseId}?metric=MAX_DISTANCE`,
-      )
+      .get(`/api/v1/progress/exercises/${weightTpl.exerciseId}?metric=MAX_DISTANCE`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(400)
       .expect((res) => {
@@ -617,12 +567,7 @@ describe('Exercise progress API (4.3)', () => {
   });
 
   it('séance active et annulée exclues', async () => {
-    const active = await startWorkout(
-      app,
-      tokenA,
-      weightTpl.templateId,
-      '2026-08-10',
-    );
+    const active = await startWorkout(app, tokenA, weightTpl.templateId, '2026-08-10');
     await patchSet(
       app,
       tokenA,
@@ -652,12 +597,7 @@ describe('Exercise progress API (4.3)', () => {
 
     await cancelWorkout(app, tokenA, active, `prog-active-cancel-${stamp}`);
 
-    const cancelled = await startWorkout(
-      app,
-      tokenA,
-      weightTpl.templateId,
-      '2026-08-11',
-    );
+    const cancelled = await startWorkout(app, tokenA, weightTpl.templateId, '2026-08-11');
     await patchSet(
       app,
       tokenA,
@@ -688,12 +628,7 @@ describe('Exercise progress API (4.3)', () => {
   });
 
   it('DURATION et DISTANCE_DURATION', async () => {
-    const d = await startWorkout(
-      app,
-      tokenA,
-      durationTpl.templateId,
-      '2026-05-01',
-    );
+    const d = await startWorkout(app, tokenA, durationTpl.templateId, '2026-05-01');
     await patchSet(
       app,
       tokenA,
@@ -715,19 +650,12 @@ describe('Exercise progress API (4.3)', () => {
     await completeWorkout(app, tokenA, d, `prog-dur-c-${stamp}`);
 
     const duration = await request(app.getHttpServer())
-      .get(
-        `/api/v1/progress/exercises/${durationTpl.exerciseId}?metric=MAX_DURATION`,
-      )
+      .get(`/api/v1/progress/exercises/${durationTpl.exerciseId}?metric=MAX_DURATION`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     expect(duration.body.data.points[0].value).toBe(90);
 
-    const dist = await startWorkout(
-      app,
-      tokenA,
-      distanceTpl.templateId,
-      '2026-05-02',
-    );
+    const dist = await startWorkout(app, tokenA, distanceTpl.templateId, '2026-05-02');
     await patchSet(
       app,
       tokenA,
@@ -749,9 +677,7 @@ describe('Exercise progress API (4.3)', () => {
     await completeWorkout(app, tokenA, dist, `prog-dist-c-${stamp}`);
 
     const distance = await request(app.getHttpServer())
-      .get(
-        `/api/v1/progress/exercises/${distanceTpl.exerciseId}?metric=MAX_DISTANCE`,
-      )
+      .get(`/api/v1/progress/exercises/${distanceTpl.exerciseId}?metric=MAX_DISTANCE`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     expect(distance.body.data.points[0].value).toBe(1200);

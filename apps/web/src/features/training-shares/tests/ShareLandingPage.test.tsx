@@ -21,9 +21,7 @@ vi.mock('@/features/programs/api/program-api', () => ({
 }));
 
 vi.mock('@/stores/auth-store', () => ({
-  useAuthStore: (
-    selector: (state: { authStatus: string }) => unknown,
-  ) =>
+  useAuthStore: (selector: (state: { authStatus: string }) => unknown) =>
     selector({
       authStatus: 'authenticated',
     }),
@@ -41,10 +39,7 @@ function renderPage(token = 'tok-abc') {
       <MemoryRouter initialEntries={[`/share/${token}`]}>
         <Routes>
           <Route path="/share/:token" element={<ShareLandingPage />} />
-          <Route
-            path="/programs/:programId"
-            element={<div data-testid="program-detail" />}
-          />
+          <Route path="/programs/:programId" element={<div data-testid="program-detail" />} />
           <Route path="/login" element={<div data-testid="login" />} />
         </Routes>
       </MemoryRouter>
@@ -122,9 +117,7 @@ describe('ShareLandingPage', () => {
     expect(screen.getByText(/programme partagé/i)).toBeInTheDocument();
     expect(screen.queryByText(/partagé par/i)).not.toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole('button', { name: /ajouter à mes programmes/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /ajouter à mes programmes/i }));
 
     await waitFor(() => {
       expect(importShare).toHaveBeenCalledWith('tok-abc', {});
@@ -140,12 +133,8 @@ describe('ShareLandingPage', () => {
       }),
     );
     renderPage();
-    expect(
-      await screen.findByRole('heading', { name: /lien expiré/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/valides pendant 1 heure/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /lien expiré/i })).toBeInTheDocument();
+    expect(screen.getByText(/valides pendant 1 heure/i)).toBeInTheDocument();
   });
 
   it('affiche l’état invalide', async () => {
@@ -156,9 +145,7 @@ describe('ShareLandingPage', () => {
       }),
     );
     renderPage();
-    expect(
-      await screen.findByRole('heading', { name: /lien invalide/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /lien invalide/i })).toBeInTheDocument();
   });
 
   it('importe une séance dans un nouveau programme', async () => {
@@ -199,9 +186,7 @@ describe('ShareLandingPage', () => {
     });
 
     renderPage();
-    await user.click(
-      await screen.findByRole('button', { name: /ajouter cette séance/i }),
-    );
+    await user.click(await screen.findByRole('button', { name: /ajouter cette séance/i }));
     expect(
       await screen.findByRole('heading', {
         name: /où veux-tu ajouter cette séance/i,
@@ -211,9 +196,7 @@ describe('ShareLandingPage', () => {
     const nameInput = screen.getByLabelText(/nom du programme/i);
     expect(nameInput).toHaveValue('Programme Full Body A');
 
-    await user.click(
-      screen.getByRole('button', { name: /créer et ajouter la séance/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /créer et ajouter la séance/i }));
 
     await waitFor(() => {
       expect(importShare).toHaveBeenCalledWith('tok-abc', {

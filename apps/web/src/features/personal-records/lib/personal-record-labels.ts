@@ -61,9 +61,7 @@ export function formatPersonalRecordContext(record: PersonalRecord): string[] {
 
   if (recordType === 'MAX_WEIGHT') {
     if (context.reps != null) {
-      parts.push(
-        `${context.reps} répétition${context.reps > 1 ? 's' : ''}`,
-      );
+      parts.push(`${context.reps} répétition${context.reps > 1 ? 's' : ''}`);
     }
     if (context.durationSeconds != null) {
       parts.push(formatPersonalRecordDuration(context.durationSeconds));

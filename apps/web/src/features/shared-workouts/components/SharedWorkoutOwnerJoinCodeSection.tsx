@@ -34,9 +34,7 @@ export function SharedWorkoutOwnerJoinCodeSection({
     return () => window.clearTimeout(timer);
   }, [copyFeedback]);
 
-  const canShare =
-    typeof navigator !== 'undefined' &&
-    typeof navigator.share === 'function';
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
   async function copyCode() {
     try {
@@ -67,9 +65,7 @@ export function SharedWorkoutOwnerJoinCodeSection({
       setDisplayCode(result.joinCode);
       setRotateOpen(false);
     } catch (error) {
-      setRotateError(
-        getApiErrorMessage(error, 'Impossible de régénérer le code.'),
-      );
+      setRotateError(getApiErrorMessage(error, 'Impossible de régénérer le code.'));
     }
   }
 

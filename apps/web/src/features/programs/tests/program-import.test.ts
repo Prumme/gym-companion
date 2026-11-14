@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  locationFromJsonSyntaxError,
-  parseImportedJsonText,
-} from '../lib/parse-imported-json';
+import { locationFromJsonSyntaxError, parseImportedJsonText } from '../lib/parse-imported-json';
 import {
   buildProgramImportCorrectionPrompt,
   buildProgramImportPrompt,
@@ -70,8 +67,7 @@ describe('buildProgramImportPrompt', () => {
         experienceLevel: 'BEGINNER',
         musclePriorities: ['chest', 'back'],
         equipmentPreference: 'mixed',
-        freeText:
-          'Je vais généralement à la salle trois fois par semaine, parfois quatre.',
+        freeText: 'Je vais généralement à la salle trois fois par semaine, parfois quatre.',
       },
       catalog,
       muscles,
@@ -88,16 +84,12 @@ describe('buildProgramImportPrompt', () => {
     expect(prompt).toContain('beginner');
     expect(prompt).toContain('Pectoraux');
     expect(prompt).toContain('mixed equipment');
-    expect(prompt).toContain(
-      'Je vais généralement à la salle trois fois par semaine',
-    );
+    expect(prompt).toContain('Je vais généralement à la salle trois fois par semaine');
     expect(prompt).toContain(
       'developpe-couche-barre | Développé couché à la barre | chest | barbell | WEIGHT_REPS',
     );
     expect(prompt).toContain('planche | Planche | core | bodyweight | DURATION');
-    expect(prompt).not.toMatch(
-      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
-    );
+    expect(prompt).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
   });
 
   it('produit un prompt de correction déterministe', () => {
@@ -138,9 +130,7 @@ describe('describeProgramImportError', () => {
     );
     expect(described.title).toContain('Legs');
     expect(described.title).toContain('Série 2');
-    expect(described.path).toBe(
-      'program.workouts[1].exercises[0].sets[1].repsMin',
-    );
+    expect(described.path).toBe('program.workouts[1].exercises[0].sets[1].repsMin');
   });
 });
 

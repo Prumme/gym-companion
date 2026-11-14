@@ -9,9 +9,7 @@ import {
   useResetExercisePreferenceMutation,
   useUpdateExercisePreferenceMutation,
 } from '../hooks/use-exercise-preference-mutations';
-import {
-  hasCustomExercisePreference,
-} from '../lib/exercise-preference';
+import { hasCustomExercisePreference } from '../lib/exercise-preference';
 import { ExercisePreferenceForm } from './ExercisePreferenceForm';
 
 type ExercisePreferenceSectionProps = {
@@ -31,8 +29,7 @@ export function ExercisePreferenceSection({ exercise }: ExercisePreferenceSectio
   const resetMutation = useResetExercisePreferenceMutation();
 
   const preferenceBusy =
-    (updateMutation.isPending &&
-      updateMutation.variables?.exerciseId === exercise.id) ||
+    (updateMutation.isPending && updateMutation.variables?.exerciseId === exercise.id) ||
     (resetMutation.isPending && resetMutation.variables === exercise.id);
 
   const custom = hasCustomExercisePreference(preference);
@@ -71,8 +68,7 @@ export function ExercisePreferenceSection({ exercise }: ExercisePreferenceSectio
             ? null
             : (exercise.compatibleEquipmentTypes.find(
                 (item) => item.equipmentType.id === payload.preferredEquipmentTypeId,
-              )?.equipmentType ??
-              preference.preferredEquipmentType),
+              )?.equipmentType ?? preference.preferredEquipmentType),
         restSecondsOverride: payload.restSecondsOverride,
       };
       await updateMutation.mutateAsync({
@@ -84,10 +80,7 @@ export function ExercisePreferenceSection({ exercise }: ExercisePreferenceSectio
       setStatusMessage('Préférences enregistrées.');
     } catch (error) {
       setSubmitError(
-        getApiErrorMessage(
-          error,
-          'Impossible d’enregistrer les préférences. Réessaie.',
-        ),
+        getApiErrorMessage(error, 'Impossible d’enregistrer les préférences. Réessaie.'),
       );
     }
   }
@@ -102,10 +95,7 @@ export function ExercisePreferenceSection({ exercise }: ExercisePreferenceSectio
       setStatusMessage('Préférences réinitialisées.');
     } catch (error) {
       setSubmitError(
-        getApiErrorMessage(
-          error,
-          'Impossible de réinitialiser les préférences. Réessaie.',
-        ),
+        getApiErrorMessage(error, 'Impossible de réinitialiser les préférences. Réessaie.'),
       );
     }
   }
@@ -191,17 +181,14 @@ export function ExercisePreferenceSection({ exercise }: ExercisePreferenceSectio
             aria-labelledby={titleId}
             className="absolute inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto rounded-t-[var(--radius-surface)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-lg md:inset-auto md:top-1/2 md:left-1/2 md:w-full md:max-w-lg md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-[var(--radius-surface)]"
             style={{
-              paddingBottom:
-                'calc(var(--space-6) + env(safe-area-inset-bottom, 0px))',
+              paddingBottom: 'calc(var(--space-6) + env(safe-area-inset-bottom, 0px))',
             }}
             onClick={(event) => event.stopPropagation()}
           >
             <h3 id={titleId} className="mb-1 text-lg font-semibold">
               Préférences
             </h3>
-            <p className="mb-4 text-sm text-[var(--muted-foreground)]">
-              {exercise.name}
-            </p>
+            <p className="mb-4 text-sm text-[var(--muted-foreground)]">{exercise.name}</p>
             <ExercisePreferenceForm
               preference={preference}
               compatibleEquipment={exercise.compatibleEquipmentTypes}
@@ -238,8 +225,8 @@ export function ExercisePreferenceSection({ exercise }: ExercisePreferenceSectio
               Réinitialiser tes préférences pour cet exercice ?
             </h3>
             <p id="reset-pref-desc" className="mt-2 text-sm text-[var(--muted-foreground)]">
-              Le favori sera retiré, l’équipement préféré et le repos personnel seront
-              supprimés. L’exercice ne sera pas supprimé.
+              Le favori sera retiré, l’équipement préféré et le repos personnel seront supprimés.
+              L’exercice ne sera pas supprimé.
             </p>
             <div className="mt-4 flex flex-col gap-2 sm:flex-row">
               <Button

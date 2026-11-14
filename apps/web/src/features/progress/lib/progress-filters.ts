@@ -13,13 +13,7 @@ import {
 import { formatWorkoutVolume } from '@/features/workouts/lib/workout-metrics-format';
 import { todayLocalDateString } from '@/features/programs/lib/schedule-utils';
 
-export type ProgressPeriodPreset =
-  | '30d'
-  | '3m'
-  | '6m'
-  | '1y'
-  | 'all'
-  | 'custom';
+export type ProgressPeriodPreset = '30d' | '3m' | '6m' | '1y' | 'all' | 'custom';
 
 export type ProgressUrlFilters = {
   metric?: ExerciseProgressMetric;
@@ -39,18 +33,14 @@ const METRICS = new Set<string>([
   'TOTAL_DISTANCE',
 ]);
 
-export function parseProgressMetricParam(
-  value: string | null,
-): ExerciseProgressMetric | undefined {
+export function parseProgressMetricParam(value: string | null): ExerciseProgressMetric | undefined {
   if (!value || !METRICS.has(value)) {
     return undefined;
   }
   return value as ExerciseProgressMetric;
 }
 
-export function parseOptionalLocalDateParam(
-  value: string | null,
-): string | undefined {
+export function parseOptionalLocalDateParam(value: string | null): string | undefined {
   if (!value || !isValidLocalDateString(value)) {
     return undefined;
   }
@@ -88,12 +78,7 @@ export function detectPeriodPreset(
   if (!from || !to || to !== today) {
     return 'custom';
   }
-  const presets: Array<Exclude<ProgressPeriodPreset, 'custom' | 'all'>> = [
-    '30d',
-    '3m',
-    '6m',
-    '1y',
-  ];
+  const presets: Array<Exclude<ProgressPeriodPreset, 'custom' | 'all'>> = ['30d', '3m', '6m', '1y'];
   for (const preset of presets) {
     const range = resolvePresetRange(preset, today);
     if (range.from === from && range.to === to) {
@@ -110,9 +95,7 @@ export function detectPeriodPreset(
  * - `period=all` → tout l’historique (from/to absents), distinct du défaut ;
  * - `from`/`to` → preset détecté ou `custom`.
  */
-export function parseProgressSearchParams(
-  searchParams: URLSearchParams,
-): ProgressUrlFilters {
+export function parseProgressSearchParams(searchParams: URLSearchParams): ProgressUrlFilters {
   const metric = parseProgressMetricParam(searchParams.get('metric'));
   const periodParam = searchParams.get('period');
 
@@ -129,8 +112,7 @@ export function parseProgressSearchParams(
   const toRaw = parseOptionalLocalDateParam(searchParams.get('to'));
   const to = from && toRaw && from > toRaw ? undefined : toRaw;
 
-  const hasExplicitDates =
-    searchParams.has('from') || searchParams.has('to');
+  const hasExplicitDates = searchParams.has('from') || searchParams.has('to');
 
   if (!hasExplicitDates) {
     const defaultRange = resolvePresetRange('3m');
@@ -150,9 +132,7 @@ export function parseProgressSearchParams(
   };
 }
 
-export function buildProgressSearchParams(
-  filters: ProgressUrlFilters,
-): URLSearchParams {
+export function buildProgressSearchParams(filters: ProgressUrlFilters): URLSearchParams {
   const params = new URLSearchParams();
   if (filters.metric) {
     params.set('metric', filters.metric);
@@ -171,10 +151,7 @@ export function buildProgressSearchParams(
   return params;
 }
 
-export function formatProgressMetricValue(
-  metric: ExerciseProgressMetric,
-  value: number,
-): string {
+export function formatProgressMetricValue(metric: ExerciseProgressMetric, value: number): string {
   switch (metric) {
     case 'MAX_WEIGHT':
       return formatPersonalRecordWeight(value);
@@ -196,17 +173,12 @@ export function formatProgressMetricValue(
   }
 }
 
-export function formatProgressAxisTick(
-  metric: ExerciseProgressMetric,
-  value: number,
-): string {
+export function formatProgressAxisTick(metric: ExerciseProgressMetric, value: number): string {
   switch (metric) {
     case 'MAX_WEIGHT':
       return `${value}`;
     case 'WORKING_EXTERNAL_VOLUME':
-      return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(
-        value,
-      );
+      return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(value);
     case 'MAX_REPS':
     case 'TOTAL_REPS':
       return `${value}`;

@@ -82,9 +82,7 @@ function OverviewTooltip({
   return (
     <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm shadow-sm">
       <p className="font-medium">{periodLabel}</p>
-      <p className="mt-1 font-semibold">
-        {formatOverviewMetricValue(metric, row.value)}
-      </p>
+      <p className="mt-1 font-semibold">{formatOverviewMetricValue(metric, row.value)}</p>
       {metric !== 'WORKOUT_COUNT' ? (
         <p className="text-[var(--muted)]">
           {point.workoutCount} séance{point.workoutCount > 1 ? 's' : ''}
@@ -94,11 +92,7 @@ function OverviewTooltip({
   );
 }
 
-export function ProgressOverviewChart({
-  points,
-  metric,
-  bucket,
-}: OverviewChartProps) {
+export function ProgressOverviewChart({ points, metric, bucket }: OverviewChartProps) {
   const data: ChartRow[] = points.map((point) => ({
     label: formatOverviewPeriodLabel(point.periodStart, point.periodEnd, bucket),
     value: metricValue(point, metric),
@@ -136,9 +130,7 @@ export function ProgressOverviewChart({
               tickLine={false}
               axisLine={false}
               width={44}
-              tickFormatter={(value: number) =>
-                formatOverviewAxisTick(metric, value)
-              }
+              tickFormatter={(value: number) => formatOverviewAxisTick(metric, value)}
             />
             <Tooltip
               content={<OverviewTooltip metric={metric} bucket={bucket} />}
@@ -167,9 +159,7 @@ export function ProgressOverviewChart({
               tickLine={false}
               axisLine={false}
               width={48}
-              tickFormatter={(value: number) =>
-                formatOverviewAxisTick(metric, value)
-              }
+              tickFormatter={(value: number) => formatOverviewAxisTick(metric, value)}
             />
             <Tooltip
               content={<OverviewTooltip metric={metric} bucket={bucket} />}

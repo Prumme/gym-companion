@@ -25,10 +25,8 @@ export function useCreateWorkoutTemplateShareMutation() {
 export function useImportShareMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: {
-      token: string;
-      body?: ImportTrainingShareRequest;
-    }) => importShare(input.token, input.body ?? {}),
+    mutationFn: (input: { token: string; body?: ImportTrainingShareRequest }) =>
+      importShare(input.token, input.body ?? {}),
     onSuccess: async (result) => {
       await queryClient.invalidateQueries({ queryKey: programQueryKeys.all });
       if (result.programId) {

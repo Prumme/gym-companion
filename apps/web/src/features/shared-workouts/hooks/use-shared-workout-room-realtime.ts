@@ -19,19 +19,13 @@ export function useSharedWorkoutRoomRealtime(
   status: SharedWorkoutRoomStatus | undefined,
 ) {
   const queryClient = useQueryClient();
-  const [connectedUserIds, setConnectedUserIds] = useState<Set<string>>(
-    () => new Set(),
-  );
+  const [connectedUserIds, setConnectedUserIds] = useState<Set<string>>(() => new Set());
   const [connectionStatus, setConnectionStatus] =
     useState<SharedWorkoutRealtimeConnectionStatus>('disconnected');
   const progressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const equipmentTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const online =
-    typeof navigator === 'undefined' ? true : navigator.onLine;
-  const shouldConnect =
-    Boolean(roomId) &&
-    online &&
-    (status === 'LOBBY' || status === 'ACTIVE');
+  const online = typeof navigator === 'undefined' ? true : navigator.onLine;
+  const shouldConnect = Boolean(roomId) && online && (status === 'LOBBY' || status === 'ACTIVE');
 
   useEffect(() => {
     if (!shouldConnect) {

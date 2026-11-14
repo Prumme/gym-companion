@@ -16,10 +16,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { createSuccessResponse } from '@gym-companion/shared';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import {
-  JwtAuthGuard,
-  type AuthenticatedUser,
-} from '../../common/guards/jwt-auth.guard';
+import { JwtAuthGuard, type AuthenticatedUser } from '../../common/guards/jwt-auth.guard';
 import { SharedWorkoutEquipmentCoordinationService } from './shared-workout-equipment-coordination.service';
 import { SharedWorkoutsService } from './shared-workouts.service';
 
@@ -53,8 +50,7 @@ export class SharedWorkoutsController {
 
   @Get('by-workout-session/:workoutSessionId/context')
   @ApiOperation({
-    summary:
-      'Contexte room pour une WorkoutSession (owner uniquement, Shared 5.5)',
+    summary: 'Contexte room pour une WorkoutSession (owner uniquement, Shared 5.5)',
   })
   async getWorkoutSessionContext(
     @CurrentUser() user: AuthenticatedUser,
@@ -71,10 +67,7 @@ export class SharedWorkoutsController {
   @HttpCode(200)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({ summary: 'Rejoindre une salle via code d’accès' })
-  async join(
-    @CurrentUser() user: AuthenticatedUser,
-    @Body() body: unknown,
-  ) {
+  async join(@CurrentUser() user: AuthenticatedUser, @Body() body: unknown) {
     const data = await this.sharedWorkoutsService.joinByCode(user.id, body);
     return createSuccessResponse(data);
   }
@@ -98,10 +91,7 @@ export class SharedWorkoutsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('roomId', ParseUUIDPipe) roomId: string,
   ) {
-    const data = await this.sharedWorkoutsService.getMyWorkoutSession(
-      user.id,
-      roomId,
-    );
+    const data = await this.sharedWorkoutsService.getMyWorkoutSession(user.id, roomId);
     return createSuccessResponse(data);
   }
 
@@ -115,30 +105,21 @@ export class SharedWorkoutsController {
     @Param('roomId', ParseUUIDPipe) roomId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.sharedWorkoutsService.attachMyWorkoutSession(
-      user.id,
-      roomId,
-      body,
-    );
+    const data = await this.sharedWorkoutsService.attachMyWorkoutSession(user.id, roomId, body);
     return createSuccessResponse(data);
   }
 
   @Post(':roomId/my-workout-session/create')
   @HttpCode(201)
   @ApiOperation({
-    summary:
-      'Créer ma séance depuis un template et la rattacher (Shared 5.4)',
+    summary: 'Créer ma séance depuis un template et la rattacher (Shared 5.4)',
   })
   async createMyWorkoutSession(
     @CurrentUser() user: AuthenticatedUser,
     @Param('roomId', ParseUUIDPipe) roomId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.sharedWorkoutsService.createMyWorkoutSession(
-      user.id,
-      roomId,
-      body,
-    );
+    const data = await this.sharedWorkoutsService.createMyWorkoutSession(user.id, roomId, body);
     return createSuccessResponse(data);
   }
 
@@ -151,11 +132,7 @@ export class SharedWorkoutsController {
     @Param('roomId', ParseUUIDPipe) roomId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.sharedWorkoutsService.setMyCurrentExercise(
-      user.id,
-      roomId,
-      body,
-    );
+    const data = await this.sharedWorkoutsService.setMyCurrentExercise(user.id, roomId, body);
     return createSuccessResponse(data);
   }
 
@@ -167,10 +144,7 @@ export class SharedWorkoutsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('roomId', ParseUUIDPipe) roomId: string,
   ) {
-    const data = await this.equipmentCoordination.getCoordination(
-      user.id,
-      roomId,
-    );
+    const data = await this.equipmentCoordination.getCoordination(user.id, roomId);
     return createSuccessResponse(data);
   }
 
@@ -182,10 +156,7 @@ export class SharedWorkoutsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('roomId', ParseUUIDPipe) roomId: string,
   ) {
-    const data = await this.equipmentCoordination.getMyEquipment(
-      user.id,
-      roomId,
-    );
+    const data = await this.equipmentCoordination.getMyEquipment(user.id, roomId);
     return createSuccessResponse(data);
   }
 
@@ -197,11 +168,7 @@ export class SharedWorkoutsController {
     @Param('roomId', ParseUUIDPipe) roomId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.equipmentCoordination.request(
-      user.id,
-      roomId,
-      body,
-    );
+    const data = await this.equipmentCoordination.request(user.id, roomId, body);
     return createSuccessResponse(data);
   }
 
@@ -213,11 +180,7 @@ export class SharedWorkoutsController {
     @Param('roomId', ParseUUIDPipe) roomId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.equipmentCoordination.release(
-      user.id,
-      roomId,
-      body,
-    );
+    const data = await this.equipmentCoordination.release(user.id, roomId, body);
     return createSuccessResponse(data);
   }
 
@@ -229,11 +192,7 @@ export class SharedWorkoutsController {
     @Param('roomId', ParseUUIDPipe) roomId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.equipmentCoordination.cancelWaiting(
-      user.id,
-      roomId,
-      body,
-    );
+    const data = await this.equipmentCoordination.cancelWaiting(user.id, roomId, body);
     return createSuccessResponse(data);
   }
 
@@ -254,11 +213,7 @@ export class SharedWorkoutsController {
     @Param('roomId', ParseUUIDPipe) roomId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.sharedWorkoutsService.updateRoom(
-      user.id,
-      roomId,
-      body,
-    );
+    const data = await this.sharedWorkoutsService.updateRoom(user.id, roomId, body);
     return createSuccessResponse(data);
   }
 
@@ -270,11 +225,7 @@ export class SharedWorkoutsController {
     @Param('roomId', ParseUUIDPipe) roomId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.sharedWorkoutsService.startRoom(
-      user.id,
-      roomId,
-      body,
-    );
+    const data = await this.sharedWorkoutsService.startRoom(user.id, roomId, body);
     return createSuccessResponse(data);
   }
 
@@ -286,11 +237,7 @@ export class SharedWorkoutsController {
     @Param('roomId', ParseUUIDPipe) roomId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.sharedWorkoutsService.completeRoom(
-      user.id,
-      roomId,
-      body,
-    );
+    const data = await this.sharedWorkoutsService.completeRoom(user.id, roomId, body);
     return createSuccessResponse(data);
   }
 
@@ -302,11 +249,7 @@ export class SharedWorkoutsController {
     @Param('roomId', ParseUUIDPipe) roomId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.sharedWorkoutsService.cancelRoom(
-      user.id,
-      roomId,
-      body,
-    );
+    const data = await this.sharedWorkoutsService.cancelRoom(user.id, roomId, body);
     return createSuccessResponse(data);
   }
 
@@ -317,10 +260,7 @@ export class SharedWorkoutsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('roomId', ParseUUIDPipe) roomId: string,
   ) {
-    const data = await this.sharedWorkoutsService.rotateJoinCode(
-      user.id,
-      roomId,
-    );
+    const data = await this.sharedWorkoutsService.rotateJoinCode(user.id, roomId);
     return createSuccessResponse(data);
   }
 }

@@ -34,9 +34,7 @@ export function buildExerciseProgressSummary(
   exercise: SharedProgressExerciseInput,
 ): SharedExerciseProgressSummary {
   const totalSetCount = exercise.sets.length;
-  const processedSetCount = exercise.sets.filter((set) =>
-    isProcessedSetStatus(set.status),
-  ).length;
+  const processedSetCount = exercise.sets.filter((set) => isProcessedSetStatus(set.status)).length;
   return {
     name: exercise.exerciseNameSnapshot,
     processedSetCount,
@@ -49,9 +47,7 @@ export function buildExerciseProgressSummary(
  * Exercice sans série : totalExerciseCount l’inclut, processed seulement si 0 sets
  * (convention : 0/0 → considéré processed pour ne pas bloquer).
  */
-export function isExerciseFullyProcessed(
-  exercise: SharedProgressExerciseInput,
-): boolean {
+export function isExerciseFullyProcessed(exercise: SharedProgressExerciseInput): boolean {
   if (exercise.sets.length === 0) return true;
   return exercise.sets.every((set) => isProcessedSetStatus(set.status));
 }
@@ -65,9 +61,7 @@ export function buildWorkoutProgressSummary(
 
   for (const exercise of exercises) {
     totalSetCount += exercise.sets.length;
-    processedSetCount += exercise.sets.filter((set) =>
-      isProcessedSetStatus(set.status),
-    ).length;
+    processedSetCount += exercise.sets.filter((set) => isProcessedSetStatus(set.status)).length;
     if (isExerciseFullyProcessed(exercise)) {
       processedExerciseCount += 1;
     }
@@ -82,10 +76,7 @@ export function buildWorkoutProgressSummary(
 }
 
 /** Ratio sûr pour barre de progression (évite NaN/Infinity). */
-export function safeProgressRatio(
-  processed: number,
-  total: number,
-): number {
+export function safeProgressRatio(processed: number, total: number): number {
   if (total <= 0) return 0;
   return Math.min(1, Math.max(0, processed / total));
 }

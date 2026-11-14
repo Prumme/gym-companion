@@ -48,10 +48,7 @@ export function PlateauAnalysisSection({
       <section role="alert" aria-label="Tendance">
         <h2 className="section-title">Tendance</h2>
         <p className="mt-2 text-sm text-[var(--danger)]">
-          {getApiErrorMessage(
-            query.error,
-            'Impossible de charger l’analyse de progression.',
-          )}
+          {getApiErrorMessage(query.error, 'Impossible de charger l’analyse de progression.')}
         </p>
       </section>
     );
@@ -91,9 +88,7 @@ function PlateauAnalysisContent({ analysis }: { analysis: PlateauAnalysis }) {
         <p className="mt-1 text-base font-semibold">{statusLabel}</p>
         <p className="mt-1 text-sm text-[var(--muted-foreground)]">{primary}</p>
         {trend ? (
-          <p className="mt-2 text-sm tabular-nums text-[var(--foreground)]">
-            {trend}
-          </p>
+          <p className="mt-2 text-sm tabular-nums text-[var(--foreground)]">{trend}</p>
         ) : null}
       </div>
 

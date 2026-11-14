@@ -5,10 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi, type Mock } from 'vitest';
 
 import { ExerciseForm } from '../components/ExerciseForm';
-import {
-  EMPTY_EXERCISE_FORM_VALUES,
-  type ExerciseFormValues,
-} from '../lib/exercise-form';
+import { EMPTY_EXERCISE_FORM_VALUES, type ExerciseFormValues } from '../lib/exercise-form';
 
 const MUSCLE_CHEST = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const MUSCLE_BACK = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
@@ -58,9 +55,7 @@ describe('ExerciseForm', () => {
     expect(screen.getByLabelText(/Nom/i)).toHaveValue('');
     expect(screen.getByLabelText(/Muscle principal/i)).toHaveValue('');
     expect(screen.getByLabelText(/Type de mesure/i)).toHaveValue('WEIGHT_REPS');
-    expect(
-      screen.getByRole('button', { name: /Créer l’exercice/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Créer l’exercice/i })).toBeInTheDocument();
   });
 
   it('requires name and primary muscle group', async () => {
@@ -86,14 +81,8 @@ describe('ExerciseForm', () => {
     renderForm({ onSubmit });
 
     await user.type(screen.getByLabelText(/Nom/i), 'Tirage poitrine');
-    await user.selectOptions(
-      screen.getByLabelText(/Muscle principal/i),
-      MUSCLE_CHEST,
-    );
-    await user.selectOptions(
-      screen.getByLabelText(/Type de mesure/i),
-      'REPS_ONLY',
-    );
+    await user.selectOptions(screen.getByLabelText(/Muscle principal/i), MUSCLE_CHEST);
+    await user.selectOptions(screen.getByLabelText(/Type de mesure/i), 'REPS_ONLY');
 
     await user.click(screen.getByRole('button', { name: /Créer l’exercice/i }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
@@ -127,10 +116,7 @@ describe('ExerciseForm', () => {
   it('allows secondary muscles except the primary', async () => {
     const user = userEvent.setup();
     renderForm();
-    await user.selectOptions(
-      screen.getByLabelText(/Muscle principal/i),
-      MUSCLE_CHEST,
-    );
+    await user.selectOptions(screen.getByLabelText(/Muscle principal/i), MUSCLE_CHEST);
 
     const triceps = screen.getByRole('checkbox', { name: /Triceps/i });
     const chestAsSecondary = screen.queryByRole('checkbox', {
@@ -146,10 +132,7 @@ describe('ExerciseForm', () => {
     const { onSubmit } = renderForm();
 
     await user.type(screen.getByLabelText(/Nom/i), 'Développé');
-    await user.selectOptions(
-      screen.getByLabelText(/Muscle principal/i),
-      MUSCLE_CHEST,
-    );
+    await user.selectOptions(screen.getByLabelText(/Muscle principal/i), MUSCLE_CHEST);
     await user.selectOptions(
       screen.getByLabelText(/Ajouter un équipement compatible/i),
       EQ_BARBELL,
@@ -176,21 +159,14 @@ describe('ExerciseForm', () => {
     const user = userEvent.setup();
     const { onSubmit } = renderForm();
     await user.type(screen.getByLabelText(/Nom/i), 'Test');
-    await user.selectOptions(
-      screen.getByLabelText(/Muscle principal/i),
-      MUSCLE_CHEST,
-    );
+    await user.selectOptions(screen.getByLabelText(/Muscle principal/i), MUSCLE_CHEST);
     await user.type(screen.getByLabelText(/Repos par défaut/i), '99999');
     await user.click(screen.getByRole('button', { name: /Créer l’exercice/i }));
-    expect(
-      await screen.findByText(/Le repos doit être entre 0 et 3600/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Le repos doit être entre 0 et 3600/i)).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 });
 
 function withinOptions(select: HTMLElement): string[] {
-  return Array.from(select.querySelectorAll('option')).map(
-    (option) => option.textContent ?? '',
-  );
+  return Array.from(select.querySelectorAll('option')).map((option) => option.textContent ?? '');
 }

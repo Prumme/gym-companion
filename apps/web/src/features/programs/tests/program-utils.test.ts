@@ -110,13 +110,7 @@ describe('reorder helpers', () => {
     const exerciseResult = reorderExercisesInDetail(detail, template.id, 1, 'up');
     expect(exerciseResult?.orderedIds).toEqual(['e2', 'e1']);
 
-    const setResult = reorderSetsInDetail(
-      detail,
-      template.id,
-      'e2',
-      1,
-      'up',
-    );
+    const setResult = reorderSetsInDetail(detail, template.id, 'e2', 1, 'up');
     expect(setResult?.orderedIds).toEqual(['s2', 's1']);
   });
 });
@@ -294,15 +288,9 @@ describe('planning utils', () => {
     });
     let entries = addDraftEntry([], 'MONDAY', detail.workoutTemplates[0]!);
     entries = addDraftEntry(entries, 'TUESDAY', detail.workoutTemplates[0]!);
-    entries = setDraftDaySingleTemplate(
-      entries,
-      'TUESDAY',
-      detail.workoutTemplates[1]!,
-    );
+    entries = setDraftDaySingleTemplate(entries, 'TUESDAY', detail.workoutTemplates[1]!);
     expect(entries.filter((e) => e.weekday === 'TUESDAY')).toHaveLength(1);
-    expect(entries.find((e) => e.weekday === 'TUESDAY')?.workoutTemplateId).toBe(
-      't2',
-    );
+    expect(entries.find((e) => e.weekday === 'TUESDAY')?.workoutTemplateId).toBe('t2');
     entries = setDraftDaySingleTemplate(entries, 'TUESDAY', null);
     expect(entries.filter((e) => e.weekday === 'TUESDAY')).toHaveLength(0);
     expect(entries.filter((e) => e.weekday === 'MONDAY')).toHaveLength(1);

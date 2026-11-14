@@ -87,18 +87,13 @@ type StatusBadgeProps = {
   tone?: 'neutral' | 'active' | 'archived';
 };
 
-export function StatusBadge({
-  children,
-  tone = 'neutral',
-}: StatusBadgeProps) {
+export function StatusBadge({ children, tone = 'neutral' }: StatusBadgeProps) {
   return (
     <span
       className={cn(
         'shrink-0 rounded-[var(--radius-control)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-        tone === 'active' &&
-          'bg-[var(--primary)] text-[var(--primary-foreground)]',
-        tone === 'archived' &&
-          'border border-amber-300 bg-amber-50 text-amber-900',
+        tone === 'active' && 'bg-[var(--primary)] text-[var(--primary-foreground)]',
+        tone === 'archived' && 'border border-amber-300 bg-amber-50 text-amber-900',
         tone === 'neutral' &&
           'border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)]',
       )}

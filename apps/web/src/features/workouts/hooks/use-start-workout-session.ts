@@ -4,10 +4,7 @@ import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { getMe } from '@/features/profile/api/profile-api';
-import {
-  getApiErrorMessage,
-  type ApiRequestError,
-} from '@/lib/api/client';
+import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
 
 import { activeWorkoutQueryOptions } from '../api/workout-query-options';
 import { useCreateWorkoutSessionMutation } from '../hooks/use-workout-mutations';
@@ -23,9 +20,7 @@ export function useStartWorkoutSession() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const createMutation = useCreateWorkoutSessionMutation();
-  const [pendingTemplateId, setPendingTemplateId] = useState<string | null>(
-    null,
-  );
+  const [pendingTemplateId, setPendingTemplateId] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<StartWorkoutConflict | null>(null);
@@ -37,10 +32,7 @@ export function useStartWorkoutSession() {
     staleTime: 60_000,
   });
 
-  const getUserId = useCallback(
-    () => meQuery.data?.data.id ?? null,
-    [meQuery.data?.data.id],
-  );
+  const getUserId = useCallback(() => meQuery.data?.data.id ?? null, [meQuery.data?.data.id]);
 
   const requestStart = useCallback(
     async (sourceWorkoutTemplateId: string) => {
@@ -56,20 +48,14 @@ export function useStartWorkoutSession() {
       const userId = getUserId();
       if (userId && (await hasPendingTerminalCommand(userId))) {
         setPendingTerminal(true);
-        setError(
-          'La fin de cette séance doit encore être synchronisée.',
-        );
+        setError('La fin de cette séance doit encore être synchronisée.');
         return;
       }
 
-      const cached = queryClient.getQueryData(
-        activeWorkoutQueryOptions(getUserId).queryKey,
-      );
+      const cached = queryClient.getQueryData(activeWorkoutQueryOptions(getUserId).queryKey);
       let active = cached ?? null;
       if (cached === undefined) {
-        active = await queryClient.fetchQuery(
-          activeWorkoutQueryOptions(getUserId),
-        );
+        active = await queryClient.fetchQuery(activeWorkoutQueryOptions(getUserId));
       }
 
       if (active) {
@@ -93,8 +79,7 @@ export function useStartWorkoutSession() {
     }
 
     setError(null);
-    const timezone =
-      meQuery.data?.data.profile.timezone?.trim() || 'Europe/Paris';
+    const timezone = meQuery.data?.data.profile.timezone?.trim() || 'Europe/Paris';
     const localDate = todayLocalDateString(timezone);
 
     try {
@@ -109,15 +94,11 @@ export function useStartWorkoutSession() {
     } catch (err) {
       const apiError = err as ApiRequestError;
       if (apiError.code === 'WORKOUT_ACTIVE_ALREADY_EXISTS') {
-        const details = apiError.details as
-          | { activeWorkoutSessionId?: string }
-          | undefined;
+        const details = apiError.details as { activeWorkoutSessionId?: string } | undefined;
         setConfirmOpen(false);
         setConflict({
           activeWorkoutSessionId: details?.activeWorkoutSessionId ?? null,
-          message:
-            apiError.message ||
-            'Une séance est déjà en cours. Ouvre-la pour continuer.',
+          message: apiError.message || 'Une séance est déjà en cours. Ouvre-la pour continuer.',
         });
         void queryClient.invalidateQueries({
           queryKey: activeWorkoutQueryOptions(getUserId).queryKey,
@@ -133,9 +114,7 @@ export function useStartWorkoutSession() {
         return;
       }
 
-      setError(
-        getApiErrorMessage(err, 'Impossible de démarrer cette séance.'),
-      );
+      setError(getApiErrorMessage(err, 'Impossible de démarrer cette séance.'));
     }
   }, [
     createMutation,

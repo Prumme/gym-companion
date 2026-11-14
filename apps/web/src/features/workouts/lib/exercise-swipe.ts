@@ -59,8 +59,7 @@ export function resolveSwipeNavigation(input: {
   }
   const absX = Math.abs(input.dx);
   const flick =
-    input.elapsedMs <= EXERCISE_SWIPE_FLICK_MS &&
-    absX >= EXERCISE_SWIPE_FLICK_DISTANCE_PX;
+    input.elapsedMs <= EXERCISE_SWIPE_FLICK_MS && absX >= EXERCISE_SWIPE_FLICK_DISTANCE_PX;
   if (absX < EXERCISE_SWIPE_MIN_DISTANCE_PX && !flick) {
     return null;
   }

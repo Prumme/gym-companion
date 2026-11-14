@@ -17,8 +17,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -28,11 +27,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -77,9 +72,7 @@ async function createUserExerciseTemplate(
         primaryMuscleGroupId: mg.id,
         secondaryMuscleGroupIds: [],
         defaultEquipmentTypeId: eq.id,
-        compatibleEquipmentTypes: [
-          { equipmentTypeId: eq.id, isPreferred: true, notes: null },
-        ],
+        compatibleEquipmentTypes: [{ equipmentTypeId: eq.id, isPreferred: true, notes: null }],
         defaultRestSeconds: 90,
         instructions: null,
       })
@@ -107,9 +100,7 @@ async function createUserExerciseTemplate(
     .expect(201);
   const templateId = tpl.body.data.workoutTemplates[0].id as string;
   const ex = await request(app.getHttpServer())
-    .post(
-      `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-    )
+    .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       exerciseId,
@@ -118,8 +109,7 @@ async function createUserExerciseTemplate(
       notes: null,
     })
     .expect(201);
-  const templateExerciseId = ex.body.data.workoutTemplates[0].exercises[0]
-    .id as string;
+  const templateExerciseId = ex.body.data.workoutTemplates[0].exercises[0].id as string;
 
   for (let i = 0; i < 3; i += 1) {
     await request(app.getHttpServer())
@@ -186,9 +176,7 @@ async function patchSet(
   const set = exercise?.sets[setIndex];
   if (!exercise || !set) throw new Error('Missing set');
   const response = await request(app.getHttpServer())
-    .patch(
-      `/api/v1/workouts/${session.id}/exercises/${exercise.id}/sets/${set.id}`,
-    )
+    .patch(`/api/v1/workouts/${session.id}/exercises/${exercise.id}/sets/${set.id}`)
     .set('Authorization', `Bearer ${token}`)
     .send({
       ...actuals,
@@ -302,12 +290,7 @@ describe('Plateau analysis API (5.3)', () => {
   });
 
   it('exige auth et isole les utilisateurs', async () => {
-    const tpl = await createUserExerciseTemplate(
-      app,
-      tokenA,
-      prisma,
-      `auth-${stamp}`,
-    );
+    const tpl = await createUserExerciseTemplate(app, tokenA, prisma, `auth-${stamp}`);
     const unauth = await getPlateau(app, null, tpl.exerciseId);
     expect(unauth.status).toBe(401);
     const foreign = await getPlateau(app, tokenB, tpl.exerciseId);
@@ -316,12 +299,7 @@ describe('Plateau analysis API (5.3)', () => {
   });
 
   it('INSUFFICIENT_DATA sans historique et unsupported hors WEIGHT_REPS', async () => {
-    const tpl = await createUserExerciseTemplate(
-      app,
-      tokenA,
-      prisma,
-      `empty-${stamp}`,
-    );
+    const tpl = await createUserExerciseTemplate(app, tokenA, prisma, `empty-${stamp}`);
     const empty = await getPlateau(app, tokenA, tpl.exerciseId);
     expect(empty.status).toBe(200);
     expect(empty.body.data.status).toBe('INSUFFICIENT_DATA');
@@ -340,12 +318,7 @@ describe('Plateau analysis API (5.3)', () => {
   });
 
   it('WATCH puis PLATEAU puis NONE après progression', async () => {
-    const tpl = await createUserExerciseTemplate(
-      app,
-      tokenA,
-      prisma,
-      `flow-${stamp}`,
-    );
+    const tpl = await createUserExerciseTemplate(app, tokenA, prisma, `flow-${stamp}`);
 
     for (let day = 1; day <= 3; day += 1) {
       await completeWorking(
@@ -391,12 +364,7 @@ describe('Plateau analysis API (5.3)', () => {
   });
 
   it('exclut CANCELLED et ACTIVE ; exercice archivé reste analysable', async () => {
-    const tpl = await createUserExerciseTemplate(
-      app,
-      tokenA,
-      prisma,
-      `excl-${stamp}`,
-    );
+    const tpl = await createUserExerciseTemplate(app, tokenA, prisma, `excl-${stamp}`);
     await completeWorking(
       app,
       tokenA,
@@ -418,12 +386,7 @@ describe('Plateau analysis API (5.3)', () => {
       })
       .expect(200);
 
-    const active2 = await startWorkout(
-      app,
-      tokenA,
-      tpl.templateId,
-      '2026-08-03',
-    );
+    const active2 = await startWorkout(app, tokenA, tpl.templateId, '2026-08-03');
     // leave active
     void active2;
 
@@ -452,12 +415,7 @@ describe('Plateau analysis API (5.3)', () => {
   });
 
   it('cohérence phase 4/5 : plateau puis disparition après hausse', async () => {
-    const tpl = await createUserExerciseTemplate(
-      app,
-      tokenA,
-      prisma,
-      `coh-${stamp}`,
-    );
+    const tpl = await createUserExerciseTemplate(app, tokenA, prisma, `coh-${stamp}`);
     for (let day = 1; day <= 4; day += 1) {
       await completeWorking(
         app,

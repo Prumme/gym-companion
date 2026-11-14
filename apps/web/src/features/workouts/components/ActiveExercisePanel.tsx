@@ -8,7 +8,7 @@ import type {
   WorkoutSessionSetDetail,
   WorkoutSetStatus,
 } from '@gym-companion/shared';
-import { ArrowLeftRight, Check, MoreHorizontal, Plus } from 'lucide-react';
+import { ArrowLeftRight, Calculator, Check, MoreHorizontal, Plus } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,8 @@ import {
   useReplaceWorkoutSessionExerciseMutation,
 } from '../hooks/use-workout-mutations';
 import { findPreviousSetInExercise } from '../lib/copy-previous-set';
+import { resolvePlateCalculatorTargetKg, supportsPlateCalculator } from '../lib/plate-calculator';
+import { PlateCalculatorSheet } from './PlateCalculatorSheet';
 import { formatWorkoutSetTargetCompact, getWorkoutSetTypeLabelSafe } from '../lib/workout-labels';
 import { findNextPendingSetInExercise, isExerciseTreated } from '../lib/workout-progress';
 import { ReplaceSessionExerciseSheet } from './ReplaceSessionExerciseSheet';
@@ -57,6 +59,8 @@ type ActiveExercisePanelProps = {
   loadRecords?: PersonalRecord[];
   lastWorkingSet?: LastWorkingSetCue;
   loadCuesReady?: boolean;
+  /** Unité du profil ; le calculateur de disques reste en kg en V1. */
+  weightUnit?: 'KG' | 'LB';
 };
 
 function formatExerciseMeta(exercise: WorkoutSessionExerciseDetail): string {
@@ -125,9 +129,12 @@ export function ActiveExercisePanel({
   loadRecords = [],
   lastWorkingSet,
   loadCuesReady = false,
+  weightUnit = 'KG',
 }: ActiveExercisePanelProps) {
   const [editing, setEditing] = useState<EditingState | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [platesOpen, setPlatesOpen] = useState(false);
+  const plateCalculatorAvailable = supportsPlateCalculator(exercise);
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [replaceFeedback, setReplaceFeedback] = useState<string | null>(null);
   const [replaceError, setReplaceError] = useState<string | null>(null);
@@ -232,6 +239,20 @@ export function ActiveExercisePanel({
                     <ArrowLeftRight className="size-4 shrink-0" aria-hidden="true" />
                     Remplacer l’exercice
                   </button>
+                  {plateCalculatorAvailable ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-[var(--surface)]"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setPlatesOpen(true);
+                      }}
+                    >
+                      <Calculator className="size-4 shrink-0" aria-hidden="true" />
+                      Disques et échauffement
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -412,6 +433,7 @@ export function ActiveExercisePanel({
           expectedVersion={session.version}
           set={editing.set}
           previousSet={findPreviousSetInExercise(exercise.sets, editing.set.id)}
+          lastWorkingSet={lastWorkingSet ?? null}
           initialStatus={editing.initialStatus}
           onClose={() => setEditing(null)}
           onVersionConflict={onVersionConflict}
@@ -450,21 +472,26 @@ export function ActiveExercisePanel({
                     onVersionConflict();
                   }
                   if (code === 'OFFLINE' || (error as { status?: number }).status === 0) {
-                    setDeleteSetError(
-                      'Connexion nécessaire pour supprimer une série.',
-                    );
+                    setDeleteSetError('Connexion nécessaire pour supprimer une série.');
                     return;
                   }
                   setDeleteSetError(
-                    getApiErrorMessage(
-                      error,
-                      'Impossible de supprimer cette série.',
-                    ),
+                    getApiErrorMessage(error, 'Impossible de supprimer cette série.'),
                   );
                 },
               },
             );
           }}
+        />
+      ) : null}
+
+      {plateCalculatorAvailable ? (
+        <PlateCalculatorSheet
+          open={platesOpen}
+          exerciseName={exercise.exerciseName}
+          initialTargetKg={resolvePlateCalculatorTargetKg(exercise.sets, nextSet)}
+          weightUnit={weightUnit}
+          onClose={() => setPlatesOpen(false)}
         />
       ) : null}
 

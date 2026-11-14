@@ -6,11 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PlanningPage } from '../pages/PlanningPage';
-import {
-  createActiveProgramSummary,
-  createProgramDetail,
-  createTemplate,
-} from './fixtures';
+import { createActiveProgramSummary, createProgramDetail, createTemplate } from './fixtures';
 
 const getActiveProgram = vi.fn();
 const deactivateProgram = vi.fn();
@@ -20,23 +16,18 @@ const getProgram = vi.fn();
 const replaceProgramSchedule = vi.fn();
 
 vi.mock('../api/program-api', async () => {
-  const actual = await vi.importActual<typeof import('../api/program-api')>(
-    '../api/program-api',
-  );
+  const actual = await vi.importActual<typeof import('../api/program-api')>('../api/program-api');
   return {
     ...actual,
     getActiveProgram: (...args: unknown[]) => getActiveProgram(...args),
     deactivateProgram: (...args: unknown[]) => deactivateProgram(...args),
     getProgram: (...args: unknown[]) => getProgram(...args),
-    replaceProgramSchedule: (...args: unknown[]) =>
-      replaceProgramSchedule(...args),
+    replaceProgramSchedule: (...args: unknown[]) => replaceProgramSchedule(...args),
   };
 });
 
 vi.mock('../lib/weekdays', async () => {
-  const actual = await vi.importActual<typeof import('../lib/weekdays')>(
-    '../lib/weekdays',
-  );
+  const actual = await vi.importActual<typeof import('../lib/weekdays')>('../lib/weekdays');
   return {
     ...actual,
     getTodayWeekday: () => 'MONDAY' as const,
@@ -44,8 +35,7 @@ vi.mock('../lib/weekdays', async () => {
 });
 
 vi.mock('@/features/workouts/api/workout-api', () => ({
-  getActiveWorkoutSession: (...args: unknown[]) =>
-    getActiveWorkoutSession(...args),
+  getActiveWorkoutSession: (...args: unknown[]) => getActiveWorkoutSession(...args),
   createWorkoutSession: vi.fn(),
   getWorkoutSessionDetail: vi.fn(),
 }));
@@ -54,9 +44,7 @@ vi.mock('@/features/profile/api/profile-api', () => ({
   getMe: (...args: unknown[]) => getMe(...args),
 }));
 
-function renderPlanning(
-  active = null as ReturnType<typeof createActiveProgramSummary> | null,
-) {
+function renderPlanning(active = null as ReturnType<typeof createActiveProgramSummary> | null) {
   getActiveProgram.mockResolvedValue(active);
   getActiveWorkoutSession.mockResolvedValue(null);
   getMe.mockResolvedValue({
@@ -94,15 +82,15 @@ describe('PlanningPage', () => {
 
   it('shows empty state when no active program', async () => {
     renderPlanning(null);
-    expect(
-      await screen.findByText('Aucun programme actif'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /Voir mes programmes/i }),
-    ).toHaveAttribute('href', '/programs');
-    expect(
-      screen.getByRole('link', { name: /Créer un programme/i }),
-    ).toHaveAttribute('href', '/programs/new');
+    expect(await screen.findByText('Aucun programme actif')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Voir mes programmes/i })).toHaveAttribute(
+      'href',
+      '/programs',
+    );
+    expect(screen.getByRole('link', { name: /Créer un programme/i })).toHaveAttribute(
+      'href',
+      '/programs/new',
+    );
   });
 
   it('shows empty schedule CTA when active program has no entries', async () => {
@@ -111,12 +99,8 @@ describe('PlanningPage', () => {
         schedule: { entries: [] },
       }),
     );
-    expect(
-      await screen.findByText('Planning non configuré'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /Configurer ma semaine/i }),
-    ).toHaveAttribute(
+    expect(await screen.findByText('Planning non configuré')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Configurer ma semaine/i })).toHaveAttribute(
       'href',
       '/programs/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/schedule',
     );
@@ -131,9 +115,7 @@ describe('PlanningPage', () => {
     expect(screen.getAllByText('Push A').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Repos').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole('button', { name: /^Démarrer$/i })).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /Modifier le planning/i }),
-    ).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Modifier le planning/i })).toHaveAttribute(
       'href',
       '/programs/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/schedule',
     );
@@ -152,28 +134,22 @@ describe('PlanningPage', () => {
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText('Mardi')).toBeInTheDocument();
 
-    await user.selectOptions(
-      await screen.findByLabelText(/Séance prévue/i),
-      'wt-2',
-    );
+    await user.selectOptions(await screen.findByLabelText(/Séance prévue/i), 'wt-2');
     await user.click(screen.getByRole('button', { name: /Enregistrer/i }));
 
     await waitFor(() =>
-      expect(replaceProgramSchedule).toHaveBeenCalledWith(
-        'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-        {
-          entries: expect.arrayContaining([
-            expect.objectContaining({
-              workoutTemplateId: 'wt-1',
-              weekday: 'MONDAY',
-            }),
-            expect.objectContaining({
-              workoutTemplateId: 'wt-2',
-              weekday: 'TUESDAY',
-            }),
-          ]),
-        },
-      ),
+      expect(replaceProgramSchedule).toHaveBeenCalledWith('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', {
+        entries: expect.arrayContaining([
+          expect.objectContaining({
+            workoutTemplateId: 'wt-1',
+            weekday: 'MONDAY',
+          }),
+          expect.objectContaining({
+            workoutTemplateId: 'wt-2',
+            weekday: 'TUESDAY',
+          }),
+        ]),
+      }),
     );
   });
 
@@ -188,17 +164,11 @@ describe('PlanningPage', () => {
     });
     await user.click(openButtons[0]!);
     const confirmDialog = screen.getByRole('alertdialog');
-    await user.click(
-      within(confirmDialog).getByRole('button', { name: /^Désactiver$/i }),
-    );
+    await user.click(within(confirmDialog).getByRole('button', { name: /^Désactiver$/i }));
 
     await waitFor(() =>
-      expect(deactivateProgram).toHaveBeenCalledWith(
-        'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-      ),
+      expect(deactivateProgram).toHaveBeenCalledWith('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
     );
-    expect(
-      await screen.findByText(/Programme courant désactivé/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Programme courant désactivé/i)).toBeInTheDocument();
   });
 });

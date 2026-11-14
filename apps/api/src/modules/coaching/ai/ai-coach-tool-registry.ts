@@ -68,9 +68,7 @@ export class AiCoachToolRegistry {
     rawArgs: unknown,
     context: AiCoachToolExecutionContext,
   ): Promise<AiCoachToolExecutionResult> {
-    if (
-      !(AI_COACH_READ_ONLY_TOOL_NAMES as readonly string[]).includes(toolName)
-    ) {
+    if (!(AI_COACH_READ_ONLY_TOOL_NAMES as readonly string[]).includes(toolName)) {
       return {
         toolName: 'get_exercise_coach_summary',
         llmPayload: {
@@ -275,10 +273,8 @@ export class AiCoachToolRegistry {
         formula: strength.formula,
         summary: strength.summary
           ? {
-              latestEstimatedOneRepMaxKg:
-                strength.summary.latestEstimatedOneRepMaxKg,
-              bestEstimatedOneRepMaxKg:
-                strength.summary.bestEstimatedOneRepMaxKg,
+              latestEstimatedOneRepMaxKg: strength.summary.latestEstimatedOneRepMaxKg,
+              bestEstimatedOneRepMaxKg: strength.summary.bestEstimatedOneRepMaxKg,
               absoluteChangeKg: strength.summary.absoluteChangeKg,
               percentageChange: strength.summary.percentageChange,
             }
@@ -288,8 +284,7 @@ export class AiCoachToolRegistry {
       outputSummary: {
         exerciseId: strength.exercise.id,
         supported: strength.supported,
-        latestEstimatedOneRepMaxKg:
-          strength.summary?.latestEstimatedOneRepMaxKg ?? null,
+        latestEstimatedOneRepMaxKg: strength.summary?.latestEstimatedOneRepMaxKg ?? null,
       },
       references: [
         {
@@ -307,10 +302,7 @@ export class AiCoachToolRegistry {
   ): Promise<AiCoachToolExecutionResult> {
     const parsed = getPersonalRecordsToolArgsSchema.parse(args);
     const records = parsed.exerciseId
-      ? await this.personalRecordsService.listForExercise(
-          context.ownerUserId,
-          parsed.exerciseId,
-        )
+      ? await this.personalRecordsService.listForExercise(context.ownerUserId, parsed.exerciseId)
       : (
           await this.personalRecordsService.list(context.ownerUserId, {
             limit: '10',
@@ -332,10 +324,7 @@ export class AiCoachToolRegistry {
     const references: AiCoachChatReference[] = [];
     for (const record of compact) {
       if (
-        !references.some(
-          (ref) =>
-            ref.type === 'EXERCISE' && ref.exerciseId === record.exerciseId,
-        )
+        !references.some((ref) => ref.type === 'EXERCISE' && ref.exerciseId === record.exerciseId)
       ) {
         references.push({
           type: 'EXERCISE',
@@ -378,10 +367,7 @@ export class AiCoachToolRegistry {
       const filtered = [];
       for (const item of history.data) {
         try {
-          const detail = await this.workoutsService.getById(
-            context.ownerUserId,
-            item.id,
-          );
+          const detail = await this.workoutsService.getById(context.ownerUserId, item.id);
           const match = detail.exercises.some(
             (occurrence) => occurrence.sourceExerciseId === parsed.exerciseId,
           );
@@ -412,9 +398,7 @@ export class AiCoachToolRegistry {
       references: items.map((item) => ({
         type: 'WORKOUT' as const,
         workoutSessionId: item.id,
-        label: item.name
-          ? `Séance — ${item.name}`
-          : `Séance du ${item.localDate}`,
+        label: item.name ? `Séance — ${item.name}` : `Séance du ${item.localDate}`,
       })),
     };
   }
@@ -424,10 +408,7 @@ export class AiCoachToolRegistry {
     context: AiCoachToolExecutionContext,
   ): Promise<AiCoachToolExecutionResult> {
     const parsed = getWorkoutDetailToolArgsSchema.parse(args);
-    const detail = await this.workoutsService.getById(
-      context.ownerUserId,
-      parsed.workoutSessionId,
-    );
+    const detail = await this.workoutsService.getById(context.ownerUserId, parsed.workoutSessionId);
     return {
       toolName: 'get_workout_detail',
       llmPayload: {
@@ -458,9 +439,7 @@ export class AiCoachToolRegistry {
         {
           type: 'WORKOUT',
           workoutSessionId: detail.id,
-          label: detail.name
-            ? `Séance — ${detail.name}`
-            : `Séance du ${detail.localDate}`,
+          label: detail.name ? `Séance — ${detail.name}` : `Séance du ${detail.localDate}`,
         },
       ],
     };
@@ -478,9 +457,7 @@ export class AiCoachToolRegistry {
       AI_COACH_SEARCH_EXERCISES_MAX_RESULTS,
     );
 
-    const conceptKey = parsed.muscleGroup
-      ? aiCoachMuscleConceptKey(parsed.muscleGroup)
-      : null;
+    const conceptKey = parsed.muscleGroup ? aiCoachMuscleConceptKey(parsed.muscleGroup) : null;
 
     const unresolved: Record<string, string> = {};
     let muscleGroupIds: string[] = [];
@@ -495,16 +472,14 @@ export class AiCoachToolRegistry {
 
     let equipmentTypeId = parsed.equipmentTypeId;
     if (!equipmentTypeId && parsed.equipmentType) {
-      equipmentTypeId =
-        (await this.resolveEquipmentTypeId(parsed.equipmentType)) ?? undefined;
+      equipmentTypeId = (await this.resolveEquipmentTypeId(parsed.equipmentType)) ?? undefined;
       if (!equipmentTypeId) unresolved.equipmentType = parsed.equipmentType;
     }
 
     let excludeEquipmentTypeId = parsed.excludeEquipmentTypeId;
     if (!excludeEquipmentTypeId && parsed.excludeEquipmentType) {
       excludeEquipmentTypeId =
-        (await this.resolveEquipmentTypeId(parsed.excludeEquipmentType)) ??
-        undefined;
+        (await this.resolveEquipmentTypeId(parsed.excludeEquipmentType)) ?? undefined;
       if (!excludeEquipmentTypeId) {
         unresolved.excludeEquipmentType = parsed.excludeEquipmentType;
       }
@@ -574,9 +549,7 @@ export class AiCoachToolRegistry {
               conceptKey === 'legs' ||
               conceptKey === 'leg'
             ? 'squat'
-            : conceptKey === 'pecs' ||
-                conceptKey === 'pec' ||
-                conceptKey === 'poitrine'
+            : conceptKey === 'pecs' || conceptKey === 'pec' || conceptKey === 'poitrine'
               ? 'developpe'
               : null;
       if (neighborQuery) {
@@ -663,13 +636,9 @@ export class AiCoachToolRegistry {
         measurementType: string;
       }
     >();
-    const muscleTargets =
-      input.muscleGroupIds.length > 0 ? input.muscleGroupIds : [undefined];
+    const muscleTargets = input.muscleGroupIds.length > 0 ? input.muscleGroupIds : [undefined];
     // Répartition équitable quand plusieurs groupes (ex. bras → biceps+triceps).
-    const perTarget = Math.max(
-      2,
-      Math.ceil(input.limit / Math.max(1, muscleTargets.length)),
-    );
+    const perTarget = Math.max(2, Math.ceil(input.limit / Math.max(1, muscleTargets.length)));
     const fetchLimit = Math.min(
       input.excludeEquipmentTypeId ? perTarget * 3 : perTarget + 2,
       AI_COACH_SEARCH_EXERCISES_MAX_RESULTS,
@@ -707,9 +676,7 @@ export class AiCoachToolRegistry {
           muscleGroupId,
           equipmentTypeId: input.equipmentTypeId,
           measurementType: input.measurementType,
-          limit: String(
-            Math.min(input.limit * 2, AI_COACH_SEARCH_EXERCISES_MAX_RESULTS),
-          ),
+          limit: String(Math.min(input.limit * 2, AI_COACH_SEARCH_EXERCISES_MAX_RESULTS)),
         });
         for (const item of result.data) {
           if (byId.has(item.id)) continue;
@@ -742,8 +709,7 @@ export class AiCoachToolRegistry {
             (row) =>
               row.defaultEquipmentTypeId === input.excludeEquipmentTypeId ||
               row.compatibleEquipment.some(
-                (item) =>
-                  item.equipmentTypeId === input.excludeEquipmentTypeId,
+                (item) => item.equipmentTypeId === input.excludeEquipmentTypeId,
               ),
           )
           .map((row) => row.id),
@@ -765,9 +731,7 @@ export class AiCoachToolRegistry {
     const concept = resolveAiCoachMuscleConcept(label);
     if (!concept) return [];
 
-    const ids = await Promise.all(
-      concept.map((code) => this.resolveMuscleGroupId(code)),
-    );
+    const ids = await Promise.all(concept.map((code) => this.resolveMuscleGroupId(code)));
     return [...new Set(ids.filter((id): id is string => id != null))];
   }
 
@@ -833,10 +797,7 @@ export class AiCoachToolRegistry {
     context: AiCoachToolExecutionContext,
   ): Promise<AiCoachToolExecutionResult> {
     const parsed = getProgramDetailToolArgsSchema.parse(args);
-    const detail = await this.programsService.getById(
-      context.ownerUserId,
-      parsed.programId,
-    );
+    const detail = await this.programsService.getById(context.ownerUserId, parsed.programId);
     return {
       toolName: 'get_program_detail',
       llmPayload: {

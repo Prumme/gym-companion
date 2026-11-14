@@ -155,16 +155,12 @@ export class OpenAiCoachProvider implements AiCoachProvider {
       try {
         parsed = JSON.parse(content);
       } catch (cause) {
-        throw new AiCoachProviderError(
-          'AI_COACH_INVALID_RESPONSE',
-          'Réponse chat non JSON.',
-          {
-            cause,
-            phase: 'parse_response',
-            model: request.model,
-            openaiRequestId: response.id ?? null,
-          },
-        );
+        throw new AiCoachProviderError('AI_COACH_INVALID_RESPONSE', 'Réponse chat non JSON.', {
+          cause,
+          phase: 'parse_response',
+          model: request.model,
+          openaiRequestId: response.id ?? null,
+        });
       }
       try {
         return {
@@ -173,16 +169,12 @@ export class OpenAiCoachProvider implements AiCoachProvider {
           providerRequestId: response.id ?? null,
         };
       } catch (cause) {
-        throw new AiCoachProviderError(
-          'AI_COACH_INVALID_RESPONSE',
-          'Réponse chat hors schéma.',
-          {
-            cause,
-            phase: 'wire_validation',
-            model: request.model,
-            openaiRequestId: response.id ?? null,
-          },
-        );
+        throw new AiCoachProviderError('AI_COACH_INVALID_RESPONSE', 'Réponse chat hors schéma.', {
+          cause,
+          phase: 'wire_validation',
+          model: request.model,
+          openaiRequestId: response.id ?? null,
+        });
       }
     } catch (error) {
       throw this.mapError(error, request.model);
@@ -192,14 +184,9 @@ export class OpenAiCoachProvider implements AiCoachProvider {
   }
 
   /** Exposé pour tests unitaires (construction body Responses). */
-  buildConversationBody(
-    request: AiCoachConversationProviderRequest,
-  ): Record<string, unknown> {
-    const toolDefs =
-      request.tools.length > 0 ? request.tools : AI_COACH_TOOL_DEFINITIONS;
-    const tools = request.forceFinalAnswer
-      ? undefined
-      : this.mapTools(toolDefs);
+  buildConversationBody(request: AiCoachConversationProviderRequest): Record<string, unknown> {
+    const toolDefs = request.tools.length > 0 ? request.tools : AI_COACH_TOOL_DEFINITIONS;
+    const tools = request.forceFinalAnswer ? undefined : this.mapTools(toolDefs);
 
     const input: unknown[] = [
       {
@@ -221,10 +208,7 @@ export class OpenAiCoachProvider implements AiCoachProvider {
         return {
           role: 'assistant' as const,
           // Structured Outputs : l’historique assistant DOIT être du wire JSON.
-          content: buildAiCoachHistoryAssistantWireContent(
-            message.content,
-            message.proposalKind,
-          ),
+          content: buildAiCoachHistoryAssistantWireContent(message.content, message.proposalKind),
         };
       }),
       {
@@ -351,8 +335,7 @@ export class OpenAiCoachProvider implements AiCoachProvider {
     }
 
     const openaiRequestId =
-      response.headers.get('x-request-id') ??
-      response.headers.get('request-id');
+      response.headers.get('x-request-id') ?? response.headers.get('request-id');
 
     if (response.status === 429) {
       const details = await this.safeParseError(response);
@@ -441,24 +424,17 @@ export class OpenAiCoachProvider implements AiCoachProvider {
         providerType: response.error?.type ?? 'failed',
         technicalMessage: response.error?.message ?? 'response failed',
       });
-      throw new AiCoachProviderError(
-        'AI_COACH_UNAVAILABLE',
-        'Réponse OpenAI en échec.',
-        {
-          phase: 'openai_request',
-          openaiRequestId: response.id ?? null,
-          model,
-          providerCode:
-            response.error?.code != null ? String(response.error.code) : null,
-          providerType: response.error?.type ?? null,
-        },
-      );
+      throw new AiCoachProviderError('AI_COACH_UNAVAILABLE', 'Réponse OpenAI en échec.', {
+        phase: 'openai_request',
+        openaiRequestId: response.id ?? null,
+        model,
+        providerCode: response.error?.code != null ? String(response.error.code) : null,
+        providerType: response.error?.type ?? null,
+      });
     }
   }
 
-  private extractFunctionCalls(
-    response: ResponsesApiResult,
-  ): AiCoachProviderToolCall[] {
+  private extractFunctionCalls(response: ResponsesApiResult): AiCoachProviderToolCall[] {
     const items = response.output ?? [];
     const calls: AiCoachProviderToolCall[] = [];
     for (const item of items) {
@@ -468,8 +444,7 @@ export class OpenAiCoachProvider implements AiCoachProvider {
       calls.push({
         id: callId,
         name: item.name,
-        argumentsJson:
-          typeof item.arguments === 'string' ? item.arguments : '{}',
+        argumentsJson: typeof item.arguments === 'string' ? item.arguments : '{}',
         outputItemId: item.id,
       });
     }
@@ -479,23 +454,16 @@ export class OpenAiCoachProvider implements AiCoachProvider {
   private extractOutputText(response: ResponsesApiResult): string {
     const text = this.tryExtractOutputText(response);
     if (!text) {
-      throw new AiCoachProviderError(
-        'AI_COACH_INVALID_RESPONSE',
-        'Réponse fournisseur vide.',
-        {
-          phase: 'parse_response',
-          openaiRequestId: response.id ?? null,
-        },
-      );
+      throw new AiCoachProviderError('AI_COACH_INVALID_RESPONSE', 'Réponse fournisseur vide.', {
+        phase: 'parse_response',
+        openaiRequestId: response.id ?? null,
+      });
     }
     return text;
   }
 
   private tryExtractOutputText(response: ResponsesApiResult): string | null {
-    if (
-      typeof response.output_text === 'string' &&
-      response.output_text.trim().length > 0
-    ) {
+    if (typeof response.output_text === 'string' && response.output_text.trim().length > 0) {
       return response.output_text;
     }
     const chunks: string[] = [];
@@ -527,11 +495,9 @@ export class OpenAiCoachProvider implements AiCoachProvider {
     try {
       const json = (await response.json()) as OpenAiErrorBody;
       return {
-        message:
-          typeof json.error?.message === 'string' ? json.error.message : null,
+        message: typeof json.error?.message === 'string' ? json.error.message : null,
         type: typeof json.error?.type === 'string' ? json.error.type : null,
-        code:
-          json.error?.code != null ? String(json.error.code) : null,
+        code: json.error?.code != null ? String(json.error.code) : null,
       };
     } catch {
       return { message: null, type: null, code: null };
@@ -556,9 +522,7 @@ export class OpenAiCoachProvider implements AiCoachProvider {
       model: input.model,
       requestId: input.openaiRequestId,
       // Message technique OpenAI (pas de prompt / pas de clé).
-      technicalMessage: input.technicalMessage
-        ? input.technicalMessage.slice(0, 500)
-        : null,
+      technicalMessage: input.technicalMessage ? input.technicalMessage.slice(0, 500) : null,
     });
   }
 

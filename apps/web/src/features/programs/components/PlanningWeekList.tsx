@@ -3,14 +3,8 @@ import { ChevronRight } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
-import {
-  getWeekdayShortLabel,
-  WEEKDAY_VALUES,
-} from '../lib/weekdays';
-import {
-  entriesForWeekday,
-  scheduleEntryToDraft,
-} from '../lib/schedule-utils';
+import { getWeekdayShortLabel, WEEKDAY_VALUES } from '../lib/weekdays';
+import { entriesForWeekday, scheduleEntryToDraft } from '../lib/schedule-utils';
 
 type PlanningWeekListProps = {
   entries: ProgramScheduleEntry[];
@@ -64,9 +58,7 @@ export function PlanningWeekList({
                 <span
                   className={cn(
                     'min-w-0 truncate text-sm',
-                    primary
-                      ? 'font-medium text-[var(--foreground)]'
-                      : 'text-[var(--muted)]',
+                    primary ? 'font-medium text-[var(--foreground)]' : 'text-[var(--muted)]',
                   )}
                 >
                   {sessionLabel}
@@ -78,10 +70,7 @@ export function PlanningWeekList({
                 ) : null}
               </span>
               {canEdit ? (
-                <ChevronRight
-                  className="size-4 shrink-0 text-[var(--muted)]"
-                  aria-hidden="true"
-                />
+                <ChevronRight className="size-4 shrink-0 text-[var(--muted)]" aria-hidden="true" />
               ) : null}
             </>
           );

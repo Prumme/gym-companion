@@ -16,10 +16,7 @@ import {
 import { getWorkoutSessionDetail } from '../api/workout-api';
 import { WorkoutHistoryRow } from '../components/WorkoutHistoryCard';
 import { WorkoutHistoryFiltersBar } from '../components/WorkoutHistoryFilters';
-import {
-  formatHistoryDayHeading,
-  groupWorkoutHistoryItems,
-} from '../lib/workout-history-groups';
+import { formatHistoryDayHeading, groupWorkoutHistoryItems } from '../lib/workout-history-groups';
 import {
   buildWorkoutHistorySearchParamsFromFilters,
   parseWorkoutHistorySearchParams,
@@ -37,9 +34,7 @@ import {
 import { getSnapshot } from '../offline/store';
 import type { StoredWorkoutSnapshot } from '../offline/types';
 
-function dedupeHistoryItems(
-  items: WorkoutHistoryListItem[],
-): WorkoutHistoryListItem[] {
+function dedupeHistoryItems(items: WorkoutHistoryListItem[]): WorkoutHistoryListItem[] {
   const seen = new Set<string>();
   const result: WorkoutHistoryListItem[] = [];
   for (const item of items) {
@@ -52,13 +47,10 @@ function dedupeHistoryItems(
   return result;
 }
 
-function snapshotToHistoryItem(
-  snapshot: StoredWorkoutSnapshot,
-): WorkoutHistoryListItem {
+function snapshotToHistoryItem(snapshot: StoredWorkoutSnapshot): WorkoutHistoryListItem {
   const session = snapshot.data;
   const progress = computeWorkoutProgress(session);
-  const status =
-    session.status === 'CANCELLED' ? 'CANCELLED' : 'COMPLETED';
+  const status = session.status === 'CANCELLED' ? 'CANCELLED' : 'COMPLETED';
 
   return {
     id: session.id,
@@ -113,9 +105,7 @@ export function WorkoutsHistoryPage() {
   const [exportMessage, setExportMessage] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const apiFilters = toWorkoutHistoryApiFilters(filters);
-  const historySearch = searchParams.toString()
-    ? `?${searchParams.toString()}`
-    : '';
+  const historySearch = searchParams.toString() ? `?${searchParams.toString()}` : '';
   const periodFilterCount = countPeriodFilters(filters);
   const hasAnyFilter = filters.status !== 'ALL' || periodFilterCount > 0;
 
@@ -126,23 +116,15 @@ export function WorkoutsHistoryPage() {
   });
   const userId = meQuery.data?.data.id ?? null;
 
-  const listQuery = useInfiniteQuery(
-    workoutHistoryInfiniteQueryOptions(apiFilters),
-  );
+  const listQuery = useInfiniteQuery(workoutHistoryInfiniteQueryOptions(apiFilters));
   const pendingLocalQuery = useQuery(pendingTerminalLocalQueryOptions(userId));
 
   const serverItems = useMemo(
-    () =>
-      dedupeHistoryItems(
-        listQuery.data?.pages.flatMap((page) => page.data) ?? [],
-      ),
+    () => dedupeHistoryItems(listQuery.data?.pages.flatMap((page) => page.data) ?? []),
     [listQuery.data],
   );
 
-  const serverIds = useMemo(
-    () => new Set(serverItems.map((item) => item.id)),
-    [serverItems],
-  );
+  const serverIds = useMemo(() => new Set(serverItems.map((item) => item.id)), [serverItems]);
 
   const pendingLocalItems = useMemo(() => {
     const snapshots = pendingLocalQuery.data ?? [];
@@ -167,10 +149,7 @@ export function WorkoutsHistoryPage() {
     () => [...pendingLocalItems, ...serverItems],
     [pendingLocalItems, serverItems],
   );
-  const groups = useMemo(
-    () => groupWorkoutHistoryItems(allItems),
-    [allItems],
-  );
+  const groups = useMemo(() => groupWorkoutHistoryItems(allItems), [allItems]);
 
   const totalLoaded = allItems.length;
   const isInitialLoading = listQuery.isLoading && !listQuery.data;
@@ -206,9 +185,7 @@ export function WorkoutsHistoryPage() {
 
   function toggleSelected(id: string) {
     setSelectedIds((current) =>
-      current.includes(id)
-        ? current.filter((item) => item !== id)
-        : [...current, id],
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
     );
   }
 
@@ -246,9 +223,7 @@ export function WorkoutsHistoryPage() {
         setExportMessage('JSON téléchargé');
       }
     } catch (error) {
-      setExportError(
-        getApiErrorMessage(error, 'Impossible d’exporter ces séances.'),
-      );
+      setExportError(getApiErrorMessage(error, 'Impossible d’exporter ces séances.'));
     } finally {
       setExportBusy(false);
     }
@@ -262,11 +237,7 @@ export function WorkoutsHistoryPage() {
         className="mb-0"
         actions={
           totalLoaded > 0 ? (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={toggleExportMode}
-            >
+            <Button type="button" variant="secondary" onClick={toggleExportMode}>
               {exportMode ? 'Annuler' : 'Exporter'}
             </Button>
           ) : undefined
@@ -285,9 +256,7 @@ export function WorkoutsHistoryPage() {
 
       <div className="flex items-center justify-between gap-3 text-sm text-[var(--muted)]">
         <p aria-live="polite">
-          {isInitialLoading
-            ? 'Chargement…'
-            : `${totalLoaded} séance${totalLoaded > 1 ? 's' : ''}`}
+          {isInitialLoading ? 'Chargement…' : `${totalLoaded} séance${totalLoaded > 1 ? 's' : ''}`}
         </p>
         {hasAnyFilter ? (
           <button
@@ -303,8 +272,8 @@ export function WorkoutsHistoryPage() {
       {exportMode ? (
         <div className="flex flex-col gap-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-3">
           <p className="text-sm">
-            {selectedIds.length} séance{selectedIds.length === 1 ? '' : 's'}{' '}
-            sélectionnée{selectedIds.length === 1 ? '' : 's'}
+            {selectedIds.length} séance{selectedIds.length === 1 ? '' : 's'} sélectionnée
+            {selectedIds.length === 1 ? '' : 's'}
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button
@@ -337,15 +306,9 @@ export function WorkoutsHistoryPage() {
       ) : null}
 
       {listQuery.isError && !listQuery.data ? (
-        <div
-          className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4"
-          role="alert"
-        >
+        <div className="rounded-[var(--radius)] border border-red-200 bg-red-50 p-4" role="alert">
           <p className="text-sm text-[var(--danger)]">
-            {getApiErrorMessage(
-              listQuery.error,
-              'Impossible de charger l’historique.',
-            )}
+            {getApiErrorMessage(listQuery.error, 'Impossible de charger l’historique.')}
           </p>
           <Button
             type="button"
@@ -410,15 +373,9 @@ export function WorkoutsHistoryPage() {
                         }
                         item={item}
                         historySearch={historySearch}
-                        pendingSync={pendingLocalItems.some(
-                          (p) => p.id === item.id,
-                        )}
+                        pendingSync={pendingLocalItems.some((p) => p.id === item.id)}
                         showDayHeading={showDay}
-                        dayHeading={
-                          showDay
-                            ? formatHistoryDayHeading(item.localDate)
-                            : undefined
-                        }
+                        dayHeading={showDay ? formatHistoryDayHeading(item.localDate) : undefined}
                         selectMode={exportMode}
                         selected={selectedIds.includes(item.id)}
                         onToggleSelect={() => toggleSelected(item.id)}
@@ -436,10 +393,7 @@ export function WorkoutsHistoryPage() {
               role="alert"
             >
               <p className="text-sm text-[var(--danger)]">
-                {getApiErrorMessage(
-                  listQuery.error,
-                  'Impossible de charger la suite.',
-                )}
+                {getApiErrorMessage(listQuery.error, 'Impossible de charger la suite.')}
               </p>
               <Button
                 type="button"

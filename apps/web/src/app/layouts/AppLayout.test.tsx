@@ -5,10 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppLayout } from '@/app/layouts/AppLayout';
-import {
-  FORBIDDEN_BOTTOM_NAV_PATHS,
-  primaryNavItems,
-} from '@/app/navigation/nav-config';
+import { FORBIDDEN_BOTTOM_NAV_PATHS, primaryNavItems } from '@/app/navigation/nav-config';
 import { TrainingHubPage } from '@/app/pages/TrainingHubPage';
 
 const authState = {
@@ -17,8 +14,7 @@ const authState = {
 };
 
 vi.mock('@/stores/auth-store', () => ({
-  useAuthStore: (selector: (state: typeof authState) => unknown) =>
-    selector(authState),
+  useAuthStore: (selector: (state: typeof authState) => unknown) => selector(authState),
 }));
 
 vi.mock('@/lib/pwa/PwaUpdateBanner', () => ({
@@ -74,18 +70,10 @@ describe('App shell navigation', () => {
     });
     const links = nav.querySelectorAll('a');
     expect(links).toHaveLength(primaryNavItems.length);
-    expect(
-      within(nav).getByRole('link', { name: /Accueil/i }),
-    ).toBeInTheDocument();
-    expect(
-      within(nav).getByRole('link', { name: /Entraînement/i }),
-    ).toBeInTheDocument();
-    expect(
-      within(nav).getByRole('link', { name: /Progression/i }),
-    ).toBeInTheDocument();
-    expect(
-      within(nav).getByRole('button', { name: /Plus/i }),
-    ).toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: /Accueil/i })).toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: /Entraînement/i })).toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: /Progression/i })).toBeInTheDocument();
+    expect(within(nav).getByRole('button', { name: /Plus/i })).toBeInTheDocument();
   });
 
   it('n’expose pas les destinations secondaires dans la bottom nav', () => {
@@ -116,13 +104,12 @@ describe('App shell navigation', () => {
     await user.click(exercisesLink);
     expect(screen.queryByRole('dialog', { name: 'Plus' })).not.toBeInTheDocument();
     expect(
-      screen.getByRole('navigation', { name: 'Navigation principale' })
+      screen
+        .getByRole('navigation', { name: 'Navigation principale' })
         .querySelector('a[href="/exercises"]'),
     ).toBeNull();
     // Contenu de la route /exercises
-    expect(
-      screen.getByText('Exercices', { selector: 'p' }),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Exercices', { selector: 'p' })).toBeInTheDocument();
   });
 
   it('marque Entraînement actif sur le hub', () => {

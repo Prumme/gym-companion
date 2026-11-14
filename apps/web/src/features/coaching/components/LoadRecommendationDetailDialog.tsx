@@ -33,9 +33,7 @@ export function LoadRecommendationDetailDialog({
     recommendation.currentTarget.weightKg,
     recommendation.recommendation.suggestedWeightKg,
   );
-  const incrementLabel = getIncrementSourceLabel(
-    recommendation.recommendation.incrementSource,
-  );
+  const incrementLabel = getIncrementSourceLabel(recommendation.recommendation.incrementSource);
 
   return (
     <div
@@ -54,14 +52,10 @@ export function LoadRecommendationDetailDialog({
           {getLoadRecommendationActionLabel(recommendation.action)}
         </h3>
 
-        {transition ? (
-          <p className="mt-2 text-base font-medium">{transition}</p>
-        ) : null}
+        {transition ? <p className="mt-2 text-base font-medium">{transition}</p> : null}
 
         <section className="mt-4" aria-label="Cible actuelle">
-          <h4 className="text-sm font-medium text-[var(--muted)]">
-            Cible actuelle
-          </h4>
+          <h4 className="text-sm font-medium text-[var(--muted)]">Cible actuelle</h4>
           <ul className="mt-1 space-y-1 text-sm">
             <li>
               Charge :{' '}
@@ -87,15 +81,11 @@ export function LoadRecommendationDetailDialog({
 
         <section className="mt-4" aria-label="Raisons">
           <h4 className="text-sm font-medium text-[var(--muted)]">Raisons</h4>
-          <p className="mt-1 text-sm">
-            {getPrimaryLoadRecommendationMessage(recommendation)}
-          </p>
+          <p className="mt-1 text-sm">{getPrimaryLoadRecommendationMessage(recommendation)}</p>
           {recommendation.reasons.length > 1 ? (
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
               {recommendation.reasons.slice(1).map((reason) => (
-                <li key={reason}>
-                  {getLoadRecommendationReasonMessage(reason)}
-                </li>
+                <li key={reason}>{getLoadRecommendationReasonMessage(reason)}</li>
               ))}
             </ul>
           ) : null}
@@ -103,9 +93,7 @@ export function LoadRecommendationDetailDialog({
 
         {recommendation.evidence.recentWorkouts.length > 0 ? (
           <section className="mt-4" aria-label="Séances récentes">
-            <h4 className="text-sm font-medium text-[var(--muted)]">
-              Séances récentes analysées
-            </h4>
+            <h4 className="text-sm font-medium text-[var(--muted)]">Séances récentes analysées</h4>
             <ul className="mt-2 space-y-3">
               {recommendation.evidence.recentWorkouts.map((workout) => (
                 <li
@@ -115,24 +103,17 @@ export function LoadRecommendationDetailDialog({
                   <p className="font-medium">{workout.localDate}</p>
                   <p className="text-[var(--muted)]">
                     Reps :{' '}
-                    {workout.performedReps.length > 0
-                      ? workout.performedReps.join(' / ')
-                      : '—'}
+                    {workout.performedReps.length > 0 ? workout.performedReps.join(' / ') : '—'}
                   </p>
                   <p className="text-[var(--muted)]">
-                    Terminées {workout.completedSetCount} · Partielles{' '}
-                    {workout.partialSetCount} · Échouées{' '}
-                    {workout.failedSetCount}
+                    Terminées {workout.completedSetCount} · Partielles {workout.partialSetCount} ·
+                    Échouées {workout.failedSetCount}
                   </p>
                   {workout.actualRir ? (
-                    <p className="text-[var(--muted)]">
-                      RIR : {workout.actualRir.join(' / ')}
-                    </p>
+                    <p className="text-[var(--muted)]">RIR : {workout.actualRir.join(' / ')}</p>
                   ) : null}
                   {workout.actualRpe ? (
-                    <p className="text-[var(--muted)]">
-                      RPE : {workout.actualRpe.join(' / ')}
-                    </p>
+                    <p className="text-[var(--muted)]">RPE : {workout.actualRpe.join(' / ')}</p>
                   ) : null}
                 </li>
               ))}
@@ -140,15 +121,11 @@ export function LoadRecommendationDetailDialog({
           </section>
         ) : null}
 
-        {incrementLabel &&
-        recommendation.recommendation.incrementKg != null ? (
+        {incrementLabel && recommendation.recommendation.incrementKg != null ? (
           <section className="mt-4" aria-label="Incrément">
-            <h4 className="text-sm font-medium text-[var(--muted)]">
-              Règle d’incrément
-            </h4>
+            <h4 className="text-sm font-medium text-[var(--muted)]">Règle d’incrément</h4>
             <p className="mt-1 text-sm">
-              {incrementLabel} :{' '}
-              {formatLoadWeightKg(recommendation.recommendation.incrementKg)}
+              {incrementLabel} : {formatLoadWeightKg(recommendation.recommendation.incrementKg)}
             </p>
           </section>
         ) : null}

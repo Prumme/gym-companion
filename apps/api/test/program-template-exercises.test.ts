@@ -17,8 +17,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -28,11 +27,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -105,12 +100,8 @@ describe('Program template exercises and sets API', () => {
       where: { code: 'chest' },
     });
     chestId = chest.id;
-    barbellId = (
-      await prisma.equipmentType.findFirstOrThrow({ where: { code: 'barbell' } })
-    ).id;
-    dumbbellId = (
-      await prisma.equipmentType.findFirstOrThrow({ where: { code: 'dumbbell' } })
-    ).id;
+    barbellId = (await prisma.equipmentType.findFirstOrThrow({ where: { code: 'barbell' } })).id;
+    dumbbellId = (await prisma.equipmentType.findFirstOrThrow({ where: { code: 'dumbbell' } })).id;
 
     const userA = await prisma.user.findUniqueOrThrow({ where: { email: emailA } });
     const userB = await prisma.user.findUniqueOrThrow({ where: { email: emailB } });
@@ -163,9 +154,7 @@ describe('Program template exercises and sets API', () => {
 
   it('requires authentication', async () => {
     await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-      )
+      .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
       .send({})
       .expect(401);
   });
@@ -177,9 +166,7 @@ describe('Program template exercises and sets API', () => {
     const compatibleEquipmentId = systemCompatible?.equipmentTypeId ?? null;
 
     const addedSystem = await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-      )
+      .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         exerciseId: systemExerciseId,
@@ -192,9 +179,7 @@ describe('Program template exercises and sets API', () => {
     expect(addedSystem.body.data.workoutTemplates[0].exercises[0].position).toBe(0);
 
     const addedPersonal = await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-      )
+      .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         exerciseId: personalExerciseId,
@@ -206,9 +191,7 @@ describe('Program template exercises and sets API', () => {
     expect(addedPersonal.body.data.workoutTemplates[0].exercises).toHaveLength(2);
 
     await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-      )
+      .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         exerciseId: otherPersonalExerciseId,
@@ -219,9 +202,7 @@ describe('Program template exercises and sets API', () => {
       .expect(404);
 
     await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-      )
+      .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         exerciseId: personalExerciseId,
@@ -254,9 +235,7 @@ describe('Program template exercises and sets API', () => {
       },
     });
     await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-      )
+      .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         exerciseId: archived.id,
@@ -275,9 +254,7 @@ describe('Program template exercises and sets API', () => {
       },
     });
     const third = await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-      )
+      .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         exerciseId: anotherSystem.id,
@@ -295,30 +272,22 @@ describe('Program template exercises and sets API', () => {
   it('updates, reorders and removes exercises with compact positions', async () => {
     const [first, second, third] = templateExerciseIds;
     await request(app.getHttpServer())
-      .patch(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${second}`,
-      )
+      .patch(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${second}`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ notes: 'Note MAJ', restSecondsOverride: 60 })
       .expect(200);
 
     const reordered = await request(app.getHttpServer())
-      .put(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/order`,
-      )
+      .put(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/order`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ workoutTemplateExerciseIds: [third, first, second] })
       .expect(200);
     expect(
-      reordered.body.data.workoutTemplates[0].exercises.map(
-        (item: { id: string }) => item.id,
-      ),
+      reordered.body.data.workoutTemplates[0].exercises.map((item: { id: string }) => item.id),
     ).toEqual([third, first, second]);
 
     await request(app.getHttpServer())
-      .put(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/order`,
-      )
+      .put(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/order`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ workoutTemplateExerciseIds: [first, second] })
       .expect(400);
@@ -342,9 +311,7 @@ describe('Program template exercises and sets API', () => {
       .expect(404);
 
     const afterDelete = await request(app.getHttpServer())
-      .delete(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${third}`,
-      )
+      .delete(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises/${third}`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     expect(afterDelete.body.data.workoutTemplates[0].exercises).toHaveLength(2);
@@ -369,9 +336,7 @@ describe('Program template exercises and sets API', () => {
       .send(workingSet())
       .expect(201);
     expect(created.body.data.workoutTemplates[0].exercises[0].sets).toHaveLength(1);
-    expect(
-      created.body.data.workoutTemplates[0].exercises[0].sets[0].targetWeightKg,
-    ).toBe(60);
+    expect(created.body.data.workoutTemplates[0].exercises[0].sets[0].targetWeightKg).toBe(60);
 
     await request(app.getHttpServer())
       .post(
@@ -454,9 +419,7 @@ describe('Program template exercises and sets API', () => {
       )
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    expect(
-      afterSetDelete.body.data.workoutTemplates[0].exercises[0].sets,
-    ).toHaveLength(2);
+    expect(afterSetDelete.body.data.workoutTemplates[0].exercises[0].sets).toHaveLength(2);
     expect(
       afterSetDelete.body.data.workoutTemplates[0].exercises[0].sets.map(
         (item: { position: number }) => item.position,
@@ -507,9 +470,7 @@ describe('Program template exercises and sets API', () => {
     ).body.data.workoutTemplates[0].exercises[0];
 
     await request(app.getHttpServer())
-      .post(
-        `/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`,
-      )
+      .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
         exerciseId: systemExerciseId,

@@ -1,7 +1,4 @@
-import type {
-  ExerciseMeasurementType,
-  WorkoutSetType,
-} from '@gym-companion/shared';
+import type { ExerciseMeasurementType, WorkoutSetType } from '@gym-companion/shared';
 
 export type TemplateSetForSnapshot = {
   id: string;
@@ -116,17 +113,14 @@ export function buildWorkoutSessionSnapshotFromTemplate(
 ):
   | { ok: true; snapshot: WorkoutSessionSnapshotCreate }
   | { ok: false; error: SnapshotValidationError } {
-  const exercisesOrdered = [...template.exercises].sort(
-    (a, b) => a.position - b.position,
-  );
+  const exercisesOrdered = [...template.exercises].sort((a, b) => a.position - b.position);
 
   if (exercisesOrdered.length === 0) {
     return {
       ok: false,
       error: {
         code: 'WORKOUT_TEMPLATE_EMPTY',
-        message:
-          'Impossible de démarrer une séance depuis un modèle sans exercice.',
+        message: 'Impossible de démarrer une séance depuis un modèle sans exercice.',
       },
     };
   }
@@ -134,9 +128,7 @@ export function buildWorkoutSessionSnapshotFromTemplate(
   const exercises: SnapshotExerciseCreate[] = [];
 
   for (const templateExercise of exercisesOrdered) {
-    const setsOrdered = [...templateExercise.sets].sort(
-      (a, b) => a.position - b.position,
-    );
+    const setsOrdered = [...templateExercise.sets].sort((a, b) => a.position - b.position);
 
     if (setsOrdered.length === 0) {
       return {
@@ -155,10 +147,8 @@ export function buildWorkoutSessionSnapshotFromTemplate(
       exerciseNameSnapshot: templateExercise.exercise.name,
       measurementTypeSnapshot: templateExercise.exercise.measurementType,
       position: templateExercise.position,
-      primaryMuscleGroupNameSnapshot:
-        templateExercise.exercise.primaryMuscleGroup.name,
-      sourceExerciseArchivedAtCreation:
-        templateExercise.exercise.archivedAt !== null,
+      primaryMuscleGroupNameSnapshot: templateExercise.exercise.primaryMuscleGroup.name,
+      sourceExerciseArchivedAtCreation: templateExercise.exercise.archivedAt !== null,
       equipmentTypeId: templateExercise.equipmentType?.id ?? null,
       equipmentNameSnapshot: templateExercise.equipmentType?.name ?? null,
       equipmentCodeSnapshot: templateExercise.equipmentType?.code ?? null,

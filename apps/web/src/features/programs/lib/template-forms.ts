@@ -20,10 +20,7 @@ export type TemplateExerciseFormValues = {
 };
 
 export function getInitialEquipmentTypeId(
-  exercise: Pick<
-    ExerciseDetail | ExerciseListItem,
-    'defaultEquipmentType' | 'userPreference'
-  > & {
+  exercise: Pick<ExerciseDetail | ExerciseListItem, 'defaultEquipmentType' | 'userPreference'> & {
     compatibleEquipmentTypes?: Array<{
       equipmentType: { id: string };
       isPreferred?: boolean;
@@ -32,9 +29,7 @@ export function getInitialEquipmentTypeId(
 ): string {
   const preferred = exercise.userPreference?.preferredEquipmentType?.id;
   const compatibleIds = new Set(
-    (exercise.compatibleEquipmentTypes ?? []).map(
-      (item) => item.equipmentType.id,
-    ),
+    (exercise.compatibleEquipmentTypes ?? []).map((item) => item.equipmentType.id),
   );
   if (preferred && (compatibleIds.size === 0 || compatibleIds.has(preferred))) {
     return preferred;
@@ -42,17 +37,12 @@ export function getInitialEquipmentTypeId(
   if (exercise.defaultEquipmentType?.id) {
     return exercise.defaultEquipmentType.id;
   }
-  const preferredCompatible = exercise.compatibleEquipmentTypes?.find(
-    (item) => item.isPreferred,
-  );
+  const preferredCompatible = exercise.compatibleEquipmentTypes?.find((item) => item.isPreferred);
   return preferredCompatible?.equipmentType.id ?? '';
 }
 
 export function getInitialRestSeconds(
-  exercise: Pick<
-    ExerciseDetail | ExerciseListItem,
-    'defaultRestSeconds' | 'userPreference'
-  >,
+  exercise: Pick<ExerciseDetail | ExerciseListItem, 'defaultRestSeconds' | 'userPreference'>,
 ): string {
   if (exercise.userPreference?.restSecondsOverride != null) {
     return String(exercise.userPreference.restSecondsOverride);
@@ -64,9 +54,11 @@ export function getInitialRestSeconds(
 }
 
 export function buildAddExerciseDefaults(
-  exercise: ExerciseDetail | (ExerciseListItem & {
-    compatibleEquipmentTypes?: ExerciseDetail['compatibleEquipmentTypes'];
-  }),
+  exercise:
+    | ExerciseDetail
+    | (ExerciseListItem & {
+        compatibleEquipmentTypes?: ExerciseDetail['compatibleEquipmentTypes'];
+      }),
 ): TemplateExerciseFormValues {
   return {
     equipmentTypeId: getInitialEquipmentTypeId(exercise),
@@ -156,7 +148,8 @@ export function emptySetFormValues(
     targetRepMin: needsReps ? '8' : '',
     targetRepMax: needsReps ? '10' : '',
     targetDurationMinutes: '',
-    targetDurationSeconds: measurementType === 'DURATION' || measurementType === 'WEIGHT_DURATION' ? '30' : '',
+    targetDurationSeconds:
+      measurementType === 'DURATION' || measurementType === 'WEIGHT_DURATION' ? '30' : '',
     targetDistanceMeters: measurementType === 'DISTANCE_DURATION' ? '1000' : '',
     targetWeightKg: '',
     targetIntensityPercent: '',
@@ -166,9 +159,7 @@ export function emptySetFormValues(
   };
 }
 
-export function setDetailToFormValues(
-  set: WorkoutTemplateSetTarget,
-): TemplateSetFormValues {
+export function setDetailToFormValues(set: WorkoutTemplateSetTarget): TemplateSetFormValues {
   const total = set.targetDurationSeconds ?? 0;
   const minutes = Math.floor(total / 60);
   const seconds = total % 60;
@@ -178,8 +169,7 @@ export function setDetailToFormValues(
     targetRepMax: set.targetRepMax != null ? String(set.targetRepMax) : '',
     targetDurationMinutes: set.targetDurationSeconds != null ? String(minutes) : '',
     targetDurationSeconds: set.targetDurationSeconds != null ? String(seconds) : '',
-    targetDistanceMeters:
-      set.targetDistanceMeters != null ? String(set.targetDistanceMeters) : '',
+    targetDistanceMeters: set.targetDistanceMeters != null ? String(set.targetDistanceMeters) : '',
     targetWeightKg: set.targetWeightKg != null ? String(set.targetWeightKg) : '',
     targetIntensityPercent:
       set.targetIntensityPercent != null ? String(set.targetIntensityPercent) : '',
@@ -189,10 +179,7 @@ export function setDetailToFormValues(
   };
 }
 
-export function durationPartsToSeconds(
-  minutesRaw: string,
-  secondsRaw: string,
-): number | null {
+export function durationPartsToSeconds(minutesRaw: string, secondsRaw: string): number | null {
   const minutes = minutesRaw.trim() === '' ? 0 : Number(minutesRaw.trim());
   const seconds = secondsRaw.trim() === '' ? 0 : Number(secondsRaw.trim());
   if (
@@ -211,13 +198,9 @@ export function durationPartsToSeconds(
   return total > 0 ? total : null;
 }
 
-export function setFormToPayload(
-  values: TemplateSetFormValues,
-): CreateWorkoutTemplateSetInput {
-  const parseOptionalInt = (raw: string) =>
-    raw.trim() === '' ? null : Number(raw.trim());
-  const parseOptionalNumber = (raw: string) =>
-    raw.trim() === '' ? null : Number(raw.trim());
+export function setFormToPayload(values: TemplateSetFormValues): CreateWorkoutTemplateSetInput {
+  const parseOptionalInt = (raw: string) => (raw.trim() === '' ? null : Number(raw.trim()));
+  const parseOptionalNumber = (raw: string) => (raw.trim() === '' ? null : Number(raw.trim()));
 
   return {
     setType: values.setType,
@@ -242,9 +225,7 @@ export function setFormToUpdatePayload(
   return setFormToPayload(values);
 }
 
-export function duplicateSetFormValues(
-  set: WorkoutTemplateSetTarget,
-): TemplateSetFormValues {
+export function duplicateSetFormValues(set: WorkoutTemplateSetTarget): TemplateSetFormValues {
   return setDetailToFormValues(set);
 }
 
@@ -334,9 +315,7 @@ export function formatSetSummaryCompact(set: SetTargetSummaryFields): {
   if (set.targetWeightKg != null) {
     // Keep weight visible on primary for WEIGHT_REPS density.
     primaryParts.push(`${set.targetWeightKg} kg`);
-    const secondary = secondaryParts
-      .filter((part) => !part.endsWith(' kg'))
-      .join(' · ');
+    const secondary = secondaryParts.filter((part) => !part.endsWith(' kg')).join(' · ');
     return {
       primary: primaryParts.join('  ') || '—',
       secondary: secondary || null,
@@ -359,20 +338,11 @@ export function compatibleEquipmentOptions(
 }
 
 export function measurementNeedsReps(type: ExerciseMeasurementType): boolean {
-  return [
-    'WEIGHT_REPS',
-    'BODYWEIGHT_REPS',
-    'ASSISTED_BODYWEIGHT_REPS',
-    'REPS_ONLY',
-  ].includes(type);
+  return ['WEIGHT_REPS', 'BODYWEIGHT_REPS', 'ASSISTED_BODYWEIGHT_REPS', 'REPS_ONLY'].includes(type);
 }
 
 export function measurementNeedsDuration(type: ExerciseMeasurementType): boolean {
-  return (
-    type === 'DURATION' ||
-    type === 'WEIGHT_DURATION' ||
-    type === 'DISTANCE_DURATION'
-  );
+  return type === 'DURATION' || type === 'WEIGHT_DURATION' || type === 'DISTANCE_DURATION';
 }
 
 export function measurementNeedsDistance(type: ExerciseMeasurementType): boolean {

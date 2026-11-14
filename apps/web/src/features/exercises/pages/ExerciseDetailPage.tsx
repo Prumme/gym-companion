@@ -28,9 +28,7 @@ export function ExerciseDetailPage() {
   const location = useLocation();
   const locationState = location.state as DetailLocationState | null;
   const backTo = locationState?.from ?? '/exercises';
-  const [statusMessage, setStatusMessage] = useState<string | null>(
-    locationState?.flash ?? null,
-  );
+  const [statusMessage, setStatusMessage] = useState<string | null>(locationState?.flash ?? null);
   const [favoriteError, setFavoriteError] = useState<string | null>(null);
   const [instructionsOpen, setInstructionsOpen] = useState(false);
   const updatePreference = useUpdateExercisePreferenceMutation();
@@ -49,10 +47,7 @@ export function ExerciseDetailPage() {
     const message =
       status === 404
         ? 'Cet exercice est introuvable ou inaccessible.'
-        : getApiErrorMessage(
-            detailQuery.error,
-            'Impossible de charger cet exercice.',
-          );
+        : getApiErrorMessage(detailQuery.error, 'Impossible de charger cet exercice.');
 
     return (
       <main className="flex flex-1 flex-col gap-4">
@@ -77,11 +72,9 @@ export function ExerciseDetailPage() {
   const exercise = detailQuery.data;
   const preference = exercise.userPreference;
   const favoritePending =
-    updatePreference.isPending &&
-    updatePreference.variables?.exerciseId === exercise.id;
+    updatePreference.isPending && updatePreference.variables?.exerciseId === exercise.id;
   const hasInstructions = Boolean(exercise.instructions?.trim());
-  const restSeconds =
-    preference.restSecondsOverride ?? exercise.defaultRestSeconds;
+  const restSeconds = preference.restSecondsOverride ?? exercise.defaultRestSeconds;
   const equipmentName =
     preference.preferredEquipmentType?.name ??
     exercise.defaultEquipmentType?.name ??
@@ -99,9 +92,7 @@ export function ExerciseDetailPage() {
         optimisticPreference: { ...preference, isFavorite: nextFavorite },
       });
     } catch (error) {
-      setFavoriteError(
-        getApiErrorMessage(error, 'Impossible de modifier ce favori. Réessaie.'),
-      );
+      setFavoriteError(getApiErrorMessage(error, 'Impossible de modifier ce favori. Réessaie.'));
     }
   }
 
@@ -156,8 +147,7 @@ export function ExerciseDetailPage() {
 
       {exercise.secondaryMuscleGroups.length > 0 ? (
         <p className="text-sm text-[var(--muted-foreground)]">
-          Aussi :{' '}
-          {exercise.secondaryMuscleGroups.map((item) => item.name).join(', ')}
+          Aussi : {exercise.secondaryMuscleGroups.map((item) => item.name).join(', ')}
         </p>
       ) : null}
 
@@ -189,9 +179,7 @@ export function ExerciseDetailPage() {
         {exercise.compatibleEquipmentTypes.length > 1 ? (
           <p className="text-sm text-[var(--muted-foreground)]">
             Compatibles :{' '}
-            {exercise.compatibleEquipmentTypes
-              .map((item) => item.equipmentType.name)
-              .join(', ')}
+            {exercise.compatibleEquipmentTypes.map((item) => item.equipmentType.name).join(', ')}
           </p>
         ) : null}
       </section>
@@ -205,22 +193,13 @@ export function ExerciseDetailPage() {
           className="flex min-h-11 items-center justify-between gap-3 border-b border-[var(--border)] py-2 text-sm font-medium text-[var(--foreground)]"
         >
           Voir ma progression
-          <ChevronRight
-            className="size-4 text-[var(--muted-foreground)]"
-            aria-hidden="true"
-          />
+          <ChevronRight className="size-4 text-[var(--muted-foreground)]" aria-hidden="true" />
         </Link>
       </section>
 
-      <ExercisePersonalRecordsSection
-        exerciseId={exercise.id}
-        hideProgressCta
-      />
+      <ExercisePersonalRecordsSection exerciseId={exercise.id} hideProgressCta />
 
-      <ExerciseManagementSection
-        exercise={exercise}
-        onStatus={setStatusMessage}
-      />
+      <ExerciseManagementSection exercise={exercise} onStatus={setStatusMessage} />
 
       <ButtonLink to={backTo} variant="ghost" className="w-fit px-0">
         ← Retour aux exercices

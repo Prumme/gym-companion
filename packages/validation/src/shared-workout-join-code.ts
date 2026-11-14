@@ -11,8 +11,7 @@ import { z } from 'zod';
 import { sharedWorkoutRoomStatusSchema } from './shared-workout-rooms';
 
 /** Alphabet sûr pour affichage / saisie (pas I, O, 0, 1). */
-export const SHARED_WORKOUT_JOIN_CODE_ALPHABET =
-  'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' as const;
+export const SHARED_WORKOUT_JOIN_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' as const;
 
 export const SHARED_WORKOUT_JOIN_CODE_LENGTH = 6 as const;
 
@@ -35,7 +34,10 @@ export function normalizeSharedWorkoutJoinCode(input: unknown): string {
     ]);
   }
 
-  const cleaned = input.trim().toUpperCase().replace(/[\s-]+/g, '');
+  const cleaned = input
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, '');
 
   if (cleaned.length !== SHARED_WORKOUT_JOIN_CODE_LENGTH) {
     throw new z.ZodError([

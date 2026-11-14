@@ -64,10 +64,7 @@ describe('parseApiEnv', () => {
     const env = parseApiEnv(validEnv);
 
     expect(env.PORT).toBe(3000);
-    expect(env.CORS_ALLOWED_ORIGINS).toEqual([
-      'http://localhost:5173',
-      'http://127.0.0.1:5173',
-    ]);
+    expect(env.CORS_ALLOWED_ORIGINS).toEqual(['http://localhost:5173', 'http://127.0.0.1:5173']);
   });
 
   it('throws without leaking secret values when required fields are missing', () => {
@@ -193,9 +190,7 @@ describe('normalizeExerciseName', () => {
 
 describe('listExercisesQuerySchema', () => {
   it('parses includeArchived=true', () => {
-    expect(listExercisesQuerySchema.parse({ includeArchived: 'true' }).includeArchived).toBe(
-      true,
-    );
+    expect(listExercisesQuerySchema.parse({ includeArchived: 'true' }).includeArchived).toBe(true);
   });
 
   it('parses includeArchived=false', () => {
@@ -238,9 +233,9 @@ describe('listExercisesQuerySchema', () => {
   });
 
   it('rejects invalid measurementType', () => {
-    expect(
-      listExercisesQuerySchema.safeParse({ measurementType: 'NOT_A_TYPE' }).success,
-    ).toBe(false);
+    expect(listExercisesQuerySchema.safeParse({ measurementType: 'NOT_A_TYPE' }).success).toBe(
+      false,
+    );
   });
 
   it('rejects invalid source', () => {
@@ -294,10 +289,7 @@ describe('exercise cursor', () => {
       OR: [
         { normalizedName: { gt: 'curl' } },
         {
-          AND: [
-            { normalizedName: 'curl' },
-            { id: { gt: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' } },
-          ],
+          AND: [{ normalizedName: 'curl' }, { id: { gt: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' } }],
         },
       ],
     });
@@ -365,12 +357,8 @@ describe('updateExercisePreferenceSchema', () => {
   });
 
   it('parses favoriteOnly like includeArchived', () => {
-    expect(listExercisesQuerySchema.parse({ favoriteOnly: 'true' }).favoriteOnly).toBe(
-      true,
-    );
-    expect(listExercisesQuerySchema.parse({ favoriteOnly: 'false' }).favoriteOnly).toBe(
-      false,
-    );
+    expect(listExercisesQuerySchema.parse({ favoriteOnly: 'true' }).favoriteOnly).toBe(true);
+    expect(listExercisesQuerySchema.parse({ favoriteOnly: 'false' }).favoriteOnly).toBe(false);
   });
 });
 
@@ -385,9 +373,7 @@ describe('createExerciseSchema', () => {
     secondaryMuscleGroupIds: [secondary],
     measurementType: 'WEIGHT_REPS' as const,
     defaultEquipmentTypeId: equipment,
-    compatibleEquipmentTypes: [
-      { equipmentTypeId: equipment, isPreferred: true, notes: null },
-    ],
+    compatibleEquipmentTypes: [{ equipmentTypeId: equipment, isPreferred: true, notes: null }],
     defaultRestSeconds: 60,
     instructions: null,
   };
@@ -587,9 +573,7 @@ describe('validateWorkoutTemplateSetTargets', () => {
   });
 
   it('requires reps for REPS_ONLY', () => {
-    expect(
-      validateWorkoutTemplateSetTargets('REPS_ONLY', base).ok,
-    ).toBe(false);
+    expect(validateWorkoutTemplateSetTargets('REPS_ONLY', base).ok).toBe(false);
   });
 
   it('requires duration for DURATION and WEIGHT_DURATION', () => {
@@ -754,9 +738,7 @@ describe('local dates and program schedule validation', () => {
         replaceCurrentProgram: 'true',
       }).success,
     ).toBe(false);
-    expect(
-      replaceProgramScheduleSchema.safeParse({ entries: [] }).success,
-    ).toBe(true);
+    expect(replaceProgramScheduleSchema.safeParse({ entries: [] }).success).toBe(true);
   });
 });
 
@@ -836,12 +818,8 @@ describe('updateWorkoutSetSchema', () => {
   });
 
   it('refuse une version invalide et les champs supplémentaires', () => {
-    expect(
-      updateWorkoutSetSchema.safeParse({ ...valid, expectedVersion: 0 }).success,
-    ).toBe(false);
-    expect(
-      updateWorkoutSetSchema.safeParse({ ...valid, extra: true }).success,
-    ).toBe(false);
+    expect(updateWorkoutSetSchema.safeParse({ ...valid, expectedVersion: 0 }).success).toBe(false);
+    expect(updateWorkoutSetSchema.safeParse({ ...valid, extra: true }).success).toBe(false);
   });
 
   it('accepte des notes nulles', () => {
@@ -911,9 +889,7 @@ describe('addWorkoutSessionExerciseSchema', () => {
 
 describe('addWorkoutSessionSetSchema', () => {
   it('accepte expectedVersion seul', () => {
-    expect(
-      addWorkoutSessionSetSchema.safeParse({ expectedVersion: 4 }).success,
-    ).toBe(true);
+    expect(addWorkoutSessionSetSchema.safeParse({ expectedVersion: 4 }).success).toBe(true);
   });
 
   it('accepte un clientCommandId opaque', () => {
@@ -944,9 +920,7 @@ describe('addWorkoutSessionSetSchema', () => {
 
 describe('deleteWorkoutSessionSetSchema', () => {
   it('accepte expectedVersion seul', () => {
-    expect(
-      deleteWorkoutSessionSetSchema.safeParse({ expectedVersion: 2 }).success,
-    ).toBe(true);
+    expect(deleteWorkoutSessionSetSchema.safeParse({ expectedVersion: 2 }).success).toBe(true);
   });
 
   it('refuse expectedVersion manquant', () => {
@@ -1266,9 +1240,7 @@ describe('resolveWorkoutLifecycleTransition', () => {
   });
 
   it('valide les schémas lifecycle', () => {
-    expect(
-      pauseWorkoutSessionSchema.safeParse({ expectedVersion: 1 }).success,
-    ).toBe(true);
+    expect(pauseWorkoutSessionSchema.safeParse({ expectedVersion: 1 }).success).toBe(true);
     expect(
       completeWorkoutSessionSchema.safeParse({
         expectedVersion: 2,
@@ -1324,18 +1296,16 @@ describe('workout history query (3.6)', () => {
 
   it('valide les dates et la plage', () => {
     expect(parseWorkoutHistoryQuery({ from: '2026-13-01' }).ok).toBe(false);
-    expect(
-      parseWorkoutHistoryQuery({ from: '2026-13-01' }),
-    ).toMatchObject({ code: 'WORKOUT_HISTORY_INVALID_FROM_DATE' });
-    expect(
-      parseWorkoutHistoryQuery({ to: 'not-a-date' }),
-    ).toMatchObject({ code: 'WORKOUT_HISTORY_INVALID_TO_DATE' });
-    expect(
-      parseWorkoutHistoryQuery({ from: '2026-08-04', to: '2026-08-01' }),
-    ).toMatchObject({ code: 'WORKOUT_HISTORY_INVALID_DATE_RANGE' });
-    expect(
-      parseWorkoutHistoryQuery({ from: '2026-08-01', to: '2026-08-01' }).ok,
-    ).toBe(true);
+    expect(parseWorkoutHistoryQuery({ from: '2026-13-01' })).toMatchObject({
+      code: 'WORKOUT_HISTORY_INVALID_FROM_DATE',
+    });
+    expect(parseWorkoutHistoryQuery({ to: 'not-a-date' })).toMatchObject({
+      code: 'WORKOUT_HISTORY_INVALID_TO_DATE',
+    });
+    expect(parseWorkoutHistoryQuery({ from: '2026-08-04', to: '2026-08-01' })).toMatchObject({
+      code: 'WORKOUT_HISTORY_INVALID_DATE_RANGE',
+    });
+    expect(parseWorkoutHistoryQuery({ from: '2026-08-01', to: '2026-08-01' }).ok).toBe(true);
   });
 
   it('encode et décode un cursor stable', () => {
@@ -1351,9 +1321,7 @@ describe('workout history query (3.6)', () => {
       startedAt: '2026-08-03T18:00:00.000Z',
       id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
     });
-    expect(() => decodeWorkoutHistoryCursor('not-valid')).toThrow(
-      'WORKOUT_HISTORY_INVALID_CURSOR',
-    );
+    expect(() => decodeWorkoutHistoryCursor('not-valid')).toThrow('WORKOUT_HISTORY_INVALID_CURSOR');
     const filter = buildWorkoutHistoryCursorFilter({
       version: 1,
       localDate: '2026-08-03',

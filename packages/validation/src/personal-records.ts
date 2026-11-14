@@ -42,12 +42,7 @@ export type ExerciseMeasurementTypeForRecords =
   | 'WEIGHT_DURATION';
 
 export type WorkoutSetTypeForRecords =
-  | 'WARMUP'
-  | 'WORKING'
-  | 'BACKOFF'
-  | 'DROP_SET'
-  | 'AMRAP'
-  | 'FAILURE_OPTIONAL';
+  'WARMUP' | 'WORKING' | 'BACKOFF' | 'DROP_SET' | 'AMRAP' | 'FAILURE_OPTIONAL';
 
 /** Types de records disponibles pour un type de mesure snapshot. */
 export function resolveRecordTypesForMeasurement(
@@ -85,9 +80,7 @@ export type PersonalRecordEligibilityInput = {
  * Éligibilité centralisée : séance COMPLETED, série COMPLETED,
  * hors WARMUP, sourceExerciseId non null.
  */
-export function isSetEligibleForPersonalRecord(
-  input: PersonalRecordEligibilityInput,
-): boolean {
+export function isSetEligibleForPersonalRecord(input: PersonalRecordEligibilityInput): boolean {
   if (input.sessionStatus !== 'COMPLETED') {
     return false;
   }
@@ -315,9 +308,7 @@ export function selectCurrentPersonalRecords(
       continue;
     }
 
-    const types = resolveRecordTypesForMeasurement(
-      candidate.measurementTypeSnapshot,
-    );
+    const types = resolveRecordTypesForMeasurement(candidate.measurementTypeSnapshot);
     for (const recordType of types) {
       const principal = getPersonalRecordPrincipalValue(recordType, candidate);
       if (principal == null) {
@@ -329,14 +320,7 @@ export function selectCurrentPersonalRecords(
         recordType,
       );
       const existing = bestByKey.get(key);
-      if (
-        !existing ||
-        isBetterPersonalRecordCandidate(
-          recordType,
-          candidate,
-          existing.candidate,
-        )
-      ) {
+      if (!existing || isBetterPersonalRecordCandidate(recordType, candidate, existing.candidate)) {
         bestByKey.set(key, { recordType, candidate });
       }
     }
@@ -366,9 +350,7 @@ export function selectCurrentPersonalRecordsWithType(
       continue;
     }
 
-    const types = resolveRecordTypesForMeasurement(
-      candidate.measurementTypeSnapshot,
-    );
+    const types = resolveRecordTypesForMeasurement(candidate.measurementTypeSnapshot);
     for (const recordType of types) {
       const principal = getPersonalRecordPrincipalValue(recordType, candidate);
       if (principal == null) {
@@ -380,14 +362,7 @@ export function selectCurrentPersonalRecordsWithType(
         recordType,
       );
       const existing = bestByKey.get(key);
-      if (
-        !existing ||
-        isBetterPersonalRecordCandidate(
-          recordType,
-          candidate,
-          existing.candidate,
-        )
-      ) {
+      if (!existing || isBetterPersonalRecordCandidate(recordType, candidate, existing.candidate)) {
         bestByKey.set(key, { recordType, candidate });
       }
     }
@@ -451,14 +426,8 @@ export const listPersonalRecordsLimitSchema = z.preprocess(
 );
 
 export const personalRecordsQuerySchema = z.object({
-  exerciseId: z.preprocess(
-    emptyQueryToUndefined,
-    z.string().uuid().optional(),
-  ),
-  recordType: z.preprocess(
-    emptyQueryToUndefined,
-    personalRecordTypeSchema.optional(),
-  ),
+  exerciseId: z.preprocess(emptyQueryToUndefined, z.string().uuid().optional()),
+  recordType: z.preprocess(emptyQueryToUndefined, personalRecordTypeSchema.optional()),
   cursor: z.preprocess(emptyQueryToUndefined, z.string().min(1).optional()),
   limit: listPersonalRecordsLimitSchema,
 });
@@ -474,9 +443,7 @@ export type PersonalRecordsQueryParseResult =
   | { ok: true; data: PersonalRecordsQuery }
   | { ok: false; code: PersonalRecordsQueryParseErrorCode; message: string };
 
-function personalRecordsQueryErrorMessage(
-  code: PersonalRecordsQueryParseErrorCode,
-): string {
+function personalRecordsQueryErrorMessage(code: PersonalRecordsQueryParseErrorCode): string {
   switch (code) {
     case 'PERSONAL_RECORD_INVALID_TYPE':
       return 'Type de record invalide.';
@@ -487,9 +454,7 @@ function personalRecordsQueryErrorMessage(
   }
 }
 
-export function parsePersonalRecordsQuery(
-  raw: unknown,
-): PersonalRecordsQueryParseResult {
+export function parsePersonalRecordsQuery(raw: unknown): PersonalRecordsQueryParseResult {
   const result = personalRecordsQuerySchema.safeParse(raw);
   if (result.success) {
     return { ok: true, data: result.data };
@@ -500,9 +465,7 @@ export function parsePersonalRecordsQuery(
       return {
         ok: false,
         code: 'PERSONAL_RECORD_INVALID_TYPE',
-        message: personalRecordsQueryErrorMessage(
-          'PERSONAL_RECORD_INVALID_TYPE',
-        ),
+        message: personalRecordsQueryErrorMessage('PERSONAL_RECORD_INVALID_TYPE'),
       };
     }
   }
@@ -522,15 +485,11 @@ export type PersonalRecordsCursorPayload = {
   recordType: PersonalRecordType;
 };
 
-export function encodePersonalRecordsCursor(
-  payload: PersonalRecordsCursorPayload,
-): string {
+export function encodePersonalRecordsCursor(payload: PersonalRecordsCursorPayload): string {
   return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
 }
 
-export function decodePersonalRecordsCursor(
-  cursor: string,
-): PersonalRecordsCursorPayload {
+export function decodePersonalRecordsCursor(cursor: string): PersonalRecordsCursorPayload {
   let parsed: unknown;
   try {
     const json = Buffer.from(cursor, 'base64url').toString('utf8');
@@ -547,8 +506,7 @@ export function decodePersonalRecordsCursor(
     typeof (parsed as { exerciseId?: unknown }).exerciseId !== 'string' ||
     typeof (parsed as { recordType?: unknown }).recordType !== 'string' ||
     ((parsed as { equipmentTypeId?: unknown }).equipmentTypeId !== null &&
-      typeof (parsed as { equipmentTypeId?: unknown }).equipmentTypeId !==
-        'string')
+      typeof (parsed as { equipmentTypeId?: unknown }).equipmentTypeId !== 'string')
   ) {
     throw new Error('PERSONAL_RECORD_INVALID_CURSOR');
   }
@@ -569,8 +527,7 @@ export function decodePersonalRecordsCursor(
     version: 1,
     achievedOn,
     exerciseId: (parsed as { exerciseId: string }).exerciseId,
-    equipmentTypeId: (parsed as { equipmentTypeId: string | null })
-      .equipmentTypeId,
+    equipmentTypeId: (parsed as { equipmentTypeId: string | null }).equipmentTypeId,
     recordType: recordType.data,
   };
 }

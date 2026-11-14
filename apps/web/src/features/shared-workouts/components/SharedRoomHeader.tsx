@@ -1,10 +1,7 @@
 import type { SharedWorkoutRoomStatus } from '@gym-companion/shared';
 import { Link } from 'react-router-dom';
 
-import {
-  ContextMenu,
-  type ContextMenuItem,
-} from '@/features/programs/components/ContextMenu';
+import { ContextMenu, type ContextMenuItem } from '@/features/programs/components/ContextMenu';
 import { cn } from '@/lib/utils';
 
 import { getSharedWorkoutRoomStatusLabel } from '../lib/shared-workout-labels';

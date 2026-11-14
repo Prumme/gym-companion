@@ -20,9 +20,7 @@ describe('useRestTimer', () => {
   });
 
   it('démarre, pause, reprend, ajuste et arrête sans mutation API', () => {
-    const { result } = renderHook(() =>
-      useRestTimer({ workoutSessionId: 'w1', enabled: true }),
-    );
+    const { result } = renderHook(() => useRestTimer({ workoutSessionId: 'w1', enabled: true }));
 
     act(() => {
       result.current.start(90, 'ws-1');
@@ -69,9 +67,7 @@ describe('useRestTimer', () => {
       }),
     );
 
-    const { result } = renderHook(() =>
-      useRestTimer({ workoutSessionId: 'w1', enabled: true }),
-    );
+    const { result } = renderHook(() => useRestTimer({ workoutSessionId: 'w1', enabled: true }));
     expect(result.current.remainingSeconds).toBe(120);
 
     act(() => {
@@ -93,8 +89,20 @@ describe('useRestTimer', () => {
   });
 
   it('signale l’expiration', () => {
+    const { result } = renderHook(() => useRestTimer({ workoutSessionId: 'w1', enabled: true }));
+    act(() => {
+      result.current.start(1, null);
+    });
+    act(() => {
+      vi.advanceTimersByTime(1500);
+    });
+    expect(result.current.justExpired || result.current.remainingSeconds === 0).toBe(true);
+  });
+
+  it('déclenche onExpired une seule fois à l’expiration en direct', () => {
+    const onExpired = vi.fn();
     const { result } = renderHook(() =>
-      useRestTimer({ workoutSessionId: 'w1', enabled: true }),
+      useRestTimer({ workoutSessionId: 'w1', enabled: true, onExpired }),
     );
     act(() => {
       result.current.start(1, null);
@@ -102,8 +110,59 @@ describe('useRestTimer', () => {
     act(() => {
       vi.advanceTimersByTime(1500);
     });
-    expect(result.current.justExpired || result.current.remainingSeconds === 0).toBe(
-      true,
+    expect(result.current.justExpired).toBe(true);
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    expect(onExpired).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      result.current.start(1, null);
+    });
+    act(() => {
+      vi.advanceTimersByTime(1500);
+    });
+    expect(onExpired).toHaveBeenCalledTimes(2);
+  });
+
+  it('ne rejoue pas le signal au rechargement d’une minuterie déjà expirée', () => {
+    const now = Date.now();
+    writeRestTimerToStorage(
+      createRestTimerState({
+        workoutSessionId: 'w1',
+        sourceWorkoutSetId: 'ws-1',
+        durationSeconds: 30,
+        nowMs: now - 60_000,
+      }),
     );
+    const onExpired = vi.fn();
+    const { result } = renderHook(() =>
+      useRestTimer({ workoutSessionId: 'w1', enabled: true, onExpired }),
+    );
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(result.current.justExpired).toBe(true);
+    expect(onExpired).not.toHaveBeenCalled();
+    expect(localStorage.getItem(restTimerStorageKey('w1'))).toBeNull();
+  });
+
+  it('signale une minuterie restaurée encore en cours quand elle expire', () => {
+    const now = Date.now();
+    writeRestTimerToStorage(
+      createRestTimerState({
+        workoutSessionId: 'w1',
+        sourceWorkoutSetId: 'ws-1',
+        durationSeconds: 2,
+        nowMs: now,
+      }),
+    );
+    const onExpired = vi.fn();
+    renderHook(() => useRestTimer({ workoutSessionId: 'w1', enabled: true, onExpired }));
+    expect(onExpired).not.toHaveBeenCalled();
+    act(() => {
+      vi.advanceTimersByTime(2500);
+    });
+    expect(onExpired).toHaveBeenCalledTimes(1);
   });
 });

@@ -94,11 +94,7 @@ export class SharedWorkoutRealtimeGateway
         where: { id: payload.sub },
         select: { id: true, status: true },
       });
-      if (
-        !user ||
-        user.status === 'DISABLED' ||
-        user.status === 'DELETION_PENDING'
-      ) {
+      if (!user || user.status === 'DISABLED' || user.status === 'DELETION_PENDING') {
         client.emit('error', {
           code: 'UNAUTHORIZED',
           message: 'Session invalide.',
@@ -170,11 +166,7 @@ export class SharedWorkoutRealtimeGateway
 
     const channel = sharedWorkoutSocketRoomChannel(roomId);
     await client.join(channel);
-    const { becameOnline } = this.presence.addSocket(
-      roomId,
-      userId,
-      client.id,
-    );
+    const { becameOnline } = this.presence.addSocket(roomId, userId, client.id);
 
     if (becameOnline) {
       client.to(channel).emit('presence:joined', { roomId, userId });
@@ -216,11 +208,7 @@ export class SharedWorkoutRealtimeGateway
     const { roomId } = parsed.data;
     const channel = sharedWorkoutSocketRoomChannel(roomId);
     void client.leave(channel);
-    const { becameOffline } = this.presence.removeSocket(
-      roomId,
-      userId,
-      client.id,
-    );
+    const { becameOffline } = this.presence.removeSocket(roomId, userId, client.id);
     if (becameOffline) {
       this.server.to(channel).emit('presence:left', { roomId, userId });
     }
@@ -245,10 +233,7 @@ export class SharedWorkoutRealtimeGateway
     return null;
   }
 
-  private async canSubscribe(
-    userId: string,
-    roomId: string,
-  ): Promise<boolean> {
+  private async canSubscribe(userId: string, roomId: string): Promise<boolean> {
     const room = await this.prisma.sharedWorkoutRoom.findFirst({
       where: {
         id: roomId,

@@ -20,30 +20,19 @@ type WorkoutSetCardProps = {
 
 function statusGlyph(set: WorkoutSessionSetDetail, isNext: boolean): string {
   if (set.status === 'SKIPPED' || set.status === 'CANCELLED') return '—';
-  if (
-    set.status === 'COMPLETED' ||
-    set.status === 'PARTIAL' ||
-    set.status === 'FAILED'
-  ) {
+  if (set.status === 'COMPLETED' || set.status === 'PARTIAL' || set.status === 'FAILED') {
     return '✓';
   }
   if (isNext) return '●';
   return '○';
 }
 
-export function WorkoutSetCard({
-  set,
-  canRecord,
-  isNext,
-  onEdit,
-}: WorkoutSetCardProps) {
+export function WorkoutSetCard({ set, canRecord, isNext, onEdit }: WorkoutSetCardProps) {
   const actual = formatWorkoutSetActualCompact(set);
   const target = formatWorkoutSetTargetCompact(set);
   const glyph = statusGlyph(set, isNext);
   const statusLabel =
-    !canRecord && set.status === 'PENDING'
-      ? 'Non réalisée'
-      : getWorkoutSetStatusLabel(set.status);
+    !canRecord && set.status === 'PENDING' ? 'Non réalisée' : getWorkoutSetStatusLabel(set.status);
   const detail =
     set.status === 'PENDING' || set.status === 'SKIPPED'
       ? target || '—'
@@ -64,9 +53,7 @@ export function WorkoutSetCard({
           interactive
             ? 'hover:bg-[var(--surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]'
             : 'cursor-default opacity-90',
-          isNext
-            ? 'bg-[var(--primary)]/10 ring-1 ring-[var(--primary)]/50'
-            : '',
+          isNext ? 'bg-[var(--primary)]/10 ring-1 ring-[var(--primary)]/50' : '',
         )}
       >
         <span
@@ -87,9 +74,7 @@ export function WorkoutSetCard({
         <span className="w-5 shrink-0 text-sm font-medium tabular-nums text-[var(--muted)]">
           {set.position + 1}
         </span>
-        <span className="min-w-0 flex-1 truncate text-sm tabular-nums">
-          {detail}
-        </span>
+        <span className="min-w-0 flex-1 truncate text-sm tabular-nums">{detail}</span>
         {isNext ? (
           <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-[var(--primary-foreground)]">
             Courante

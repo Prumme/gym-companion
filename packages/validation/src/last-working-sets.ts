@@ -18,9 +18,7 @@ function splitExerciseIds(value: unknown): unknown {
     return undefined;
   }
   if (Array.isArray(normalized)) {
-    return normalized.flatMap((item) =>
-      typeof item === 'string' ? item.split(',') : [item],
-    );
+    return normalized.flatMap((item) => (typeof item === 'string' ? item.split(',') : [item]));
   }
   if (typeof normalized === 'string') {
     return normalized.split(',');
@@ -63,8 +61,7 @@ export const lastWorkingSetsQuerySchema = z
 export type LastWorkingSetsQuery = z.infer<typeof lastWorkingSetsQuerySchema>;
 
 export type LastWorkingSetsQueryParseErrorCode =
-  | 'PROGRESS_INVALID_QUERY'
-  | 'PROGRESS_INVALID_EXERCISE_IDS';
+  'PROGRESS_INVALID_QUERY' | 'PROGRESS_INVALID_EXERCISE_IDS';
 
 export type LastWorkingSetsQueryParseResult =
   | { ok: true; data: LastWorkingSetsQuery }
@@ -74,9 +71,7 @@ export type LastWorkingSetsQueryParseResult =
       message: string;
     };
 
-export function parseLastWorkingSetsQuery(
-  raw: unknown,
-): LastWorkingSetsQueryParseResult {
+export function parseLastWorkingSetsQuery(raw: unknown): LastWorkingSetsQueryParseResult {
   const result = lastWorkingSetsQuerySchema.safeParse(raw);
   if (result.success) {
     return { ok: true, data: result.data };

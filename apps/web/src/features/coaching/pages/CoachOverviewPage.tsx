@@ -33,10 +33,7 @@ export function CoachOverviewPage() {
 
       {query.isError ? (
         <p className="text-sm text-[var(--danger)]" role="alert">
-          {getApiErrorMessage(
-            query.error,
-            'Impossible de charger la vue Coach.',
-          )}
+          {getApiErrorMessage(query.error, 'Impossible de charger la vue Coach.')}
         </p>
       ) : null}
 
@@ -58,8 +55,7 @@ export function CoachOverviewPage() {
           </p>
           <ul className="flex flex-col">
             {query.data.items.map((item) => {
-              const statusLabel =
-                item.headline || getExerciseCoachStatusLabel(item.status);
+              const statusLabel = item.headline || getExerciseCoachStatusLabel(item.status);
               return (
                 <li key={item.exerciseId}>
                   <Link
@@ -100,8 +96,7 @@ export function CoachOverviewPage() {
           Poser une question
         </h2>
         <p className="secondary-text mt-2">
-          Explications IA facultatives — distinctes des recommandations
-          calculées ci-dessus.
+          Explications IA facultatives — distinctes des recommandations calculées ci-dessus.
         </p>
         {aiAvailable ? (
           <ButtonLink to="/coach/chat" variant="secondary" className="mt-4 w-fit">
@@ -109,8 +104,7 @@ export function CoachOverviewPage() {
           </ButtonLink>
         ) : (
           <p className="mt-3 text-sm text-[var(--muted-foreground)]">
-            Indisponible sur cet environnement. L’analyse Coach ci-dessus reste
-            disponible sans IA.
+            Indisponible sur cet environnement. L’analyse Coach ci-dessus reste disponible sans IA.
           </p>
         )}
       </section>

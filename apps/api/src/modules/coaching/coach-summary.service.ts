@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import type {
   CoachAction,
   CoachDecisionSummary,
@@ -81,36 +77,35 @@ export class CoachSummaryService {
     const to = parsed.data.to;
     const isWeightReps = exercise.measurementType === 'WEIGHT_REPS';
 
-    const [progressMaxWeight, progressMaxReps, strength, plateau, context] =
-      await Promise.all([
-        this.progressService.getExerciseProgress(userId, exerciseId, {
-          metric: isWeightReps ? 'MAX_WEIGHT' : undefined,
-          from,
-          to,
-          equipmentId,
-        }),
-        isWeightReps
-          ? this.progressService.getExerciseProgress(userId, exerciseId, {
-              metric: 'MAX_REPS',
-              from,
-              to,
-              equipmentId,
-            })
-          : Promise.resolve(null),
-        isWeightReps
-          ? this.progressService.getExerciseStrengthProgress(userId, exerciseId, {
-              from,
-              to,
-              equipmentId,
-            })
-          : Promise.resolve(null),
-        isWeightReps
-          ? this.coachingService.getPlateauAnalysis(userId, exerciseId, {
-              equipmentId,
-            })
-          : Promise.resolve(null),
-        this.resolveLoadContext(userId, exerciseId, equipmentId),
-      ]);
+    const [progressMaxWeight, progressMaxReps, strength, plateau, context] = await Promise.all([
+      this.progressService.getExerciseProgress(userId, exerciseId, {
+        metric: isWeightReps ? 'MAX_WEIGHT' : undefined,
+        from,
+        to,
+        equipmentId,
+      }),
+      isWeightReps
+        ? this.progressService.getExerciseProgress(userId, exerciseId, {
+            metric: 'MAX_REPS',
+            from,
+            to,
+            equipmentId,
+          })
+        : Promise.resolve(null),
+      isWeightReps
+        ? this.progressService.getExerciseStrengthProgress(userId, exerciseId, {
+            from,
+            to,
+            equipmentId,
+          })
+        : Promise.resolve(null),
+      isWeightReps
+        ? this.coachingService.getPlateauAnalysis(userId, exerciseId, {
+            equipmentId,
+          })
+        : Promise.resolve(null),
+      this.resolveLoadContext(userId, exerciseId, equipmentId),
+    ]);
 
     let loadRecommendation: LoadRecommendation | null = null;
     if (isWeightReps && context.workoutTemplateExerciseId) {
@@ -125,14 +120,9 @@ export class CoachSummaryService {
     const workoutCount = progressMaxWeight.points.length;
     const hasCompletedHistory = workoutCount > 0;
     const latestWorkoutDate =
-      progressMaxWeight.summary?.latestDate ??
-      plateau?.range.latestWorkoutDate ??
-      null;
+      progressMaxWeight.summary?.latestDate ?? plateau?.range.latestWorkoutDate ?? null;
 
-    const progressSummary = this.toProgressSummary(
-      progressMaxWeight,
-      progressMaxReps,
-    );
+    const progressSummary = this.toProgressSummary(progressMaxWeight, progressMaxReps);
     const strengthSummary = this.toStrengthSummary(strength);
     const plateauSummary = this.toPlateauSummary(plateau);
     const loadSummary = this.toLoadSummary(
@@ -146,10 +136,7 @@ export class CoachSummaryService {
       plateauReasons: plateau?.reasons ?? [],
       maxWeightChangeKg: progressSummary?.maxWeightKg.change ?? null,
       maxRepsChange: progressSummary?.maxReps.change ?? null,
-      e1rmChangePercent:
-        plateau?.trend.e1rmChangePercent ??
-        strengthSummary?.changePercent ??
-        null,
+      e1rmChangePercent: plateau?.trend.e1rmChangePercent ?? strengthSummary?.changePercent ?? null,
     });
 
     const status = resolveExerciseCoachStatus({
@@ -180,9 +167,7 @@ export class CoachSummaryService {
     }) as CoachAction[];
 
     const supported =
-      hasCompletedHistory ||
-      progressMaxWeight.availableMetrics.length > 0 ||
-      isWeightReps;
+      hasCompletedHistory || progressMaxWeight.availableMetrics.length > 0 || isWeightReps;
 
     const generatedFrom = {
       latestWorkoutDate,
@@ -220,8 +205,7 @@ export class CoachSummaryService {
         : null,
       strength: strengthSummary
         ? {
-            latestEstimatedOneRepMaxKg:
-              strengthSummary.latestEstimatedOneRepMaxKg,
+            latestEstimatedOneRepMaxKg: strengthSummary.latestEstimatedOneRepMaxKg,
             bestEstimatedOneRepMaxKg: strengthSummary.bestEstimatedOneRepMaxKg,
             changeKg: strengthSummary.changeKg,
             changePercent: strengthSummary.changePercent,
@@ -337,25 +321,19 @@ export class CoachSummaryService {
           };
           byExercise.set(exerciseId, candidate);
         }
-        const already = candidate.sessions.some(
-          (item) => item.workoutSessionId === session.id,
-        );
+        const already = candidate.sessions.some((item) => item.workoutSessionId === session.id);
         if (already) {
-          const existing = candidate.sessions.find(
-            (item) => item.workoutSessionId === session.id,
-          )!;
+          const existing = candidate.sessions.find((item) => item.workoutSessionId === session.id)!;
           existing.sets.push(
             ...occurrence.sets.map((set) => ({
               setType: set.setType,
               status: set.status,
-              actualWeightKg:
-                set.actualWeightKg == null ? null : Number(set.actualWeightKg),
+              actualWeightKg: set.actualWeightKg == null ? null : Number(set.actualWeightKg),
               actualReps: set.actualReps,
               actualRir: set.actualRir,
               actualRpe: set.actualRpe == null ? null : Number(set.actualRpe),
               reachedFailure: set.reachedFailure,
-              targetWeightKg:
-                set.targetWeightKg == null ? null : Number(set.targetWeightKg),
+              targetWeightKg: set.targetWeightKg == null ? null : Number(set.targetWeightKg),
               targetRepMin: set.targetRepMin,
               targetRepMax: set.targetRepMax,
             })),
@@ -369,14 +347,12 @@ export class CoachSummaryService {
             sets: occurrence.sets.map((set) => ({
               setType: set.setType,
               status: set.status,
-              actualWeightKg:
-                set.actualWeightKg == null ? null : Number(set.actualWeightKg),
+              actualWeightKg: set.actualWeightKg == null ? null : Number(set.actualWeightKg),
               actualReps: set.actualReps,
               actualRir: set.actualRir,
               actualRpe: set.actualRpe == null ? null : Number(set.actualRpe),
               reachedFailure: set.reachedFailure,
-              targetWeightKg:
-                set.targetWeightKg == null ? null : Number(set.targetWeightKg),
+              targetWeightKg: set.targetWeightKg == null ? null : Number(set.targetWeightKg),
               targetRepMin: set.targetRepMin,
               targetRepMax: set.targetRepMax,
             })),
@@ -398,8 +374,10 @@ export class CoachSummaryService {
     // Load reco 5.1 sur le sous-ensemble borné uniquement (pas tous les exercices).
     // Stratégie : 1 requête liens WTE + 1 requête templates/sets + 1 profil effort,
     // puis moteur déterministe en mémoire (mêmes règles que le summary).
-    const loadActionByExerciseId =
-      await this.resolveLoadActionsForOverviewCandidates(userId, candidates);
+    const loadActionByExerciseId = await this.resolveLoadActionsForOverviewCandidates(
+      userId,
+      candidates,
+    );
 
     const items: CoachingOverviewItem[] = [];
 
@@ -408,8 +386,7 @@ export class CoachSummaryService {
         hasCompletedHistory: candidate.sessions.length > 0,
         measurementType: candidate.measurementType,
         plateauStatus: null,
-        loadRecommendationAction:
-          loadActionByExerciseId.get(candidate.exerciseId) ?? null,
+        loadRecommendationAction: loadActionByExerciseId.get(candidate.exerciseId) ?? null,
         hasSignificantRecentProgress: false,
         hasSufficientHistory: candidate.sessions.length >= 3,
       });
@@ -431,8 +408,7 @@ export class CoachSummaryService {
           hasCompletedHistory: true,
           measurementType: candidate.measurementType,
           plateauStatus: plateau.status,
-          loadRecommendationAction:
-            loadActionByExerciseId.get(candidate.exerciseId) ?? null,
+          loadRecommendationAction: loadActionByExerciseId.get(candidate.exerciseId) ?? null,
           hasSignificantRecentProgress: progress,
           hasSufficientHistory: candidate.sessions.length >= 3,
         });
@@ -458,9 +434,7 @@ export class CoachSummaryService {
       const byStatus = compareExerciseCoachStatusPriority(a.status, b.status);
       if (byStatus !== 0) return byStatus;
       if ((a.latestWorkoutDate ?? '') !== (b.latestWorkoutDate ?? '')) {
-        return (a.latestWorkoutDate ?? '') < (b.latestWorkoutDate ?? '')
-          ? 1
-          : -1;
+        return (a.latestWorkoutDate ?? '') < (b.latestWorkoutDate ?? '') ? 1 : -1;
       }
       return a.exerciseName.localeCompare(b.exerciseName, 'fr');
     });
@@ -516,10 +490,7 @@ export class CoachSummaryService {
         link.sourceTemplateExerciseId &&
         !wteIdByExercise.has(link.sourceExerciseId)
       ) {
-        wteIdByExercise.set(
-          link.sourceExerciseId,
-          link.sourceTemplateExerciseId,
-        );
+        wteIdByExercise.set(link.sourceExerciseId, link.sourceTemplateExerciseId);
       }
     }
 
@@ -559,11 +530,8 @@ export class CoachSummaryService {
       }),
     ]);
 
-    const effortTrackingMode = (profile?.effortTrackingMode ??
-      'NONE') as EffortTrackingModeForLoad;
-    const wteById = new Map(
-      templateExercises.map((row) => [row.id, row] as const),
-    );
+    const effortTrackingMode = (profile?.effortTrackingMode ?? 'NONE') as EffortTrackingModeForLoad;
+    const wteById = new Map(templateExercises.map((row) => [row.id, row] as const));
 
     for (const candidate of weightReps) {
       const wteId = wteIdByExercise.get(candidate.exerciseId);
@@ -581,8 +549,7 @@ export class CoachSummaryService {
         setType: set.setType,
         targetRepMin: set.targetRepMin,
         targetRepMax: set.targetRepMax,
-        targetWeightKg:
-          set.targetWeightKg == null ? null : Number(set.targetWeightKg),
+        targetWeightKg: set.targetWeightKg == null ? null : Number(set.targetWeightKg),
         targetRir: set.targetRir,
         targetRpe: set.targetRpe == null ? null : Number(set.targetRpe),
       }));
@@ -702,14 +669,9 @@ export class CoachSummaryService {
     if (!row) return null;
     return {
       decisionType: row.decisionType,
-      recommendationAction:
-        row.recommendationAction as LoadRecommendationAction,
-      recommendedWeightKg:
-        row.recommendedWeightKg == null
-          ? null
-          : Number(row.recommendedWeightKg),
-      appliedWeightKg:
-        row.appliedWeightKg == null ? null : Number(row.appliedWeightKg),
+      recommendationAction: row.recommendationAction as LoadRecommendationAction,
+      recommendedWeightKg: row.recommendedWeightKg == null ? null : Number(row.recommendedWeightKg),
+      appliedWeightKg: row.appliedWeightKg == null ? null : Number(row.appliedWeightKg),
       createdAt: row.createdAt.toISOString(),
     };
   }
@@ -732,33 +694,25 @@ export class CoachSummaryService {
         latest: maxReps?.summary?.latestValue ?? null,
         change: maxReps?.summary?.absoluteChange ?? null,
       },
-      workoutCount: Math.max(
-        maxWeight.points.length,
-        maxReps?.points.length ?? 0,
-      ),
+      workoutCount: Math.max(maxWeight.points.length, maxReps?.points.length ?? 0),
     };
   }
 
   private toStrengthSummary(
-    strength: Awaited<
-      ReturnType<ProgressService['getExerciseStrengthProgress']>
-    > | null,
+    strength: Awaited<ReturnType<ProgressService['getExerciseStrengthProgress']>> | null,
   ): CoachStrengthSummary | null {
     if (!strength?.supported || !strength.summary) {
       return null;
     }
     return {
-      latestEstimatedOneRepMaxKg:
-        strength.summary.latestEstimatedOneRepMaxKg,
+      latestEstimatedOneRepMaxKg: strength.summary.latestEstimatedOneRepMaxKg,
       bestEstimatedOneRepMaxKg: strength.summary.bestEstimatedOneRepMaxKg,
       changeKg: strength.summary.absoluteChangeKg,
       changePercent: strength.summary.percentageChange,
     };
   }
 
-  private toPlateauSummary(
-    plateau: PlateauAnalysis | null,
-  ): CoachPlateauSummary | null {
+  private toPlateauSummary(plateau: PlateauAnalysis | null): CoachPlateauSummary | null {
     if (!plateau || !plateau.supported) {
       return null;
     }
@@ -795,10 +749,7 @@ export class CoachSummaryService {
     };
   }
 
-  private async findAccessibleExerciseOrThrow(
-    userId: string,
-    exerciseId: string,
-  ) {
+  private async findAccessibleExerciseOrThrow(userId: string, exerciseId: string) {
     const row = await this.prisma.exercise.findFirst({
       where: {
         id: exerciseId,

@@ -16,10 +16,7 @@ import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger'
 import { createSuccessResponse } from '@gym-companion/shared';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import {
-  JwtAuthGuard,
-  type AuthenticatedUser,
-} from '../../common/guards/jwt-auth.guard';
+import { JwtAuthGuard, type AuthenticatedUser } from '../../common/guards/jwt-auth.guard';
 import { ProgramsService } from './programs.service';
 
 @ApiTags('programs')
@@ -137,11 +134,7 @@ export class ProgramsController {
     @Param('programId', ParseUUIDPipe) programId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.programsService.replaceSchedule(
-      user.id,
-      programId,
-      body,
-    );
+    const data = await this.programsService.replaceSchedule(user.id, programId, body);
     return createSuccessResponse(data);
   }
 
@@ -152,11 +145,7 @@ export class ProgramsController {
     @Param('programId', ParseUUIDPipe) programId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.programsService.createWorkoutTemplate(
-      user.id,
-      programId,
-      body,
-    );
+    const data = await this.programsService.createWorkoutTemplate(user.id, programId, body);
     return createSuccessResponse(data);
   }
 
@@ -167,11 +156,7 @@ export class ProgramsController {
     @Param('programId', ParseUUIDPipe) programId: string,
     @Body() body: unknown,
   ) {
-    const data = await this.programsService.reorderWorkoutTemplates(
-      user.id,
-      programId,
-      body,
-    );
+    const data = await this.programsService.reorderWorkoutTemplates(user.id, programId, body);
     return createSuccessResponse(data);
   }
 
@@ -243,9 +228,7 @@ export class ProgramsController {
     return createSuccessResponse(data);
   }
 
-  @Patch(
-    ':programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId',
-  )
+  @Patch(':programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId')
   @ApiOperation({ summary: 'Modifier la configuration d’un exercice du modèle' })
   async updateExercise(
     @CurrentUser() user: AuthenticatedUser,
@@ -264,9 +247,7 @@ export class ProgramsController {
     return createSuccessResponse(data);
   }
 
-  @Delete(
-    ':programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId',
-  )
+  @Delete(':programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId')
   @ApiOperation({ summary: 'Retirer un exercice du modèle et ses séries' })
   async removeExercise(
     @CurrentUser() user: AuthenticatedUser,
@@ -283,9 +264,7 @@ export class ProgramsController {
     return createSuccessResponse(data);
   }
 
-  @Post(
-    ':programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId/sets',
-  )
+  @Post(':programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId/sets')
   @ApiOperation({ summary: 'Ajouter une série cible à la fin' })
   async createSet(
     @CurrentUser() user: AuthenticatedUser,
@@ -304,9 +283,7 @@ export class ProgramsController {
     return createSuccessResponse(data);
   }
 
-  @Put(
-    ':programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId/sets/order',
-  )
+  @Put(':programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId/sets/order')
   @ApiOperation({ summary: 'Réordonner les séries cibles' })
   async reorderSets(
     @CurrentUser() user: AuthenticatedUser,

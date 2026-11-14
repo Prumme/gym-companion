@@ -167,10 +167,7 @@ export function clearOtherRestTimers(
     const keysToRemove: string[] = [];
     for (let index = 0; index < storage.length; index += 1) {
       const key = storage.key(index);
-      if (
-        key?.startsWith(STORAGE_PREFIX) &&
-        key !== restTimerStorageKey(currentWorkoutSessionId)
-      ) {
+      if (key?.startsWith(STORAGE_PREFIX) && key !== restTimerStorageKey(currentWorkoutSessionId)) {
         keysToRemove.push(key);
       }
     }

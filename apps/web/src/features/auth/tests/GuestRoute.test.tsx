@@ -30,9 +30,7 @@ describe('GuestRoute', () => {
 
   it('affiche un loader pendant initializing', () => {
     renderGuest('/login');
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Vérification de la session…',
-    );
+    expect(screen.getByRole('status')).toHaveTextContent('Vérification de la session…');
     expect(screen.queryByText('Login form')).not.toBeInTheDocument();
   });
 

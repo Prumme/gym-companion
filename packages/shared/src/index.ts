@@ -52,11 +52,7 @@ export type UserStatus = 'PENDING' | 'ACTIVE' | 'DISABLED' | 'DELETION_PENDING';
 export type UserRole = 'USER' | 'ADMIN';
 export type WeightUnit = 'KG' | 'LB';
 export type DistanceUnit = 'KM' | 'MI';
-export type TrainingGoal =
-  | 'ENDURANCE'
-  | 'HYPERTROPHY'
-  | 'STRENGTH'
-  | 'GENERAL_FITNESS';
+export type TrainingGoal = 'ENDURANCE' | 'HYPERTROPHY' | 'STRENGTH' | 'GENERAL_FITNESS';
 export type ExperienceLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
 export type EffortTrackingMode = 'NONE' | 'RIR' | 'RPE';
 
@@ -176,13 +172,7 @@ export type ExerciseDetail = {
 export type ProgramStatus = 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
 
 export type Weekday =
-  | 'MONDAY'
-  | 'TUESDAY'
-  | 'WEDNESDAY'
-  | 'THURSDAY'
-  | 'FRIDAY'
-  | 'SATURDAY'
-  | 'SUNDAY';
+  'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
 
 export type ProgramPermissions = {
   canEdit: boolean;
@@ -205,12 +195,7 @@ export type WorkoutTemplateSummary = {
 };
 
 export type WorkoutSetType =
-  | 'WARMUP'
-  | 'WORKING'
-  | 'BACKOFF'
-  | 'DROP_SET'
-  | 'AMRAP'
-  | 'FAILURE_OPTIONAL';
+  'WARMUP' | 'WORKING' | 'BACKOFF' | 'DROP_SET' | 'AMRAP' | 'FAILURE_OPTIONAL';
 
 /** Référence catalogue compacte dans un modèle (sans préférences personnelles). */
 export type WorkoutTemplateExerciseRef = {
@@ -326,21 +311,11 @@ export const WEEKDAY_LABELS: Record<Weekday, string> = {
   SUNDAY: 'Dimanche',
 };
 
-export type WorkoutStatus =
-  | 'PLANNED'
-  | 'ACTIVE'
-  | 'PAUSED'
-  | 'COMPLETED'
-  | 'CANCELLED';
+export type WorkoutStatus = 'PLANNED' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
 
 /** Statuts de performance réelle d’une série de séance. */
 export type WorkoutSetStatus =
-  | 'PENDING'
-  | 'COMPLETED'
-  | 'PARTIAL'
-  | 'FAILED'
-  | 'SKIPPED'
-  | 'CANCELLED';
+  'PENDING' | 'COMPLETED' | 'PARTIAL' | 'FAILED' | 'SKIPPED' | 'CANCELLED';
 
 export type WorkoutSessionPermissions = {
   canPause: boolean;
@@ -517,15 +492,10 @@ export type WorkoutHistoryListItem = {
   summary: WorkoutHistorySetSummary;
 };
 
-export type WorkoutHistoryListResponse =
-  ApiCursorListResponse<WorkoutHistoryListItem>;
+export type WorkoutHistoryListResponse = ApiCursorListResponse<WorkoutHistoryListItem>;
 
 /** Types de records personnels simples (jalon 4.1 — calcul à la demande). */
-export type PersonalRecordType =
-  | 'MAX_WEIGHT'
-  | 'MAX_REPS'
-  | 'MAX_DURATION'
-  | 'MAX_DISTANCE';
+export type PersonalRecordType = 'MAX_WEIGHT' | 'MAX_REPS' | 'MAX_DURATION' | 'MAX_DISTANCE';
 
 export type PersonalRecord = {
   exerciseId: string;
@@ -789,11 +759,7 @@ export type ExerciseStrengthResponse = {
 
 /** Actions de recommandation de charge (jalon 5.1 — déterministe, lecture seule). */
 export type LoadRecommendationAction =
-  | 'INCREASE'
-  | 'HOLD'
-  | 'DECREASE'
-  | 'INSUFFICIENT_DATA'
-  | 'REVIEW';
+  'INCREASE' | 'HOLD' | 'DECREASE' | 'INSUFFICIENT_DATA' | 'REVIEW';
 
 export type LoadRecommendationReason =
   | 'TARGET_RANGE_REACHED'
@@ -814,9 +780,7 @@ export type LoadRecommendationReason =
   | 'SINGLE_UNDERPERFORMANCE'
   | 'COMPARABLE_LOAD_MISMATCH';
 
-export type LoadIncrementSource =
-  | 'USER_EXERCISE_PREFERENCE'
-  | 'SYSTEM_DEFAULT';
+export type LoadIncrementSource = 'USER_EXERCISE_PREFERENCE' | 'SYSTEM_DEFAULT';
 
 export type LoadRecommendationEvidenceWorkout = {
   workoutSessionId: string;
@@ -860,10 +824,7 @@ export type LoadRecommendation = {
   recommendationFingerprint: string;
 };
 
-export type LoadRecommendationDecisionType =
-  | 'ACCEPTED'
-  | 'ADJUSTED'
-  | 'IGNORED';
+export type LoadRecommendationDecisionType = 'ACCEPTED' | 'ADJUSTED' | 'IGNORED';
 
 export type LoadRecommendationDecisionDto = {
   id: string;
@@ -907,12 +868,7 @@ export type DecideLoadRecommendationResult = {
 };
 
 /** Statuts de détection de plateau (jalon 5.3 — dérivé, non persisté). */
-export type PlateauStatus =
-  | 'NONE'
-  | 'WATCH'
-  | 'PLATEAU'
-  | 'INSUFFICIENT_DATA'
-  | 'REVIEW';
+export type PlateauStatus = 'NONE' | 'WATCH' | 'PLATEAU' | 'INSUFFICIENT_DATA' | 'REVIEW';
 
 export type PlateauReason =
   | 'NO_ELIGIBLE_HISTORY'
@@ -983,13 +939,7 @@ export type PlateauAnalysis = {
 
 /** Statuts UI du Coach déterministe (jalon 5.4 — dérivé, non persisté). */
 export type ExerciseCoachStatus =
-  | 'NO_DATA'
-  | 'BUILDING_HISTORY'
-  | 'PROGRESSING'
-  | 'STABLE'
-  | 'WATCH'
-  | 'PLATEAU'
-  | 'REVIEW';
+  'NO_DATA' | 'BUILDING_HISTORY' | 'PROGRESSING' | 'STABLE' | 'WATCH' | 'PLATEAU' | 'REVIEW';
 
 export type ExerciseCoachHeadline = {
   title: string;
@@ -1045,11 +995,7 @@ export type CoachDecisionSummary = {
 };
 
 export type CoachActionType =
-  | 'VIEW_LOAD_RECOMMENDATION'
-  | 'VIEW_PROGRESS'
-  | 'VIEW_RECORDS'
-  | 'VIEW_HISTORY'
-  | 'VIEW_PROGRAM';
+  'VIEW_LOAD_RECOMMENDATION' | 'VIEW_PROGRESS' | 'VIEW_RECORDS' | 'VIEW_HISTORY' | 'VIEW_PROGRAM';
 
 export type CoachAction = {
   type: CoachActionType;
@@ -1090,11 +1036,7 @@ export type ExerciseCoachSummary = {
   coachSummaryFingerprint: string;
 };
 
-export type AiCoachExplanationFocus =
-  | 'GENERAL'
-  | 'LOAD'
-  | 'PROGRESS'
-  | 'PLATEAU';
+export type AiCoachExplanationFocus = 'GENERAL' | 'LOAD' | 'PROGRESS' | 'PLATEAU';
 
 export type AiCoachExplanation = {
   title: string;
@@ -1148,11 +1090,7 @@ export type AiCoachConversationListItem = {
  * destiné uniquement à l’affichage ; l’acceptation revalide tout côté serveur.
  */
 export type AiCoachProposalKind = 'WORKOUT' | 'PROGRAM';
-export type AiCoachProposalStatus =
-  | 'PENDING'
-  | 'ACCEPTED'
-  | 'DISMISSED'
-  | 'INVALID';
+export type AiCoachProposalStatus = 'PENDING' | 'ACCEPTED' | 'DISMISSED' | 'INVALID';
 
 export type AiCoachProposalPreviewSet = {
   setType: WorkoutSetType;
@@ -1268,21 +1206,13 @@ export type CoachingOverview = {
 };
 
 /** Shared 5.1 — salle de coordination (≠ WorkoutSession). */
-export type SharedWorkoutRoomStatus =
-  | 'LOBBY'
-  | 'ACTIVE'
-  | 'COMPLETED'
-  | 'CANCELLED';
+export type SharedWorkoutRoomStatus = 'LOBBY' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
 
 export type SharedWorkoutRoomMemberRole = 'OWNER' | 'MEMBER';
 
 /** Shared 5.4 — résumé séance individuelle d’un membre (sans perfs). */
 export type SharedWorkoutRoomMemberWorkoutStatus =
-  | 'NOT_STARTED'
-  | 'ACTIVE'
-  | 'PAUSED'
-  | 'COMPLETED'
-  | 'CANCELLED';
+  'NOT_STARTED' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
 
 export type SharedWorkoutRoomMemberWorkoutSummary = {
   status: SharedWorkoutRoomMemberWorkoutStatus;
@@ -1398,8 +1328,7 @@ export type SharedWorkoutSessionContextDto = {
   currentWorkoutSessionExerciseId: string | null;
 };
 
-export type SharedWorkoutRoomListResponse =
-  ApiCursorListResponse<SharedWorkoutRoomListItem>;
+export type SharedWorkoutRoomListResponse = ApiCursorListResponse<SharedWorkoutRoomListItem>;
 
 /** Shared 5.3 — protocole Socket.IO (présence + invalidation). */
 export const SHARED_WORKOUT_REALTIME_PROTOCOL_V1 = 1 as const;
@@ -1419,11 +1348,7 @@ export type SharedWorkoutRoomChangeReason =
   | 'EQUIPMENT_COORDINATION_CHANGED';
 
 /** Shared 5.6 — occupation / file d’attente d’un EquipmentType logique. */
-export type SharedWorkoutEquipmentQueueStatus =
-  | 'WAITING'
-  | 'USING'
-  | 'RELEASED'
-  | 'CANCELLED';
+export type SharedWorkoutEquipmentQueueStatus = 'WAITING' | 'USING' | 'RELEASED' | 'CANCELLED';
 
 export type SharedWorkoutEquipmentState = {
   equipment: {
@@ -1516,9 +1441,7 @@ export type SharedWorkoutRoomChangedEvent = {
 };
 
 export type SharedWorkoutRealtimeSocketErrorCode =
-  | 'UNAUTHORIZED'
-  | 'ROOM_NOT_ACCESSIBLE'
-  | 'VALIDATION_ERROR';
+  'UNAUTHORIZED' | 'ROOM_NOT_ACCESSIBLE' | 'VALIDATION_ERROR';
 
 /** Partage temporaire de templates (programme / séance) — distinct des Shared Workouts. */
 export type TrainingShareKind = 'PROGRAM' | 'WORKOUT_TEMPLATE';
@@ -1574,14 +1497,11 @@ export type TrainingShareWorkoutPreviewPayload = {
 export type TrainingSharePreviewResponse = {
   kind: TrainingShareKind;
   expiresAt: string;
-  preview:
-    | TrainingShareProgramPreviewPayload
-    | TrainingShareWorkoutPreviewPayload;
+  preview: TrainingShareProgramPreviewPayload | TrainingShareWorkoutPreviewPayload;
 };
 
 export type ImportTrainingShareDestination =
-  | { type: 'EXISTING_PROGRAM'; programId: string }
-  | { type: 'NEW_PROGRAM'; programName: string };
+  { type: 'EXISTING_PROGRAM'; programId: string } | { type: 'NEW_PROGRAM'; programName: string };
 
 export type ImportTrainingShareRequest = {
   destination?: ImportTrainingShareDestination;

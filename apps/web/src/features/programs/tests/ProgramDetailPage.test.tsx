@@ -28,9 +28,7 @@ const getLoadRecommendation = vi.fn();
 const listLoadRecommendationDecisions = vi.fn();
 
 vi.mock('../api/program-api', async () => {
-  const actual = await vi.importActual<typeof import('../api/program-api')>(
-    '../api/program-api',
-  );
+  const actual = await vi.importActual<typeof import('../api/program-api')>('../api/program-api');
   return {
     ...actual,
     getProgram: (...args: unknown[]) => getProgram(...args),
@@ -41,14 +39,12 @@ vi.mock('../api/program-api', async () => {
     restoreProgram: (...args: unknown[]) => restoreProgram(...args),
     createWorkoutTemplate: (...args: unknown[]) => createWorkoutTemplate(...args),
     deleteWorkoutTemplate: (...args: unknown[]) => deleteWorkoutTemplate(...args),
-    reorderWorkoutTemplates: (...args: unknown[]) =>
-      reorderWorkoutTemplates(...args),
+    reorderWorkoutTemplates: (...args: unknown[]) => reorderWorkoutTemplates(...args),
   };
 });
 
 vi.mock('@/features/workouts/api/workout-api', () => ({
-  getActiveWorkoutSession: (...args: unknown[]) =>
-    getActiveWorkoutSession(...args),
+  getActiveWorkoutSession: (...args: unknown[]) => getActiveWorkoutSession(...args),
   createWorkoutSession: vi.fn(),
   getWorkoutSessionDetail: vi.fn(),
 }));
@@ -59,8 +55,7 @@ vi.mock('@/features/profile/api/profile-api', () => ({
 
 vi.mock('@/features/coaching/api/coaching-api', () => ({
   getLoadRecommendation: (...args: unknown[]) => getLoadRecommendation(...args),
-  listLoadRecommendationDecisions: (...args: unknown[]) =>
-    listLoadRecommendationDecisions(...args),
+  listLoadRecommendationDecisions: (...args: unknown[]) => listLoadRecommendationDecisions(...args),
   decideLoadRecommendation: vi.fn(),
 }));
 
@@ -80,10 +75,7 @@ vi.mock('@/features/training-shares/api/training-share-api', () => ({
 
 const PROGRAM_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 
-async function openTemplate(
-  user: ReturnType<typeof userEvent.setup>,
-  name: string,
-) {
+async function openTemplate(user: ReturnType<typeof userEvent.setup>, name: string) {
   const row = await screen.findByRole('button', {
     name: new RegExp(`^${name}\\b`, 'i'),
   });
@@ -91,10 +83,7 @@ async function openTemplate(
   expect(await screen.findByRole('heading', { name })).toBeInTheDocument();
 }
 
-function renderDetail(
-  detail = createProgramDetail(),
-  entry = `/programs/${PROGRAM_ID}`,
-) {
+function renderDetail(detail = createProgramDetail(), entry = `/programs/${PROGRAM_ID}`) {
   getProgram.mockResolvedValue(detail);
   getActiveProgram.mockResolvedValue(null);
   getActiveWorkoutSession.mockResolvedValue(null);
@@ -119,10 +108,7 @@ function renderDetail(
         <Routes>
           <Route path="/programs/:programId" element={children} />
           <Route path="/programs/:programId/edit" element={<div>Édition</div>} />
-          <Route
-            path="/programs/:programId/schedule"
-            element={<div>Planning</div>}
-          />
+          <Route path="/programs/:programId/schedule" element={<div>Planning</div>} />
           <Route path="/programs" element={<div>Liste</div>} />
         </Routes>
       </MemoryRouter>
@@ -151,18 +137,12 @@ describe('ProgramDetailPage', () => {
   it('shows program detail and session list', async () => {
     const user = userEvent.setup();
     renderDetail();
-    expect(
-      await screen.findByRole('heading', { name: 'Push Pull Legs' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Push Pull Legs' })).toBeInTheDocument();
     expect(screen.getByText('Push A')).toBeInTheDocument();
     expect(screen.getByText(/Séances/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /Ajouter une séance/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Ajouter une séance/i })).toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole('button', { name: /Actions du programme/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Actions du programme/i }));
     expect(
       screen.getByRole('menuitem', { name: /Modifier les informations/i }),
     ).toBeInTheDocument();
@@ -173,9 +153,7 @@ describe('ProgramDetailPage', () => {
     renderDetail();
     await screen.findByText('Push A');
     await openTemplate(user, 'Push A');
-    expect(
-      screen.getByRole('button', { name: /Ajouter un exercice/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Ajouter un exercice/i })).toBeInTheDocument();
     expect(screen.getByText('Développé couché')).toBeInTheDocument();
   });
 
@@ -195,9 +173,7 @@ describe('ProgramDetailPage', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    expect(
-      await screen.findByText(/introuvable ou inaccessible/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/introuvable ou inaccessible/i)).toBeInTheDocument();
   });
 
   it('archives a program and switches to restore', async () => {
@@ -225,21 +201,15 @@ describe('ProgramDetailPage', () => {
 
     await waitFor(() => expect(archiveProgram).toHaveBeenCalledWith(PROGRAM_ID));
     expect(await screen.findByText('Archivé')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /Restaurer le programme/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /Ajouter une séance/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Restaurer le programme/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Ajouter une séance/i })).not.toBeInTheDocument();
   });
 
   it('creates a workout template and opens the editor', async () => {
     const user = userEvent.setup();
     const initial = createProgramDetail({ workoutTemplates: [] });
     const withTemplate = createProgramDetail({
-      workoutTemplates: [
-        createTemplate({ id: 'wt-new', name: 'Legs', exercises: [] }),
-      ],
+      workoutTemplates: [createTemplate({ id: 'wt-new', name: 'Legs', exercises: [] })],
     });
     createWorkoutTemplate.mockResolvedValue(withTemplate);
 
@@ -263,17 +233,13 @@ describe('ProgramDetailPage', () => {
         }),
       ],
     });
-    deleteWorkoutTemplate.mockResolvedValue(
-      createProgramDetail({ workoutTemplates: [] }),
-    );
+    deleteWorkoutTemplate.mockResolvedValue(createProgramDetail({ workoutTemplates: [] }));
 
     renderDetail(initial);
     await openTemplate(user, 'Push A');
     await user.click(screen.getByRole('button', { name: /Actions pour Push A/i }));
     await user.click(screen.getByRole('menuitem', { name: /^Supprimer$/i }));
-    expect(
-      await screen.findByText(/exercices et séries cibles/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/exercices et séries cibles/i)).toBeInTheDocument();
     const dialog = screen.getByRole('alertdialog');
     await user.click(within(dialog).getByRole('button', { name: /^Supprimer$/i }));
     await waitFor(() => expect(deleteWorkoutTemplate).toHaveBeenCalled());
@@ -291,12 +257,8 @@ describe('ProgramDetailPage', () => {
 
     renderDetail(detail);
     await openTemplate(user, 'Séance A');
-    await user.click(
-      screen.getByRole('button', { name: /Actions pour Séance A/i }),
-    );
-    await user.click(
-      screen.getByRole('menuitem', { name: /Déplacer vers le bas/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Actions pour Séance A/i }));
+    await user.click(screen.getByRole('menuitem', { name: /Déplacer vers le bas/i }));
 
     await waitFor(() => expect(reorderWorkoutTemplates).toHaveBeenCalled());
     expect(await screen.findByText(/Ordre invalide|réordonner/i)).toBeInTheDocument();
@@ -342,9 +304,7 @@ describe('ProgramDetailPage', () => {
         replaceCurrentProgram: false,
       }),
     );
-    expect(
-      await screen.findByText(/maintenant ton programme courant/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/maintenant ton programme courant/i)).toBeInTheDocument();
   });
 
   it('deactivates current program from the overflow menu', async () => {
@@ -365,9 +325,7 @@ describe('ProgramDetailPage', () => {
     renderDetail(detail);
     expect(await screen.findByText('Actif')).toBeInTheDocument();
     expect(screen.queryByText(/Programme courant/i)).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /^Désactiver$/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Désactiver$/i })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Voir le planning/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Actions du programme/i }));
@@ -376,9 +334,7 @@ describe('ProgramDetailPage', () => {
     await user.click(within(dialog).getByRole('button', { name: /^Désactiver$/i }));
 
     await waitFor(() => expect(deactivateProgram).toHaveBeenCalledWith(PROGRAM_ID));
-    expect(
-      await screen.findByText(/Programme courant désactivé/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Programme courant désactivé/i)).toBeInTheDocument();
   });
 
   it('keeps archived program read-only', async () => {
@@ -398,14 +354,10 @@ describe('ProgramDetailPage', () => {
       }),
     );
     expect(await screen.findByText('Archivé')).toBeInTheDocument();
-    await user.click(
-      screen.getByRole('button', { name: /Actions du programme/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Actions du programme/i }));
     expect(
       screen.queryByRole('menuitem', { name: /Modifier les informations/i }),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /Restaurer le programme/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Restaurer le programme/i })).toBeInTheDocument();
   });
 });

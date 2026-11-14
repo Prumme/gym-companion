@@ -15,8 +15,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -26,11 +25,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -44,11 +39,7 @@ async function registerUser(
   return response.body.data.accessToken as string;
 }
 
-async function createProgram(
-  app: INestApplication,
-  token: string,
-  name: string,
-) {
+async function createProgram(app: INestApplication, token: string, name: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/programs')
     .set('Authorization', `Bearer ${token}`)
@@ -103,9 +94,7 @@ describe('Program activation and schedule API', () => {
 
     tokenA = await registerUser(app, emailA, 'Act A');
     tokenB = await registerUser(app, emailB, 'Act B');
-    userAId = (
-      await prisma.user.findUniqueOrThrow({ where: { email: emailA } })
-    ).id;
+    userAId = (await prisma.user.findUniqueOrThrow({ where: { email: emailA } })).id;
 
     programA1 = await createProgram(app, tokenA, 'Programme A1');
     programA2 = await createProgram(app, tokenA, 'Programme A2');
@@ -119,9 +108,7 @@ describe('Program activation and schedule API', () => {
 
   it('requires authentication for active and schedule', async () => {
     await request(app.getHttpServer()).get('/api/v1/programs/active').expect(401);
-    await request(app.getHttpServer())
-      .get(`/api/v1/programs/${programA1}/schedule`)
-      .expect(401);
+    await request(app.getHttpServer()).get(`/api/v1/programs/${programA1}/schedule`).expect(401);
   });
 
   it('returns null when no current program', async () => {
@@ -238,9 +225,7 @@ describe('Program activation and schedule API', () => {
       .delete(`/api/v1/programs/${programA2}`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(409);
-    expect(response.body.error.code).toBe(
-      'PROGRAM_MUST_BE_INACTIVE_BEFORE_ARCHIVE',
-    );
+    expect(response.body.error.code).toBe('PROGRAM_MUST_BE_INACTIVE_BEFORE_ARCHIVE');
   });
 
   it('reads empty schedule and replaces it', async () => {
@@ -273,19 +258,12 @@ describe('Program activation and schedule API', () => {
       .put(`/api/v1/programs/${programA1}/schedule`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({
-        entries: [
-          { workoutTemplateId: templateA, weekday: 'TUESDAY', position: 1 },
-        ],
+        entries: [{ workoutTemplateId: templateA, weekday: 'TUESDAY', position: 1 }],
       })
       .expect(400);
     expect(hole.body.error.code).toBe('PROGRAM_SCHEDULE_INVALID_POSITION');
 
-    const foreignTemplate = await createTemplate(
-      app,
-      tokenA,
-      programA2,
-      'Other',
-    );
+    const foreignTemplate = await createTemplate(app, tokenA, programA2, 'Other');
     const mismatch = await request(app.getHttpServer())
       .put(`/api/v1/programs/${programA1}/schedule`)
       .set('Authorization', `Bearer ${tokenA}`)
@@ -338,9 +316,7 @@ describe('Program activation and schedule API', () => {
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ startedOn: '2026-08-06', replaceCurrentProgram: false })
       .expect(200);
-    expect(reactivated.body.data.schedule.entries.length).toBe(
-      schedule.body.data.entries.length,
-    );
+    expect(reactivated.body.data.schedule.entries.length).toBe(schedule.body.data.entries.length);
   });
 
   it('second deactivate is idempotent', async () => {
@@ -379,8 +355,7 @@ describe('Program activation and schedule API', () => {
 
     expect(
       schedule.body.data.entries.every(
-        (entry: { workoutTemplate: { id: string } }) =>
-          entry.workoutTemplate.id !== templateA,
+        (entry: { workoutTemplate: { id: string } }) => entry.workoutTemplate.id !== templateA,
       ),
     ).toBe(true);
     const friday = schedule.body.data.entries.filter(

@@ -123,10 +123,7 @@ function ActiveWorkoutConflictDialog({
         className="w-full max-w-md rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-lg"
         onClick={(event) => event.stopPropagation()}
       >
-        <h3
-          id="active-workout-conflict-title"
-          className="text-lg font-semibold"
-        >
+        <h3 id="active-workout-conflict-title" className="text-lg font-semibold">
           Séance déjà en cours
         </h3>
         <p className="mt-2 text-sm text-[var(--muted)]">{conflict.message}</p>

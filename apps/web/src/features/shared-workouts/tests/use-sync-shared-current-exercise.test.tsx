@@ -8,19 +8,15 @@ const getSharedWorkoutSessionContext = vi.fn();
 const setMySharedCurrentExercise = vi.fn();
 
 vi.mock('../api/shared-workouts-api', () => ({
-  getSharedWorkoutSessionContext: (...args: unknown[]) =>
-    getSharedWorkoutSessionContext(...args),
-  setMySharedCurrentExercise: (...args: unknown[]) =>
-    setMySharedCurrentExercise(...args),
+  getSharedWorkoutSessionContext: (...args: unknown[]) => getSharedWorkoutSessionContext(...args),
+  setMySharedCurrentExercise: (...args: unknown[]) => setMySharedCurrentExercise(...args),
 }));
 
 function wrapper({ children }: { children: React.ReactNode }) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return (
-    <QueryClientProvider client={client}>{children}</QueryClientProvider>
-  );
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
 describe('useSyncSharedCurrentExercise', () => {
@@ -46,10 +42,7 @@ describe('useSyncSharedCurrentExercise', () => {
       currentWorkoutSessionExerciseId: null,
     });
 
-    renderHook(
-      () => useSyncSharedCurrentExercise('ws-1', 'ex-1'),
-      { wrapper },
-    );
+    renderHook(() => useSyncSharedCurrentExercise('ws-1', 'ex-1'), { wrapper });
 
     await waitFor(() => {
       expect(getSharedWorkoutSessionContext).toHaveBeenCalled();
@@ -65,10 +58,7 @@ describe('useSyncSharedCurrentExercise', () => {
       currentWorkoutSessionExerciseId: null,
     });
 
-    renderHook(
-      () => useSyncSharedCurrentExercise('ws-1', 'ex-1'),
-      { wrapper },
-    );
+    renderHook(() => useSyncSharedCurrentExercise('ws-1', 'ex-1'), { wrapper });
 
     await waitFor(() => {
       expect(setMySharedCurrentExercise).toHaveBeenCalledWith('room-1', {
@@ -88,10 +78,7 @@ describe('useSyncSharedCurrentExercise', () => {
       currentWorkoutSessionExerciseId: null,
     });
 
-    renderHook(
-      () => useSyncSharedCurrentExercise('ws-1', 'ex-1'),
-      { wrapper },
-    );
+    renderHook(() => useSyncSharedCurrentExercise('ws-1', 'ex-1'), { wrapper });
 
     await waitFor(() => {
       expect(getSharedWorkoutSessionContext).toHaveBeenCalled();
@@ -107,10 +94,7 @@ describe('useSyncSharedCurrentExercise', () => {
       currentWorkoutSessionExerciseId: 'ex-1',
     });
 
-    renderHook(
-      () => useSyncSharedCurrentExercise('ws-1', 'ex-1'),
-      { wrapper },
-    );
+    renderHook(() => useSyncSharedCurrentExercise('ws-1', 'ex-1'), { wrapper });
 
     await waitFor(() => {
       expect(getSharedWorkoutSessionContext).toHaveBeenCalled();

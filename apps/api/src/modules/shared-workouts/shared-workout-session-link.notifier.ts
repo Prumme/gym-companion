@@ -20,11 +20,7 @@ export class SharedWorkoutSessionLinkNotifier {
   async notifyIfLinked(workoutSessionId: string): Promise<void> {
     const link = await this.findActiveRoomLink(workoutSessionId);
     if (!link) return;
-    this.realtime.emitRoomChanged(
-      link.roomId,
-      'MEMBER_WORKOUT_CHANGED',
-      link.userId,
-    );
+    this.realtime.emitRoomChanged(link.roomId, 'MEMBER_WORKOUT_CHANGED', link.userId);
   }
 
   /**
@@ -41,19 +37,13 @@ export class SharedWorkoutSessionLinkNotifier {
 
     const link = await this.findActiveRoomLink(workoutSessionId);
     if (!link) return;
-    this.realtime.emitRoomChanged(
-      link.roomId,
-      'MEMBER_WORKOUT_PROGRESS_CHANGED',
-      link.userId,
-    );
+    this.realtime.emitRoomChanged(link.roomId, 'MEMBER_WORKOUT_PROGRESS_CHANGED', link.userId);
   }
 
   /**
    * Shared 5.5 / 5.6 — nettoie exercice courant + file équipement après lifecycle terminal.
    */
-  async clearCurrentExerciseAfterTerminal(
-    workoutSessionId: string,
-  ): Promise<void> {
+  async clearCurrentExerciseAfterTerminal(workoutSessionId: string): Promise<void> {
     const link = await this.prisma.sharedWorkoutRoomMemberSession.findUnique({
       where: { workoutSessionId },
       select: {

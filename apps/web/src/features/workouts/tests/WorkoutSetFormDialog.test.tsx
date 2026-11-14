@@ -243,9 +243,7 @@ describe('WorkoutSetFormDialog', () => {
     const user = userEvent.setup();
     const onRequestDelete = vi.fn();
     renderDialog({ canDelete: true, onRequestDelete });
-    expect(
-      screen.queryByRole('button', { name: /Supprimer la série/i }),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Supprimer la série/i })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Supprimer la série/i }));
     await user.click(screen.getByRole('button', { name: /^Supprimer$/i }));
     expect(onRequestDelete).toHaveBeenCalledTimes(1);
@@ -503,6 +501,62 @@ describe('WorkoutSetFormDialog', () => {
       reachedFailure: false,
       notes: null,
     });
+  });
+
+  it('reprend la dernière fois sans enregistrer automatiquement', async () => {
+    const user = userEvent.setup();
+    renderDialog({
+      lastWorkingSet: {
+        exerciseId: 'ex-1',
+        actualWeightKg: 82.5,
+        actualReps: 7,
+        actualDurationSeconds: null,
+        actualDistanceMeters: null,
+        setType: 'WORKING',
+        localDate: '2026-11-10',
+        workoutSessionId: 'w-old',
+        workoutSetId: 'ws-old',
+      },
+    });
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByLabelText(/Charge \(kg\)/i)).toHaveValue(60);
+
+    await user.click(within(dialog).getByRole('button', { name: /^Reprendre la dernière fois$/i }));
+
+    expect(within(dialog).getByLabelText(/Charge \(kg\)/i)).toHaveValue(82.5);
+    expect(within(dialog).getByLabelText(/^Répétitions$/i)).toHaveValue(7);
+    expect(within(dialog).getByLabelText(/^RIR$/i)).toHaveValue(2);
+    expect(updateWorkoutSet).not.toHaveBeenCalled();
+  });
+
+  it('désactive « Reprendre la dernière fois » sans donnée, avec une raison accessible', () => {
+    renderDialog({ lastWorkingSet: null });
+    expect(
+      screen.getByRole('button', {
+        name: /Reprendre la dernière fois.*Aucune performance précédente/i,
+      }),
+    ).toBeDisabled();
+  });
+
+  it('désactive « Reprendre la dernière fois » sur une série COMPLETED', () => {
+    renderDialog({
+      set: createWorkoutSet({ status: 'COMPLETED', actualWeightKg: 55, actualReps: 8 }),
+      lastWorkingSet: {
+        exerciseId: 'ex-1',
+        actualWeightKg: 80,
+        actualReps: 6,
+        actualDurationSeconds: null,
+        actualDistanceMeters: null,
+        setType: 'WORKING',
+        localDate: '2026-11-10',
+        workoutSessionId: 'w-old',
+        workoutSetId: 'ws-old',
+      },
+    });
+    expect(
+      screen.getByRole('button', { name: /Reprendre la dernière fois.*déjà terminée/i }),
+    ).toBeDisabled();
+    expect(screen.getByLabelText(/Charge \(kg\)/i)).toHaveValue(55);
   });
 
   it('copie hors ligne sans appeler l’API', async () => {

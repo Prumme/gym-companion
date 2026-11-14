@@ -11,10 +11,7 @@ import { io, type Socket } from 'socket.io-client';
 import { getAccessToken, getApiBaseUrl } from '@/lib/api/client';
 
 export type SharedWorkoutRealtimeConnectionStatus =
-  | 'disconnected'
-  | 'connecting'
-  | 'connected'
-  | 'error';
+  'disconnected' | 'connecting' | 'connected' | 'error';
 
 type PresenceHandlers = {
   onSnapshot?: (event: SharedWorkoutPresenceSnapshotEvent) => void;
@@ -106,19 +103,15 @@ class SharedWorkoutRealtimeClient {
     this.subscribedRoomId = roomId;
 
     return new Promise((resolve) => {
-      socket.emit(
-        'room:subscribe',
-        { roomId },
-        (ack: SharedWorkoutRoomSubscribeAck) => {
-          if (ack?.ok) {
-            this.handlers.onSnapshot?.({
-              roomId: ack.roomId,
-              connectedUserIds: ack.presence.connectedUserIds,
-            });
-          }
-          resolve(ack);
-        },
-      );
+      socket.emit('room:subscribe', { roomId }, (ack: SharedWorkoutRoomSubscribeAck) => {
+        if (ack?.ok) {
+          this.handlers.onSnapshot?.({
+            roomId: ack.roomId,
+            connectedUserIds: ack.presence.connectedUserIds,
+          });
+        }
+        resolve(ack);
+      });
     });
   }
 

@@ -67,9 +67,7 @@ export function serializeSetForShare(set: SetRow): SharedTemplateSet {
   };
 }
 
-export function serializeExerciseForShare(
-  exercise: ExerciseRow,
-): SharedTemplateExercise {
+export function serializeExerciseForShare(exercise: ExerciseRow): SharedTemplateExercise {
   return {
     exerciseId: exercise.exerciseId,
     equipmentTypeId: exercise.equipmentTypeId,
@@ -117,17 +115,12 @@ export function serializeProgramForShare(input: {
   };
 }
 
-export function parseTrainingShareSnapshot(
-  raw: unknown,
-): TrainingShareSnapshot {
+export function parseTrainingShareSnapshot(raw: unknown): TrainingShareSnapshot {
   return trainingShareSnapshotSchema.parse(raw);
 }
 
-export function collectExerciseIdsFromSnapshot(
-  snapshot: TrainingShareSnapshot,
-): string[] {
-  const workouts =
-    snapshot.kind === 'PROGRAM' ? snapshot.workouts : [snapshot];
+export function collectExerciseIdsFromSnapshot(snapshot: TrainingShareSnapshot): string[] {
+  const workouts = snapshot.kind === 'PROGRAM' ? snapshot.workouts : [snapshot];
   const ids = new Set<string>();
   for (const workout of workouts) {
     for (const exercise of workout.exercises) {
@@ -137,11 +130,8 @@ export function collectExerciseIdsFromSnapshot(
   return [...ids];
 }
 
-export function collectEquipmentTypeIdsFromSnapshot(
-  snapshot: TrainingShareSnapshot,
-): string[] {
-  const workouts =
-    snapshot.kind === 'PROGRAM' ? snapshot.workouts : [snapshot];
+export function collectEquipmentTypeIdsFromSnapshot(snapshot: TrainingShareSnapshot): string[] {
+  const workouts = snapshot.kind === 'PROGRAM' ? snapshot.workouts : [snapshot];
   const ids = new Set<string>();
   for (const workout of workouts) {
     for (const exercise of workout.exercises) {

@@ -1,9 +1,4 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
 
@@ -41,10 +36,9 @@ export class JwtAuthGuard implements CanActivate {
 
     const token = header.slice('Bearer '.length);
     try {
-      const payload = await this.jwtService.verifyAsync<{ sub: string; email: string }>(
-        token,
-        { secret: this.config.jwtAccessSecret },
-      );
+      const payload = await this.jwtService.verifyAsync<{ sub: string; email: string }>(token, {
+        secret: this.config.jwtAccessSecret,
+      });
 
       const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
       if (!user || user.status === 'DISABLED' || user.status === 'DELETION_PENDING') {

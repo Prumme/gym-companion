@@ -15,8 +15,7 @@ function applyTestEnv() {
   process.env.PUBLIC_APP_URL = 'http://localhost:5173';
   process.env.API_BASE_URL = 'http://localhost:3000';
   process.env.DATABASE_URL =
-    process.env.DATABASE_URL ??
-    'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
+    process.env.DATABASE_URL ?? 'postgresql://gym:gym@localhost:5433/gym_companion?schema=public';
   process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';
   process.env.LOG_LEVEL = 'error';
   process.env.JWT_ACCESS_SECRET =
@@ -26,11 +25,7 @@ function applyTestEnv() {
   process.env.EMAIL_PROVIDER = 'none';
 }
 
-async function registerUser(
-  app: INestApplication,
-  email: string,
-  displayName: string,
-) {
+async function registerUser(app: INestApplication, email: string, displayName: string) {
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
     .send({
@@ -125,23 +120,17 @@ describe('Programs API', () => {
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
 
-    expect(listA.body.data.every((item: { id: string }) => item.id !== undefined)).toBe(
+    expect(listA.body.data.every((item: { id: string }) => item.id !== undefined)).toBe(true);
+    expect(listA.body.data.some((item: { id: string }) => item.id === programId)).toBe(true);
+    expect(listA.body.data.every((item: { name: string }) => item.name !== 'Programme B')).toBe(
       true,
     );
-    expect(listA.body.data.some((item: { id: string }) => item.id === programId)).toBe(
-      true,
-    );
-    expect(
-      listA.body.data.every((item: { name: string }) => item.name !== 'Programme B'),
-    ).toBe(true);
 
     const listB = await request(app.getHttpServer())
       .get('/api/v1/programs')
       .set('Authorization', `Bearer ${tokenB}`)
       .expect(200);
-    expect(listB.body.data.some((item: { id: string }) => item.id === programId)).toBe(
-      false,
-    );
+    expect(listB.body.data.some((item: { id: string }) => item.id === programId)).toBe(false);
   });
 
   it('returns detail to owner and hides it from another user', async () => {
@@ -180,9 +169,7 @@ describe('Programs API', () => {
         .set('Authorization', `Bearer ${tokenA}`)
         .send({ name })
         .expect(201);
-      templateIds = response.body.data.workoutTemplates.map(
-        (item: { id: string }) => item.id,
-      );
+      templateIds = response.body.data.workoutTemplates.map((item: { id: string }) => item.id);
     }
 
     expect(templateIds).toHaveLength(3);
@@ -212,9 +199,7 @@ describe('Programs API', () => {
       .send({ name: 'Séance B renommée', estimatedDurationMinutes: 50 })
       .expect(200);
     expect(
-      updated.body.data.workoutTemplates.find(
-        (item: { id: string }) => item.id === templateIds[1],
-      ),
+      updated.body.data.workoutTemplates.find((item: { id: string }) => item.id === templateIds[1]),
     ).toMatchObject({
       name: 'Séance B renommée',
       estimatedDurationMinutes: 50,
@@ -227,9 +212,7 @@ describe('Programs API', () => {
       .expect(201);
 
     await request(app.getHttpServer())
-      .patch(
-        `/api/v1/programs/${otherProgram.body.data.id}/workout-templates/${templateIds[0]}`,
-      )
+      .patch(`/api/v1/programs/${otherProgram.body.data.id}/workout-templates/${templateIds[0]}`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ name: 'Nope' })
       .expect(404);
@@ -248,13 +231,13 @@ describe('Programs API', () => {
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ workoutTemplateIds: [c, a, b] })
       .expect(200);
+    expect(reordered.body.data.workoutTemplates.map((item: { id: string }) => item.id)).toEqual([
+      c,
+      a,
+      b,
+    ]);
     expect(
-      reordered.body.data.workoutTemplates.map((item: { id: string }) => item.id),
-    ).toEqual([c, a, b]);
-    expect(
-      reordered.body.data.workoutTemplates.map(
-        (item: { position: number }) => item.position,
-      ),
+      reordered.body.data.workoutTemplates.map((item: { position: number }) => item.position),
     ).toEqual([0, 1, 2]);
 
     await request(app.getHttpServer())
@@ -295,14 +278,10 @@ describe('Programs API', () => {
 
     expect(afterDelete.body.data.workoutTemplates).toHaveLength(2);
     expect(
-      afterDelete.body.data.workoutTemplates.map(
-        (item: { position: number }) => item.position,
-      ),
+      afterDelete.body.data.workoutTemplates.map((item: { position: number }) => item.position),
     ).toEqual([0, 1]);
     expect(
-      afterDelete.body.data.workoutTemplates.some(
-        (item: { id: string }) => item.id === middleId,
-      ),
+      afterDelete.body.data.workoutTemplates.some((item: { id: string }) => item.id === middleId),
     ).toBe(false);
 
     const remaining = await prisma.workoutTemplate.count({
@@ -331,17 +310,13 @@ describe('Programs API', () => {
       .get('/api/v1/programs')
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    expect(
-      defaultList.body.data.some((item: { id: string }) => item.id === programId),
-    ).toBe(false);
+    expect(defaultList.body.data.some((item: { id: string }) => item.id === programId)).toBe(false);
 
     const withArchived = await request(app.getHttpServer())
       .get('/api/v1/programs?includeArchived=true')
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    expect(
-      withArchived.body.data.some((item: { id: string }) => item.id === programId),
-    ).toBe(true);
+    expect(withArchived.body.data.some((item: { id: string }) => item.id === programId)).toBe(true);
 
     await request(app.getHttpServer())
       .patch(`/api/v1/programs/${programId}`)
@@ -385,11 +360,7 @@ describe('Programs API', () => {
       .get(`/api/v1/programs?limit=2&cursor=${first.body.pagination.nextCursor}`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    const firstIds = new Set(
-      first.body.data.map((item: { id: string }) => item.id),
-    );
-    expect(
-      second.body.data.every((item: { id: string }) => !firstIds.has(item.id)),
-    ).toBe(true);
+    const firstIds = new Set(first.body.data.map((item: { id: string }) => item.id));
+    expect(second.body.data.every((item: { id: string }) => !firstIds.has(item.id))).toBe(true);
   });
 });

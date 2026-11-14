@@ -26,9 +26,7 @@ describe('computeExercisePermissions', () => {
   });
 
   it('allows restore for owned archived exercises', () => {
-    expect(
-      computeExercisePermissions('USER', new Date('2026-01-01'), userId, userId),
-    ).toEqual({
+    expect(computeExercisePermissions('USER', new Date('2026-01-01'), userId, userId)).toEqual({
       canEdit: false,
       canArchive: false,
       canRestore: true,

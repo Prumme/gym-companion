@@ -2,10 +2,7 @@ import { isValidLocalDateString } from '@gym-companion/validation';
 
 import type { WorkoutHistoryFilters } from '../api/workout-query-keys';
 
-export type WorkoutHistoryStatusFilterValue =
-  | 'ALL'
-  | 'COMPLETED'
-  | 'CANCELLED';
+export type WorkoutHistoryStatusFilterValue = 'ALL' | 'COMPLETED' | 'CANCELLED';
 
 export type WorkoutHistoryUrlFilters = {
   status: WorkoutHistoryStatusFilterValue;
@@ -22,9 +19,7 @@ export function parseWorkoutHistoryStatusParam(
   return 'ALL';
 }
 
-export function parseOptionalLocalDateParam(
-  value: string | null,
-): string | undefined {
+export function parseOptionalLocalDateParam(value: string | null): string | undefined {
   if (!value || !isValidLocalDateString(value)) {
     return undefined;
   }
@@ -37,8 +32,7 @@ export function parseWorkoutHistorySearchParams(
   const from = parseOptionalLocalDateParam(searchParams.get('from'));
   const toRaw = parseOptionalLocalDateParam(searchParams.get('to'));
   const status = parseWorkoutHistoryStatusParam(searchParams.get('status'));
-  const to =
-    from && toRaw && from > toRaw ? undefined : toRaw;
+  const to = from && toRaw && from > toRaw ? undefined : toRaw;
 
   return { status, from, to };
 }
@@ -53,9 +47,7 @@ export function toWorkoutHistoryApiFilters(
   };
 }
 
-export function countActiveWorkoutHistoryFilters(
-  filters: WorkoutHistoryUrlFilters,
-): number {
+export function countActiveWorkoutHistoryFilters(filters: WorkoutHistoryUrlFilters): number {
   let count = 0;
   if (filters.status !== 'ALL') {
     count += 1;
@@ -90,9 +82,7 @@ export type WorkoutHistoryNavigationState = {
   historySearch?: string;
 };
 
-export function resolveHistoryBackPath(
-  state: unknown,
-): string {
+export function resolveHistoryBackPath(state: unknown): string {
   const typed = state as WorkoutHistoryNavigationState | null;
   if (typed?.fromHistory) {
     const search = typed.historySearch ?? '';

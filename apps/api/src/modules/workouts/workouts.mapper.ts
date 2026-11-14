@@ -124,9 +124,7 @@ function decimalToNumber(value: unknown): number | null {
   return Number(value);
 }
 
-export function computeActiveWorkoutPermissions(
-  status: WorkoutStatus,
-): WorkoutSessionPermissions {
+export function computeActiveWorkoutPermissions(status: WorkoutStatus): WorkoutSessionPermissions {
   if (status === 'ACTIVE') {
     return {
       canPause: true,
@@ -188,12 +186,8 @@ export function toWorkoutSetDetail(row: WorkoutSetSnapshotRow): WorkoutSessionSe
   };
 }
 
-function toExerciseDetail(
-  row: WorkoutSessionExerciseSnapshotRow,
-): WorkoutSessionExerciseDetail {
-  const sets = [...row.sets]
-    .sort((a, b) => a.position - b.position)
-    .map(toWorkoutSetDetail);
+function toExerciseDetail(row: WorkoutSessionExerciseSnapshotRow): WorkoutSessionExerciseDetail {
+  const sets = [...row.sets].sort((a, b) => a.position - b.position).map(toWorkoutSetDetail);
 
   return {
     id: row.id,
@@ -252,9 +246,7 @@ export function toMetricsSessionInput(
   };
 }
 
-export function toWorkoutSessionDetail(
-  row: WorkoutSessionSnapshotRow,
-): WorkoutSessionDetail {
+export function toWorkoutSessionDetail(row: WorkoutSessionSnapshotRow): WorkoutSessionDetail {
   const exercises = [...row.exercises]
     .sort((a, b) => a.position - b.position)
     .map(toExerciseDetail);
@@ -332,11 +324,7 @@ export function computeWorkoutHistorySetSummary(
   }
 
   const processedSetCount =
-    completedSetCount +
-    partialSetCount +
-    failedSetCount +
-    skippedSetCount +
-    cancelledSetCount;
+    completedSetCount + partialSetCount + failedSetCount + skippedSetCount + cancelledSetCount;
 
   return {
     exerciseCount,
@@ -350,17 +338,10 @@ export function computeWorkoutHistorySetSummary(
   };
 }
 
-export function toWorkoutHistoryListItem(
-  row: WorkoutHistoryListRow,
-): WorkoutHistoryListItem {
-  const setStatuses = row.exercises.flatMap((exercise) =>
-    exercise.sets.map((set) => set.status),
-  );
+export function toWorkoutHistoryListItem(row: WorkoutHistoryListRow): WorkoutHistoryListItem {
+  const setStatuses = row.exercises.flatMap((exercise) => exercise.sets.map((set) => set.status));
 
-  const baseSummary = computeWorkoutHistorySetSummary(
-    row._count.exercises,
-    setStatuses,
-  );
+  const baseSummary = computeWorkoutHistorySetSummary(row._count.exercises, setStatuses);
 
   let summary: WorkoutHistorySetSummary = baseSummary;
   if (row.status === 'COMPLETED') {
@@ -422,9 +403,7 @@ export function replaceSetInSessionDetail(
     version: workoutSessionVersion,
     exercises: detail.exercises.map((exercise) => ({
       ...exercise,
-      sets: exercise.sets.map((set) =>
-        set.id === workoutSet.id ? workoutSet : set,
-      ),
+      sets: exercise.sets.map((set) => (set.id === workoutSet.id ? workoutSet : set)),
     })),
   };
 }

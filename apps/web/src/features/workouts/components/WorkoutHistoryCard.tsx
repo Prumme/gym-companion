@@ -7,10 +7,7 @@ import { cn } from '@/lib/utils';
 import { formatElapsedDuration } from '../lib/workout-elapsed-duration';
 import type { WorkoutHistoryNavigationState } from '../lib/workout-history-filters';
 import { getWorkoutStatusLabel } from '../lib/workout-labels';
-import {
-  formatWorkoutReps,
-  formatWorkoutVolume,
-} from '../lib/workout-metrics-format';
+import { formatWorkoutReps, formatWorkoutVolume } from '../lib/workout-metrics-format';
 
 type WorkoutHistoryRowProps = {
   item: WorkoutHistoryListItem;
@@ -39,20 +36,12 @@ function buildMetaLine(item: WorkoutHistoryListItem): string {
 
   const { summary } = item;
   if (summary.exerciseCount > 0) {
-    parts.push(
-      `${summary.exerciseCount} exercice${summary.exerciseCount === 1 ? '' : 's'}`,
-    );
+    parts.push(`${summary.exerciseCount} exercice${summary.exerciseCount === 1 ? '' : 's'}`);
   }
   if (summary.processedSetCount > 0 || summary.totalSetCount > 0) {
-    parts.push(
-      `${summary.processedSetCount}/${summary.totalSetCount} séries`,
-    );
+    parts.push(`${summary.processedSetCount}/${summary.totalSetCount} séries`);
   }
-  if (
-    item.status === 'COMPLETED' &&
-    summary.totalReps != null &&
-    summary.totalReps > 0
-  ) {
+  if (item.status === 'COMPLETED' && summary.totalReps != null && summary.totalReps > 0) {
     parts.push(formatWorkoutReps(summary.totalReps));
   }
   if (
@@ -111,64 +100,49 @@ export function WorkoutHistoryRow({
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-              <p className="truncate text-sm font-semibold text-[var(--foreground)]">
-                {item.name}
-              </p>
+              <p className="truncate text-sm font-semibold text-[var(--foreground)]">{item.name}</p>
               <span
                 className={cn(
                   'shrink-0 text-[0.6875rem] font-semibold tracking-wide uppercase',
-                  item.status === 'CANCELLED'
-                    ? 'text-[var(--danger)]'
-                    : 'text-[var(--muted)]',
+                  item.status === 'CANCELLED' ? 'text-[var(--danger)]' : 'text-[var(--muted)]',
                 )}
               >
                 {getWorkoutStatusLabel(item.status)}
               </span>
             </div>
-            {meta ? (
-              <p className="mt-0.5 truncate text-sm text-[var(--muted)]">{meta}</p>
-            ) : null}
+            {meta ? <p className="mt-0.5 truncate text-sm text-[var(--muted)]">{meta}</p> : null}
           </div>
         </button>
       ) : (
-      <Link
-        to={`/workouts/${item.id}`}
-        state={state}
-        className={cn(
-          'flex min-h-14 items-center justify-between gap-3 py-2.5 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]',
-        )}
-        aria-label={`Ouvrir la séance ${item.name} du ${item.localDate}, ${getWorkoutStatusLabel(item.status)}`}
-      >
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <p className="truncate text-sm font-semibold text-[var(--foreground)]">
-              {item.name}
-            </p>
-            <span
-              className={cn(
-                'shrink-0 text-[0.6875rem] font-semibold tracking-wide uppercase',
-                item.status === 'CANCELLED'
-                  ? 'text-[var(--danger)]'
-                  : 'text-[var(--muted)]',
-              )}
-            >
-              {getWorkoutStatusLabel(item.status)}
-            </span>
+        <Link
+          to={`/workouts/${item.id}`}
+          state={state}
+          className={cn(
+            'flex min-h-14 items-center justify-between gap-3 py-2.5 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]',
+          )}
+          aria-label={`Ouvrir la séance ${item.name} du ${item.localDate}, ${getWorkoutStatusLabel(item.status)}`}
+        >
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <p className="truncate text-sm font-semibold text-[var(--foreground)]">{item.name}</p>
+              <span
+                className={cn(
+                  'shrink-0 text-[0.6875rem] font-semibold tracking-wide uppercase',
+                  item.status === 'CANCELLED' ? 'text-[var(--danger)]' : 'text-[var(--muted)]',
+                )}
+              >
+                {getWorkoutStatusLabel(item.status)}
+              </span>
+            </div>
+            {pendingSync ? (
+              <p className="mt-0.5 text-xs font-medium text-amber-700" role="status">
+                En attente de synchronisation
+              </p>
+            ) : null}
+            {meta ? <p className="mt-0.5 truncate text-sm text-[var(--muted)]">{meta}</p> : null}
           </div>
-          {pendingSync ? (
-            <p className="mt-0.5 text-xs font-medium text-amber-700" role="status">
-              En attente de synchronisation
-            </p>
-          ) : null}
-          {meta ? (
-            <p className="mt-0.5 truncate text-sm text-[var(--muted)]">{meta}</p>
-          ) : null}
-        </div>
-        <ChevronRight
-          className="size-4 shrink-0 text-[var(--muted)]"
-          aria-hidden="true"
-        />
-      </Link>
+          <ChevronRight className="size-4 shrink-0 text-[var(--muted)]" aria-hidden="true" />
+        </Link>
       )}
     </li>
   );

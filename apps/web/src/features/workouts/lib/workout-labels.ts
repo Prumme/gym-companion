@@ -38,9 +38,7 @@ export function formatWorkoutSetTargetSummary(
   }
 
   if (set.targetDistanceMeters != null) {
-    const formatted = new Intl.NumberFormat('fr-FR').format(
-      set.targetDistanceMeters,
-    );
+    const formatted = new Intl.NumberFormat('fr-FR').format(set.targetDistanceMeters);
     parts.push(`${formatted} m`);
   }
 
@@ -106,9 +104,7 @@ export function formatWorkoutSetTargetCompact(
   }
 
   if (set.targetDistanceMeters != null) {
-    parts.push(
-      `${new Intl.NumberFormat('fr-FR').format(set.targetDistanceMeters)} m`,
-    );
+    parts.push(`${new Intl.NumberFormat('fr-FR').format(set.targetDistanceMeters)} m`);
   }
 
   if (set.targetDurationSeconds != null) {
@@ -127,9 +123,7 @@ export function formatWorkoutSetTargetCompact(
 }
 
 /** Résumé réalisé compact (ligne de série). */
-export function formatWorkoutSetActualCompact(
-  set: WorkoutSessionSetDetail,
-): string | null {
+export function formatWorkoutSetActualCompact(set: WorkoutSessionSetDetail): string | null {
   if (set.status === 'PENDING') return null;
   if (set.status === 'SKIPPED') return 'Ignorée';
 
@@ -137,9 +131,7 @@ export function formatWorkoutSetActualCompact(
   if (set.actualReps != null) parts.push(`${set.actualReps} reps`);
   if (set.actualWeightKg != null) parts.push(`${set.actualWeightKg} kg`);
   if (set.actualDistanceMeters != null) {
-    parts.push(
-      `${new Intl.NumberFormat('fr-FR').format(set.actualDistanceMeters)} m`,
-    );
+    parts.push(`${new Intl.NumberFormat('fr-FR').format(set.actualDistanceMeters)} m`);
   }
   if (set.actualDurationSeconds != null) {
     parts.push(`${set.actualDurationSeconds} s`);
@@ -149,9 +141,7 @@ export function formatWorkoutSetActualCompact(
   return parts.length > 0 ? parts.join(' · ') : getWorkoutSetStatusLabel(set.status);
 }
 
-export function formatWorkoutSetActualSummary(
-  set: WorkoutSessionSetDetail,
-): string | null {
+export function formatWorkoutSetActualSummary(set: WorkoutSessionSetDetail): string | null {
   if (set.status === 'PENDING') {
     return null;
   }
@@ -167,9 +157,7 @@ export function formatWorkoutSetActualSummary(
     parts.push(`${set.actualWeightKg} kg`);
   }
   if (set.actualDistanceMeters != null) {
-    parts.push(
-      `${new Intl.NumberFormat('fr-FR').format(set.actualDistanceMeters)} m`,
-    );
+    parts.push(`${new Intl.NumberFormat('fr-FR').format(set.actualDistanceMeters)} m`);
   }
   if (set.actualDurationSeconds != null) {
     parts.push(`${set.actualDurationSeconds} s`);
@@ -218,12 +206,8 @@ export function getWorkoutSetTypeLabelSafe(type: WorkoutSetType): string {
   return getWorkoutSetTypeLabel(type);
 }
 
-export function countRecordedSets(
-  sets: Array<{ status: WorkoutSetStatus }>,
-): number {
+export function countRecordedSets(sets: Array<{ status: WorkoutSetStatus }>): number {
   return sets.filter((set) =>
-    ['COMPLETED', 'PARTIAL', 'FAILED', 'SKIPPED', 'CANCELLED'].includes(
-      set.status,
-    ),
+    ['COMPLETED', 'PARTIAL', 'FAILED', 'SKIPPED', 'CANCELLED'].includes(set.status),
   ).length;
 }

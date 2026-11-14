@@ -109,9 +109,7 @@ export function ExercisePicker({
             <h3 id={titleId} className="text-lg font-semibold">
               Choisir un exercice
             </h3>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              Recherche et filtres du catalogue.
-            </p>
+            <p className="mt-1 text-sm text-[var(--muted)]">Recherche et filtres du catalogue.</p>
           </div>
           <Button type="button" variant="ghost" onClick={onClose} aria-label="Fermer">
             <X className="size-5" aria-hidden="true" />
@@ -155,31 +153,20 @@ export function ExercisePicker({
               onChange={setFilters}
               muscleGroups={muscleGroupsQuery.data ?? []}
               equipmentTypes={equipmentTypesQuery.data ?? []}
-              referencesLoading={
-                muscleGroupsQuery.isLoading || equipmentTypesQuery.isLoading
-              }
+              referencesLoading={muscleGroupsQuery.isLoading || equipmentTypesQuery.isLoading}
             />
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-2">
-          {listQuery.isLoading ? (
-            <p className="text-sm text-[var(--muted)]">Chargement…</p>
-          ) : null}
+          {listQuery.isLoading ? <p className="text-sm text-[var(--muted)]">Chargement…</p> : null}
 
           {listQuery.isError ? (
             <div role="alert" className="space-y-2">
               <p className="text-sm text-[var(--danger)]">
-                {getApiErrorMessage(
-                  listQuery.error,
-                  'Impossible de charger le catalogue.',
-                )}
+                {getApiErrorMessage(listQuery.error, 'Impossible de charger le catalogue.')}
               </p>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => void listQuery.refetch()}
-              >
+              <Button type="button" variant="secondary" onClick={() => void listQuery.refetch()}>
                 Réessayer
               </Button>
             </div>
@@ -205,9 +192,7 @@ export function ExercisePicker({
                     className="flex w-full min-h-11 items-center gap-2 py-2.5 text-left transition hover:bg-[var(--surface)] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
                   >
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium">
-                        {exercise.name}
-                      </span>
+                      <span className="block truncate text-sm font-medium">{exercise.name}</span>
                       <span className="mt-0.5 block truncate text-xs text-[var(--muted)]">
                         {exercise.primaryMuscleGroup.name} ·{' '}
                         {getMeasurementTypeLabel(exercise.measurementType)}
@@ -216,10 +201,7 @@ export function ExercisePicker({
                       </span>
                     </span>
                     {!disabled ? (
-                      <span
-                        className="shrink-0 text-[var(--muted)]"
-                        aria-hidden="true"
-                      >
+                      <span className="shrink-0 text-[var(--muted)]" aria-hidden="true">
                         ›
                       </span>
                     ) : null}

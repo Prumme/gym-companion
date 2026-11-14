@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { createExerciseSchema, validateWorkoutSetActuals, validateWorkoutTemplateSetTargets } from './index';
+import {
+  createExerciseSchema,
+  validateWorkoutSetActuals,
+  validateWorkoutTemplateSetTargets,
+} from './index';
 import {
   buildCardioHistoryEntries,
   computeAveragePaceSecondsPerKm,
@@ -77,10 +81,12 @@ describe('cardio validation', () => {
 
   it('accepte une prescription DURATION, DISTANCE et DISTANCE_DURATION', () => {
     expect(
-      validateWorkoutTemplateSetTargets('DURATION', emptyTargets({ targetDurationSeconds: 600 })).ok,
+      validateWorkoutTemplateSetTargets('DURATION', emptyTargets({ targetDurationSeconds: 600 }))
+        .ok,
     ).toBe(true);
     expect(
-      validateWorkoutTemplateSetTargets('DISTANCE', emptyTargets({ targetDistanceMeters: 2000 })).ok,
+      validateWorkoutTemplateSetTargets('DISTANCE', emptyTargets({ targetDistanceMeters: 2000 }))
+        .ok,
     ).toBe(true);
     expect(
       validateWorkoutTemplateSetTargets(

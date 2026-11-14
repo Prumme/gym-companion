@@ -10,10 +10,7 @@ import {
   useAcceptAiCoachProposalMutation,
   useDismissAiCoachProposalMutation,
 } from '../hooks/use-coach-proposal-mutations';
-import {
-  getProposalKindLabel,
-  getProposalStatusLabel,
-} from '../lib/proposal-labels';
+import { getProposalKindLabel, getProposalStatusLabel } from '../lib/proposal-labels';
 import { CoachProposalPreviewSheet } from './CoachProposalPreviewSheet';
 import { CoachProposalProgramPickerSheet } from './CoachProposalProgramPickerSheet';
 
@@ -43,10 +40,7 @@ function proposalSubtitle(proposal: AiCoachProposalSummary): string {
  * création déterministe côté serveur (`AiCoachProposalService`). Cette carte
  * n’affiche jamais le JSON brut de la proposition.
  */
-export function CoachProposalCard({
-  proposal,
-  conversationId,
-}: CoachProposalCardProps) {
+export function CoachProposalCard({ proposal, conversationId }: CoachProposalCardProps) {
   const [detailOpen, setDetailOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -90,12 +84,8 @@ export function CoachProposalCard({
           <p className="text-xs font-semibold tracking-wide text-[var(--muted-foreground)] uppercase">
             {getProposalKindLabel(proposal.kind)}
           </p>
-          <p className="mt-0.5 text-sm font-semibold">
-            {proposalTitle(proposal)}
-          </p>
-          <p className="text-xs text-[var(--muted-foreground)]">
-            {proposalSubtitle(proposal)}
-          </p>
+          <p className="mt-0.5 text-sm font-semibold">{proposalTitle(proposal)}</p>
+          <p className="text-xs text-[var(--muted-foreground)]">{proposalSubtitle(proposal)}</p>
         </div>
         <ProposalStatusBadge status={proposal.status} />
       </div>
@@ -111,24 +101,18 @@ export function CoachProposalCard({
 
       {isInvalid ? (
         <p className="text-sm text-[var(--danger)]" role="alert">
-          Cette proposition n’est plus valide (un élément référencé a changé
-          depuis, par exemple un exercice archivé). Demande une nouvelle
-          proposition au Coach.
+          Cette proposition n’est plus valide (un élément référencé a changé depuis, par exemple un
+          exercice archivé). Demande une nouvelle proposition au Coach.
         </p>
       ) : null}
 
       {isDismissed ? (
-        <p className="text-sm text-[var(--muted-foreground)]">
-          Tu as refusé cette proposition.
-        </p>
+        <p className="text-sm text-[var(--muted-foreground)]">Tu as refusé cette proposition.</p>
       ) : null}
 
       {isAccepted ? (
         <p className="text-sm text-[var(--muted-foreground)]">
-          Tu as créé{' '}
-          {proposal.kind === 'PROGRAM'
-            ? 'ce programme'
-            : 'cette séance'}
+          Tu as créé {proposal.kind === 'PROGRAM' ? 'ce programme' : 'cette séance'}
           {proposal.createdProgramId ? (
             <>
               {' '}
@@ -149,10 +133,7 @@ export function CoachProposalCard({
         <div className="flex flex-col gap-2">
           {acceptMutation.isError ? (
             <p className="text-sm text-[var(--danger)]" role="alert">
-              {getApiErrorMessage(
-                acceptMutation.error,
-                'Impossible d’accepter cette proposition.',
-              )}
+              {getApiErrorMessage(acceptMutation.error, 'Impossible d’accepter cette proposition.')}
             </p>
           ) : null}
           {dismissMutation.isError ? (
@@ -200,10 +181,7 @@ export function CoachProposalCard({
           pending={acceptMutation.isPending}
           error={
             acceptMutation.isError
-              ? getApiErrorMessage(
-                  acceptMutation.error,
-                  'Impossible d’accepter cette proposition.',
-                )
+              ? getApiErrorMessage(acceptMutation.error, 'Impossible d’accepter cette proposition.')
               : null
           }
           onClose={() => setPickerOpen(false)}
@@ -214,11 +192,7 @@ export function CoachProposalCard({
   );
 }
 
-function ProposalStatusBadge({
-  status,
-}: {
-  status: AiCoachProposalSummary['status'];
-}) {
+function ProposalStatusBadge({ status }: { status: AiCoachProposalSummary['status'] }) {
   const label = getProposalStatusLabel(status);
   const toneClass =
     status === 'ACCEPTED'
@@ -227,9 +201,7 @@ function ProposalStatusBadge({
         ? 'border-[var(--danger)]/30 text-[var(--danger)]'
         : 'border-[var(--border)] text-[var(--muted-foreground)]';
   return (
-    <span
-      className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium ${toneClass}`}
-    >
+    <span className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium ${toneClass}`}>
       {label}
     </span>
   );
