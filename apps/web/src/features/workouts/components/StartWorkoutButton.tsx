@@ -7,7 +7,8 @@ import {
 } from '../hooks/use-start-workout-session';
 
 type StartWorkoutButtonProps = {
-  sourceWorkoutTemplateId: string;
+  /** `null` : séance libre (vide, exercices ajoutés ensuite). */
+  sourceWorkoutTemplateId: string | null;
   label?: string;
   className?: string;
   disabled?: boolean;
@@ -37,8 +38,12 @@ export function StartWorkoutButton({
 
       <ConfirmDialog
         open={start.confirmOpen}
-        title="Démarrer cette séance ?"
-        description="Une copie figée du modèle sera créée. Les modifications futures du programme n’affecteront pas cette séance."
+        title={sourceWorkoutTemplateId ? 'Démarrer cette séance ?' : 'Démarrer une séance libre ?'}
+        description={
+          sourceWorkoutTemplateId
+            ? 'Une copie figée du modèle sera créée. Les modifications futures du programme n’affecteront pas cette séance.'
+            : 'La séance démarre vide : tu ajoutes ensuite tes exercices un par un.'
+        }
         confirmLabel="Démarrer"
         pending={start.pending}
         error={start.error}

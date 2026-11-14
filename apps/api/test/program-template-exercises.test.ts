@@ -82,7 +82,7 @@ describe('Program template exercises and sets API', () => {
     const config = app.get(AppConfigService);
     app.use(cookieParser(config.cookieSecret));
     app.useGlobalFilters(new GlobalExceptionFilter(config));
-    await app.init();
+    await app.listen(0, '127.0.0.1');
     prisma = app.get(PrismaService);
 
     await seedReferenceData(prisma);

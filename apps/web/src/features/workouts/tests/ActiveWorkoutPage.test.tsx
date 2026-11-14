@@ -10,6 +10,7 @@ import { createWorkoutSessionDetail, createWorkoutSet } from './fixtures';
 
 const getActiveWorkoutSession = vi.fn();
 const createWorkoutSession = vi.fn();
+const createFreeWorkoutSession = vi.fn();
 const updateWorkoutSet = vi.fn();
 const addWorkoutSessionExercise = vi.fn();
 const getMe = vi.fn();
@@ -18,6 +19,7 @@ const listExercises = vi.fn();
 vi.mock('../api/workout-api', () => ({
   getActiveWorkoutSession: (...args: unknown[]) => getActiveWorkoutSession(...args),
   createWorkoutSession: (...args: unknown[]) => createWorkoutSession(...args),
+  createFreeWorkoutSession: (...args: unknown[]) => createFreeWorkoutSession(...args),
   updateWorkoutSet: (...args: unknown[]) => updateWorkoutSet(...args),
   replaceWorkoutSessionExercise: vi.fn(),
   addWorkoutSessionExercise: (...args: unknown[]) => addWorkoutSessionExercise(...args),
@@ -595,5 +597,46 @@ describe('StartWorkoutButton', () => {
 
     await waitFor(() => expect(createWorkoutSession).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('Séance Push')).toBeInTheDocument();
+  });
+
+  it('démarre une séance libre vide depuis l’état sans séance', async () => {
+    const user = userEvent.setup();
+    getActiveWorkoutSession.mockResolvedValue(null);
+    createFreeWorkoutSession.mockReset();
+    const created = createWorkoutSessionDetail({ name: 'Séance libre', exercises: [] });
+    createFreeWorkoutSession.mockImplementation(async () => {
+      getActiveWorkoutSession.mockResolvedValue(created);
+      return created;
+    });
+
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={['/workouts/active']}>
+          <Routes>
+            <Route path="/workouts/active" element={<ActiveWorkoutPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Démarrer une séance libre' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Démarrer une séance libre ?' });
+    await user.click(within(dialog).getByRole('button', { name: /^Démarrer$/i }));
+
+    await waitFor(() =>
+      expect(createFreeWorkoutSession).toHaveBeenCalledWith({
+        localDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+        timezone: 'Europe/Paris',
+      }),
+    );
+    expect(createWorkoutSession).not.toHaveBeenCalled();
+    expect(await screen.findByText('Aucun exercice pour l’instant.')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('navigation', { name: 'Navigation des exercices' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Ajouter un exercice/i })).toBeEnabled();
   });
 });

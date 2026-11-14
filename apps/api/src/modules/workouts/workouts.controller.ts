@@ -52,6 +52,13 @@ export class WorkoutsController {
     return createSuccessResponse(data);
   }
 
+  @Post('free')
+  @ApiOperation({ summary: 'Créer une séance libre, sans modèle ni exercice' })
+  async createFree(@CurrentUser() user: AuthenticatedUser, @Body() body: unknown) {
+    const data = await this.workoutsService.createFree(user.id, body);
+    return createSuccessResponse(data);
+  }
+
   @Post(':workoutSessionId/pause')
   @HttpCode(200)
   @ApiOperation({ summary: 'Mettre une séance en pause' })
@@ -161,6 +168,26 @@ export class WorkoutsController {
     return createSuccessResponse(data);
   }
 
+  @Post(':workoutSessionId/exercises/:sessionExerciseId/sets/warmup')
+  @ApiOperation({
+    summary:
+      'Ajouter des séries WARMUP avec cibles avant les séries de travail (séance ACTIVE, idempotent)',
+  })
+  async addWarmupSets(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('workoutSessionId', ParseUUIDPipe) workoutSessionId: string,
+    @Param('sessionExerciseId', ParseUUIDPipe) sessionExerciseId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.workoutsService.addWarmupSets(
+      user.id,
+      workoutSessionId,
+      sessionExerciseId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
   @Delete(':workoutSessionId/exercises/:sessionExerciseId/sets/:workoutSetId')
   @HttpCode(200)
   @ApiOperation({
@@ -174,6 +201,27 @@ export class WorkoutsController {
     @Body() body: unknown,
   ) {
     const data = await this.workoutsService.deleteSet(
+      user.id,
+      workoutSessionId,
+      sessionExerciseId,
+      workoutSetId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
+  @Patch(':workoutSessionId/exercises/:sessionExerciseId/sets/:workoutSetId/targets')
+  @ApiOperation({
+    summary: 'Modifier les cibles (charge, reps, repos) d’une série PENDING de séance ACTIVE',
+  })
+  async updateSetTargets(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('workoutSessionId', ParseUUIDPipe) workoutSessionId: string,
+    @Param('sessionExerciseId', ParseUUIDPipe) sessionExerciseId: string,
+    @Param('workoutSetId', ParseUUIDPipe) workoutSetId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.workoutsService.updateSetTargets(
       user.id,
       workoutSessionId,
       sessionExerciseId,

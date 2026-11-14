@@ -17,7 +17,16 @@ import {
   MIN_BAR_WEIGHT_KG,
   PLATE_CATALOG_KG,
 } from '../lib/plate-settings-storage';
-import { computeWarmupRamp } from '../lib/warmup-ramp';
+import { computeWarmupRamp, toWarmupSetDrafts, type WarmupSetDraft } from '../lib/warmup-ramp';
+
+/** Action « ajouter ces séries d’échauffement » (séance ACTIVE, en ligne). */
+export type PlateCalculatorWarmupAction = {
+  onAdd: (sets: WarmupSetDraft[]) => void;
+  pending: boolean;
+  /** Raison d’indisponibilité affichée sous le bouton (hors ligne, pause…). */
+  disabledReason: string | null;
+  errorMessage: string | null;
+};
 
 type PlateCalculatorSheetProps = {
   open: boolean;
@@ -25,6 +34,7 @@ type PlateCalculatorSheetProps = {
   initialTargetKg: number | null;
   weightUnit?: 'KG' | 'LB';
   onClose: () => void;
+  warmupAction?: PlateCalculatorWarmupAction;
 };
 
 const fieldClass =
@@ -40,11 +50,13 @@ export function PlateCalculatorSheet({
   initialTargetKg,
   weightUnit = 'KG',
   onClose,
+  warmupAction,
 }: PlateCalculatorSheetProps) {
   const titleId = useId();
   const targetId = useId();
   const barId = useId();
   const settingsPanelId = useId();
+  const warmupHintId = useId();
   const { settings, setBarKg, togglePlate, reset } = usePlateSettings();
   const [targetInput, setTargetInput] = useState(() => toInputValue(initialTargetKg));
   const [barInput, setBarInput] = useState(() => toInputValue(settings.barKg));
@@ -201,7 +213,10 @@ export function PlateCalculatorSheet({
                 </div>
                 <p className="text-xs text-[var(--muted)]">
                   Barre × 10, puis 40 % × 5, 60 % × 3 et 80 % × 1 de la charge cible, arrondis à tes
-                  disques. Rien n’est ajouté à la séance.
+                  disques.{' '}
+                  {warmupAction
+                    ? 'Tu peux les ajouter à la séance comme séries d’échauffement.'
+                    : 'Rien n’est ajouté à la séance.'}
                 </p>
                 {warmup.status === 'OK' && warmup.steps.length > 0 ? (
                   <ol className="flex flex-col divide-y divide-[var(--border)]">
@@ -231,6 +246,32 @@ export function PlateCalculatorSheet({
                     Saisis une charge cible supérieure à la barre pour voir une rampe.
                   </p>
                 )}
+                {warmupAction && warmup.status === 'OK' && warmup.steps.length > 0 ? (
+                  <div className="flex flex-col gap-1">
+                    <Button
+                      type="button"
+                      className="w-full"
+                      disabled={warmupAction.pending || warmupAction.disabledReason != null}
+                      aria-describedby={
+                        warmupAction.disabledReason != null || warmupAction.errorMessage
+                          ? warmupHintId
+                          : undefined
+                      }
+                      onClick={() => warmupAction.onAdd(toWarmupSetDrafts(warmup))}
+                    >
+                      {warmupAction.pending ? 'Ajout…' : 'Ajouter ces séries d’échauffement'}
+                    </Button>
+                    {warmupAction.errorMessage ? (
+                      <p id={warmupHintId} className="text-sm text-[var(--danger)]" role="alert">
+                        {warmupAction.errorMessage}
+                      </p>
+                    ) : warmupAction.disabledReason != null ? (
+                      <p id={warmupHintId} className="text-sm text-[var(--muted)]">
+                        {warmupAction.disabledReason}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
               </section>
 
               <div className="border-t border-[var(--border)] pt-3">

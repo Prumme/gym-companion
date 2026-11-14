@@ -62,6 +62,8 @@ type WorkoutSetFormDialogProps = {
   canDelete?: boolean;
   onRequestDelete?: () => void;
   deletePending?: boolean;
+  /** Ouvre « Modifier la cible » (série PENDING uniquement). */
+  onRequestEditTargets?: () => void;
 };
 
 function emptyActuals(): Pick<
@@ -167,6 +169,7 @@ export function WorkoutSetFormDialog({
   onRecorded,
   canDelete = false,
   onRequestDelete,
+  onRequestEditTargets,
   deletePending = false,
 }: WorkoutSetFormDialogProps) {
   const titleId = useId();
@@ -686,6 +689,16 @@ export function WorkoutSetFormDialog({
                   Ignorer la série
                 </button>
               </div>
+              {onRequestEditTargets && set.status === 'PENDING' ? (
+                <button
+                  type="button"
+                  className="mt-1 min-h-11 w-full px-1 text-sm text-[var(--foreground)] hover:underline disabled:opacity-50"
+                  disabled={mutation.isPending}
+                  onClick={onRequestEditTargets}
+                >
+                  Modifier la cible
+                </button>
+              ) : null}
               {canDelete && onRequestDelete ? (
                 <button
                   type="button"

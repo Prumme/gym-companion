@@ -7,6 +7,8 @@ import { useSearchParams } from 'react-router-dom';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { getApiErrorMessage } from '@/lib/api/client';
 
+import { StartWorkoutButton } from '@/features/workouts/components/StartWorkoutButton';
+
 import { programListInfiniteQueryOptions } from '../api/program-query-options';
 import { ProgramCard } from '../components/ProgramCard';
 import { parseIncludeArchivedParam } from '../lib/program-form';
@@ -64,6 +66,13 @@ export function ProgramsPage() {
             <Sparkles className="size-4" aria-hidden="true" />
             Importer avec une IA
           </ButtonLink>
+          <div className="mt-2">
+            <StartWorkoutButton
+              sourceWorkoutTemplateId={null}
+              label="Démarrer une séance libre"
+              className="inline-flex"
+            />
+          </div>
           <ButtonLink
             to="/programs/new"
             className="w-full gap-2 sm:w-auto"

@@ -208,7 +208,7 @@ describe('Coach AI explanation API (5.5)', () => {
     const config = app.get(AppConfigService);
     app.use(cookieParser(config.cookieSecret));
     app.useGlobalFilters(new GlobalExceptionFilter(config));
-    await app.init();
+    await app.listen(0, '127.0.0.1');
     prisma = app.get(PrismaService);
     await seedReferenceData(prisma);
     await seedSystemExercises(prisma);
@@ -366,7 +366,7 @@ describe('Coach AI disabled', () => {
     const config = disabledApp.get(AppConfigService);
     disabledApp.use(cookieParser(config.cookieSecret));
     disabledApp.useGlobalFilters(new GlobalExceptionFilter(config));
-    await disabledApp.init();
+    await disabledApp.listen(0, '127.0.0.1');
     const prisma = disabledApp.get(PrismaService);
     await seedReferenceData(prisma);
     await seedSystemExercises(prisma);

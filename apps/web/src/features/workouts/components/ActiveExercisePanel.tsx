@@ -13,10 +13,12 @@ import { useEffect, useId, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { getMeasurementTypeLabel } from '@/features/exercises/lib/exercise-labels';
-import { getApiErrorMessage } from '@/lib/api/client';
+import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
 
 import {
   useAddWorkoutSessionSetMutation,
+  useAddWorkoutSessionWarmupSetsMutation,
+  useUpdateWorkoutSetTargetsMutation,
   useDeleteWorkoutSessionSetMutation,
   useReplaceWorkoutSessionExerciseMutation,
 } from '../hooks/use-workout-mutations';
@@ -28,6 +30,7 @@ import { findNextPendingSetInExercise, isExerciseTreated } from '../lib/workout-
 import { ReplaceSessionExerciseSheet } from './ReplaceSessionExerciseSheet';
 import { ExerciseLoadCues } from './ExerciseLoadCues';
 import { WorkoutSetCard } from './WorkoutSetCard';
+import { WorkoutSetTargetsSheet } from './WorkoutSetTargetsSheet';
 import { WorkoutSetFormDialog } from './WorkoutSetFormDialog';
 
 type EditingState = {
@@ -136,15 +139,20 @@ export function ActiveExercisePanel({
   const [platesOpen, setPlatesOpen] = useState(false);
   const plateCalculatorAvailable = supportsPlateCalculator(exercise);
   const [replaceOpen, setReplaceOpen] = useState(false);
-  const [replaceFeedback, setReplaceFeedback] = useState<string | null>(null);
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [replaceError, setReplaceError] = useState<string | null>(null);
   const [addSetError, setAddSetError] = useState<string | null>(null);
   const [deleteSetError, setDeleteSetError] = useState<string | null>(null);
+  const [warmupError, setWarmupError] = useState<string | null>(null);
+  const [targetsSet, setTargetsSet] = useState<WorkoutSessionSetDetail | null>(null);
+  const [targetsError, setTargetsError] = useState<string | null>(null);
   const menuId = useId();
   const menuRef = useRef<HTMLDivElement>(null);
   const replaceMutation = useReplaceWorkoutSessionExerciseMutation(session.id);
   const addSetMutation = useAddWorkoutSessionSetMutation(session.id);
   const deleteSetMutation = useDeleteWorkoutSessionSetMutation(session.id);
+  const warmupMutation = useAddWorkoutSessionWarmupSetsMutation(session.id);
+  const targetsMutation = useUpdateWorkoutSetTargetsMutation(session.id);
   const canDeleteSet = canRecordSets && exercise.sets.length > 1 && !browserOffline;
 
   const treated = isExerciseTreated(exercise);
@@ -174,10 +182,10 @@ export function ActiveExercisePanel({
   }, [menuOpen]);
 
   useEffect(() => {
-    if (!replaceFeedback) return;
-    const timer = window.setTimeout(() => setReplaceFeedback(null), 2500);
+    if (!feedbackMessage) return;
+    const timer = window.setTimeout(() => setFeedbackMessage(null), 2500);
     return () => window.clearTimeout(timer);
-  }, [replaceFeedback]);
+  }, [feedbackMessage]);
 
   const nextSet =
     nextPendingSetId != null
@@ -246,6 +254,7 @@ export function ActiveExercisePanel({
                       className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-[var(--surface)]"
                       onClick={() => {
                         setMenuOpen(false);
+                        setWarmupError(null);
                         setPlatesOpen(true);
                       }}
                     >
@@ -266,9 +275,9 @@ export function ActiveExercisePanel({
           lastSet={lastWorkingSet}
           ready={loadCuesReady}
         />
-        {replaceFeedback ? (
+        {feedbackMessage ? (
           <p className="text-sm text-[var(--foreground)]" role="status">
-            {replaceFeedback}
+            {feedbackMessage}
           </p>
         ) : null}
       </header>
@@ -446,6 +455,15 @@ export function ActiveExercisePanel({
             });
           }}
           canDelete={canDeleteSet}
+          onRequestEditTargets={
+            session.status === 'ACTIVE'
+              ? () => {
+                  setTargetsError(null);
+                  setTargetsSet(editing.set);
+                  setEditing(null);
+                }
+              : undefined
+          }
           deletePending={deleteSetMutation.isPending}
           onRequestDelete={() => {
             const target = editing.set;
@@ -492,6 +510,99 @@ export function ActiveExercisePanel({
           initialTargetKg={resolvePlateCalculatorTargetKg(exercise.sets, nextSet)}
           weightUnit={weightUnit}
           onClose={() => setPlatesOpen(false)}
+          warmupAction={
+            canRecordSets
+              ? {
+                  pending: warmupMutation.isPending,
+                  errorMessage: warmupError,
+                  disabledReason: browserOffline
+                    ? 'Connexion nécessaire pour ajouter les séries d’échauffement.'
+                    : session.status !== 'ACTIVE'
+                      ? 'Reprends la séance pour ajouter des séries.'
+                      : null,
+                  onAdd: (sets) => {
+                    setWarmupError(null);
+                    warmupMutation.mutate(
+                      { sessionExerciseId: exercise.id, expectedVersion: session.version, sets },
+                      {
+                        onSuccess: () => {
+                          setPlatesOpen(false);
+                          setFeedbackMessage(
+                            sets.length > 1
+                              ? `${sets.length} séries d’échauffement ajoutées.`
+                              : '1 série d’échauffement ajoutée.',
+                          );
+                        },
+                        onError: (error) => {
+                          const code =
+                            error &&
+                            typeof error === 'object' &&
+                            'code' in error &&
+                            typeof (error as { code: unknown }).code === 'string'
+                              ? (error as { code: string }).code
+                              : null;
+                          if (code === 'WORKOUT_VERSION_CONFLICT') {
+                            setPlatesOpen(false);
+                            onVersionConflict();
+                            return;
+                          }
+                          if (code === 'OFFLINE' || (error as { status?: number }).status === 0) {
+                            setWarmupError(
+                              'Connexion nécessaire pour ajouter les séries d’échauffement.',
+                            );
+                            return;
+                          }
+                          setWarmupError(
+                            getApiErrorMessage(
+                              error,
+                              'Impossible d’ajouter les séries d’échauffement.',
+                            ),
+                          );
+                        },
+                      },
+                    );
+                  },
+                }
+              : undefined
+          }
+        />
+      ) : null}
+
+      {targetsSet ? (
+        <WorkoutSetTargetsSheet
+          set={targetsSet}
+          measurementType={exercise.measurementType}
+          pending={targetsMutation.isPending}
+          errorMessage={targetsError}
+          onClose={() => setTargetsSet(null)}
+          onSubmit={(patch) => {
+            setTargetsError(null);
+            targetsMutation.mutate(
+              {
+                sessionExerciseId: exercise.id,
+                workoutSetId: targetsSet.id,
+                input: { ...patch, expectedVersion: session.version },
+              },
+              {
+                onSuccess: (value) => {
+                  setTargetsSet(null);
+                  setFeedbackMessage(
+                    value.kind === 'offline'
+                      ? 'Cible modifiée, synchronisation dès le retour du réseau.'
+                      : 'Cible modifiée pour cette séance.',
+                  );
+                },
+                onError: (error) => {
+                  if ((error as ApiRequestError).code === 'WORKOUT_VERSION_CONFLICT') {
+                    setTargetsSet(null);
+                    onVersionConflict();
+                    return;
+                  }
+                  setTargetsError(getApiErrorMessage(error, 'Impossible de modifier la cible.'));
+                },
+              },
+            );
+          }}
         />
       ) : null}
 
@@ -520,7 +631,7 @@ export function ActiveExercisePanel({
             {
               onSuccess: () => {
                 setReplaceOpen(false);
-                setReplaceFeedback('Exercice remplacé');
+                setFeedbackMessage('Exercice remplacé');
               },
               onError: (error) => {
                 const code =

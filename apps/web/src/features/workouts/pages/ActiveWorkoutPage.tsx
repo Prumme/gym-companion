@@ -16,6 +16,7 @@ import { AddSessionExerciseSheet } from '../components/AddSessionExerciseSheet';
 import { ExerciseNavigator } from '../components/ExerciseNavigator';
 import { ExerciseSwipeSurface } from '../components/ExerciseSwipeSurface';
 import { RestTimer } from '../components/RestTimer';
+import { StartWorkoutButton } from '../components/StartWorkoutButton';
 import { WorkoutConflictPanel } from '../components/WorkoutConflictPanel';
 import { WorkoutLifecycleActions } from '../components/WorkoutLifecycleActions';
 import { WorkoutSyncBanner } from '../components/WorkoutSyncBanner';
@@ -86,6 +87,7 @@ export function ActiveWorkoutPage() {
         <h1 className="text-2xl font-semibold">Séance en cours</h1>
         <p className="text-sm text-[var(--muted)]">Aucune séance en cours.</p>
         <div className="flex flex-col gap-2 sm:flex-row">
+          <StartWorkoutButton sourceWorkoutTemplateId={null} label="Démarrer une séance libre" />
           <ButtonLink to="/planning" variant="secondary">
             Consulter le planning
           </ButtonLink>
@@ -322,74 +324,86 @@ function ActiveWorkoutSessionView({
           </div>
         ) : null}
 
-        <ExerciseSwipeSurface
-          enabled={session.exercises.length > 1}
-          hasPrevious={navigation.hasPrevious}
-          hasNext={navigation.hasNext}
-          onPrevious={navigation.goToPrevious}
-          onNext={navigation.goToNext}
-          exerciseKey={navigation.selectedExerciseId ?? 'none'}
-        >
-          <ExerciseNavigator
-            exercises={session.exercises}
-            selectedExerciseId={navigation.selectedExerciseId}
-            onSelect={navigation.selectExercise}
-            onPrevious={navigation.goToPrevious}
-            onNext={navigation.goToNext}
+        {session.exercises.length === 0 ? (
+          <div
+            className="rounded-[var(--radius)] border border-dashed border-[var(--border)] bg-[var(--surface)] px-4 py-6 text-center"
+            role="status"
+          >
+            <p className="text-sm font-medium">Aucun exercice pour l’instant.</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              Ajoute un premier exercice pour commencer à enregistrer tes séries.
+            </p>
+          </div>
+        ) : (
+          <ExerciseSwipeSurface
+            enabled={session.exercises.length > 1}
             hasPrevious={navigation.hasPrevious}
             hasNext={navigation.hasNext}
-          />
-
-          {selectedExercise ? (
-            <ActiveExercisePanel
-              session={session}
-              exercise={selectedExercise}
-              effortTrackingMode={effortTrackingMode}
-              canRecordSets={session.permissions.canRecordSets}
-              nextPendingSetId={nextPending?.setId ?? null}
-              exerciseIndex={Math.max(0, navigation.selectedIndex)}
-              totalExercises={session.exercises.length}
-              hasNextExercise={navigation.hasNext}
-              onGoToNextExercise={navigation.goToNext}
-              onOpenComplete={
-                session.permissions.canComplete ? () => setCompleteOpen(true) : undefined
-              }
-              restTimerActive={restTimerActive}
-              browserOffline={offlineSync.browserOffline}
-              loadRecords={loadCues.records}
-              lastWorkingSet={
-                selectedExercise.sourceExerciseId
-                  ? loadCues.lastByExercise.get(selectedExercise.sourceExerciseId)
-                  : undefined
-              }
-              loadCuesReady={loadCues.isFetched}
-              weightUnit={meQuery.data?.data.profile.weightUnit ?? 'KG'}
-              onVersionConflict={onRefetch}
-              onSetRecorded={({ status, setId, set, exercise }) => {
-                if (
-                  shouldSuppressRestAfterSet({
-                    session,
-                    exercise,
-                    setId,
-                    status,
-                  })
-                ) {
-                  if (restTimer.isRunning || restTimer.isPaused || restTimer.justExpired) {
-                    restTimer.stop();
-                  }
-                  return;
-                }
-                if (!shouldAutoStartRest(status)) {
-                  return;
-                }
-                const rest = resolveRestSeconds(set, exercise);
-                if (rest != null && rest > 0) {
-                  restTimer.start(rest, setId);
-                }
-              }}
+            onPrevious={navigation.goToPrevious}
+            onNext={navigation.goToNext}
+            exerciseKey={navigation.selectedExerciseId ?? 'none'}
+          >
+            <ExerciseNavigator
+              exercises={session.exercises}
+              selectedExerciseId={navigation.selectedExerciseId}
+              onSelect={navigation.selectExercise}
+              onPrevious={navigation.goToPrevious}
+              onNext={navigation.goToNext}
+              hasPrevious={navigation.hasPrevious}
+              hasNext={navigation.hasNext}
             />
-          ) : null}
-        </ExerciseSwipeSurface>
+
+            {selectedExercise ? (
+              <ActiveExercisePanel
+                session={session}
+                exercise={selectedExercise}
+                effortTrackingMode={effortTrackingMode}
+                canRecordSets={session.permissions.canRecordSets}
+                nextPendingSetId={nextPending?.setId ?? null}
+                exerciseIndex={Math.max(0, navigation.selectedIndex)}
+                totalExercises={session.exercises.length}
+                hasNextExercise={navigation.hasNext}
+                onGoToNextExercise={navigation.goToNext}
+                onOpenComplete={
+                  session.permissions.canComplete ? () => setCompleteOpen(true) : undefined
+                }
+                restTimerActive={restTimerActive}
+                browserOffline={offlineSync.browserOffline}
+                loadRecords={loadCues.records}
+                lastWorkingSet={
+                  selectedExercise.sourceExerciseId
+                    ? loadCues.lastByExercise.get(selectedExercise.sourceExerciseId)
+                    : undefined
+                }
+                loadCuesReady={loadCues.isFetched}
+                weightUnit={meQuery.data?.data.profile.weightUnit ?? 'KG'}
+                onVersionConflict={onRefetch}
+                onSetRecorded={({ status, setId, set, exercise }) => {
+                  if (
+                    shouldSuppressRestAfterSet({
+                      session,
+                      exercise,
+                      setId,
+                      status,
+                    })
+                  ) {
+                    if (restTimer.isRunning || restTimer.isPaused || restTimer.justExpired) {
+                      restTimer.stop();
+                    }
+                    return;
+                  }
+                  if (!shouldAutoStartRest(status)) {
+                    return;
+                  }
+                  const rest = resolveRestSeconds(set, exercise);
+                  if (rest != null && rest > 0) {
+                    restTimer.start(rest, setId);
+                  }
+                }}
+              />
+            ) : null}
+          </ExerciseSwipeSurface>
+        )}
 
         <div className="flex flex-col gap-2">
           {addExerciseError ? (

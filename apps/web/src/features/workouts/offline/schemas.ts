@@ -11,6 +11,7 @@ const workoutSetStatusSchema = z.enum([
 
 export const offlineCommandTypeSchema = z.enum([
   'UPDATE_WORKOUT_SET',
+  'UPDATE_WORKOUT_SET_TARGETS',
   'PAUSE_WORKOUT',
   'RESUME_WORKOUT',
   'COMPLETE_WORKOUT',
@@ -46,6 +47,15 @@ export const updateSetPayloadSchema = z.object({
   actualRpe: z.number().nullable(),
   reachedFailure: z.boolean(),
   notes: z.string().nullable(),
+});
+
+export const updateSetTargetsPayloadSchema = z.object({
+  sessionExerciseId: z.string().min(1),
+  workoutSetId: z.string().min(1),
+  targetWeightKg: z.number().nullable().optional(),
+  targetRepMin: z.number().int().nullable().optional(),
+  targetRepMax: z.number().int().nullable().optional(),
+  targetRestSeconds: z.number().int().nullable().optional(),
 });
 
 export const storedWorkoutSnapshotSchema = z.object({

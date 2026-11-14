@@ -1276,7 +1276,26 @@ Codes d’erreur utiles :
 
 ### 19.3 Créer une séance libre
 
-Hors périmètre du jalon 3.1.
+```text
+POST /api/v1/workouts/free
+```
+
+```json
+{
+  "localDate": "2026-08-04",
+  "timezone": "Europe/Paris"
+}
+```
+
+Règles V1 :
+
+- auth JWT ; schéma strict (aucun `sourceWorkoutTemplateId`) ;
+- crée une séance `ACTIVE`, `version = 1`, nommée « Séance libre », sans programme, modèle ni exercice ;
+- même règle qu’au §19.2 : une seule séance `ACTIVE` / `PAUSED` par utilisateur (`409 WORKOUT_ACTIVE_ALREADY_EXISTS`, détails `{ activeWorkoutSessionId }`), ce qui rend le double envoi sans effet ;
+- les exercices s’ajoutent ensuite via `POST /workouts/:id/exercises` (§20) ;
+- online only.
+
+Réponse : `201 Created` avec `WorkoutSessionDetail` (`exercises: []`).
 
 ### 19.4 Détail
 
@@ -1613,6 +1632,67 @@ Règles V1 :
 Réponse : `201 Created` avec `{ "data": WorkoutSessionDetail }`.
 
 Offline : création non supportée V1 (id serveur). La **saisie** de la série créée réutilise `UPDATE_WORKOUT_SET` / file IndexedDB existante.
+
+### 21.1bis Ajouter des séries d’échauffement (rampe)
+
+```text
+POST /api/v1/workouts/:workoutSessionId/exercises/:sessionExerciseId/sets/warmup
+```
+
+Crée en une commande des `WorkoutSet` `WARMUP` / `PENDING` **avec cibles** (rampe docs/04 §5.6, calculée côté client).
+
+```json
+{
+  "expectedVersion": 6,
+  "clientCommandId": "opaque-command-id",
+  "sets": [
+    { "targetWeightKg": 20, "targetReps": 10 },
+    { "targetWeightKg": 40, "targetReps": 5 }
+  ]
+}
+```
+
+Règles V1 :
+
+- auth JWT, propriétaire uniquement (sinon `404 WORKOUT_NOT_FOUND`) ;
+- `clientCommandId` **obligatoire** (≤ 120 caractères) ; 1 à 10 séries ; `setType` imposé par le serveur ;
+- exercice `WEIGHT_REPS` uniquement (`400 WORKOUT_WARMUP_NOT_SUPPORTED`) ;
+- insertion juste avant la première série non-`WARMUP` (après d’éventuelles `WARMUP` existantes), positions recompactées 0..n-1 ;
+- `targetRepMin = targetRepMax = targetReps`, autres cibles `null`, `sourceTemplateSetId = null` ;
+- chaque série reçoit un `clientCommandId` dérivé (`id`, `id:1`, `id:2`…) ; rejeu sur le même exercice → snapshot courant sans doublon (avant le contrôle de version) ; sur un autre exercice → `409 WORKOUT_SET_COMMAND_CONFLICT` ;
+- séance `ACTIVE` (`WORKOUT_NOT_EDITABLE`), `409 WORKOUT_VERSION_CONFLICT`, version + 1 une seule fois ;
+- online only.
+
+Réponse : `201 Created` avec `{ "data": WorkoutSessionDetail }`.
+
+### 21.1ter Modifier les cibles d’une série
+
+```text
+PATCH /api/v1/workouts/:workoutSessionId/exercises/:sessionExerciseId/sets/:workoutSetId/targets
+```
+
+```json
+{
+  "expectedVersion": 7,
+  "clientCommandId": "opaque-command-id",
+  "targetWeightKg": 62.5,
+  "targetRepMin": 6,
+  "targetRepMax": 8,
+  "targetRestSeconds": 150
+}
+```
+
+Règles V1 :
+
+- auth JWT, propriétaire uniquement (`404 WORKOUT_NOT_FOUND`, `404 WORKOUT_SET_NOT_FOUND`) ;
+- schéma strict : au moins une cible ; clé absente = inchangée, `null` = effacée ; `targetRepMin` et `targetRepMax` toujours ensemble, `min ≤ max` ;
+- série `PENDING` uniquement (`400 WORKOUT_SET_NOT_PENDING`) ; séance `ACTIVE` (`400 WORKOUT_NOT_EDITABLE`) ; `409 WORKOUT_VERSION_CONFLICT` ;
+- cible non applicable au type de mesure → `400 WORKOUT_SET_TARGET_NOT_APPLICABLE` ;
+- ne modifie que le snapshot de séance (`WorkoutTemplateSet` inchangé) ;
+- `clientCommandId` facultatif ; reçu `WorkoutSetCommand` (empreinte `TARGETS:…`) : rejeu identique → même réponse avant contrôle de version, payload différent ou autre série → `409 WORKOUT_SET_COMMAND_CONFLICT` ;
+- rejouable depuis la file hors ligne (commande `UPDATE_WORKOUT_SET_TARGETS`).
+
+Réponse : `200 OK` avec `{ "data": { "workoutSet": WorkoutSessionSetDetail, "workoutSessionVersion": 8 } }`.
 
 ### 21.2 Modifier une série effectuée (jalon 3.2)
 

@@ -36,7 +36,7 @@ describe('Health endpoints', () => {
     app = moduleRef.createNestApplication();
     const config = app.get(AppConfigService);
     app.use(cookieParser(config.cookieSecret));
-    await app.init();
+    await app.listen(0, '127.0.0.1');
   });
 
   afterAll(async () => {

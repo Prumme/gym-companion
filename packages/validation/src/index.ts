@@ -1151,6 +1151,16 @@ export const createWorkoutSessionSchema = z
 
 export type CreateWorkoutSessionInput = z.infer<typeof createWorkoutSessionSchema>;
 
+/** Nom d’une séance démarrée sans modèle (docs/02 §12). */
+export const FREE_WORKOUT_SESSION_NAME = 'Séance libre';
+
+/** Séance libre : aucun modèle, exercices ajoutés ensuite (`POST /workouts/:id/exercises`). */
+export const createFreeWorkoutSessionSchema = createWorkoutSessionSchema
+  .omit({ sourceWorkoutTemplateId: true })
+  .strict();
+
+export type CreateFreeWorkoutSessionInput = z.infer<typeof createFreeWorkoutSessionSchema>;
+
 export type ProgramScheduleValidationResult =
   | { ok: true }
   | {
@@ -1311,6 +1321,40 @@ export const addWorkoutSessionSetSchema = z
 
 export type AddWorkoutSessionSetInput = z.infer<typeof addWorkoutSessionSetSchema>;
 
+/** Nombre maximal de séries WARMUP ajoutées en une commande. */
+export const MAX_WARMUP_SETS_PER_COMMAND = 10;
+
+/**
+ * Ajout groupé de séries WARMUP (rampe d’échauffement, docs/04 §5.6) sur un exercice
+ * WEIGHT_REPS de séance ACTIVE. Online only. `setType` est imposé par le serveur.
+ * `clientCommandId` est obligatoire : le serveur en dérive un identifiant par série
+ * (`id`, `id:1`, `id:2`…), d’où la longueur maximale réduite.
+ */
+export const addWorkoutSessionWarmupSetsSchema = z
+  .object({
+    expectedVersion: z.number().int().min(1).max(1_000_000_000),
+    clientCommandId: z
+      .string()
+      .trim()
+      .min(1)
+      .max(120)
+      .regex(/^[A-Za-z0-9._:-]+$/, 'Identifiant de commande invalide.'),
+    sets: z
+      .array(
+        z
+          .object({
+            targetWeightKg: z.number().finite().min(0).max(10_000),
+            targetReps: z.number().int().min(1).max(100),
+          })
+          .strict(),
+      )
+      .min(1, 'Au moins une série d’échauffement est requise.')
+      .max(MAX_WARMUP_SETS_PER_COMMAND),
+  })
+  .strict();
+
+export type AddWorkoutSessionWarmupSetsInput = z.infer<typeof addWorkoutSessionWarmupSetsSchema>;
+
 /** Suppression d’une série de séance ACTIVE. Online only. */
 export const deleteWorkoutSessionSetSchema = z
   .object({
@@ -1319,6 +1363,125 @@ export const deleteWorkoutSessionSetSchema = z
   .strict();
 
 export type DeleteWorkoutSessionSetInput = z.infer<typeof deleteWorkoutSessionSetSchema>;
+
+const SESSION_SET_TARGET_KEYS = [
+  'targetWeightKg',
+  'targetRepMin',
+  'targetRepMax',
+  'targetRestSeconds',
+] as const;
+
+/**
+ * Modification des cibles d’une série PENDING de séance ACTIVE (snapshot uniquement :
+ * ni Program ni WorkoutTemplate). Les clés absentes restent inchangées ; `null` efface.
+ * `targetRepMin` et `targetRepMax` sont envoyés ensemble.
+ */
+export const updateWorkoutSessionSetTargetsSchema = z
+  .object({
+    expectedVersion: z.number().int().min(1).max(1_000_000_000),
+    clientCommandId: z
+      .string()
+      .trim()
+      .min(1)
+      .max(128)
+      .regex(/^[A-Za-z0-9._:-]+$/, 'Identifiant de commande invalide.')
+      .optional(),
+    targetWeightKg: z.number().finite().min(0).max(10_000).nullable().optional(),
+    targetRepMin: nullablePositiveInt.optional(),
+    targetRepMax: nullablePositiveInt.optional(),
+    targetRestSeconds: restSecondsSchema.optional(),
+  })
+  .strict()
+  .refine((value) => SESSION_SET_TARGET_KEYS.some((key) => value[key] !== undefined), {
+    message: 'Au moins une cible doit être modifiée.',
+  })
+  .refine((value) => (value.targetRepMin === undefined) === (value.targetRepMax === undefined), {
+    message: 'Les répétitions minimales et maximales sont modifiées ensemble.',
+    path: ['targetRepMax'],
+  })
+  .refine(
+    (value) =>
+      (value.targetRepMin == null) === (value.targetRepMax == null) &&
+      (value.targetRepMin == null ||
+        value.targetRepMax == null ||
+        value.targetRepMin <= value.targetRepMax),
+    { message: 'La plage de répétitions est invalide.', path: ['targetRepMax'] },
+  );
+
+export type UpdateWorkoutSessionSetTargetsInput = z.infer<
+  typeof updateWorkoutSessionSetTargetsSchema
+>;
+
+export type WorkoutSessionSetTargetsPatch = Partial<
+  Pick<
+    UpdateWorkoutSessionSetTargetsInput,
+    'targetWeightKg' | 'targetRepMin' | 'targetRepMax' | 'targetRestSeconds'
+  >
+>;
+
+type SessionMeasurementType =
+  | 'WEIGHT_REPS'
+  | 'BODYWEIGHT_REPS'
+  | 'ASSISTED_BODYWEIGHT_REPS'
+  | 'REPS_ONLY'
+  | 'DURATION'
+  | 'DISTANCE'
+  | 'DISTANCE_DURATION'
+  | 'WEIGHT_DURATION';
+
+/** Cibles modifiables pendant la séance selon le type de mesure (le repos l’est toujours). */
+export function getEditableSessionSetTargets(measurementType: SessionMeasurementType): {
+  weight: boolean;
+  reps: boolean;
+  rest: true;
+} {
+  const reps =
+    measurementType === 'WEIGHT_REPS' ||
+    measurementType === 'BODYWEIGHT_REPS' ||
+    measurementType === 'ASSISTED_BODYWEIGHT_REPS' ||
+    measurementType === 'REPS_ONLY';
+  const weight =
+    measurementType === 'WEIGHT_REPS' ||
+    measurementType === 'BODYWEIGHT_REPS' ||
+    measurementType === 'ASSISTED_BODYWEIGHT_REPS' ||
+    measurementType === 'WEIGHT_DURATION';
+  return { weight, reps, rest: true };
+}
+
+export type SessionSetTargetsValidationResult =
+  { ok: true } | { ok: false; code: 'WORKOUT_SET_TARGET_NOT_APPLICABLE'; message: string };
+
+/** Refuse une cible qui ne s’applique pas au type de mesure de l’exercice. */
+export function validateWorkoutSessionSetTargetsPatch(
+  measurementType: SessionMeasurementType,
+  patch: WorkoutSessionSetTargetsPatch,
+): SessionSetTargetsValidationResult {
+  const editable = getEditableSessionSetTargets(measurementType);
+  if (!editable.weight && patch.targetWeightKg != null) {
+    return {
+      ok: false,
+      code: 'WORKOUT_SET_TARGET_NOT_APPLICABLE',
+      message: 'Une charge cible ne s’applique pas à ce type de mesure.',
+    };
+  }
+  if (!editable.reps && (patch.targetRepMin != null || patch.targetRepMax != null)) {
+    return {
+      ok: false,
+      code: 'WORKOUT_SET_TARGET_NOT_APPLICABLE',
+      message: 'Des répétitions cibles ne s’appliquent pas à ce type de mesure.',
+    };
+  }
+  return { ok: true };
+}
+
+/** Empreinte stable d’une modification de cibles (rejeu idempotent). */
+export function buildWorkoutSetTargetsCommandFingerprint(
+  patch: WorkoutSessionSetTargetsPatch,
+): string {
+  return `TARGETS:${JSON.stringify(
+    SESSION_SET_TARGET_KEYS.map((key) => (patch[key] === undefined ? '~' : patch[key])),
+  )}`;
+}
 
 export type WorkoutSetActualFields = {
   status: z.infer<typeof workoutSetStatusSchema>;

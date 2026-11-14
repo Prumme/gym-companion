@@ -20,7 +20,8 @@ export function useStartWorkoutSession() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const createMutation = useCreateWorkoutSessionMutation();
-  const [pendingTemplateId, setPendingTemplateId] = useState<string | null>(null);
+  /** Démarrage en attente de confirmation ; `templateId: null` = séance libre. */
+  const [pendingStart, setPendingStart] = useState<{ templateId: string | null } | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<StartWorkoutConflict | null>(null);
@@ -35,7 +36,7 @@ export function useStartWorkoutSession() {
   const getUserId = useCallback(() => meQuery.data?.data.id ?? null, [meQuery.data?.data.id]);
 
   const requestStart = useCallback(
-    async (sourceWorkoutTemplateId: string) => {
+    async (sourceWorkoutTemplateId: string | null) => {
       setError(null);
       setConflict(null);
       setPendingTerminal(false);
@@ -67,14 +68,14 @@ export function useStartWorkoutSession() {
         return;
       }
 
-      setPendingTemplateId(sourceWorkoutTemplateId);
+      setPendingStart({ templateId: sourceWorkoutTemplateId });
       setConfirmOpen(true);
     },
     [getUserId, queryClient],
   );
 
   const confirmStart = useCallback(async () => {
-    if (!pendingTemplateId) {
+    if (!pendingStart) {
       return;
     }
 
@@ -83,13 +84,13 @@ export function useStartWorkoutSession() {
     const localDate = todayLocalDateString(timezone);
 
     try {
-      await createMutation.mutateAsync({
-        sourceWorkoutTemplateId: pendingTemplateId,
-        localDate,
-        timezone,
-      });
+      await createMutation.mutateAsync(
+        pendingStart.templateId
+          ? { sourceWorkoutTemplateId: pendingStart.templateId, localDate, timezone }
+          : { localDate, timezone },
+      );
       setConfirmOpen(false);
-      setPendingTemplateId(null);
+      setPendingStart(null);
       navigate('/workouts/active', { replace: false });
     } catch (err) {
       const apiError = err as ApiRequestError;
@@ -121,7 +122,7 @@ export function useStartWorkoutSession() {
     getUserId,
     meQuery.data?.data.profile.timezone,
     navigate,
-    pendingTemplateId,
+    pendingStart,
     queryClient,
   ]);
 
@@ -143,7 +144,7 @@ export function useStartWorkoutSession() {
       return;
     }
     setConfirmOpen(false);
-    setPendingTemplateId(null);
+    setPendingStart(null);
     setError(null);
   }, [createMutation.isPending]);
 

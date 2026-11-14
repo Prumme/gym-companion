@@ -12,6 +12,7 @@ import {
   pauseWorkoutSession,
   resumeWorkoutSession,
   updateWorkoutSet,
+  updateWorkoutSetTargets,
 } from '../api/workout-api';
 import { applyUpdateWorkoutSetResult } from '../lib/workout-cache';
 import { broadcastWorkoutSync } from './broadcast';
@@ -41,7 +42,7 @@ import type {
   StoredWorkoutCommand,
   UpdateWorkoutSetCommandPayload,
 } from './types';
-import { updateSetPayloadSchema } from './schemas';
+import { updateSetPayloadSchema, updateSetTargetsPayloadSchema } from './schemas';
 
 export const SYNC_BACKOFF_MS = [2_000, 5_000, 15_000, 30_000, 60_000] as const;
 
@@ -81,6 +82,17 @@ async function executeCommand(
       payload.workoutSetId,
       input,
     );
+  }
+
+  if (command.type === 'UPDATE_WORKOUT_SET_TARGETS') {
+    const { sessionExerciseId, workoutSetId, ...targets } = updateSetTargetsPayloadSchema.parse(
+      command.payload,
+    );
+    return updateWorkoutSetTargets(command.workoutSessionId, sessionExerciseId, workoutSetId, {
+      ...targets,
+      expectedVersion: command.expectedVersion,
+      clientCommandId: command.id,
+    });
   }
 
   if (command.type === 'PAUSE_WORKOUT') {
