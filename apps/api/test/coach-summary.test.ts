@@ -40,6 +40,16 @@ async function registerUser(app: INestApplication, email: string, displayName: s
   return response.body.data.accessToken as string;
 }
 
+/**
+ * Date locale (YYYY-MM-DD) relative à aujourd'hui : l'overview ne regarde que les
+ * COACH_OVERVIEW_RECENCY_DAYS derniers jours, des dates fixes finissent par en sortir.
+ */
+function daysAgoLocalDate(days: number): string {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() - days);
+  return date.toISOString().slice(0, 10);
+}
+
 type Startable = {
   programId: string;
   templateId: string;
@@ -242,7 +252,7 @@ describe('Coach summary API (5.4)', () => {
         app,
         tokenA,
         tpl.templateId,
-        `2026-08-0${day}`,
+        daysAgoLocalDate(30 - day),
         [9, 9, 9],
         80,
         `coach-w-${day}-${stamp}`,
@@ -261,7 +271,7 @@ describe('Coach summary API (5.4)', () => {
       app,
       tokenA,
       tpl.templateId,
-      '2026-08-04',
+      daysAgoLocalDate(26),
       [9, 9, 9],
       80,
       `coach-w-4-${stamp}`,
@@ -287,7 +297,7 @@ describe('Coach summary API (5.4)', () => {
       app,
       tokenA,
       tpl.templateId,
-      '2026-08-05',
+      daysAgoLocalDate(25),
       [8, 8, 8],
       82.5,
       `coach-w-5-${stamp}`,
@@ -329,7 +339,7 @@ describe('Coach summary API (5.4)', () => {
       app,
       tokenA,
       reviewTpl.templateId,
-      '2026-08-10',
+      daysAgoLocalDate(20),
       [8, 8, 8],
       80,
       `coach-rev-${stamp}`,

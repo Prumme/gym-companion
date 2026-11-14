@@ -27,10 +27,13 @@ Les phases 0 à 5 sont livrées : fondations, catalogue, programmes, séances, r
 
 Pour le web seul : `pnpm --filter @gym-companion/web test`.
 
+Les tests d'API ont besoin de Postgres sur `localhost:5433` : `docker compose up -d postgres`, puis `pnpm --filter @gym-companion/api prisma:deploy` et `prisma:generate` (comme en CI). Sinon : `Can't reach database server` et tous les tests sont ignorés.
+
 ## Pièges
 
 - `clearOtherRestTimers` efface toutes les clés localStorage qui commencent par `gym-companion:rest-timer:`. Toute nouvelle clé doit utiliser un autre préfixe.
 - `sanitizeRestTimerState` garde un minuteur expiré depuis moins de 2 minutes. Au rechargement, `justExpired` repasse donc à true : il faut vérifier `expiredOnRestoreRef` dans `use-rest-timer.ts` avant tout effet de fin de repos.
 - `addWorkoutSessionSetSchema` est `.strict()` : il n'accepte que `expectedVersion` et `clientCommandId`, donc pas de `setType` ni de cible. On ne peut pas créer de série WARMUP sans étendre l'API.
 - La barre se détecte par `exercise.equipment.code === 'barbell'`. Comparer en minuscules : certaines fixtures utilisent `BARBELL`.
+- L'overview coaching (`coach-summary.service.ts`) ne voit que les `COACH_OVERVIEW_RECENCY_DAYS` (90) derniers jours. Dans les tests d'API, utiliser des dates relatives à aujourd'hui, jamais des dates fixes.
 - `profile.weightUnit` peut valoir `LB`, mais les écrans de séance stockent et affichent toujours des kg.
