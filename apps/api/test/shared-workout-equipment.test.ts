@@ -238,7 +238,7 @@ describe('Shared equipment coordination (Shared 5.6)', () => {
     const config = app.get(AppConfigService);
     app.use(cookieParser(config.cookieSecret));
     app.useGlobalFilters(new GlobalExceptionFilter(config));
-    await app.listen(0);
+    await app.listen(0, '127.0.0.1');
     const address = app.getHttpServer().address();
     port = typeof address === 'object' && address && 'port' in address ? address.port : 0;
     prisma = app.get(PrismaService);
