@@ -1,4 +1,4 @@
-import type { ExerciseMeasurementType, WorkoutSetType } from '@gym-companion/shared';
+import type { CardioType, ExerciseMeasurementType, WorkoutSetType } from '@gym-companion/shared';
 
 export type TemplateSetForSnapshot = {
   id: string;
@@ -25,6 +25,7 @@ export type TemplateExerciseForSnapshot = {
     id: string;
     name: string;
     measurementType: ExerciseMeasurementType;
+    cardioType: CardioType | null;
     archivedAt: Date | null;
     primaryMuscleGroup: { name: string };
   };
@@ -70,6 +71,7 @@ export type SnapshotExerciseCreate = {
   sourceTemplateExerciseId: string;
   exerciseNameSnapshot: string;
   measurementTypeSnapshot: ExerciseMeasurementType;
+  cardioTypeSnapshot: CardioType | null;
   position: number;
   primaryMuscleGroupNameSnapshot: string;
   sourceExerciseArchivedAtCreation: boolean;
@@ -146,6 +148,7 @@ export function buildWorkoutSessionSnapshotFromTemplate(
       sourceTemplateExerciseId: templateExercise.id,
       exerciseNameSnapshot: templateExercise.exercise.name,
       measurementTypeSnapshot: templateExercise.exercise.measurementType,
+      cardioTypeSnapshot: templateExercise.exercise.cardioType,
       position: templateExercise.position,
       primaryMuscleGroupNameSnapshot: templateExercise.exercise.primaryMuscleGroup.name,
       sourceExerciseArchivedAtCreation: templateExercise.exercise.archivedAt !== null,

@@ -572,6 +572,8 @@ model WorkoutSessionExercise {
   sourceTemplateExerciseId         String?                  @db.Uuid
   exerciseNameSnapshot             String
   measurementTypeSnapshot          ExerciseMeasurementType
+  /// Type de cardio figé à la création (null pour la musculation et les séances antérieures).
+  cardioTypeSnapshot               CardioType?
   position                         Int
   primaryMuscleGroupNameSnapshot   String?
   sourceExerciseArchivedAtCreation Boolean                  @default(false)

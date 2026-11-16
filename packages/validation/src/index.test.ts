@@ -595,7 +595,7 @@ describe('validateWorkoutTemplateSetTargets', () => {
     ).toEqual({ ok: true });
   });
 
-  it('requires distance for DISTANCE_DURATION', () => {
+  it('requires distance or duration for DISTANCE_DURATION', () => {
     expect(
       validateWorkoutTemplateSetTargets('DISTANCE_DURATION', {
         ...base,
@@ -607,7 +607,16 @@ describe('validateWorkoutTemplateSetTargets', () => {
       validateWorkoutTemplateSetTargets('DISTANCE_DURATION', {
         ...base,
         targetDurationSeconds: 300,
-      }).ok,
+      }),
+    ).toEqual({ ok: true });
+    expect(
+      validateWorkoutTemplateSetTargets('DISTANCE_DURATION', {
+        ...base,
+        targetDistanceMeters: 1000,
+      }),
+    ).toEqual({ ok: true });
+    expect(
+      validateWorkoutTemplateSetTargets('DISTANCE_DURATION', base).ok,
     ).toBe(false);
   });
 

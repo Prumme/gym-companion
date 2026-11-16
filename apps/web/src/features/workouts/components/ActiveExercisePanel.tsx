@@ -444,6 +444,7 @@ export function ActiveExercisePanel({
           workoutSessionId={session.id}
           sessionExerciseId={exercise.id}
           measurementType={exercise.measurementType}
+          cardioType={exercise.cardioType}
           effortTrackingMode={effortTrackingMode}
           expectedVersion={session.version}
           set={editing.set}

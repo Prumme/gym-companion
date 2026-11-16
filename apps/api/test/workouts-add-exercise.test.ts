@@ -604,4 +604,34 @@ describe('Add workout session exercise / set API', () => {
       ),
     ).toEqual([legPressId, benchId]);
   });
+
+  it('fige le type de cardio d’un exercice CARDIO ajouté à la séance', async () => {
+    const treadmill = await prisma.exercise.findUniqueOrThrow({
+      where: { slug: 'course-tapis' },
+    });
+    const active = await getActive();
+    const response = await request(app.getHttpServer())
+      .post(`/api/v1/workouts/${active.id}/exercises`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ exerciseId: treadmill.id, expectedVersion: active.version })
+      .expect(201);
+
+    const added = (
+      response.body.data.exercises as Array<{
+        id: string;
+        sourceExerciseId: string;
+        cardioType: string | null;
+      }>
+    ).find((exercise) => exercise.sourceExerciseId === treadmill.id);
+    expect(added?.cardioType).toBe('TREADMILL');
+    const strength = (
+      response.body.data.exercises as Array<{ sourceExerciseId: string; cardioType: string | null }>
+    ).find((exercise) => exercise.sourceExerciseId === legPressId);
+    expect(strength?.cardioType).toBeNull();
+
+    const row = await prisma.workoutSessionExercise.findUniqueOrThrow({
+      where: { id: added!.id },
+    });
+    expect(row.cardioTypeSnapshot).toBe('TREADMILL');
+  });
 });

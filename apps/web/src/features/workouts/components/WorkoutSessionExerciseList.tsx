@@ -251,6 +251,7 @@ function WorkoutSessionExerciseItem({
           workoutSessionId={session.id}
           sessionExerciseId={exercise.id}
           measurementType={exercise.measurementType}
+          cardioType={exercise.cardioType}
           effortTrackingMode={effortTrackingMode}
           expectedVersion={session.version}
           set={editingSet}

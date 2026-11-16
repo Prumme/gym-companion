@@ -1,4 +1,5 @@
 import type {
+  CardioType,
   EffortTrackingMode,
   ExerciseMeasurementType,
   LastWorkingSetCue,
@@ -30,6 +31,7 @@ import {
   pickLastTimeActuals,
   supportsLastTimeCopy,
 } from '../lib/copy-last-time';
+import { cardioMetricFieldsFor, type CardioMetricField } from '../lib/cardio-metric-fields';
 import { formatWorkoutSetTargetCompact, getWorkoutSetTypeLabelSafe } from '../lib/workout-labels';
 import { DurationSecondsField } from './DurationSecondsField';
 import {
@@ -42,6 +44,18 @@ import {
 
 const formSchema = updateWorkoutSetSchema;
 
+const CARDIO_METRIC_INPUTS: Record<
+  CardioMetricField,
+  { label: string; inputMode: 'numeric' | 'decimal'; min?: number }
+> = {
+  averageHeartRate: { label: 'Fréquence cardiaque (bpm)', inputMode: 'numeric', min: 1 },
+  inclinePercent: { label: 'Inclinaison (%)', inputMode: 'decimal' },
+  resistanceLevel: { label: 'Résistance', inputMode: 'numeric', min: 1 },
+  machineLevel: { label: 'Niveau machine', inputMode: 'numeric', min: 1 },
+  floorsClimbed: { label: 'Étages', inputMode: 'numeric', min: 0 },
+  cadenceSpm: { label: 'Cadence', inputMode: 'numeric', min: 1 },
+};
+
 type FormValues = z.infer<typeof formSchema>;
 
 type WorkoutSetFormDialogProps = {
@@ -49,6 +63,8 @@ type WorkoutSetFormDialogProps = {
   workoutSessionId: string;
   sessionExerciseId: string;
   measurementType: ExerciseMeasurementType;
+  /** Type de cardio figé de la ligne de séance : adapte les métriques proposées. */
+  cardioType?: CardioType | null;
   effortTrackingMode: EffortTrackingMode;
   expectedVersion: number;
   set: WorkoutSessionSetDetail;
@@ -158,6 +174,7 @@ export function WorkoutSetFormDialog({
   workoutSessionId,
   sessionExerciseId,
   measurementType,
+  cardioType = null,
   effortTrackingMode,
   expectedVersion,
   set,
@@ -207,6 +224,7 @@ export function WorkoutSetFormDialog({
   const durationValue = watch('actualDurationSeconds');
   const distanceValue = watch('actualDistanceMeters');
   const cardio = isCardioMeasurementType(measurementType);
+  const visibleCardioMetrics = cardioMetricFieldsFor(cardioType, set);
   const derived = cardio ? computeCardioDerivedMetrics(distanceValue, durationValue) : null;
   const paceLabel = derived ? formatPace(derived.averagePaceSecondsPerKm) : null;
   const speedLabel = derived ? formatSpeedKmh(derived.averageSpeedKmh) : null;
@@ -576,65 +594,21 @@ export function WorkoutSetFormDialog({
                   {cardio && status !== 'SKIPPED' && status !== 'PENDING' ? (
                     <div className="flex flex-col gap-3">
                       <p className="text-sm font-medium">Plus de détails</p>
-                      <label className="flex flex-col gap-1 text-sm">
-                        <span>Fréquence cardiaque (bpm)</span>
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          min={1}
-                          className={fieldClass}
-                          {...register('averageHeartRate', { setValueAs: nullableNumber })}
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1 text-sm">
-                        <span>Inclinaison (%)</span>
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          className={fieldClass}
-                          {...register('inclinePercent', { setValueAs: nullableNumber })}
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1 text-sm">
-                        <span>Résistance</span>
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          min={1}
-                          className={fieldClass}
-                          {...register('resistanceLevel', { setValueAs: nullableNumber })}
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1 text-sm">
-                        <span>Niveau machine</span>
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          min={1}
-                          className={fieldClass}
-                          {...register('machineLevel', { setValueAs: nullableNumber })}
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1 text-sm">
-                        <span>Étages</span>
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          min={0}
-                          className={fieldClass}
-                          {...register('floorsClimbed', { setValueAs: nullableNumber })}
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1 text-sm">
-                        <span>Cadence</span>
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          min={1}
-                          className={fieldClass}
-                          {...register('cadenceSpm', { setValueAs: nullableNumber })}
-                        />
-                      </label>
+                      {visibleCardioMetrics.map((field) => {
+                        const meta = CARDIO_METRIC_INPUTS[field];
+                        return (
+                          <label key={field} className="flex flex-col gap-1 text-sm">
+                            <span>{meta.label}</span>
+                            <input
+                              type="number"
+                              inputMode={meta.inputMode}
+                              min={meta.min}
+                              className={fieldClass}
+                              {...register(field, { setValueAs: nullableNumber })}
+                            />
+                          </label>
+                        );
+                      })}
                     </div>
                   ) : null}
 

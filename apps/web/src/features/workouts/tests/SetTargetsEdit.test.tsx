@@ -46,6 +46,7 @@ function renderPanel(options: { onVersionConflict?: () => void } = {}) {
         sourceExerciseId: 'ex-squat',
         exerciseName: 'Squat',
         measurementType: 'WEIGHT_REPS',
+        cardioType: null,
         primaryMuscleGroupName: 'Quadriceps',
         sourceExerciseArchivedAtCreation: false,
         equipment: { id: 'eq-bar', code: 'barbell', name: 'Barre' },

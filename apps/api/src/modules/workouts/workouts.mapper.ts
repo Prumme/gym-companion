@@ -1,4 +1,5 @@
 import type {
+  CardioType,
   ExerciseMeasurementType,
   WorkoutHistoryListItem,
   WorkoutHistorySetSummary,
@@ -55,6 +56,7 @@ export type WorkoutSessionExerciseSnapshotRow = {
   sourceExerciseId: string | null;
   exerciseNameSnapshot: string;
   measurementTypeSnapshot: ExerciseMeasurementType;
+  cardioTypeSnapshot: CardioType | null;
   primaryMuscleGroupNameSnapshot: string | null;
   sourceExerciseArchivedAtCreation: boolean;
   equipmentTypeId: string | null;
@@ -195,6 +197,7 @@ function toExerciseDetail(row: WorkoutSessionExerciseSnapshotRow): WorkoutSessio
     sourceExerciseId: row.sourceExerciseId,
     exerciseName: row.exerciseNameSnapshot,
     measurementType: row.measurementTypeSnapshot,
+    cardioType: row.cardioTypeSnapshot,
     primaryMuscleGroupName: row.primaryMuscleGroupNameSnapshot,
     sourceExerciseArchivedAtCreation: row.sourceExerciseArchivedAtCreation,
     equipment: {

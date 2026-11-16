@@ -398,6 +398,8 @@ export type WorkoutSessionExerciseDetail = {
   sourceExerciseId: string | null;
   exerciseName: string;
   measurementType: ExerciseMeasurementType;
+  /** Type de cardio figé à la création (null : musculation ou séance antérieure). */
+  cardioType: CardioType | null;
   primaryMuscleGroupName: string | null;
   sourceExerciseArchivedAtCreation: boolean;
   equipment: {

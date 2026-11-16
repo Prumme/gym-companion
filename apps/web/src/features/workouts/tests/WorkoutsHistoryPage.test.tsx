@@ -401,6 +401,7 @@ describe('WorkoutSessionDetailPage historique', () => {
             sourceExerciseId: 'ex-1',
             exerciseName: 'Développé couché',
             measurementType: 'WEIGHT_REPS',
+            cardioType: null,
             primaryMuscleGroupName: 'Pectoraux',
             sourceExerciseArchivedAtCreation: false,
             equipment: { id: 'eq-1', code: 'barbell', name: 'Barre' },

@@ -962,11 +962,12 @@ export function validateWorkoutTemplateSetTargets(
       }
       break;
     case 'DISTANCE_DURATION':
-      if (!hasDistance) {
+      // Cible cardio : distance, durée, ou les deux (ex. « 20 min de course »).
+      if (!hasDistance && !hasDuration) {
         return {
           ok: false,
           code: 'WORKOUT_TEMPLATE_SET_INVALID_TARGET',
-          message: 'Une distance cible est requise pour ce type de mesure.',
+          message: 'Une distance ou une durée cible est requise pour ce type de mesure.',
         };
       }
       if (hasReps) {

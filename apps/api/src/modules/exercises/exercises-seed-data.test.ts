@@ -13,9 +13,12 @@ const MEASUREMENT_TYPES = new Set([
   'ASSISTED_BODYWEIGHT_REPS',
   'REPS_ONLY',
   'DURATION',
+  'DISTANCE',
   'DISTANCE_DURATION',
   'WEIGHT_DURATION',
 ]);
+
+const CARDIO_MEASUREMENT_TYPES = new Set(['DURATION', 'DISTANCE', 'DISTANCE_DURATION']);
 
 const REQUIRED_NAME_SNIPPETS = [
   'Presse à cuisses',
@@ -89,6 +92,44 @@ describe('SYSTEM exercise seed dataset', () => {
       }
       expect(item.compatibleEquipmentCodes.includes(item.defaultEquipmentCode)).toBe(true);
       expect(MEASUREMENT_TYPES.has(item.measurementType)).toBe(true);
+    }
+  });
+
+  it('déclare une catégorie cohérente avec le type de cardio et la mesure', () => {
+    for (const item of SYSTEM_EXERCISE_SEEDS) {
+      if (item.category === 'CARDIO') {
+        expect(item.cardioType, item.slug).not.toBeNull();
+        expect(CARDIO_MEASUREMENT_TYPES.has(item.measurementType), item.slug).toBe(true);
+      } else {
+        expect(item.category, item.slug).toBe('STRENGTH');
+        expect(item.cardioType, item.slug).toBeNull();
+      }
+    }
+  });
+
+  it('couvre course, marche, vélo et rameur en cardio', () => {
+    const cardioTypes = new Set(
+      SYSTEM_EXERCISE_SEEDS.filter((item) => item.category === 'CARDIO').map(
+        (item) => item.cardioType,
+      ),
+    );
+    for (const type of ['RUNNING', 'WALKING', 'TREADMILL', 'CYCLING', 'ROWING']) {
+      expect(cardioTypes.has(type)).toBe(true);
+    }
+  });
+
+  it('livre chaque exercice cardio du JSON dans la migration de données', () => {
+    const migration = readFileSync(
+      resolve(
+        __dirname,
+        '../../../prisma/migrations/20261116200000_seed_cardio_exercises/migration.sql',
+      ),
+      'utf8',
+    );
+    for (const item of SYSTEM_EXERCISE_SEEDS.filter((seed) => seed.category === 'CARDIO')) {
+      expect(migration, item.slug).toContain(
+        `('${item.slug}', '${item.name}', '${normalizeExerciseName(item.name)}', '${item.primaryMuscleCode}', '${item.measurementType}', '${item.cardioType}', '${item.defaultEquipmentCode}', ${item.defaultRestSeconds})`,
+      );
     }
   });
 
