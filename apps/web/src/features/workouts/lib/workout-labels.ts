@@ -85,7 +85,8 @@ export function formatWorkoutSetTargetCompact(
     | 'targetDistanceMeters'
     | 'targetRir'
     | 'targetRpe'
-  >,
+  > &
+    Partial<Pick<WorkoutSessionSetDetail, 'targetSpeedKmh' | 'targetInclinePercent'>>,
 ): string {
   const parts: string[] = [];
 
@@ -109,6 +110,14 @@ export function formatWorkoutSetTargetCompact(
 
   if (set.targetDurationSeconds != null) {
     parts.push(`${set.targetDurationSeconds} s`);
+  }
+
+  if (set.targetSpeedKmh != null) {
+    parts.push(`${new Intl.NumberFormat('fr-FR').format(set.targetSpeedKmh)} km/h`);
+  }
+
+  if (set.targetInclinePercent != null) {
+    parts.push(`${new Intl.NumberFormat('fr-FR').format(set.targetInclinePercent)} %`);
   }
 
   if (set.targetRir != null) {

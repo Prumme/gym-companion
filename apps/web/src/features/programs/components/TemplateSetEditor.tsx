@@ -1,4 +1,5 @@
-import type { ExerciseMeasurementType } from '@gym-companion/shared';
+import type { ExerciseCategory, ExerciseMeasurementType } from '@gym-companion/shared';
+import { workoutSetTypeSchema } from '@gym-companion/validation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -7,7 +8,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-import { WORKOUT_SET_TYPE_OPTIONS } from '../lib/program-labels';
+import { getWorkoutSetTypeOptions } from '../lib/program-labels';
 import {
   measurementNeedsDistance,
   measurementNeedsDuration,
@@ -18,7 +19,7 @@ import {
 
 const setFormSchema = z
   .object({
-    setType: z.enum(['WARMUP', 'WORKING', 'BACKOFF', 'DROP_SET', 'AMRAP', 'FAILURE_OPTIONAL']),
+    setType: workoutSetTypeSchema,
     targetRepMin: z.string(),
     targetRepMax: z.string(),
     targetDurationMinutes: z.string(),
@@ -26,6 +27,8 @@ const setFormSchema = z
     targetDistanceMeters: z.string(),
     targetWeightKg: z.string(),
     targetIntensityPercent: z.string(),
+    targetSpeedKmh: z.string(),
+    targetInclinePercent: z.string(),
     targetRir: z.string(),
     targetRpe: z.string(),
     restSeconds: z.string(),
@@ -45,6 +48,8 @@ type TemplateSetEditorProps = {
   title: string;
   submitLabel: string;
   measurementType: ExerciseMeasurementType;
+  /** Cardio : propose le fractionné et les cibles de vitesse / inclinaison. */
+  category?: ExerciseCategory;
   initialValues: TemplateSetFormValues;
   pending?: boolean;
   submitError?: string | null;
@@ -60,6 +65,7 @@ export function TemplateSetEditor({
   title,
   submitLabel,
   measurementType,
+  category = 'STRENGTH',
   initialValues,
   pending = false,
   submitError = null,
@@ -73,6 +79,8 @@ export function TemplateSetEditor({
   const needsDuration = measurementNeedsDuration(measurementType);
   const needsDistance = measurementNeedsDistance(measurementType);
   const needsWeight = measurementNeedsWeight(measurementType);
+  const isCardio = category === 'CARDIO';
+  const setTypeOptions = getWorkoutSetTypeOptions(category);
 
   const form = useForm<TemplateSetFormValues>({
     resolver: zodResolver(setFormSchema),
@@ -151,7 +159,7 @@ export function TemplateSetEditor({
             <label className="flex flex-col gap-1 text-sm" htmlFor="set-type">
               <span className="font-medium">Type</span>
               <select id="set-type" className={cn(fieldClass, 'text-sm')} {...register('setType')}>
-                {WORKOUT_SET_TYPE_OPTIONS.map((option) => (
+                {setTypeOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -234,6 +242,33 @@ export function TemplateSetEditor({
                   {...register('targetDistanceMeters')}
                 />
               </label>
+            ) : null}
+
+            {isCardio ? (
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex flex-col gap-1 text-sm" htmlFor="set-speed">
+                  <span className="font-medium">Vitesse (km/h)</span>
+                  <input
+                    id="set-speed"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Facultatif"
+                    className={fieldClass}
+                    {...register('targetSpeedKmh')}
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm" htmlFor="set-incline">
+                  <span className="font-medium">Inclinaison (%)</span>
+                  <input
+                    id="set-incline"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Facultatif"
+                    className={fieldClass}
+                    {...register('targetInclinePercent')}
+                  />
+                </label>
+              </div>
             ) : null}
 
             <div className="grid grid-cols-2 gap-3">

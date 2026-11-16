@@ -41,6 +41,8 @@ export type WorkoutTemplateSetRow = {
   targetDistanceMeters: unknown;
   targetWeightKg: unknown;
   targetIntensityPercent: unknown;
+  targetSpeedKmh: unknown;
+  targetInclinePercent: unknown;
   targetRir: number | null;
   targetRpe: unknown;
   restSeconds: number | null;
@@ -58,6 +60,8 @@ export type WorkoutTemplateExerciseRow = {
     source: WorkoutTemplateExerciseRef['source'];
     name: string;
     measurementType: WorkoutTemplateExerciseRef['measurementType'];
+    category: WorkoutTemplateExerciseRef['category'];
+    cardioType: WorkoutTemplateExerciseRef['cardioType'];
     archivedAt: Date | null;
     primaryMuscleGroup: {
       id: string;
@@ -159,6 +163,8 @@ export function toWorkoutTemplateExerciseRef(
     source: exercise.source,
     name: exercise.name,
     measurementType: exercise.measurementType,
+    category: exercise.category,
+    cardioType: exercise.cardioType,
     primaryMuscleGroup: toMuscle(exercise.primaryMuscleGroup),
     defaultEquipmentType: toEquipment(exercise.defaultEquipmentType),
     archivedAt: exercise.archivedAt?.toISOString() ?? null,
@@ -176,6 +182,8 @@ export function toWorkoutTemplateSetTarget(row: WorkoutTemplateSetRow): WorkoutT
     targetDistanceMeters: decimalToNumber(row.targetDistanceMeters),
     targetWeightKg: decimalToNumber(row.targetWeightKg),
     targetIntensityPercent: decimalToNumber(row.targetIntensityPercent),
+    targetSpeedKmh: decimalToNumber(row.targetSpeedKmh),
+    targetInclinePercent: decimalToNumber(row.targetInclinePercent),
     targetRir: row.targetRir,
     targetRpe: decimalToNumber(row.targetRpe),
     restSeconds: row.restSeconds,

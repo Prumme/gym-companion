@@ -52,7 +52,7 @@ describe('Training shares API', () => {
   let userAId: string;
   let systemExerciseId: string;
   let systemExerciseId2: string;
-  let chest: { id: string };
+  let chest: { id: string; name: string };
   let machine: { id: string };
 
   beforeAll(async () => {
@@ -202,18 +202,33 @@ describe('Training shares API', () => {
       .expect(404);
   });
 
-  it('refuse le partage si exercice PERSONAL', async () => {
-    const personal = await prisma.exercise.create({
+  async function createPersonalExercise(name: string) {
+    return prisma.exercise.create({
       data: {
         ownerUserId: userAId,
         source: 'USER',
-        name: `Perso share ${Date.now()}`,
-        normalizedName: `perso share ${Date.now()}`,
+        name,
+        normalizedName: name.toLowerCase(),
         primaryMuscleGroupId: chest.id,
         measurementType: 'WEIGHT_REPS',
         defaultEquipmentTypeId: machine.id,
+        compatibleEquipment: {
+          create: [{ equipmentTypeId: machine.id, isPreferred: true }],
+        },
       },
     });
+  }
+
+  function importAs(token: string, shareToken: string, body = {}) {
+    return request(app.getHttpServer())
+      .post(`/api/v1/shares/${shareToken}/import`)
+      .set('Authorization', `Bearer ${token}`)
+      .send(body);
+  }
+
+  it('partage un programme avec exercice PERSONAL → recréé chez l’importeur, réutilisé ensuite', async () => {
+    const name = `perso share ${Date.now()}`;
+    const personal = await createPersonalExercise(name);
 
     const program = await request(app.getHttpServer())
       .post('/api/v1/programs')
@@ -240,11 +255,158 @@ describe('Training shares API', () => {
       })
       .expect(201);
 
+    const shared = await request(app.getHttpServer())
+      .post(`/api/v1/programs/${programId}/share`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(201);
+    const shareToken = shared.body.data.token as string;
+
+    const preview = await request(app.getHttpServer())
+      .get(`/api/v1/shares/${shareToken}`)
+      .expect(200);
+    const previewExercise = preview.body.data.preview.workouts[0].exercises[0];
+    expect(previewExercise).toMatchObject({
+      exerciseId: null,
+      name,
+      isPersonal: true,
+    });
+
+    const first = await importAs(tokenB, shareToken).expect(201);
+    const importedProgram = await prisma.program.findUniqueOrThrow({
+      where: { id: first.body.data.programId },
+      include: {
+        workoutTemplates: { include: { exercises: { include: { exercise: true } } } },
+      },
+    });
+    const importedExercise = importedProgram.workoutTemplates[0]!.exercises[0]!.exercise;
+    expect(importedExercise.id).not.toBe(personal.id);
+    expect(importedExercise.source).toBe('USER');
+    expect(importedExercise.ownerUserId).toBe(importedProgram.ownerUserId);
+    expect(importedExercise.name).toBe(name);
+    expect(importedExercise.defaultEquipmentTypeId).toBe(machine.id);
+
+    const second = await importAs(tokenB, shareToken).expect(201);
+    const secondProgram = await prisma.program.findUniqueOrThrow({
+      where: { id: second.body.data.programId },
+      include: { workoutTemplates: { include: { exercises: true } } },
+    });
+    expect(secondProgram.workoutTemplates[0]!.exercises[0]!.exerciseId).toBe(importedExercise.id);
+    expect(
+      await prisma.exercise.count({
+        where: { ownerUserId: importedProgram.ownerUserId, name },
+      }),
+    ).toBe(1);
+
+    const ownImport = await importAs(tokenA, shareToken).expect(201);
+    const ownProgram = await prisma.program.findUniqueOrThrow({
+      where: { id: ownImport.body.data.programId },
+      include: { workoutTemplates: { include: { exercises: true } } },
+    });
+    expect(ownProgram.workoutTemplates[0]!.exercises[0]!.exerciseId).toBe(personal.id);
+  });
+
+  it('refuse le partage d’un programme avec exercice PERSONAL archivé', async () => {
+    const personal = await createPersonalExercise(`perso archive ${Date.now()}`);
+    const { programId } = await createProgramWithWorkout(tokenA, 'Archivé');
+    const detail = await request(app.getHttpServer())
+      .get(`/api/v1/programs/${programId}`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    const templateId = detail.body.data.workoutTemplates[0].id as string;
+    await request(app.getHttpServer())
+      .post(`/api/v1/programs/${programId}/workout-templates/${templateId}/exercises`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({
+        exerciseId: personal.id,
+        equipmentTypeId: null,
+        restSecondsOverride: null,
+        notes: null,
+      })
+      .expect(201);
+    await prisma.exercise.update({
+      where: { id: personal.id },
+      data: { archivedAt: new Date() },
+    });
+
     const refused = await request(app.getHttpServer())
       .post(`/api/v1/programs/${programId}/share`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(400);
-    expect(refused.body.error.code).toBe('TRAINING_SHARE_PERSONAL_EXERCISE');
+    expect(refused.body.error.code).toBe('TRAINING_SHARE_PERSONAL_EXERCISE_UNAVAILABLE');
+  });
+
+  it('partage d’un exercice personnel → preview publique, import = copie chez B', async () => {
+    const name = `exo partage ${Date.now()}`;
+    const personal = await createPersonalExercise(name);
+
+    const shared = await request(app.getHttpServer())
+      .post(`/api/v1/exercises/${personal.id}/share`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(201);
+    expect(shared.body.data.kind).toBe('EXERCISE');
+    const shareToken = shared.body.data.token as string;
+
+    const preview = await request(app.getHttpServer())
+      .get(`/api/v1/shares/${shareToken}`)
+      .expect(200);
+    expect(preview.body.data.preview).toMatchObject({
+      kind: 'EXERCISE',
+      name,
+      measurementType: 'WEIGHT_REPS',
+      category: 'STRENGTH',
+      primaryMuscleGroupName: chest.name,
+    });
+
+    await importAs(tokenB, shareToken, {
+      destination: { type: 'NEW_PROGRAM', programName: 'Interdit' },
+    }).expect(400);
+
+    const imported = await importAs(tokenB, shareToken).expect(201);
+    expect(imported.body.data).toMatchObject({
+      kind: 'EXERCISE',
+      programId: null,
+      workoutTemplateId: null,
+    });
+    const copy = await prisma.exercise.findUniqueOrThrow({
+      where: { id: imported.body.data.exerciseId },
+      include: { compatibleEquipment: true },
+    });
+    expect(copy.id).not.toBe(personal.id);
+    expect(copy.ownerUserId).not.toBe(userAId);
+    expect(copy.source).toBe('USER');
+    expect(copy.compatibleEquipment).toHaveLength(1);
+
+    const visibleToB = await request(app.getHttpServer())
+      .get(`/api/v1/exercises/${copy.id}`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .expect(200);
+    expect(visibleToB.body.data.name).toBe(name);
+
+    const ownImport = await importAs(tokenA, shareToken).expect(201);
+    expect(ownImport.body.data.exerciseId).toBe(personal.id);
+  });
+
+  it('partage d’exercice refusé : non-owner, SYSTEM, archivé', async () => {
+    const personal = await createPersonalExercise(`exo refus ${Date.now()}`);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/exercises/${personal.id}/share`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .expect(404);
+    await request(app.getHttpServer())
+      .post(`/api/v1/exercises/${systemExerciseId}/share`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(404);
+
+    await prisma.exercise.update({
+      where: { id: personal.id },
+      data: { archivedAt: new Date() },
+    });
+    const archived = await request(app.getHttpServer())
+      .post(`/api/v1/exercises/${personal.id}/share`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(400);
+    expect(archived.body.error.code).toBe('TRAINING_SHARE_EXERCISE_ARCHIVED');
   });
 
   it('preview public + import programme (copie DRAFT, source inchangé)', async () => {

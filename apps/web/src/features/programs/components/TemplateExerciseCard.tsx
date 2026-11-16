@@ -3,7 +3,12 @@ import type {
   WorkoutTemplateExerciseDetail,
   WorkoutTemplateSetTarget,
 } from '@gym-companion/shared';
-import { Plus } from 'lucide-react';
+import {
+  buildIntervalTemplateSets,
+  summarizeIntervalSets,
+  type IntervalPlan,
+} from '@gym-companion/validation';
+import { Plus, Timer } from 'lucide-react';
 import { useState } from 'react';
 
 import { LoadRecommendationCard } from '@/features/coaching/components/LoadRecommendationCard';
@@ -27,6 +32,7 @@ import {
 } from '../lib/template-forms';
 import { ConfirmDialog } from './ConfirmDialog';
 import { ContextMenu } from './ContextMenu';
+import { IntervalBuilderSheet } from './IntervalBuilderSheet';
 import { TargetSetRow } from './TargetSetRow';
 import { TemplateExerciseForm } from './TemplateExerciseForm';
 import { TemplateSetEditor } from './TemplateSetEditor';
@@ -85,6 +91,10 @@ export function TemplateExerciseCard({
   );
   const [error, setError] = useState<string | null>(null);
   const [deleteSetId, setDeleteSetId] = useState<string | null>(null);
+  const [intervalOpen, setIntervalOpen] = useState(false);
+  const [intervalError, setIntervalError] = useState<string | null>(null);
+  const isCardio = exercise.exercise.category === 'CARDIO';
+  const intervalSummary = summarizeIntervalSets(exercise.sets);
 
   const isArchivedSource = exercise.exercise.archivedAt != null;
   const reorderPending = busy || mutations.reorderExercises.isPending;
@@ -208,6 +218,29 @@ export function TemplateExerciseCard({
     }
   }
 
+  function openIntervalBuilder() {
+    setIntervalError(null);
+    setIntervalOpen(true);
+  }
+
+  async function handleCreateIntervals(plan: IntervalPlan) {
+    setIntervalError(null);
+    try {
+      await mutations.replaceSets.mutateAsync({
+        programId,
+        workoutTemplateId,
+        templateExerciseId: exercise.id,
+        input: { sets: buildIntervalTemplateSets(plan) },
+      });
+      setIntervalOpen(false);
+      onStatus('Fractionné créé.');
+    } catch (err) {
+      setIntervalError(
+        getApiErrorMessage(err, 'Impossible de créer ce fractionné.'),
+      );
+    }
+  }
+
   async function handleDeleteSet() {
     if (!deleteSetId) {
       return;
@@ -286,6 +319,9 @@ export function TemplateExerciseCard({
             {exercise.sets.length} série
             {exercise.sets.length === 1 ? '' : 's'}
           </p>
+          {intervalSummary ? (
+            <p className="mt-0.5 text-sm font-medium">{intervalSummary}</p>
+          ) : null}
           {exercise.notes ? (
             <p className="mt-1 text-sm text-[var(--muted)]">{exercise.notes}</p>
           ) : null}
@@ -323,6 +359,14 @@ export function TemplateExerciseCard({
                 label: 'Ajouter une série',
                 onSelect: () => openCreateSet(false),
               },
+              ...(isCardio
+                ? [
+                    {
+                      label: 'Créer un fractionné',
+                      onSelect: () => openIntervalBuilder(),
+                    },
+                  ]
+                : []),
               ...(exercise.sets.length > 0
                 ? [
                     {
@@ -397,6 +441,26 @@ export function TemplateExerciseCard({
           Ajouter une série
         </button>
       ) : null}
+      {!readOnly && isCardio ? (
+        <button
+          type="button"
+          className="mt-2 ml-4 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)]"
+          onClick={openIntervalBuilder}
+        >
+          <Timer className="size-4" aria-hidden="true" />
+          Créer un fractionné
+        </button>
+      ) : null}
+
+      <IntervalBuilderSheet
+        open={intervalOpen}
+        exerciseName={exercise.exercise.name}
+        existingSetCount={exercise.sets.length}
+        pending={mutations.replaceSets.isPending}
+        submitError={intervalError}
+        onSubmit={handleCreateIntervals}
+        onCancel={() => setIntervalOpen(false)}
+      />
 
       <TemplateExerciseForm
         open={editOpen}
@@ -416,6 +480,7 @@ export function TemplateExerciseCard({
         title={editingSet ? 'Modifier la série' : 'Ajouter une série'}
         submitLabel={editingSet ? 'Enregistrer' : 'Ajouter la série'}
         measurementType={exercise.exercise.measurementType}
+        category={exercise.exercise.category}
         initialValues={setFormValues}
         pending={mutations.createSet.isPending || mutations.updateSet.isPending}
         submitError={error}

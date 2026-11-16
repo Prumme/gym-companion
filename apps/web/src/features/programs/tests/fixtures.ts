@@ -47,6 +47,8 @@ export function createSet(
     targetDistanceMeters: null,
     targetWeightKg: null,
     targetIntensityPercent: null,
+    targetSpeedKmh: null,
+    targetInclinePercent: null,
     targetRir: 2,
     targetRpe: null,
     restSeconds: 120,
@@ -67,6 +69,8 @@ export function createTemplateExercise(
       source: 'SYSTEM',
       name: 'Développé couché',
       measurementType: 'WEIGHT_REPS',
+      category: 'STRENGTH',
+      cardioType: null,
       primaryMuscleGroup: {
         id: 'mg-1',
         code: 'chest',

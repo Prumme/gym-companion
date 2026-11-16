@@ -217,6 +217,8 @@ describe('Program builder exercises and sets', () => {
                 source: 'SYSTEM',
                 name: 'Rowing barre',
                 measurementType: 'WEIGHT_REPS',
+                category: 'STRENGTH',
+                cardioType: null,
                 primaryMuscleGroup: catalogExercise.primaryMuscleGroup,
                 defaultEquipmentType: catalogExercise.defaultEquipmentType,
                 archivedAt: null,
@@ -376,6 +378,8 @@ describe('Program builder exercises and sets', () => {
                 source: 'SYSTEM',
                 name: 'Élévations latérales',
                 measurementType: 'WEIGHT_REPS',
+                category: 'STRENGTH',
+                cardioType: null,
                 primaryMuscleGroup: {
                   id: 'mg-2',
                   code: 'shoulders',

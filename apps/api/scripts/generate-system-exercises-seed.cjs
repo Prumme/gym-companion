@@ -43,8 +43,22 @@ const MEASUREMENTS = new Set([
   'ASSISTED_BODYWEIGHT_REPS',
   'REPS_ONLY',
   'DURATION',
+  'DISTANCE',
   'DISTANCE_DURATION',
   'WEIGHT_DURATION',
+]);
+
+const CARDIO_MEASUREMENTS = new Set(['DURATION', 'DISTANCE', 'DISTANCE_DURATION']);
+
+const CARDIO_TYPES = new Set([
+  'RUNNING',
+  'WALKING',
+  'TREADMILL',
+  'CYCLING',
+  'ROWING',
+  'STAIR_CLIMBING',
+  'ELLIPTICAL',
+  'OTHER',
 ]);
 
 function normalize(name) {
@@ -75,6 +89,8 @@ function add(e) {
     primaryMuscleCode: e.primary,
     secondaryMuscleCodes: secondary,
     measurementType: mt,
+    category: e.cardio ? 'CARDIO' : 'STRENGTH',
+    cardioType: e.cardio ?? null,
     defaultEquipmentCode: e.eq,
     compatibleEquipmentCodes: comp,
     defaultRestSeconds: rest,
@@ -1509,6 +1525,110 @@ add({
   rest: 60,
 });
 
+// ——— CARDIO ———
+// `cardio` = CardioType ; mesure distance + durée par défaut (la cible de
+// séance peut ne porter que la durée).
+add({
+  slug: 'course-exterieur',
+  name: 'Course à pied (extérieur)',
+  primary: 'quadriceps',
+  secondary: ['hamstrings', 'calves', 'glutes'],
+  eq: 'bodyweight',
+  mt: 'DISTANCE_DURATION',
+  cardio: 'RUNNING',
+  rest: 60,
+});
+add({
+  slug: 'course-tapis',
+  name: 'Course sur tapis',
+  primary: 'quadriceps',
+  secondary: ['hamstrings', 'calves', 'glutes'],
+  eq: 'cardio-machine',
+  mt: 'DISTANCE_DURATION',
+  cardio: 'TREADMILL',
+  rest: 60,
+});
+add({
+  slug: 'marche-exterieur',
+  name: 'Marche (extérieur)',
+  primary: 'quadriceps',
+  secondary: ['calves', 'glutes'],
+  eq: 'bodyweight',
+  mt: 'DISTANCE_DURATION',
+  cardio: 'WALKING',
+  rest: 60,
+});
+add({
+  slug: 'marche-inclinee-tapis',
+  name: 'Marche inclinée sur tapis',
+  primary: 'glutes',
+  secondary: ['hamstrings', 'calves'],
+  eq: 'cardio-machine',
+  mt: 'DISTANCE_DURATION',
+  cardio: 'TREADMILL',
+  rest: 60,
+});
+add({
+  slug: 'velo-exterieur',
+  name: 'Vélo (extérieur)',
+  primary: 'quadriceps',
+  secondary: ['glutes', 'calves'],
+  eq: 'other',
+  mt: 'DISTANCE_DURATION',
+  cardio: 'CYCLING',
+  rest: 60,
+});
+add({
+  slug: 'velo-appartement',
+  name: 'Vélo d’appartement',
+  primary: 'quadriceps',
+  secondary: ['glutes', 'calves'],
+  eq: 'cardio-machine',
+  mt: 'DISTANCE_DURATION',
+  cardio: 'CYCLING',
+  rest: 60,
+});
+add({
+  slug: 'velo-elliptique',
+  name: 'Vélo elliptique',
+  primary: 'quadriceps',
+  secondary: ['glutes', 'hamstrings'],
+  eq: 'cardio-machine',
+  mt: 'DISTANCE_DURATION',
+  cardio: 'ELLIPTICAL',
+  rest: 60,
+});
+add({
+  slug: 'rameur',
+  name: 'Rameur',
+  primary: 'back',
+  secondary: ['quadriceps', 'hamstrings', 'glutes'],
+  eq: 'cardio-machine',
+  mt: 'DISTANCE_DURATION',
+  cardio: 'ROWING',
+  rest: 60,
+});
+add({
+  slug: 'simulateur-escaliers',
+  name: 'Simulateur d’escaliers',
+  primary: 'glutes',
+  secondary: ['quadriceps', 'calves'],
+  eq: 'cardio-machine',
+  mt: 'DURATION',
+  cardio: 'STAIR_CLIMBING',
+  rest: 60,
+});
+add({
+  slug: 'corde-a-sauter',
+  name: 'Corde à sauter',
+  primary: 'calves',
+  secondary: ['quadriceps', 'shoulders'],
+  eq: 'other',
+  mt: 'DURATION',
+  cardio: 'OTHER',
+  rest: 60,
+});
+
 // Validate
 const slugSet = new Set();
 const normSet = new Set();
@@ -1535,6 +1655,16 @@ for (const ex of exercises) {
   }
   if (!ex.compatibleEquipmentCodes.includes(ex.defaultEquipmentCode)) {
     throw new Error(`default not in compatible: ${ex.slug}`);
+  }
+  if (ex.category === 'CARDIO') {
+    if (!CARDIO_TYPES.has(ex.cardioType)) {
+      throw new Error(`Bad cardioType ${ex.cardioType} on ${ex.slug}`);
+    }
+    if (!CARDIO_MEASUREMENTS.has(ex.measurementType)) {
+      throw new Error(`Cardio needs a cardio measurement: ${ex.slug}`);
+    }
+  } else if (ex.cardioType !== null) {
+    throw new Error(`cardioType on non-cardio exercise: ${ex.slug}`);
   }
 }
 

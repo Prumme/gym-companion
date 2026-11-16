@@ -13,6 +13,7 @@ import type {
   ReorderWorkoutTemplateExercisesInput,
   ReorderWorkoutTemplatesInput,
   ReorderWorkoutTemplateSetsInput,
+  ReplaceWorkoutTemplateSetsInput,
   ReplaceProgramScheduleInput,
   UpdateProgramInput,
   UpdateWorkoutTemplateExerciseInput,
@@ -316,6 +317,23 @@ export async function deleteWorkoutTemplateSet(
   const response = await apiFetch<{ data: ProgramDetail }>(
     `/api/v1/programs/${encodeURIComponent(programId)}/workout-templates/${encodeURIComponent(workoutTemplateId)}/exercises/${encodeURIComponent(templateExerciseId)}/sets/${encodeURIComponent(setId)}`,
     { method: 'DELETE' },
+  );
+  return response.data;
+}
+
+/** Remplace toutes les séries cibles d’un exercice (ex. fractionné généré). */
+export async function replaceWorkoutTemplateSets(
+  programId: string,
+  workoutTemplateId: string,
+  templateExerciseId: string,
+  input: ReplaceWorkoutTemplateSetsInput,
+): Promise<ProgramDetail> {
+  const response = await apiFetch<{ data: ProgramDetail }>(
+    `/api/v1/programs/${encodeURIComponent(programId)}/workout-templates/${encodeURIComponent(workoutTemplateId)}/exercises/${encodeURIComponent(templateExerciseId)}/sets`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    },
   );
   return response.data;
 }

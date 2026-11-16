@@ -31,6 +31,7 @@ function renderPanel(sourceExerciseId: string | null) {
         sourceExerciseId,
         exerciseName: 'Leg Extension',
         measurementType: 'WEIGHT_REPS',
+        cardioType: null,
         primaryMuscleGroupName: 'Quadriceps',
         sourceExerciseArchivedAtCreation: false,
         equipment: { id: 'eq-1', code: 'machine', name: 'Machine' },

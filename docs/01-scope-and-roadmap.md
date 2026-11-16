@@ -218,6 +218,15 @@ La phase est terminée lorsque :
 - il peut archiver un exercice sans supprimer les futurs historiques associés ;
 - les exercices système restent protégés contre les modifications utilisateur.
 
+### 4.x Évolution — cardio et partage d’exercices perso (livré, novembre 2026)
+
+- Catalogue SYSTEM cardio (course, marche, vélo, rameur, elliptique, escaliers, corde) livré par migration de données idempotente.
+- Fractionné cardio par séries `INTERVAL_WORK` / `INTERVAL_RECOVERY` avec vitesse et inclinaison cibles, assistant « Créer un fractionné » et chrono guidé en séance.
+- Métriques cardio facultatives adaptées au type d’activité.
+- Partage d’un exercice personnel par lien ; programmes et séances partageables même s’ils utilisent des exercices perso (recréés ou réutilisés à l’import).
+
+Règles : `docs/04-business-rules.md` §4.1, §4.1.1 et §15.4.
+
 ## 5. Phase 2 — Programmes et modèles de séance
 
 > Statut : **terminée**.
@@ -961,7 +970,8 @@ Fonctionnalités envisageables après validation des usages principaux :
 - import depuis d’autres applications ;
 - application native si une limite PWA le justifie ;
 - cleanup périodique des `TrainingShareLink` expirés ;
-- partage d’exercices PERSONAL (copie explicite) dans un lien.
+- supersets et circuits (blocs de séance) ;
+- fractionné et vitesse cible dans le JSON d’import IA (`docs/16-ai-program-import.md`).
 
 ## 13. Priorités transversales
 

@@ -1,4 +1,5 @@
 import type {
+  CardioType,
   ExerciseMeasurementType,
   WorkoutHistoryListItem,
   WorkoutHistorySetSummary,
@@ -28,6 +29,8 @@ export type WorkoutSetSnapshotRow = {
   targetDurationSeconds: number | null;
   targetDistanceMeters: unknown;
   targetIntensityPercent: unknown;
+  targetSpeedKmh: unknown;
+  targetInclinePercent: unknown;
   targetRir: number | null;
   targetRpe: unknown;
   targetRestSeconds: number | null;
@@ -55,6 +58,7 @@ export type WorkoutSessionExerciseSnapshotRow = {
   sourceExerciseId: string | null;
   exerciseNameSnapshot: string;
   measurementTypeSnapshot: ExerciseMeasurementType;
+  cardioTypeSnapshot: CardioType | null;
   primaryMuscleGroupNameSnapshot: string | null;
   sourceExerciseArchivedAtCreation: boolean;
   equipmentTypeId: string | null;
@@ -164,6 +168,8 @@ export function toWorkoutSetDetail(row: WorkoutSetSnapshotRow): WorkoutSessionSe
     targetDurationSeconds: row.targetDurationSeconds,
     targetDistanceMeters: decimalToNumber(row.targetDistanceMeters),
     targetIntensityPercent: decimalToNumber(row.targetIntensityPercent),
+    targetSpeedKmh: decimalToNumber(row.targetSpeedKmh),
+    targetInclinePercent: decimalToNumber(row.targetInclinePercent),
     targetRir: row.targetRir,
     targetRpe: decimalToNumber(row.targetRpe),
     targetRestSeconds: row.targetRestSeconds,
@@ -195,6 +201,7 @@ function toExerciseDetail(row: WorkoutSessionExerciseSnapshotRow): WorkoutSessio
     sourceExerciseId: row.sourceExerciseId,
     exerciseName: row.exerciseNameSnapshot,
     measurementType: row.measurementTypeSnapshot,
+    cardioType: row.cardioTypeSnapshot,
     primaryMuscleGroupName: row.primaryMuscleGroupNameSnapshot,
     sourceExerciseArchivedAtCreation: row.sourceExerciseArchivedAtCreation,
     equipment: {

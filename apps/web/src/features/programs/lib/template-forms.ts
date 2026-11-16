@@ -129,6 +129,8 @@ export type TemplateSetFormValues = {
   targetDistanceMeters: string;
   targetWeightKg: string;
   targetIntensityPercent: string;
+  targetSpeedKmh: string;
+  targetInclinePercent: string;
   targetRir: string;
   targetRpe: string;
   restSeconds: string;
@@ -153,6 +155,8 @@ export function emptySetFormValues(
     targetDistanceMeters: measurementType === 'DISTANCE_DURATION' ? '1000' : '',
     targetWeightKg: '',
     targetIntensityPercent: '',
+    targetSpeedKmh: '',
+    targetInclinePercent: '',
     targetRir: '',
     targetRpe: '',
     restSeconds: '90',
@@ -173,6 +177,9 @@ export function setDetailToFormValues(set: WorkoutTemplateSetTarget): TemplateSe
     targetWeightKg: set.targetWeightKg != null ? String(set.targetWeightKg) : '',
     targetIntensityPercent:
       set.targetIntensityPercent != null ? String(set.targetIntensityPercent) : '',
+    targetSpeedKmh: set.targetSpeedKmh != null ? String(set.targetSpeedKmh) : '',
+    targetInclinePercent:
+      set.targetInclinePercent != null ? String(set.targetInclinePercent) : '',
     targetRir: set.targetRir != null ? String(set.targetRir) : '',
     targetRpe: set.targetRpe != null ? String(set.targetRpe) : '',
     restSeconds: set.restSeconds != null ? String(set.restSeconds) : '',
@@ -213,6 +220,8 @@ export function setFormToPayload(values: TemplateSetFormValues): CreateWorkoutTe
     targetDistanceMeters: parseOptionalNumber(values.targetDistanceMeters),
     targetWeightKg: parseOptionalNumber(values.targetWeightKg),
     targetIntensityPercent: parseOptionalNumber(values.targetIntensityPercent),
+    targetSpeedKmh: parseOptionalNumber(values.targetSpeedKmh.replace(',', '.')),
+    targetInclinePercent: parseOptionalNumber(values.targetInclinePercent.replace(',', '.')),
     targetRir: parseOptionalInt(values.targetRir),
     targetRpe: parseOptionalNumber(values.targetRpe),
     restSeconds: parseOptionalInt(values.restSeconds),
@@ -244,6 +253,12 @@ export function formatSetSummary(set: WorkoutTemplateSetTarget): string {
   if (set.targetDistanceMeters != null) {
     parts.push(`${set.targetDistanceMeters} m`);
   }
+  if (set.targetSpeedKmh != null) {
+    parts.push(`${set.targetSpeedKmh} km/h`);
+  }
+  if (set.targetInclinePercent != null) {
+    parts.push(`inclinaison ${set.targetInclinePercent} %`);
+  }
   if (set.targetWeightKg != null) {
     parts.push(`${set.targetWeightKg} kg`);
   }
@@ -266,8 +281,14 @@ export function formatSetSummary(set: WorkoutTemplateSetTarget): string {
  */
 export type SetTargetSummaryFields = Omit<
   WorkoutTemplateSetTarget,
-  'id' | 'position' | 'createdAt' | 'updatedAt'
->;
+  | 'id'
+  | 'position'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'targetSpeedKmh'
+  | 'targetInclinePercent'
+> &
+  Partial<Pick<WorkoutTemplateSetTarget, 'targetSpeedKmh' | 'targetInclinePercent'>>;
 
 /** Résumé compact pour TargetSetRow (Program Builder) et CoachProposalCard. */
 export function formatSetSummaryCompact(set: SetTargetSummaryFields): {
@@ -287,6 +308,12 @@ export function formatSetSummaryCompact(set: SetTargetSummaryFields): {
   }
   if (set.targetDistanceMeters != null) {
     primaryParts.push(`${set.targetDistanceMeters} m`);
+  }
+  if (set.targetSpeedKmh != null) {
+    primaryParts.push(`${set.targetSpeedKmh} km/h`);
+  }
+  if (set.targetInclinePercent != null) {
+    primaryParts.push(`${set.targetInclinePercent} %`);
   }
 
   const secondaryParts: string[] = [];

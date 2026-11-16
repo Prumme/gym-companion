@@ -7,6 +7,7 @@ import {
   suggestProgramNameFromWorkoutTemplate,
   trainingShareSnapshotSchema,
   importTrainingShareDestinationSchema,
+  sharedTemplateExerciseSchema,
 } from './training-share';
 
 describe('training-share schemas', () => {
@@ -110,5 +111,101 @@ describe('training-share schemas', () => {
         programId: exerciseId,
       }).type,
     ).toBe('EXISTING_PROGRAM');
+  });
+
+  describe('exercices personnels', () => {
+    const muscleId = '22222222-2222-2222-2222-222222222222';
+    const definition = {
+      key: 'p1',
+      name: 'Tapis course/marche',
+      measurementType: 'DURATION' as const,
+      category: 'CARDIO' as const,
+      cardioType: 'TREADMILL' as const,
+      primaryMuscleGroupId: muscleId,
+      secondaryMuscleGroupIds: [],
+      defaultEquipmentTypeId: null,
+      compatibleEquipmentTypes: [],
+      defaultRestSeconds: null,
+      instructions: null,
+    };
+    const personalExercise = {
+      exerciseId: null,
+      personalExerciseKey: 'p1',
+      equipmentTypeId: null,
+      notes: null,
+      restSecondsOverride: null,
+      sets: [],
+    };
+    const workout = (exercises: unknown[]) => ({
+      version: 1,
+      kind: 'WORKOUT_TEMPLATE',
+      name: 'Cardio',
+      description: null,
+      estimatedDurationMinutes: 30,
+      exercises,
+    });
+
+    it('accepte un snapshot d’exercice', () => {
+      const parsed = trainingShareSnapshotSchema.parse({
+        version: 1,
+        kind: 'EXERCISE',
+        exercise: definition,
+      });
+      expect(parsed.kind).toBe('EXERCISE');
+    });
+
+    it('accepte un ancien snapshot sans personalExercises', () => {
+      const parsed = trainingShareSnapshotSchema.parse(
+        workout([
+          {
+            exerciseId,
+            equipmentTypeId: null,
+            notes: null,
+            restSecondsOverride: null,
+            sets: [set],
+          },
+        ]),
+      );
+      expect(parsed.kind).toBe('WORKOUT_TEMPLATE');
+    });
+
+    it('accepte une séance qui référence un exercice personnel décrit', () => {
+      const parsed = trainingShareSnapshotSchema.parse({
+        ...workout([personalExercise]),
+        personalExercises: [definition],
+      });
+      expect(parsed.kind).toBe('WORKOUT_TEMPLATE');
+    });
+
+    it('exige exactement une référence par exercice', () => {
+      expect(() =>
+        sharedTemplateExerciseSchema.parse({
+          ...personalExercise,
+          exerciseId,
+        }),
+      ).toThrow();
+      expect(() =>
+        sharedTemplateExerciseSchema.parse({
+          ...personalExercise,
+          personalExerciseKey: null,
+        }),
+      ).toThrow();
+    });
+
+    it('refuse une clé non décrite, en double ou inutilisée', () => {
+      expect(() => trainingShareSnapshotSchema.parse(workout([personalExercise]))).toThrow();
+      expect(() =>
+        trainingShareSnapshotSchema.parse({
+          ...workout([personalExercise]),
+          personalExercises: [definition, definition],
+        }),
+      ).toThrow();
+      expect(() =>
+        trainingShareSnapshotSchema.parse({
+          ...workout([]),
+          personalExercises: [definition],
+        }),
+      ).toThrow();
+    });
   });
 });

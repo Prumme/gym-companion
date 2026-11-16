@@ -21,6 +21,7 @@ describe('workout JSON export', () => {
           sourceExerciseId: 'ex-press',
           exerciseName: 'Développé couché',
           measurementType: 'WEIGHT_REPS',
+          cardioType: null,
           primaryMuscleGroupName: 'Pectoraux',
           sourceExerciseArchivedAtCreation: false,
           equipment: { id: 'eq-1', code: 'BARBELL', name: 'Barre' },

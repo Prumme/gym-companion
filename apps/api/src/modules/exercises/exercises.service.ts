@@ -26,6 +26,7 @@ import {
 import type { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../database/prisma/prisma.service';
+import { assertExerciseRelations, buildUserExerciseCreateData } from './user-exercise-writer';
 import {
   toExerciseDetail,
   toExerciseListItem,
@@ -311,32 +312,7 @@ export class ExercisesService {
 
     const created = await this.prisma.$transaction(async (tx) => {
       const exercise = await tx.exercise.create({
-        data: {
-          source: 'USER',
-          ownerUserId: userId,
-          name: data.name.trim(),
-          normalizedName: normalizeExerciseName(data.name),
-          slug: null,
-          primaryMuscleGroupId: data.primaryMuscleGroupId,
-          measurementType: data.measurementType,
-          category: data.category,
-          cardioType: data.category === 'CARDIO' ? (data.cardioType ?? null) : null,
-          defaultEquipmentTypeId: data.defaultEquipmentTypeId ?? null,
-          defaultRestSeconds: data.defaultRestSeconds ?? null,
-          instructions: data.instructions ?? null,
-          secondaryMuscles: {
-            create: data.secondaryMuscleGroupIds.map((muscleGroupId) => ({
-              muscleGroupId,
-            })),
-          },
-          compatibleEquipment: {
-            create: data.compatibleEquipmentTypes.map((item) => ({
-              equipmentTypeId: item.equipmentTypeId,
-              isPreferred: item.isPreferred,
-              notes: item.notes ?? null,
-            })),
-          },
-        },
+        data: buildUserExerciseCreateData(userId, data),
         include: {
           ...exerciseDetailIncludeBase,
           ...preferenceIncludeForUser(userId),
@@ -547,56 +523,7 @@ export class ExercisesService {
   }
 
   private async assertRelations(data: CreateExerciseInput) {
-    const primary = await this.prisma.muscleGroup.findFirst({
-      where: { id: data.primaryMuscleGroupId, isActive: true },
-    });
-    if (!primary) {
-      throw new BadRequestException({
-        code: 'EXERCISE_INVALID_PRIMARY_MUSCLE',
-        message: 'Groupe musculaire principal invalide.',
-      });
-    }
-
-    if (data.secondaryMuscleGroupIds.length > 0) {
-      const secondaries = await this.prisma.muscleGroup.findMany({
-        where: {
-          id: { in: data.secondaryMuscleGroupIds },
-          isActive: true,
-        },
-      });
-      if (secondaries.length !== data.secondaryMuscleGroupIds.length) {
-        throw new BadRequestException({
-          code: 'EXERCISE_INVALID_SECONDARY_MUSCLE',
-          message: 'Un ou plusieurs groupes secondaires sont invalides.',
-        });
-      }
-      if (data.secondaryMuscleGroupIds.includes(data.primaryMuscleGroupId)) {
-        throw new BadRequestException({
-          code: 'EXERCISE_DUPLICATE_SECONDARY_MUSCLE',
-          message: 'Le groupe principal ne peut pas être secondaire.',
-        });
-      }
-    }
-
-    const equipmentIds = data.compatibleEquipmentTypes.map((item) => item.equipmentTypeId);
-    if (equipmentIds.length > 0) {
-      const types = await this.prisma.equipmentType.findMany({
-        where: { id: { in: equipmentIds }, isActive: true },
-      });
-      if (types.length !== equipmentIds.length) {
-        throw new BadRequestException({
-          code: 'EXERCISE_INVALID_EQUIPMENT_TYPE',
-          message: 'Un ou plusieurs types d’équipement sont invalides.',
-        });
-      }
-    }
-
-    if (data.defaultEquipmentTypeId && !equipmentIds.includes(data.defaultEquipmentTypeId)) {
-      throw new BadRequestException({
-        code: 'EXERCISE_DEFAULT_EQUIPMENT_NOT_COMPATIBLE',
-        message: 'L’équipement par défaut doit être compatible.',
-      });
-    }
+    await assertExerciseRelations(this.prisma, data);
   }
 }
 

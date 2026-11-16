@@ -7,6 +7,7 @@ import { LoadingState } from '@/components/common/LoadingState';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { ButtonLink } from '@/components/ui/button';
 import { ExercisePersonalRecordsSection } from '@/features/personal-records/components/ExercisePersonalRecordsSection';
+import { ExerciseShareButton } from '@/features/training-shares/components/ExerciseShareButton';
 import { getApiErrorMessage, type ApiRequestError } from '@/lib/api/client';
 
 import { exerciseDetailQueryOptions } from '../api/exercise-query-options';
@@ -75,6 +76,8 @@ export function ExerciseDetailPage() {
   const favoritePending =
     updatePreference.isPending && updatePreference.variables?.exerciseId === exercise.id;
   const hasInstructions = Boolean(exercise.instructions?.trim());
+  const canShare =
+    exercise.source === 'USER' && exercise.permissions.canEdit && exercise.archivedAt == null;
   const restSeconds = preference.restSecondsOverride ?? exercise.defaultRestSeconds;
   const equipmentName =
     preference.preferredEquipmentType?.name ??
@@ -107,6 +110,7 @@ export function ExerciseDetailPage() {
         actions={
           <div className="flex items-center gap-1">
             <ExerciseMediaButton exerciseName={exercise.name} media={exercise.media} />
+            {canShare ? <ExerciseShareButton exerciseId={exercise.id} /> : null}
             <ExerciseFavoriteButton
               preference={preference}
               pending={favoritePending}

@@ -213,7 +213,16 @@ export type WorkoutTemplateSummary = {
 };
 
 export type WorkoutSetType =
-  'WARMUP' | 'WORKING' | 'BACKOFF' | 'DROP_SET' | 'AMRAP' | 'FAILURE_OPTIONAL';
+  | 'WARMUP'
+  | 'WORKING'
+  | 'BACKOFF'
+  | 'DROP_SET'
+  | 'AMRAP'
+  | 'FAILURE_OPTIONAL'
+  /** Fractionné cardio : phase d’effort. */
+  | 'INTERVAL_WORK'
+  /** Fractionné cardio : phase de récupération active. */
+  | 'INTERVAL_RECOVERY';
 
 /** Référence catalogue compacte dans un modèle (sans préférences personnelles). */
 export type WorkoutTemplateExerciseRef = {
@@ -221,6 +230,8 @@ export type WorkoutTemplateExerciseRef = {
   source: ExerciseSource;
   name: string;
   measurementType: ExerciseMeasurementType;
+  category: ExerciseCategory;
+  cardioType: CardioType | null;
   primaryMuscleGroup: MuscleGroupReference;
   defaultEquipmentType: EquipmentTypeReference | null;
   archivedAt: string | null;
@@ -236,6 +247,10 @@ export type WorkoutTemplateSetTarget = {
   targetDistanceMeters: number | null;
   targetWeightKg: number | null;
   targetIntensityPercent: number | null;
+  /** Cardio : vitesse cible (km/h). */
+  targetSpeedKmh: number | null;
+  /** Cardio : inclinaison cible (%). */
+  targetInclinePercent: number | null;
   targetRir: number | null;
   targetRpe: number | null;
   restSeconds: number | null;
@@ -356,6 +371,10 @@ export type WorkoutSessionSetDetail = {
   targetDurationSeconds: number | null;
   targetDistanceMeters: number | null;
   targetIntensityPercent: number | null;
+  /** Cardio : vitesse cible (km/h). */
+  targetSpeedKmh: number | null;
+  /** Cardio : inclinaison cible (%). */
+  targetInclinePercent: number | null;
   targetRir: number | null;
   targetRpe: number | null;
   targetRestSeconds: number | null;
@@ -398,6 +417,8 @@ export type WorkoutSessionExerciseDetail = {
   sourceExerciseId: string | null;
   exerciseName: string;
   measurementType: ExerciseMeasurementType;
+  /** Type de cardio figé à la création (null : musculation ou séance antérieure). */
+  cardioType: CardioType | null;
   primaryMuscleGroupName: string | null;
   sourceExerciseArchivedAtCreation: boolean;
   equipment: {
@@ -1461,8 +1482,8 @@ export type SharedWorkoutRoomChangedEvent = {
 export type SharedWorkoutRealtimeSocketErrorCode =
   'UNAUTHORIZED' | 'ROOM_NOT_ACCESSIBLE' | 'VALIDATION_ERROR';
 
-/** Partage temporaire de templates (programme / séance) — distinct des Shared Workouts. */
-export type TrainingShareKind = 'PROGRAM' | 'WORKOUT_TEMPLATE';
+/** Partage temporaire de templates (programme / séance) ou d’un exercice personnel — distinct des Shared Workouts. */
+export type TrainingShareKind = 'PROGRAM' | 'WORKOUT_TEMPLATE' | 'EXERCISE';
 
 export type CreateTrainingShareResponse = {
   token: string;
@@ -1481,9 +1502,12 @@ export type TrainingShareSetPreview = {
 };
 
 export type TrainingShareExercisePreview = {
-  exerciseId: string;
+  /** `null` pour un exercice personnel (recréé à l’import). */
+  exerciseId: string | null;
   name: string;
   measurementType: string;
+  /** Exercice personnel de l’auteur : ajouté à la bibliothèque de l’importeur. */
+  isPersonal: boolean;
   sets: TrainingShareSetPreview[];
 };
 
@@ -1512,10 +1536,25 @@ export type TrainingShareWorkoutPreviewPayload = {
   exercises: TrainingShareExercisePreview[];
 };
 
+export type TrainingShareExerciseDefinitionPreviewPayload = {
+  kind: 'EXERCISE';
+  name: string;
+  measurementType: ExerciseMeasurementType;
+  category: ExerciseCategory;
+  cardioType: CardioType | null;
+  primaryMuscleGroupName: string | null;
+  secondaryMuscleGroupNames: string[];
+  defaultEquipmentName: string | null;
+  instructions: string | null;
+};
+
 export type TrainingSharePreviewResponse = {
   kind: TrainingShareKind;
   expiresAt: string;
-  preview: TrainingShareProgramPreviewPayload | TrainingShareWorkoutPreviewPayload;
+  preview:
+    | TrainingShareProgramPreviewPayload
+    | TrainingShareWorkoutPreviewPayload
+    | TrainingShareExerciseDefinitionPreviewPayload;
 };
 
 export type ImportTrainingShareDestination =
@@ -1527,8 +1566,11 @@ export type ImportTrainingShareRequest = {
 
 export type ImportTrainingShareResponse = {
   kind: TrainingShareKind;
-  programId: string;
+  /** `null` pour un partage d’exercice. */
+  programId: string | null;
   workoutTemplateId: string | null;
+  /** Renseigné pour un partage d’exercice (exercice créé ou réutilisé). */
+  exerciseId: string | null;
 };
 
 /** Catalogue SYSTEM compact pour le prompt d’import IA (pas d’UUID). */

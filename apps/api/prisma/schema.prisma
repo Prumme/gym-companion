@@ -419,6 +419,10 @@ enum WorkoutSetType {
   DROP_SET
   AMRAP
   FAILURE_OPTIONAL
+  /// Fractionné cardio : phase d’effort (durée cible obligatoire).
+  INTERVAL_WORK
+  /// Fractionné cardio : phase de récupération active (durée cible obligatoire).
+  INTERVAL_RECOVERY
 }
 
 model WorkoutTemplateExercise {
@@ -457,6 +461,10 @@ model WorkoutTemplateSet {
   targetDistanceMeters      Decimal?       @db.Decimal(10, 2)
   targetWeightKg            Decimal?       @db.Decimal(8, 3)
   targetIntensityPercent    Decimal?       @db.Decimal(5, 2)
+  /// Cardio uniquement : vitesse cible (km/h), ex. fractionné course 8 / marche 4.
+  targetSpeedKmh            Decimal?       @db.Decimal(5, 2)
+  /// Cardio uniquement : inclinaison cible (%).
+  targetInclinePercent      Decimal?       @db.Decimal(5, 2)
   targetRir                 Int?
   targetRpe                 Decimal?       @db.Decimal(4, 1)
   restSeconds               Int?
@@ -572,6 +580,8 @@ model WorkoutSessionExercise {
   sourceTemplateExerciseId         String?                  @db.Uuid
   exerciseNameSnapshot             String
   measurementTypeSnapshot          ExerciseMeasurementType
+  /// Type de cardio figé à la création (null pour la musculation et les séances antérieures).
+  cardioTypeSnapshot               CardioType?
   position                         Int
   primaryMuscleGroupNameSnapshot   String?
   sourceExerciseArchivedAtCreation Boolean                  @default(false)
@@ -613,6 +623,8 @@ model WorkoutSet {
   targetDurationSeconds     Int?
   targetDistanceMeters      Decimal?          @db.Decimal(10, 2)
   targetIntensityPercent    Decimal?          @db.Decimal(5, 2)
+  targetSpeedKmh            Decimal?          @db.Decimal(5, 2)
+  targetInclinePercent      Decimal?          @db.Decimal(5, 2)
   targetRir                 Int?
   targetRpe                 Decimal?          @db.Decimal(4, 1)
   targetRestSeconds         Int?
@@ -947,11 +959,12 @@ model SharedWorkoutEquipmentCommand {
   @@map("shared_workout_equipment_commands")
 }
 
-/// Partage temporaire de programme / modèle de séance (lien 1h, snapshot figé).
-/// Distinct des SharedWorkoutRoom (séance collaborative temps réel).
+/// Partage temporaire de programme / modèle de séance / exercice personnel
+/// (lien 1h, snapshot figé). Distinct des SharedWorkoutRoom (séance collaborative temps réel).
 enum TrainingShareKind {
   PROGRAM
   WORKOUT_TEMPLATE
+  EXERCISE
 }
 
 model TrainingShareLink {

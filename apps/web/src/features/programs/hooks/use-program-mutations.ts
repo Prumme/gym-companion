@@ -10,6 +10,7 @@ import type {
   ReorderWorkoutTemplatesInput,
   ReorderWorkoutTemplateSetsInput,
   ReplaceProgramScheduleInput,
+  ReplaceWorkoutTemplateSetsInput,
   UpdateProgramInput,
   UpdateWorkoutTemplateExerciseInput,
   UpdateWorkoutTemplateInput,
@@ -31,6 +32,7 @@ import {
   reorderWorkoutTemplates,
   reorderWorkoutTemplateSets,
   replaceProgramSchedule,
+  replaceWorkoutTemplateSets,
   restoreProgram,
   updateProgram,
   updateWorkoutTemplate,
@@ -289,6 +291,27 @@ export function useProgramContentMutations() {
     onSuccess: (detail) => sync(detail),
   });
 
+  const replaceSets = useMutation({
+    mutationFn: ({
+      programId,
+      workoutTemplateId,
+      templateExerciseId,
+      input,
+    }: {
+      programId: string;
+      workoutTemplateId: string;
+      templateExerciseId: string;
+      input: ReplaceWorkoutTemplateSetsInput;
+    }) =>
+      replaceWorkoutTemplateSets(
+        programId,
+        workoutTemplateId,
+        templateExerciseId,
+        input,
+      ),
+    onSuccess: (detail) => sync(detail),
+  });
+
   return {
     queryClient,
     syncDetail: (detail: ProgramDetail) => sync(detail, false),
@@ -304,5 +327,6 @@ export function useProgramContentMutations() {
     updateSet,
     deleteSet,
     reorderSets,
+    replaceSets,
   };
 }

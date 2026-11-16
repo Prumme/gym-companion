@@ -1,5 +1,10 @@
 import { normalizeExerciseName } from '@gym-companion/validation';
-import type { ExerciseMeasurementType, PrismaClient } from '@prisma/client';
+import type {
+  CardioType,
+  ExerciseCategory,
+  ExerciseMeasurementType,
+  PrismaClient,
+} from '@prisma/client';
 
 import seedExercises from './exercises-seed-data.json';
 
@@ -90,6 +95,8 @@ export async function seedSystemExercises(prisma: PrismaLike): Promise<void> {
           slug: definition.slug,
           primaryMuscleGroupId,
           measurementType: definition.measurementType as ExerciseMeasurementType,
+          category: definition.category as ExerciseCategory,
+          cardioType: definition.cardioType as CardioType | null,
           defaultEquipmentTypeId,
           defaultRestSeconds: definition.defaultRestSeconds,
           instructions: definition.instructions,
@@ -107,6 +114,8 @@ export async function seedSystemExercises(prisma: PrismaLike): Promise<void> {
         normalizedName: normalizeExerciseName(definition.name),
         primaryMuscleGroupId,
         measurementType: definition.measurementType as ExerciseMeasurementType,
+        category: definition.category as ExerciseCategory,
+        cardioType: definition.cardioType as CardioType | null,
         defaultEquipmentTypeId,
         defaultRestSeconds: definition.defaultRestSeconds,
         instructions: definition.instructions,

@@ -22,6 +22,7 @@ function multiExerciseSession() {
         sourceExerciseId: 'ex-1',
         exerciseName: 'Développé couché',
         measurementType: 'WEIGHT_REPS',
+        cardioType: null,
         primaryMuscleGroupName: 'Pectoraux',
         sourceExerciseArchivedAtCreation: false,
         equipment: { id: 'eq-1', code: 'barbell', name: 'Barre' },
@@ -38,6 +39,7 @@ function multiExerciseSession() {
         sourceExerciseId: 'ex-2',
         exerciseName: 'Développé militaire',
         measurementType: 'WEIGHT_REPS',
+        cardioType: null,
         primaryMuscleGroupName: 'Épaules',
         sourceExerciseArchivedAtCreation: false,
         equipment: { id: 'eq-1', code: 'barbell', name: 'Barre' },
@@ -139,6 +141,21 @@ describe('workout-progress', () => {
     expect(
       resolveRestSeconds(createWorkoutSet({ targetRestSeconds: 0 }), { restSeconds: null }),
     ).toBeNull();
+  });
+
+  it('ne déclenche pas de repos par défaut entre les phases de fractionné', () => {
+    expect(
+      resolveRestSeconds(
+        createWorkoutSet({ setType: 'INTERVAL_WORK', targetRestSeconds: 0 }),
+        { restSeconds: 60 },
+      ),
+    ).toBeNull();
+    expect(
+      resolveRestSeconds(
+        createWorkoutSet({ setType: 'WORKING', targetRestSeconds: 0 }),
+        { restSeconds: 60 },
+      ),
+    ).toBe(60);
   });
 
   it('démarre automatiquement le repos sauf pour SKIPPED', () => {

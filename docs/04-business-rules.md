@@ -127,13 +127,29 @@ Un exercice a aussi une catégorie `STRENGTH` (défaut, y compris les données e
 
 `cardioType` n’est renseigné que pour `CARDIO`. Un exercice cardio utilise `DURATION`, `DISTANCE` ou `DISTANCE_DURATION`. La musculation conserve les types existants, y compris `WEIGHT_REPS`.
 
+Pour `DISTANCE_DURATION`, une cible de série comme un résultat `COMPLETED` exige **une distance ou une durée** (au moins une) : « 20 min de course » ou une phase de fractionné n’ont pas de distance connue à l’avance.
+
+Le catalogue SYSTEM contient des exercices cardio (course extérieure / tapis, marche, marche inclinée, vélo extérieur / d’appartement, vélo elliptique, rameur, simulateur d’escaliers, corde à sauter). Les métriques optionnelles proposées à la saisie dépendent du `cardioType` figé sur la ligne de séance (`cardioTypeSnapshot`) ; une métrique déjà renseignée reste toujours affichée.
+
 Les métriques facultatives (fréquence cardiaque, inclinaison, résistance, niveau, étages, cadence) sont des résultats de série, jamais obligatoires. L’allure et la vitesse sont calculées, pas stockées.
 
 Le RPE global de séance (`sessionRpe`, 1–10) et les notes de séance sont distincts du RPE de série.
 
-### 4.1.1 Blocs de séance — V1.1
+### 4.1.1 Fractionné cardio
 
-La V1 cardio reste une liste ordonnée d’exercices (`WorkoutTemplateExercise`), chacun avec ses séries cibles. Le fractionné (`INTERVAL`), les supersets et les circuits ne sont pas modélisés : la contrainte d’unicité `(workoutTemplateId, exerciseId)` empêche de répéter le même exercice, et introduire un `WorkoutTemplateBlock` (`SINGLE | INTERVAL | SUPERSET | CIRCUIT`) demanderait de réordonner exercices, snapshots de séance, remplacement et import. V1.1 pourra insérer cette entité entre `WorkoutTemplate` et `WorkoutTemplateExercise` sans changer le catalogue d’exercices.
+Le fractionné est modélisé **par séries** sur un seul exercice `CARDIO` :
+
+- `INTERVAL_WORK` (effort) et `INTERVAL_RECOVERY` (récupération) sont des `WorkoutSetType` réservés aux exercices `CARDIO` (`WORKOUT_TEMPLATE_SET_CARDIO_ONLY` sinon) ;
+- une série de fractionné a toujours une durée cible ;
+- `targetSpeedKmh` et `targetInclinePercent` sont des cibles facultatives, réservées au cardio ;
+- l’assistant « Créer un fractionné » génère : échauffement (`WARMUP`), `rounds` × effort / récupération, retour au calme (`WORKING`), avec `restSeconds = 0` ; il **remplace** les séries de l’exercice après confirmation ;
+- aucune minuterie de repos par défaut entre deux phases de fractionné ;
+- le chrono guidé (client) enchaîne les phases à partir d’horodatages, signale chaque changement (vibration, bip) et n’écrit **rien** avant la confirmation de l’utilisateur ; chaque phase faite devient une série `COMPLETED` avec sa durée réelle ;
+- une récupération (`INTERVAL_RECOVERY`) n’est jamais un record personnel.
+
+### 4.1.2 Blocs de séance — V1.1
+
+Les supersets et les circuits ne sont pas modélisés : la contrainte d’unicité `(workoutTemplateId, exerciseId)` empêche de répéter le même exercice, et introduire un `WorkoutTemplateBlock` (`SINGLE | INTERVAL | SUPERSET | CIRCUIT`) demanderait de réordonner exercices, snapshots de séance, remplacement et import. V1.1 pourra insérer cette entité entre `WorkoutTemplate` et `WorkoutTemplateExercise` sans changer le catalogue d’exercices.
 
 ### 4.2 Groupes musculaires
 
@@ -823,7 +839,10 @@ Règles V1 :
 - partage ≠ sync : import = **copie** ;
 - pas de métadonnée auteur visible sur l’import ;
 - programme importé : `DRAFT`, non activé, sans `ProgramScheduleEntry` ;
-- exercices PERSONAL interdits à la création du share ;
+- un exercice PERSONAL peut être partagé seul (`kind = EXERCISE`) ;
+- un programme ou une séance qui utilise des exercices PERSONAL de l’auteur embarque leur définition (`personalExercises`) ; un exercice PERSONAL archivé ou appartenant à un autre utilisateur bloque le partage (`TRAINING_SHARE_PERSONAL_EXERCISE_UNAVAILABLE`) ;
+- à l’import, chaque exercice PERSONAL est **recréé** chez l’importeur, sauf s’il possède déjà un exercice PERSONAL actif de même nom normalisé, même `measurementType` et même `category` : il est alors **réutilisé** (pas de doublon, y compris quand l’auteur importe son propre lien) ;
+- la définition importée est revalidée comme une création manuelle (schéma + référentiels actifs) ;
 - token stocké uniquement en **SHA-256** (`tokenHash`) ;
 - le token brut n’est jamais loggé ;
 - planning personnel non partagé.

@@ -26,6 +26,16 @@ export async function createWorkoutTemplateShare(
   return response.data;
 }
 
+export async function createExerciseShare(
+  exerciseId: string,
+): Promise<CreateTrainingShareResponse> {
+  const response = await apiFetch<{ data: CreateTrainingShareResponse }>(
+    `/api/v1/exercises/${encodeURIComponent(exerciseId)}/share`,
+    { method: 'POST', body: '{}' },
+  );
+  return response.data;
+}
+
 export async function getSharePreview(token: string): Promise<TrainingSharePreviewResponse> {
   const response = await apiFetch<{ data: TrainingSharePreviewResponse }>(
     `/api/v1/shares/${encodeURIComponent(token)}`,

@@ -16,6 +16,8 @@ export function createWorkoutSet(
     targetDurationSeconds: null,
     targetDistanceMeters: null,
     targetIntensityPercent: null,
+    targetSpeedKmh: null,
+    targetInclinePercent: null,
     targetRir: 2,
     targetRpe: null,
     targetRestSeconds: 120,
@@ -69,6 +71,7 @@ export function createWorkoutSessionDetail(
         sourceExerciseId: 'ex-1',
         exerciseName: 'Développé couché',
         measurementType: 'WEIGHT_REPS',
+        cardioType: null,
         primaryMuscleGroupName: 'Pectoraux',
         sourceExerciseArchivedAtCreation: false,
         equipment: {

@@ -43,6 +43,21 @@ export class TrainingSharesController {
     return createSuccessResponse(data);
   }
 
+  @Post('exercises/:exerciseId/share')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @ApiOperation({
+    summary: 'Créer un lien de partage temporaire (exercice personnel)',
+  })
+  async shareExercise(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
+  ) {
+    const data = await this.trainingSharesService.createExerciseShare(user.id, exerciseId);
+    return createSuccessResponse(data);
+  }
+
   @Get('shares/:token')
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({
@@ -57,7 +72,7 @@ export class TrainingSharesController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
-  @ApiOperation({ summary: 'Importer un programme ou une séance partagée' })
+  @ApiOperation({ summary: 'Importer un programme, une séance ou un exercice partagé' })
   async importShare(
     @CurrentUser() user: AuthenticatedUser,
     @Param('token') token: string,
