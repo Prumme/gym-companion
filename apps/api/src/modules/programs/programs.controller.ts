@@ -283,6 +283,27 @@ export class ProgramsController {
     return createSuccessResponse(data);
   }
 
+  @Put(':programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId/sets')
+  @ApiOperation({
+    summary: 'Remplacer toutes les séries cibles (ex. fractionné généré)',
+  })
+  async replaceSets(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('programId', ParseUUIDPipe) programId: string,
+    @Param('workoutTemplateId', ParseUUIDPipe) workoutTemplateId: string,
+    @Param('templateExerciseId', ParseUUIDPipe) templateExerciseId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.programsService.replaceSets(
+      user.id,
+      programId,
+      workoutTemplateId,
+      templateExerciseId,
+      body,
+    );
+    return createSuccessResponse(data);
+  }
+
   @Put(':programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId/sets/order')
   @ApiOperation({ summary: 'Réordonner les séries cibles' })
   async reorderSets(

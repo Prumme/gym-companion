@@ -31,6 +31,7 @@ import {
   reorderWorkoutTemplateExercisesSchema,
   reorderWorkoutTemplatesSchema,
   reorderWorkoutTemplateSetsSchema,
+  replaceWorkoutTemplateSetsSchema,
   todayLocalDateString,
   updateProgramSchema,
   updateWorkoutTemplateExerciseSchema,
@@ -732,7 +733,7 @@ export class ProgramsService {
       templateExerciseId,
     );
 
-    this.assertSetTargets(templateExercise.exercise.measurementType, data);
+    this.assertSetTargets(templateExercise.exercise, data);
 
     await this.prisma.$transaction(async (tx) => {
       const existing = await tx.workoutTemplateSet.findMany({
@@ -751,10 +752,63 @@ export class ProgramsService {
           targetDistanceMeters: data.targetDistanceMeters,
           targetWeightKg: data.targetWeightKg,
           targetIntensityPercent: data.targetIntensityPercent,
+          targetSpeedKmh: data.targetSpeedKmh ?? null,
+          targetInclinePercent: data.targetInclinePercent ?? null,
           targetRir: data.targetRir,
           targetRpe: data.targetRpe,
           restSeconds: data.restSeconds,
         },
+      });
+    });
+
+    return this.getById(userId, programId);
+  }
+
+  /**
+   * Remplace toutes les séries cibles d’un exercice en une transaction
+   * (ex. assistant « Créer un fractionné »).
+   */
+  async replaceSets(
+    userId: string,
+    programId: string,
+    workoutTemplateId: string,
+    templateExerciseId: string,
+    input: unknown,
+  ): Promise<ProgramDetail> {
+    const data = replaceWorkoutTemplateSetsSchema.parse(input);
+    const program = await this.findOwnedOrThrow(userId, programId);
+    this.assertEditable(program);
+    const templateExercise = await this.findTemplateExerciseOrThrow(
+      programId,
+      workoutTemplateId,
+      templateExerciseId,
+    );
+
+    for (const set of data.sets) {
+      this.assertSetTargets(templateExercise.exercise, set);
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.workoutTemplateSet.deleteMany({
+        where: { workoutTemplateExerciseId: templateExerciseId },
+      });
+      await tx.workoutTemplateSet.createMany({
+        data: data.sets.map((set, position) => ({
+          workoutTemplateExerciseId: templateExerciseId,
+          position,
+          setType: set.setType,
+          targetRepMin: set.targetRepMin,
+          targetRepMax: set.targetRepMax,
+          targetDurationSeconds: set.targetDurationSeconds,
+          targetDistanceMeters: set.targetDistanceMeters,
+          targetWeightKg: set.targetWeightKg,
+          targetIntensityPercent: set.targetIntensityPercent,
+          targetSpeedKmh: set.targetSpeedKmh ?? null,
+          targetInclinePercent: set.targetInclinePercent ?? null,
+          targetRir: set.targetRir,
+          targetRpe: set.targetRpe,
+          restSeconds: set.restSeconds,
+        })),
       });
     });
 
@@ -813,9 +867,21 @@ export class ProgramsService {
             ? null
             : Number(existingSet.targetRpe),
       restSeconds: data.restSeconds !== undefined ? data.restSeconds : existingSet.restSeconds,
+      targetSpeedKmh:
+        data.targetSpeedKmh !== undefined
+          ? data.targetSpeedKmh
+          : existingSet.targetSpeedKmh == null
+            ? null
+            : Number(existingSet.targetSpeedKmh),
+      targetInclinePercent:
+        data.targetInclinePercent !== undefined
+          ? data.targetInclinePercent
+          : existingSet.targetInclinePercent == null
+            ? null
+            : Number(existingSet.targetInclinePercent),
     };
 
-    this.assertSetTargets(templateExercise.exercise.measurementType, merged);
+    this.assertSetTargets(templateExercise.exercise, merged);
 
     await this.prisma.workoutTemplateSet.update({
       where: { id: setId },
@@ -836,6 +902,10 @@ export class ProgramsService {
         ...(data.targetRir !== undefined ? { targetRir: data.targetRir } : {}),
         ...(data.targetRpe !== undefined ? { targetRpe: data.targetRpe } : {}),
         ...(data.restSeconds !== undefined ? { restSeconds: data.restSeconds } : {}),
+        ...(data.targetSpeedKmh !== undefined ? { targetSpeedKmh: data.targetSpeedKmh } : {}),
+        ...(data.targetInclinePercent !== undefined
+          ? { targetInclinePercent: data.targetInclinePercent }
+          : {}),
       },
     });
 
@@ -905,10 +975,15 @@ export class ProgramsService {
   }
 
   private assertSetTargets(
-    measurementType: Parameters<typeof validateWorkoutTemplateSetTargets>[0],
+    exercise: {
+      measurementType: Parameters<typeof validateWorkoutTemplateSetTargets>[0];
+      category: 'STRENGTH' | 'CARDIO';
+    },
     targets: WorkoutTemplateSetTargetFields,
   ) {
-    const validation = validateWorkoutTemplateSetTargets(measurementType, targets);
+    const validation = validateWorkoutTemplateSetTargets(exercise.measurementType, targets, {
+      category: exercise.category,
+    });
     if (!validation.ok) {
       throw new BadRequestException({
         code: validation.code,

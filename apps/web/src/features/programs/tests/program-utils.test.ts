@@ -244,6 +244,8 @@ describe('set labels and payloads', () => {
         targetDistanceMeters: '',
         targetWeightKg: '60',
         targetIntensityPercent: '',
+        targetSpeedKmh: '',
+        targetInclinePercent: '',
         targetRir: '2',
         targetRpe: '',
         restSeconds: '90',

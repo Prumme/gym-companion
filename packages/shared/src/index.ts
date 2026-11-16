@@ -213,7 +213,16 @@ export type WorkoutTemplateSummary = {
 };
 
 export type WorkoutSetType =
-  'WARMUP' | 'WORKING' | 'BACKOFF' | 'DROP_SET' | 'AMRAP' | 'FAILURE_OPTIONAL';
+  | 'WARMUP'
+  | 'WORKING'
+  | 'BACKOFF'
+  | 'DROP_SET'
+  | 'AMRAP'
+  | 'FAILURE_OPTIONAL'
+  /** Fractionné cardio : phase d’effort. */
+  | 'INTERVAL_WORK'
+  /** Fractionné cardio : phase de récupération active. */
+  | 'INTERVAL_RECOVERY';
 
 /** Référence catalogue compacte dans un modèle (sans préférences personnelles). */
 export type WorkoutTemplateExerciseRef = {
@@ -221,6 +230,8 @@ export type WorkoutTemplateExerciseRef = {
   source: ExerciseSource;
   name: string;
   measurementType: ExerciseMeasurementType;
+  category: ExerciseCategory;
+  cardioType: CardioType | null;
   primaryMuscleGroup: MuscleGroupReference;
   defaultEquipmentType: EquipmentTypeReference | null;
   archivedAt: string | null;
@@ -236,6 +247,10 @@ export type WorkoutTemplateSetTarget = {
   targetDistanceMeters: number | null;
   targetWeightKg: number | null;
   targetIntensityPercent: number | null;
+  /** Cardio : vitesse cible (km/h). */
+  targetSpeedKmh: number | null;
+  /** Cardio : inclinaison cible (%). */
+  targetInclinePercent: number | null;
   targetRir: number | null;
   targetRpe: number | null;
   restSeconds: number | null;
@@ -356,6 +371,10 @@ export type WorkoutSessionSetDetail = {
   targetDurationSeconds: number | null;
   targetDistanceMeters: number | null;
   targetIntensityPercent: number | null;
+  /** Cardio : vitesse cible (km/h). */
+  targetSpeedKmh: number | null;
+  /** Cardio : inclinaison cible (%). */
+  targetInclinePercent: number | null;
   targetRir: number | null;
   targetRpe: number | null;
   targetRestSeconds: number | null;

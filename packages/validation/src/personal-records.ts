@@ -42,7 +42,14 @@ export type ExerciseMeasurementTypeForRecords =
   | 'WEIGHT_DURATION';
 
 export type WorkoutSetTypeForRecords =
-  'WARMUP' | 'WORKING' | 'BACKOFF' | 'DROP_SET' | 'AMRAP' | 'FAILURE_OPTIONAL';
+  | 'WARMUP'
+  | 'WORKING'
+  | 'BACKOFF'
+  | 'DROP_SET'
+  | 'AMRAP'
+  | 'FAILURE_OPTIONAL'
+  | 'INTERVAL_WORK'
+  | 'INTERVAL_RECOVERY';
 
 /** Types de records disponibles pour un type de mesure snapshot. */
 export function resolveRecordTypesForMeasurement(
@@ -87,7 +94,8 @@ export function isSetEligibleForPersonalRecord(input: PersonalRecordEligibilityI
   if (input.setStatus !== 'COMPLETED') {
     return false;
   }
-  if (input.setType === 'WARMUP') {
+  // Échauffement et récupération de fractionné ne sont pas des performances.
+  if (input.setType === 'WARMUP' || input.setType === 'INTERVAL_RECOVERY') {
     return false;
   }
   if (input.sourceExerciseId == null) {

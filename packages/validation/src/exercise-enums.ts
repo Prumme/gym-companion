@@ -1,5 +1,5 @@
 /**
- * Enums d’exercice partagés par plusieurs schémas (catalogue, partage, import).
+ * Enums d’exercice et de série partagés par plusieurs schémas (catalogue, partage, import).
  * Module séparé pour éviter les imports circulaires avec `index.ts`.
  */
 
@@ -30,3 +30,21 @@ export const cardioTypeSchema = z.enum([
   'ELLIPTICAL',
   'OTHER',
 ]);
+
+export const workoutSetTypeSchema = z.enum([
+  'WARMUP',
+  'WORKING',
+  'BACKOFF',
+  'DROP_SET',
+  'AMRAP',
+  'FAILURE_OPTIONAL',
+  'INTERVAL_WORK',
+  'INTERVAL_RECOVERY',
+]);
+
+/** Séries de fractionné cardio (effort / récupération). */
+export const INTERVAL_SET_TYPES = ['INTERVAL_WORK', 'INTERVAL_RECOVERY'] as const;
+
+export function isIntervalSetType(setType: string): boolean {
+  return (INTERVAL_SET_TYPES as readonly string[]).includes(setType);
+}

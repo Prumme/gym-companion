@@ -209,6 +209,20 @@ BACKUP_DIR=/var/backups/gym-companion ./scripts/prod/backup-postgres.sh
 # Smoke : créer share programme → ouvrir /share/:token → importer sur un 2ᵉ compte
 ```
 
+### Release cardio + partage d’exercices perso (migrations `20261116190000` → `20261116210000`)
+
+Quatre migrations : kind de partage `EXERCISE`, catalogue cardio SYSTEM (**migration de données**), `cardioTypeSnapshot` sur les lignes de séance (avec rattrapage), séries de fractionné + vitesse / inclinaison cibles.
+
+```bash
+BACKUP_DIR=/var/backups/gym-companion ./scripts/prod/backup-postgres.sh
+./scripts/prod/deploy.sh <sha>
+# Vérif : 10 exercices cardio SYSTEM présents (aucun seed manuel nécessaire)
+# psql : select count(*) from exercises where source='SYSTEM' and category='CARDIO';
+# Smoke : créer un fractionné sur « Course sur tapis » → démarrer la séance → chrono → enregistrer
+```
+
+La migration du catalogue cardio est idempotente (`ON CONFLICT (slug) DO NOTHING`) et sans effet tant que les référentiels muscles / équipements ne sont pas seedés.
+
 ### PWA après déploiement web
 
 Nouveau build → nouveau service worker. Les clients reçoivent la mise à jour selon le comportement Workbox actuel (souvent après refresh / nouvel onglet). Pas de cache-busting custom dans ce jalon.

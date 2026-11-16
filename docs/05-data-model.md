@@ -121,7 +121,9 @@ type WorkoutSetType =
   | "BACKOFF"
   | "DROP_SET"
   | "AMRAP"
-  | "FAILURE_OPTIONAL";
+  | "FAILURE_OPTIONAL"
+  | "INTERVAL_WORK" // fractionné cardio — effort (CARDIO uniquement)
+  | "INTERVAL_RECOVERY"; // fractionné cardio — récupération (CARDIO uniquement)
 
 type Weekday =
   | "MONDAY"
@@ -762,6 +764,8 @@ type WorkoutTemplateSet = {
   targetDistanceMeters: Decimal | null;
   targetWeightKg: Decimal | null;
   targetIntensityPercent: Decimal | null;
+  targetSpeedKmh: Decimal | null; // CARDIO uniquement (5,2)
+  targetInclinePercent: Decimal | null; // CARDIO uniquement (5,2)
 
   targetRir: number | null;
   targetRpe: Decimal | null;
@@ -862,6 +866,7 @@ type WorkoutSessionExercise = {
 
   exerciseNameSnapshot: string;
   measurementTypeSnapshot: ExerciseMeasurementType;
+  cardioTypeSnapshot: CardioType | null; // figé à la création ; null = musculation ou séance antérieure
 
   position: number;
 
@@ -910,6 +915,8 @@ type WorkoutSet = {
   targetDurationSeconds: number | null;
   targetDistanceMeters: Decimal | null;
   targetIntensityPercent: Decimal | null;
+  targetSpeedKmh: Decimal | null; // copié du modèle
+  targetInclinePercent: Decimal | null; // copié du modèle
   targetRir: number | null;
   targetRpe: Decimal | null;
   targetRestSeconds: number | null;
@@ -2363,13 +2370,16 @@ Les décisions encore ouvertes devront être prises avant l’implémentation du
 ## Annexe — TrainingShareLink (partage templates)
 
 ```ts
-type TrainingShareKind = 'PROGRAM' | 'WORKOUT_TEMPLATE';
+type TrainingShareKind = 'PROGRAM' | 'WORKOUT_TEMPLATE' | 'EXERCISE';
 
 type TrainingShareLink = {
   id: string;
   kind: TrainingShareKind;
   tokenHash: string; // SHA-256 hex du token bearer
-  snapshot: SharedProgramSnapshotV1 | SharedWorkoutTemplateSnapshotV1;
+  snapshot:
+    | SharedProgramSnapshotV1
+    | SharedWorkoutTemplateSnapshotV1
+    | SharedExerciseSnapshotV1;
   createdByUserId: string; // audit/ownership technique uniquement
   createdAt: Date;
   expiresAt: Date;
@@ -2379,6 +2389,10 @@ type TrainingShareLink = {
 
 Snapshot V1 programme : `{ version: 1, kind: 'PROGRAM', name, description, goal, workouts[] }`  
 Snapshot V1 séance : `{ version: 1, kind: 'WORKOUT_TEMPLATE', name, description, estimatedDurationMinutes, exercises[] }`  
+Snapshot V1 exercice : `{ version: 1, kind: 'EXERCISE', exercise: SharedExerciseDefinition }`  
+Programmes et séances : `personalExercises?: SharedExerciseDefinition[]` (clé `key`). Chaque exercice partagé référence soit `exerciseId` (SYSTEM), soit `personalExerciseKey` — jamais les deux. Les snapshots sans `personalExercises` restent valides.  
+`SharedExerciseDefinition` : `{ key, name, measurementType, category, cardioType, primaryMuscleGroupId, secondaryMuscleGroupIds, defaultEquipmentTypeId, compatibleEquipmentTypes[], defaultRestSeconds, instructions }`.  
+Les séries partagées acceptent les types de fractionné et `targetSpeedKmh` / `targetInclinePercent` (60 séries max par exercice).  
 
 Pas de planning, pas d’activation, pas d’historique, pas d’auteur visible.
 

@@ -1235,7 +1235,7 @@ L’utilisateur choisit : nouveau programme (nom prérempli) ou programme exista
 
 **Priorité : MUST**
 
-Un programme/séance contenant un exercice `USER` ne peut pas être partagé en V1.
+Un exercice `USER` peut être partagé seul depuis sa fiche. Un programme/séance contenant des exercices `USER` de l’auteur peut être partagé : leur définition est embarquée dans le snapshot. À l’import, chaque exercice est recréé dans la bibliothèque de l’importeur, ou réutilisé s’il possède déjà un exercice perso équivalent (même nom normalisé, mesure et catégorie). La preview signale ces exercices (« Perso »).
 
 ### TSH-008 — Multi-import
 

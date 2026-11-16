@@ -29,6 +29,8 @@ export type WorkoutSetSnapshotRow = {
   targetDurationSeconds: number | null;
   targetDistanceMeters: unknown;
   targetIntensityPercent: unknown;
+  targetSpeedKmh: unknown;
+  targetInclinePercent: unknown;
   targetRir: number | null;
   targetRpe: unknown;
   targetRestSeconds: number | null;
@@ -166,6 +168,8 @@ export function toWorkoutSetDetail(row: WorkoutSetSnapshotRow): WorkoutSessionSe
     targetDurationSeconds: row.targetDurationSeconds,
     targetDistanceMeters: decimalToNumber(row.targetDistanceMeters),
     targetIntensityPercent: decimalToNumber(row.targetIntensityPercent),
+    targetSpeedKmh: decimalToNumber(row.targetSpeedKmh),
+    targetInclinePercent: decimalToNumber(row.targetInclinePercent),
     targetRir: row.targetRir,
     targetRpe: decimalToNumber(row.targetRpe),
     targetRestSeconds: row.targetRestSeconds,

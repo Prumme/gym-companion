@@ -26,6 +26,8 @@ type SetRow = {
   targetDistanceMeters: unknown;
   targetWeightKg: unknown;
   targetIntensityPercent: unknown;
+  targetSpeedKmh: unknown;
+  targetInclinePercent: unknown;
   targetRir: number | null;
   targetRpe: unknown;
   restSeconds: number | null;
@@ -93,6 +95,8 @@ export function serializeSetForShare(set: SetRow): SharedTemplateSet {
     targetRir: set.targetRir,
     targetRpe: decimalToNumber(set.targetRpe),
     restSeconds: set.restSeconds,
+    targetSpeedKmh: decimalToNumber(set.targetSpeedKmh),
+    targetInclinePercent: decimalToNumber(set.targetInclinePercent),
   };
 }
 

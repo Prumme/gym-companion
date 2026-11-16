@@ -1231,6 +1231,20 @@ describe('validateWorkoutSetActuals', () => {
         status: 'COMPLETED',
       }).ok,
     ).toBe(false);
+    expect(
+      validateWorkoutSetActuals('DISTANCE_DURATION', {
+        ...base,
+        status: 'COMPLETED',
+        actualDurationSeconds: 60,
+      }).ok,
+    ).toBe(true);
+    expect(
+      validateWorkoutSetActuals('DISTANCE_DURATION', {
+        ...base,
+        status: 'COMPLETED',
+        actualDistanceMeters: 400,
+      }).ok,
+    ).toBe(true);
   });
 
   it('valide WEIGHT_DURATION', () => {

@@ -143,6 +143,21 @@ describe('workout-progress', () => {
     ).toBeNull();
   });
 
+  it('ne déclenche pas de repos par défaut entre les phases de fractionné', () => {
+    expect(
+      resolveRestSeconds(
+        createWorkoutSet({ setType: 'INTERVAL_WORK', targetRestSeconds: 0 }),
+        { restSeconds: 60 },
+      ),
+    ).toBeNull();
+    expect(
+      resolveRestSeconds(
+        createWorkoutSet({ setType: 'WORKING', targetRestSeconds: 0 }),
+        { restSeconds: 60 },
+      ),
+    ).toBe(60);
+  });
+
   it('démarre automatiquement le repos sauf pour SKIPPED', () => {
     expect(shouldAutoStartRest('COMPLETED')).toBe(true);
     expect(shouldAutoStartRest('PARTIAL')).toBe(true);

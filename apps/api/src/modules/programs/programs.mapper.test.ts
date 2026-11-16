@@ -72,6 +72,8 @@ describe('programs.mapper', () => {
                 source: 'SYSTEM' as const,
                 name: 'Squat',
                 measurementType: 'WEIGHT_REPS' as const,
+                category: 'STRENGTH' as const,
+                cardioType: null,
                 archivedAt: null,
                 primaryMuscleGroup: {
                   id: 'm1',
@@ -97,6 +99,8 @@ describe('programs.mapper', () => {
                   targetDistanceMeters: null,
                   targetWeightKg: 100,
                   targetIntensityPercent: null,
+                  targetSpeedKmh: null,
+                  targetInclinePercent: null,
                   targetRir: 2,
                   targetRpe: null,
                   restSeconds: 120,

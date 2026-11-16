@@ -52,7 +52,14 @@ export type WorkoutUnderperformanceKind = 'NONE' | 'SIGNIFICANT' | 'NOT_ASSESSAB
 export type EffortTrackingModeForLoad = 'NONE' | 'RIR' | 'RPE';
 
 export type WorkoutSetTypeForLoad =
-  'WARMUP' | 'WORKING' | 'BACKOFF' | 'DROP_SET' | 'AMRAP' | 'FAILURE_OPTIONAL';
+  | 'WARMUP'
+  | 'WORKING'
+  | 'BACKOFF'
+  | 'DROP_SET'
+  | 'AMRAP'
+  | 'FAILURE_OPTIONAL'
+  | 'INTERVAL_WORK'
+  | 'INTERVAL_RECOVERY';
 
 export type WorkoutSetStatusForLoad =
   'PENDING' | 'COMPLETED' | 'PARTIAL' | 'FAILED' | 'SKIPPED' | 'CANCELLED';

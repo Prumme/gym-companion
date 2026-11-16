@@ -365,6 +365,8 @@ export class WorkoutsService {
                 targetDurationSeconds: set.targetDurationSeconds,
                 targetDistanceMeters: set.targetDistanceMeters,
                 targetIntensityPercent: set.targetIntensityPercent,
+                targetSpeedKmh: set.targetSpeedKmh,
+                targetInclinePercent: set.targetInclinePercent,
                 targetRir: set.targetRir,
                 targetRpe: set.targetRpe,
                 targetRestSeconds: set.targetRestSeconds,

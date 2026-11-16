@@ -5,11 +5,11 @@
 
 import { z } from 'zod';
 
-import { coachProposalSetSchema, type CoachProposalSet } from './ai-coach-structured';
 import {
   cardioTypeSchema,
   exerciseCategorySchema,
   exerciseMeasurementTypeSchema,
+  workoutSetTypeSchema,
 } from './exercise-enums';
 
 export const TRAINING_SHARE_LIFETIME_MS = 60 * 60 * 1000;
@@ -18,9 +18,28 @@ export const TRAINING_SHARE_SNAPSHOT_VERSION = 1 as const;
 export const trainingShareKindSchema = z.enum(['PROGRAM', 'WORKOUT_TEMPLATE', 'EXERCISE']);
 export type TrainingShareKind = z.infer<typeof trainingShareKindSchema>;
 
-/** Set portable — mêmes cibles que le Program Builder / Coach. */
-export const sharedTemplateSetSchema = coachProposalSetSchema;
-export type SharedTemplateSet = CoachProposalSet;
+/**
+ * Série portable — mêmes cibles que le Program Builder, fractionné cardio inclus.
+ * La cohérence métier (RIR/RPE, plages, mesure, cardio) est revalidée à l’import
+ * par `validateWorkoutTemplateSetTargets`.
+ */
+export const sharedTemplateSetSchema = z
+  .object({
+    setType: workoutSetTypeSchema,
+    targetRepMin: z.number().int().positive().max(500).nullable(),
+    targetRepMax: z.number().int().positive().max(500).nullable(),
+    targetDurationSeconds: z.number().int().positive().max(86_400).nullable(),
+    targetDistanceMeters: z.number().finite().positive().max(1_000_000).nullable(),
+    targetWeightKg: z.number().finite().min(0).max(10_000).nullable(),
+    targetIntensityPercent: z.number().finite().gt(0).lte(100).nullable(),
+    targetRir: z.number().int().min(0).max(10).nullable(),
+    targetRpe: z.number().finite().min(1).max(10).nullable(),
+    restSeconds: z.number().int().min(0).max(1800).nullable(),
+    targetSpeedKmh: z.number().finite().positive().max(60).nullable().optional(),
+    targetInclinePercent: z.number().finite().min(-20).max(40).nullable().optional(),
+  })
+  .strict();
+export type SharedTemplateSet = z.infer<typeof sharedTemplateSetSchema>;
 
 export const SHARED_PERSONAL_EXERCISES_MAX = 40;
 
@@ -70,7 +89,7 @@ export const sharedTemplateExerciseSchema = z
     equipmentTypeId: z.string().uuid().nullable(),
     notes: z.string().max(2000).nullable(),
     restSecondsOverride: z.number().int().min(0).max(1800).nullable(),
-    sets: z.array(sharedTemplateSetSchema).max(30),
+    sets: z.array(sharedTemplateSetSchema).max(60),
   })
   .strict()
   .superRefine((data, ctx) => {

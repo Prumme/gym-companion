@@ -213,10 +213,13 @@ export function toUpdateProfilePayload(values: ProfileFormValues): UpdateProfile
 }
 
 import {
+  INTERVAL_SET_TYPES,
   cardioTypeSchema,
   exerciseCategorySchema,
   exerciseMeasurementTypeSchema,
   exerciseSourceSchema,
+  isIntervalSetType,
+  workoutSetTypeSchema,
 } from './exercise-enums';
 
 export {
@@ -746,14 +749,7 @@ export function validateWorkoutTemplateReorder(
   return { ok: false, code: codeByReason[result.reason] };
 }
 
-export const workoutSetTypeSchema = z.enum([
-  'WARMUP',
-  'WORKING',
-  'BACKOFF',
-  'DROP_SET',
-  'AMRAP',
-  'FAILURE_OPTIONAL',
-]);
+export { INTERVAL_SET_TYPES, isIntervalSetType, workoutSetTypeSchema };
 
 const restSecondsSchema = z.number().int().min(0).max(1800).nullable();
 
@@ -812,6 +808,10 @@ const nullablePositiveInt = z.number().int().positive().max(500).nullable();
 const nullableNonNegativeDecimal = z.number().finite().min(0).nullable();
 const nullablePositiveDuration = z.number().int().positive().max(86_400).nullable();
 const nullablePositiveDistance = z.number().finite().positive().max(1_000_000).nullable();
+/** Cardio : vitesse cible (km/h). Optionnel pour rester compatible avec les anciens clients. */
+export const targetSpeedKmhSchema = z.number().finite().positive().max(60).nullable();
+/** Cardio : inclinaison cible (%), négative possible (descente). */
+export const targetInclinePercentSchema = z.number().finite().min(-20).max(40).nullable();
 
 export const workoutTemplateSetTargetsObjectSchema = z
   .object({
@@ -825,6 +825,8 @@ export const workoutTemplateSetTargetsObjectSchema = z
     targetRir: z.number().int().min(0).max(10).nullable(),
     targetRpe: z.number().finite().min(1).max(10).nullable(),
     restSeconds: restSecondsSchema,
+    targetSpeedKmh: targetSpeedKmhSchema.optional(),
+    targetInclinePercent: targetInclinePercentSchema.optional(),
   })
   .strict();
 
@@ -844,7 +846,27 @@ export const reorderWorkoutTemplateSetsSchema = z
 
 export type ReorderWorkoutTemplateSetsInput = z.infer<typeof reorderWorkoutTemplateSetsSchema>;
 
+export const WORKOUT_TEMPLATE_MAX_SETS_PER_EXERCISE = 60;
+
+/** Remplace toutes les séries cibles d’un exercice (ex. assistant fractionné). */
+export const replaceWorkoutTemplateSetsSchema = z
+  .object({
+    sets: z
+      .array(createWorkoutTemplateSetSchema)
+      .min(1, 'Au moins une série est requise.')
+      .max(WORKOUT_TEMPLATE_MAX_SETS_PER_EXERCISE),
+  })
+  .strict();
+
+export type ReplaceWorkoutTemplateSetsInput = z.infer<
+  typeof replaceWorkoutTemplateSetsSchema
+>;
+
 export type WorkoutTemplateSetTargetFields = {
+  /** Requis pour valider les règles de fractionné ; absent = série classique. */
+  setType?: string;
+  targetSpeedKmh?: number | null;
+  targetInclinePercent?: number | null;
   targetRepMin: number | null;
   targetRepMax: number | null;
   targetDurationSeconds: number | null;
@@ -863,9 +885,15 @@ export type WorkoutTemplateSetValidationResult =
       code:
         | 'WORKOUT_TEMPLATE_SET_INVALID_TARGET'
         | 'WORKOUT_TEMPLATE_SET_INVALID_REP_RANGE'
-        | 'WORKOUT_TEMPLATE_SET_CONFLICTING_INTENSITY_TARGETS';
+        | 'WORKOUT_TEMPLATE_SET_CONFLICTING_INTENSITY_TARGETS'
+        | 'WORKOUT_TEMPLATE_SET_CARDIO_ONLY';
       message: string;
     };
+
+export type WorkoutTemplateSetValidationContext = {
+  /** Catégorie de l’exercice ; STRENGTH par défaut. */
+  category?: 'STRENGTH' | 'CARDIO';
+};
 
 /**
  * Valide les cibles d’une série selon le type de mesure de l’exercice.
@@ -882,7 +910,28 @@ export function validateWorkoutTemplateSetTargets(
     | 'DISTANCE_DURATION'
     | 'WEIGHT_DURATION',
   targets: WorkoutTemplateSetTargetFields,
+  context: WorkoutTemplateSetValidationContext = {},
 ): WorkoutTemplateSetValidationResult {
+  const isInterval =
+    targets.setType !== undefined && isIntervalSetType(targets.setType);
+  const hasCardioTarget =
+    targets.targetSpeedKmh != null || targets.targetInclinePercent != null;
+  if ((isInterval || hasCardioTarget) && context.category !== 'CARDIO') {
+    return {
+      ok: false,
+      code: 'WORKOUT_TEMPLATE_SET_CARDIO_ONLY',
+      message:
+        'Le fractionné et les cibles de vitesse ou d’inclinaison sont réservés aux exercices cardio.',
+    };
+  }
+  if (isInterval && targets.targetDurationSeconds == null) {
+    return {
+      ok: false,
+      code: 'WORKOUT_TEMPLATE_SET_INVALID_TARGET',
+      message: 'Une série de fractionné doit avoir une durée cible.',
+    };
+  }
+
   if (targets.targetRir != null && targets.targetRpe != null) {
     return {
       ok: false,
@@ -1799,11 +1848,12 @@ export function validateWorkoutSetActuals(
       }
       break;
     case 'DISTANCE_DURATION':
-      if (input.actualDistanceMeters == null) {
+      // Comme la cible : distance, durée ou les deux (ex. fractionné sans distance par phase).
+      if (input.actualDistanceMeters == null && input.actualDurationSeconds == null) {
         return {
           ok: false,
           code: 'WORKOUT_SET_INVALID',
-          message: 'La distance réelle est requise.',
+          message: 'La distance ou la durée réelle est requise.',
         };
       }
       break;
@@ -2695,6 +2745,19 @@ export type {
   CardioMeasurementType,
 } from './cardio-metrics';
 
+export {
+  INTERVAL_PLAN_MAX_ROUNDS,
+  INTERVAL_PRESETS,
+  buildIntervalTemplateSets,
+  formatIntervalDuration,
+  intervalPlanSchema,
+  summarizeIntervalSets,
+} from './cardio-intervals';
+export type {
+  IntervalPlan,
+  IntervalPreset,
+  IntervalTemplateSet,
+} from './cardio-intervals';
 export {
   TRAINING_SHARE_LIFETIME_MS,
   TRAINING_SHARE_SNAPSHOT_VERSION,

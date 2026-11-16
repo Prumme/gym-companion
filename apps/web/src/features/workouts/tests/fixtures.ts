@@ -16,6 +16,8 @@ export function createWorkoutSet(
     targetDurationSeconds: null,
     targetDistanceMeters: null,
     targetIntensityPercent: null,
+    targetSpeedKmh: null,
+    targetInclinePercent: null,
     targetRir: 2,
     targetRpe: null,
     targetRestSeconds: 120,

@@ -87,6 +87,20 @@ describe('personal records eligibility', () => {
     ).toBe(false);
   });
 
+  it('exclut la récupération de fractionné mais garde l’effort', () => {
+    const input = {
+      sessionStatus: 'COMPLETED' as const,
+      setStatus: 'COMPLETED' as const,
+      sourceExerciseId: 'ex-1',
+    };
+    expect(
+      isSetEligibleForPersonalRecord({ ...input, setType: 'INTERVAL_RECOVERY' }),
+    ).toBe(false);
+    expect(
+      isSetEligibleForPersonalRecord({ ...input, setType: 'INTERVAL_WORK' }),
+    ).toBe(true);
+  });
+
   it('exclut sourceExerciseId null', () => {
     expect(
       isSetEligibleForPersonalRecord({

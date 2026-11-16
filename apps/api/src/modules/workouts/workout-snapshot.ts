@@ -10,6 +10,8 @@ export type TemplateSetForSnapshot = {
   targetDistanceMeters: unknown;
   targetWeightKg: unknown;
   targetIntensityPercent: unknown;
+  targetSpeedKmh: unknown;
+  targetInclinePercent: unknown;
   targetRir: number | null;
   targetRpe: unknown;
   restSeconds: number | null;
@@ -61,6 +63,8 @@ export type SnapshotSetCreate = {
   targetDurationSeconds: number | null;
   targetDistanceMeters: number | null;
   targetIntensityPercent: number | null;
+  targetSpeedKmh: number | null;
+  targetInclinePercent: number | null;
   targetRir: number | null;
   targetRpe: number | null;
   targetRestSeconds: number | null;
@@ -167,6 +171,8 @@ export function buildWorkoutSessionSnapshotFromTemplate(
         targetDurationSeconds: set.targetDurationSeconds,
         targetDistanceMeters: decimalToNumber(set.targetDistanceMeters),
         targetIntensityPercent: decimalToNumber(set.targetIntensityPercent),
+        targetSpeedKmh: decimalToNumber(set.targetSpeedKmh),
+        targetInclinePercent: decimalToNumber(set.targetInclinePercent),
         targetRir: set.targetRir,
         targetRpe: decimalToNumber(set.targetRpe),
         targetRestSeconds: set.restSeconds,

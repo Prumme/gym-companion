@@ -8,7 +8,8 @@ import type {
   WorkoutSessionSetDetail,
   WorkoutSetStatus,
 } from '@gym-companion/shared';
-import { ArrowLeftRight, Calculator, Check, MoreHorizontal, Plus } from 'lucide-react';
+import { summarizeIntervalSets } from '@gym-companion/validation';
+import { ArrowLeftRight, Calculator, Check, MoreHorizontal, Plus, Timer } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -23,13 +24,20 @@ import {
   useReplaceWorkoutSessionExerciseMutation,
 } from '../hooks/use-workout-mutations';
 import { findPreviousSetInExercise } from '../lib/copy-previous-set';
+import { buildIntervalPhases, hasIntervalSets } from '../lib/interval-timer';
 import { resolvePlateCalculatorTargetKg, supportsPlateCalculator } from '../lib/plate-calculator';
+import { useIntervalTimerStore } from '../stores/interval-timer-store';
 import { PlateCalculatorSheet } from './PlateCalculatorSheet';
 import { formatWorkoutSetTargetCompact, getWorkoutSetTypeLabelSafe } from '../lib/workout-labels';
-import { findNextPendingSetInExercise, isExerciseTreated } from '../lib/workout-progress';
+import {
+  findNextPendingSetInExercise,
+  isExerciseTreated,
+  resolveRestSeconds,
+} from '../lib/workout-progress';
 import { ReplaceSessionExerciseSheet } from './ReplaceSessionExerciseSheet';
 import { SessionExerciseMediaButton } from './SessionExerciseMediaButton';
 import { ExerciseLoadCues } from './ExerciseLoadCues';
+import { IntervalTimerSheet } from './IntervalTimerSheet';
 import { WorkoutSetCard } from './WorkoutSetCard';
 import { WorkoutSetTargetsSheet } from './WorkoutSetTargetsSheet';
 import { WorkoutSetFormDialog } from './WorkoutSetFormDialog';
@@ -147,6 +155,21 @@ export function ActiveExercisePanel({
   const [warmupError, setWarmupError] = useState<string | null>(null);
   const [targetsSet, setTargetsSet] = useState<WorkoutSessionSetDetail | null>(null);
   const [targetsError, setTargetsError] = useState<string | null>(null);
+  const [intervalOpen, setIntervalOpen] = useState(false);
+  const intervalTimer = useIntervalTimerStore((state) => state.timer);
+  const intervalSummary = hasIntervalSets(exercise.sets)
+    ? summarizeIntervalSets(exercise.sets)
+    : null;
+  const ownIntervalTimer =
+    intervalTimer?.workoutSessionId === session.id &&
+    intervalTimer.sessionExerciseId === exercise.id
+      ? intervalTimer
+      : null;
+  const canLaunchIntervals =
+    intervalSummary != null &&
+    canRecordSets &&
+    session.status === 'ACTIVE' &&
+    (ownIntervalTimer != null || buildIntervalPhases(exercise.sets).length > 0);
   const menuId = useId();
   const menuRef = useRef<HTMLDivElement>(null);
   const replaceMutation = useReplaceWorkoutSessionExerciseMutation(session.id);
@@ -288,6 +311,28 @@ export function ActiveExercisePanel({
         ) : null}
       </header>
 
+      {canLaunchIntervals ? (
+        <div className="flex flex-col gap-3 border-y border-[var(--border)] py-4">
+          <p className="text-base font-semibold">{intervalSummary}</p>
+          <Button
+            type="button"
+            className="min-h-14 w-full text-base"
+            onClick={() => setIntervalOpen(true)}
+          >
+            <Timer className="size-5" aria-hidden="true" />
+            {ownIntervalTimer ? 'Reprendre le fractionné' : 'Lancer le fractionné'}
+          </Button>
+        </div>
+      ) : null}
+
+      <IntervalTimerSheet
+        open={intervalOpen}
+        session={session}
+        exercise={exercise}
+        onClose={() => setIntervalOpen(false)}
+        onVersionConflict={onVersionConflict}
+      />
+
       {treated ? (
         <div
           className="flex flex-col items-start gap-2 border-y border-[var(--border)] py-4"
@@ -313,12 +358,10 @@ export function ActiveExercisePanel({
             <p className="mt-1 text-lg font-semibold tabular-nums tracking-tight">
               {formatWorkoutSetTargetCompact(nextSet) || '—'}
             </p>
-            {nextSet.targetRestSeconds != null && nextSet.targetRestSeconds > 0 ? (
+            {resolveRestSeconds(nextSet, exercise) != null ? (
               <p className="mt-1 text-sm text-[var(--muted)]">
-                Repos {nextSet.targetRestSeconds} s
+                Repos {resolveRestSeconds(nextSet, exercise)} s
               </p>
-            ) : exercise.restSeconds != null && exercise.restSeconds > 0 ? (
-              <p className="mt-1 text-sm text-[var(--muted)]">Repos {exercise.restSeconds} s</p>
             ) : null}
           </div>
         </div>

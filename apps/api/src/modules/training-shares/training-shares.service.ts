@@ -31,7 +31,7 @@ import {
   type SharedWorkoutTemplateBody,
   type TrainingShareSnapshot,
 } from '@gym-companion/validation';
-import type { ExerciseMeasurementType, Prisma } from '@prisma/client';
+import type { ExerciseCategory, ExerciseMeasurementType, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../database/prisma/prisma.service';
 import {
@@ -80,6 +80,12 @@ const templateShareInclude = {
     },
   },
 } satisfies Prisma.WorkoutTemplateInclude;
+
+/** Mesure et catégorie d’un exercice, pour valider les séries importées. */
+type SetValidationKind = {
+  measurementType: ExerciseMeasurementType;
+  category: ExerciseCategory;
+};
 
 /** Exercice personnel résolu chez l’importeur (créé ou réutilisé), par clé de snapshot. */
 type ResolvedPersonalExercises = Map<string, string>;
@@ -477,6 +483,7 @@ export class TrainingSharesService {
             select: {
               id: true,
               measurementType: true,
+              category: true,
             },
           })
         : [];
@@ -486,11 +493,17 @@ export class TrainingSharesService {
         message: 'Un ou plusieurs exercices de ce partage ne sont plus disponibles.',
       });
     }
-    const measurementById = new Map<string, ExerciseMeasurementType>(
-      exercises.map((item) => [item.id, item.measurementType]),
+    const kindById = new Map<string, SetValidationKind>(
+      exercises.map((item) => [
+        item.id,
+        { measurementType: item.measurementType, category: item.category },
+      ]),
     );
-    const measurementByPersonalKey = new Map<string, ExerciseMeasurementType>(
-      personalExercisesOfSnapshot(snapshot).map((item) => [item.key, item.measurementType]),
+    const kindByPersonalKey = new Map<string, SetValidationKind>(
+      personalExercisesOfSnapshot(snapshot).map((item) => [
+        item.key,
+        { measurementType: item.measurementType, category: item.category },
+      ]),
     );
 
     const equipmentIds = collectEquipmentTypeIdsFromSnapshot(snapshot);
@@ -509,12 +522,14 @@ export class TrainingSharesService {
 
     for (const workout of workoutsOfSnapshot(snapshot)) {
       for (const exercise of workout.exercises) {
-        const measurementType = exercise.exerciseId
-          ? measurementById.get(exercise.exerciseId)
-          : measurementByPersonalKey.get(exercise.personalExerciseKey ?? '');
-        if (!measurementType) continue;
+        const kind = exercise.exerciseId
+          ? kindById.get(exercise.exerciseId)
+          : kindByPersonalKey.get(exercise.personalExerciseKey ?? '');
+        if (!kind) continue;
         for (const set of exercise.sets) {
-          const validation = validateWorkoutTemplateSetTargets(measurementType, set);
+          const validation = validateWorkoutTemplateSetTargets(kind.measurementType, set, {
+            category: kind.category,
+          });
           if (!validation.ok) {
             throw new BadRequestException({
               code: 'TRAINING_SHARE_SET_TARGET_INVALID',
@@ -807,6 +822,8 @@ export class TrainingSharesService {
               targetRir: set.targetRir,
               targetRpe: set.targetRpe,
               restSeconds: set.restSeconds,
+              targetSpeedKmh: set.targetSpeedKmh ?? null,
+              targetInclinePercent: set.targetInclinePercent ?? null,
             })),
           },
         })),

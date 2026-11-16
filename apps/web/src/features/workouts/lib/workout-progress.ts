@@ -4,6 +4,7 @@ import type {
   WorkoutSessionSetDetail,
   WorkoutSetStatus,
 } from '@gym-companion/shared';
+import { isIntervalSetType } from '@gym-companion/validation';
 
 import { countRecordedSets } from './workout-labels';
 
@@ -134,11 +135,20 @@ export function countTreatedSetsInExercise(
   return exercise.sets.filter((set) => isSetTreated(set.status)).length;
 }
 
-/** Repos snapshot : série puis exercice. */
+/**
+ * Repos snapshot : série puis exercice. Les séries de fractionné s’enchaînent
+ * sans repos (le chrono guidé fixe le rythme) : jamais de repos par défaut.
+ */
 export function resolveRestSeconds(
-  set: Pick<WorkoutSessionSetDetail, 'targetRestSeconds'>,
+  set: Pick<WorkoutSessionSetDetail, 'targetRestSeconds'> &
+    Partial<Pick<WorkoutSessionSetDetail, 'setType'>>,
   exercise: Pick<WorkoutSessionExerciseDetail, 'restSeconds'>,
 ): number | null {
+  if (set.setType !== undefined && isIntervalSetType(set.setType)) {
+    return set.targetRestSeconds != null && set.targetRestSeconds > 0
+      ? set.targetRestSeconds
+      : null;
+  }
   if (set.targetRestSeconds != null && set.targetRestSeconds > 0) {
     return set.targetRestSeconds;
   }

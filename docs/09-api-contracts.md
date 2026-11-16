@@ -3345,13 +3345,15 @@ L’API ne doit jamais retourner :
 ```http
 POST /api/v1/programs/:programId/share
 POST /api/v1/programs/:programId/workout-templates/:workoutTemplateId/share
+POST /api/v1/exercises/:exerciseId/share   # exercice PERSONAL du propriétaire, non archivé
 GET  /api/v1/shares/:token          # public
 POST /api/v1/shares/:token/import   # auth
 ```
 
-Réponse création : `{ token, expiresAt, kind }`.  
-Preview : `{ kind, expiresAt, preview }` (sans auteur).  
-Import programme : `{}`. Import séance : `{ destination: { type: 'NEW_PROGRAM'|'EXISTING_PROGRAM', ... } }`.
+Réponse création : `{ token, expiresAt, kind }` avec `kind = PROGRAM | WORKOUT_TEMPLATE | EXERCISE`.  
+Preview : `{ kind, expiresAt, preview }` (sans auteur). Pour `EXERCISE` : `{ kind, name, measurementType, category, cardioType, primaryMuscleGroupName, secondaryMuscleGroupNames, defaultEquipmentName, instructions }`. Les exercices d’un programme / d’une séance portent `isPersonal` (`exerciseId = null` pour un exercice perso).  
+Import programme : `{}`. Import séance : `{ destination: { type: 'NEW_PROGRAM'|'EXISTING_PROGRAM', ... } }`. Import exercice : `{}` (destination refusée).  
+Réponse import : `{ kind, programId | null, workoutTemplateId | null, exerciseId | null }`.
 
 ## 39ter. Import de programme via IA externe
 
@@ -3367,7 +3369,17 @@ Auth JWT. Aucun appel LLM. `validate` ne persiste rien. `import` revalide et cr�
 
 Codes import : `PROGRAM_IMPORT_INVALID`, `UNSUPPORTED_SCHEMA_VERSION`, `UNKNOWN_EXERCISE`, `INCOMPATIBLE_MEASUREMENT`, `DUPLICATE_EXERCISE_IN_WORKOUT`, `PAYLOAD_TOO_LARGE`.
 
-Codes share : `SHARE_LINK_EXPIRED` (410), `SHARE_LINK_INVALID` (404), `TRAINING_SHARE_PERSONAL_EXERCISE` (400), `SHARE_VERSION_UNSUPPORTED` (400).
+Codes share : `SHARE_LINK_EXPIRED` (410), `SHARE_LINK_INVALID` (404), `TRAINING_SHARE_PERSONAL_EXERCISE_UNAVAILABLE` (400), `TRAINING_SHARE_EXERCISE_ARCHIVED` (400), `TRAINING_SHARE_PERSONAL_EXERCISE_INVALID` (400), `EXERCISE_NOT_FOUND` (404), `SHARE_VERSION_UNSUPPORTED` (400).
+
+### Séries cibles — remplacement et fractionné
+
+```http
+PUT /api/v1/programs/:programId/workout-templates/:workoutTemplateId/exercises/:templateExerciseId/sets
+```
+
+Corps : `{ sets: CreateWorkoutTemplateSetInput[] }` (1 à 60). Remplace toutes les séries de l’exercice en une transaction ; renvoie le `ProgramDetail`.
+
+Les séries cibles acceptent `targetSpeedKmh` et `targetInclinePercent` (facultatifs, nullables) et les types `INTERVAL_WORK` / `INTERVAL_RECOVERY`, réservés aux exercices `CARDIO` (`WORKOUT_TEMPLATE_SET_CARDIO_ONLY`). Ces champs sont copiés dans la séance (`WorkoutSessionSetDetail`) et dans les snapshots de partage. `WorkoutSessionExerciseDetail.cardioType` expose le type de cardio figé.
 
 ## 40. Implémentation progressive
 
