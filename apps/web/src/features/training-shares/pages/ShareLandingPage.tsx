@@ -9,6 +9,11 @@ import { useAuthStore } from '@/stores/auth-store';
 
 import { getSharePreview } from '../api/training-share-api';
 import { ImportDestinationSheet } from '../components/ImportDestinationSheet';
+import {
+  CARDIO_TYPE_LABELS,
+  getMeasurementTypeLabel,
+} from '@/features/exercises/lib/exercise-labels';
+
 import { useImportShareMutation } from '../hooks/use-training-share-mutations';
 import {
   formatRemainingShareTime,
@@ -25,6 +30,7 @@ export function ShareLandingPage() {
   const [destinationOpen, setDestinationOpen] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [importedProgramId, setImportedProgramId] = useState<string | null>(null);
+  const [importedExerciseId, setImportedExerciseId] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
@@ -58,6 +64,17 @@ export function ShareLandingPage() {
       setSuccessMessage('Programme ajouté');
     } catch (err) {
       setImportError(getTrainingShareErrorMessage(err, 'Impossible d’ajouter ce programme.'));
+    }
+  }
+
+  async function handleImportExercise() {
+    setImportError(null);
+    try {
+      const result = await importMutation.mutateAsync({ token, body: {} });
+      setImportedExerciseId(result.exerciseId);
+      setSuccessMessage('Exercice ajouté à ta bibliothèque');
+    } catch (err) {
+      setImportError(getTrainingShareErrorMessage(err, 'Impossible d’ajouter cet exercice.'));
     }
   }
 
@@ -127,12 +144,19 @@ export function ShareLandingPage() {
 
   const data = previewQuery.data!;
   const preview = data.preview;
+  const imported = importedProgramId != null || importedExerciseId != null;
+  const kindLabel =
+    preview.kind === 'PROGRAM'
+      ? 'Programme partagé'
+      : preview.kind === 'EXERCISE'
+        ? 'Exercice partagé'
+        : 'Séance partagée';
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 p-4">
       <header>
         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-          {preview.kind === 'PROGRAM' ? 'Programme partagé' : 'Séance partagée'}
+          {kindLabel}
         </p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">{preview.name}</h1>
         {preview.kind === 'PROGRAM' && preview.description ? (
@@ -143,15 +167,21 @@ export function ShareLandingPage() {
         ) : null}
       </header>
 
-      {successMessage && importedProgramId ? (
+      {successMessage && imported ? (
         <div
           className="rounded-[var(--radius)] border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-950"
           role="status"
         >
           <p className="font-medium">{successMessage}</p>
-          <ButtonLink to={`/programs/${importedProgramId}`} className="mt-2">
-            Voir le programme
-          </ButtonLink>
+          {importedExerciseId ? (
+            <ButtonLink to={`/exercises/${importedExerciseId}`} className="mt-2">
+              Voir l’exercice
+            </ButtonLink>
+          ) : (
+            <ButtonLink to={`/programs/${importedProgramId}`} className="mt-2">
+              Voir le programme
+            </ButtonLink>
+          )}
         </div>
       ) : null}
 
@@ -185,9 +215,10 @@ export function ShareLandingPage() {
                   </button>
                   {isOpen ? (
                     <ul className="mt-3 space-y-2 pl-1">
-                      {workout.exercises.map((exercise) => (
-                        <li key={exercise.exerciseId} className="text-sm">
+                      {workout.exercises.map((exercise, index) => (
+                        <li key={`${index}-${exercise.name}`} className="text-sm">
                           <span className="font-medium">{exercise.name}</span>
+                          {exercise.isPersonal ? <PersonalExerciseBadge /> : null}
                           <span className="text-[var(--muted)]">
                             {' '}
                             · {formatShareSetsLine(exercise.sets)}
@@ -201,12 +232,44 @@ export function ShareLandingPage() {
             })}
           </ul>
         </section>
+      ) : preview.kind === 'EXERCISE' ? (
+        <section className="space-y-2 text-sm">
+          <p>
+            {preview.category === 'CARDIO' && preview.cardioType
+              ? `${CARDIO_TYPE_LABELS[preview.cardioType]} · `
+              : ''}
+            {getMeasurementTypeLabel(preview.measurementType)}
+          </p>
+          <p className="text-[var(--muted)]">
+            {[preview.primaryMuscleGroupName, preview.defaultEquipmentName]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
+          {preview.secondaryMuscleGroupNames.length > 0 ? (
+            <p className="text-[var(--muted)]">
+              Aussi : {preview.secondaryMuscleGroupNames.join(', ')}
+            </p>
+          ) : null}
+          {preview.instructions ? (
+            <p className="whitespace-pre-wrap">{preview.instructions}</p>
+          ) : null}
+          <p className="text-[var(--muted)]">
+            Une copie personnelle sera ajoutée à tes exercices. Si tu as déjà un exercice perso du
+            même nom et du même type, il sera réutilisé.
+          </p>
+        </section>
       ) : (
         <section>
           <ul className="space-y-3">
-            {preview.exercises.map((exercise) => (
-              <li key={exercise.exerciseId} className="border-b border-[var(--border)] pb-3">
-                <p className="font-medium">{exercise.name}</p>
+            {preview.exercises.map((exercise, index) => (
+              <li
+                key={`${index}-${exercise.name}`}
+                className="border-b border-[var(--border)] pb-3"
+              >
+                <p className="font-medium">
+                  {exercise.name}
+                  {exercise.isPersonal ? <PersonalExerciseBadge /> : null}
+                </p>
                 <p className="text-sm text-[var(--muted)]">{formatShareSetsLine(exercise.sets)}</p>
               </li>
             ))}
@@ -220,9 +283,21 @@ export function ShareLandingPage() {
         </p>
       ) : null}
 
-      {!importedProgramId ? (
+      {!imported ? (
         <div className="flex flex-col gap-2">
-          {preview.kind === 'PROGRAM' ? (
+          {preview.kind === 'EXERCISE' ? (
+            <Button
+              type="button"
+              disabled={importMutation.isPending}
+              onClick={() =>
+                requireAuthThen(() => {
+                  void handleImportExercise();
+                })
+              }
+            >
+              {importMutation.isPending ? 'Ajout…' : 'Ajouter à mes exercices'}
+            </Button>
+          ) : preview.kind === 'PROGRAM' ? (
             <Button
               type="button"
               disabled={importMutation.isPending}
@@ -284,5 +359,16 @@ export function ShareLandingPage() {
         />
       ) : null}
     </main>
+  );
+}
+
+function PersonalExerciseBadge() {
+  return (
+    <span
+      className="ml-2 inline-block rounded-full border border-[var(--border)] px-2 py-0.5 align-middle text-[0.6875rem] font-medium text-[var(--muted)]"
+      title="Exercice personnel : il sera ajouté à ta bibliothèque."
+    >
+      Perso
+    </span>
   );
 }

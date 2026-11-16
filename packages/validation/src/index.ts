@@ -212,30 +212,19 @@ export function toUpdateProfilePayload(values: ProfileFormValues): UpdateProfile
   return payload;
 }
 
-export const exerciseSourceSchema = z.enum(['SYSTEM', 'USER']);
-export const exerciseMeasurementTypeSchema = z.enum([
-  'WEIGHT_REPS',
-  'BODYWEIGHT_REPS',
-  'ASSISTED_BODYWEIGHT_REPS',
-  'REPS_ONLY',
-  'DURATION',
-  'DISTANCE',
-  'DISTANCE_DURATION',
-  'WEIGHT_DURATION',
-]);
+import {
+  cardioTypeSchema,
+  exerciseCategorySchema,
+  exerciseMeasurementTypeSchema,
+  exerciseSourceSchema,
+} from './exercise-enums';
 
-export const exerciseCategorySchema = z.enum(['STRENGTH', 'CARDIO']);
-
-export const cardioTypeSchema = z.enum([
-  'RUNNING',
-  'WALKING',
-  'TREADMILL',
-  'CYCLING',
-  'ROWING',
-  'STAIR_CLIMBING',
-  'ELLIPTICAL',
-  'OTHER',
-]);
+export {
+  cardioTypeSchema,
+  exerciseCategorySchema,
+  exerciseMeasurementTypeSchema,
+  exerciseSourceSchema,
+};
 
 const emptyToNull = (value: string | null | undefined) => {
   if (value === undefined) {
@@ -2708,7 +2697,10 @@ export type {
 export {
   TRAINING_SHARE_LIFETIME_MS,
   TRAINING_SHARE_SNAPSHOT_VERSION,
+  SHARED_PERSONAL_EXERCISES_MAX,
   trainingShareKindSchema,
+  sharedExerciseDefinitionSchema,
+  sharedExerciseSnapshotV1Schema,
   sharedTemplateSetSchema,
   sharedTemplateExerciseSchema,
   sharedWorkoutTemplateBodySchema,
@@ -2766,6 +2758,8 @@ export type {
   SharedWorkoutTemplateBody,
   SharedWorkoutTemplateSnapshotV1,
   SharedProgramSnapshotV1,
+  SharedExerciseDefinition,
+  SharedExerciseSnapshotV1,
   TrainingShareSnapshot,
   CreateTrainingShareResponse,
   TrainingSharePreview,

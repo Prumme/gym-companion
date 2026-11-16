@@ -947,11 +947,12 @@ model SharedWorkoutEquipmentCommand {
   @@map("shared_workout_equipment_commands")
 }
 
-/// Partage temporaire de programme / modèle de séance (lien 1h, snapshot figé).
-/// Distinct des SharedWorkoutRoom (séance collaborative temps réel).
+/// Partage temporaire de programme / modèle de séance / exercice personnel
+/// (lien 1h, snapshot figé). Distinct des SharedWorkoutRoom (séance collaborative temps réel).
 enum TrainingShareKind {
   PROGRAM
   WORKOUT_TEMPLATE
+  EXERCISE
 }
 
 model TrainingShareLink {

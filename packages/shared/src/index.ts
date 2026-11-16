@@ -1461,8 +1461,8 @@ export type SharedWorkoutRoomChangedEvent = {
 export type SharedWorkoutRealtimeSocketErrorCode =
   'UNAUTHORIZED' | 'ROOM_NOT_ACCESSIBLE' | 'VALIDATION_ERROR';
 
-/** Partage temporaire de templates (programme / séance) — distinct des Shared Workouts. */
-export type TrainingShareKind = 'PROGRAM' | 'WORKOUT_TEMPLATE';
+/** Partage temporaire de templates (programme / séance) ou d’un exercice personnel — distinct des Shared Workouts. */
+export type TrainingShareKind = 'PROGRAM' | 'WORKOUT_TEMPLATE' | 'EXERCISE';
 
 export type CreateTrainingShareResponse = {
   token: string;
@@ -1481,9 +1481,12 @@ export type TrainingShareSetPreview = {
 };
 
 export type TrainingShareExercisePreview = {
-  exerciseId: string;
+  /** `null` pour un exercice personnel (recréé à l’import). */
+  exerciseId: string | null;
   name: string;
   measurementType: string;
+  /** Exercice personnel de l’auteur : ajouté à la bibliothèque de l’importeur. */
+  isPersonal: boolean;
   sets: TrainingShareSetPreview[];
 };
 
@@ -1512,10 +1515,25 @@ export type TrainingShareWorkoutPreviewPayload = {
   exercises: TrainingShareExercisePreview[];
 };
 
+export type TrainingShareExerciseDefinitionPreviewPayload = {
+  kind: 'EXERCISE';
+  name: string;
+  measurementType: ExerciseMeasurementType;
+  category: ExerciseCategory;
+  cardioType: CardioType | null;
+  primaryMuscleGroupName: string | null;
+  secondaryMuscleGroupNames: string[];
+  defaultEquipmentName: string | null;
+  instructions: string | null;
+};
+
 export type TrainingSharePreviewResponse = {
   kind: TrainingShareKind;
   expiresAt: string;
-  preview: TrainingShareProgramPreviewPayload | TrainingShareWorkoutPreviewPayload;
+  preview:
+    | TrainingShareProgramPreviewPayload
+    | TrainingShareWorkoutPreviewPayload
+    | TrainingShareExerciseDefinitionPreviewPayload;
 };
 
 export type ImportTrainingShareDestination =
@@ -1527,8 +1545,11 @@ export type ImportTrainingShareRequest = {
 
 export type ImportTrainingShareResponse = {
   kind: TrainingShareKind;
-  programId: string;
+  /** `null` pour un partage d’exercice. */
+  programId: string | null;
   workoutTemplateId: string | null;
+  /** Renseigné pour un partage d’exercice (exercice créé ou réutilisé). */
+  exerciseId: string | null;
 };
 
 /** Catalogue SYSTEM compact pour le prompt d’import IA (pas d’UUID). */

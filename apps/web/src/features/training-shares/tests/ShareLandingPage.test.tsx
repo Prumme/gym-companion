@@ -65,6 +65,48 @@ describe('ShareLandingPage', () => {
     });
   });
 
+  it('affiche un exercice partagé et l’ajoute à la bibliothèque', async () => {
+    const user = userEvent.setup();
+    getSharePreview.mockResolvedValue({
+      kind: 'EXERCISE',
+      expiresAt: new Date(Date.now() + 30 * 60_000).toISOString(),
+      preview: {
+        kind: 'EXERCISE',
+        name: 'Tapis course/marche',
+        measurementType: 'DURATION',
+        category: 'CARDIO',
+        cardioType: 'TREADMILL',
+        primaryMuscleGroupName: 'Quadriceps',
+        secondaryMuscleGroupNames: ['Mollets'],
+        defaultEquipmentName: 'Machine de cardio',
+        instructions: null,
+      },
+    });
+    importShare.mockResolvedValue({
+      kind: 'EXERCISE',
+      programId: null,
+      workoutTemplateId: null,
+      exerciseId: 'ex-1',
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('Exercice partagé')).toBeInTheDocument();
+    expect(screen.getByText('Tapis course/marche')).toBeInTheDocument();
+    expect(screen.getByText('Aussi : Mollets')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Ajouter à mes exercices' }));
+
+    await waitFor(() => {
+      expect(importShare).toHaveBeenCalledWith('tok-abc', {});
+    });
+    expect(await screen.findByText('Exercice ajouté à ta bibliothèque')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Voir l’exercice' })).toHaveAttribute(
+      'href',
+      '/exercises/ex-1',
+    );
+  });
+
   it('affiche la preview programme et importe', async () => {
     const user = userEvent.setup();
     getSharePreview.mockResolvedValue({

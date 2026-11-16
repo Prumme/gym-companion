@@ -9,6 +9,7 @@ import {
 import type {
   CreateTrainingShareResponse,
   ImportTrainingShareResponse,
+  TrainingShareExerciseDefinitionPreviewPayload,
   TrainingShareExercisePreview,
   TrainingSharePreviewResponse,
   TrainingShareWorkoutPreview,
@@ -16,45 +17,72 @@ import type {
 import {
   TRAINING_SHARE_LIFETIME_MS,
   computeNextOrderedPosition,
+  createExerciseSchema,
   importTrainingShareSchema,
   isTrainingShareExpired,
+  normalizeExerciseName,
   suggestProgramNameFromWorkoutTemplate,
   validateWorkoutTemplateSetTargets,
+  type CreateExerciseInput,
   type ImportTrainingShareInput,
+  type SharedExerciseDefinition,
+  type SharedTemplateExercise,
   type SharedTemplateSet,
   type SharedWorkoutTemplateBody,
   type TrainingShareSnapshot,
 } from '@gym-companion/validation';
-import type { Prisma } from '@prisma/client';
+import type { ExerciseMeasurementType, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../database/prisma/prisma.service';
+import {
+  assertExerciseRelations,
+  buildUserExerciseCreateData,
+} from '../exercises/user-exercise-writer';
 import {
   collectEquipmentTypeIdsFromSnapshot,
   collectExerciseIdsFromSnapshot,
   generateTrainingShareToken,
   hashTrainingShareToken,
   parseTrainingShareSnapshot,
+  personalExercisesOfSnapshot,
+  serializeExerciseSnapshotForShare,
   serializeProgramForShare,
   serializeWorkoutTemplateForShare,
+  workoutsOfSnapshot,
 } from './training-share-snapshot';
+
+/** Champs d’exercice nécessaires pour décrire un exercice personnel partagé. */
+const exerciseDefinitionSelect = {
+  id: true,
+  name: true,
+  source: true,
+  ownerUserId: true,
+  archivedAt: true,
+  measurementType: true,
+  category: true,
+  cardioType: true,
+  primaryMuscleGroupId: true,
+  defaultEquipmentTypeId: true,
+  defaultRestSeconds: true,
+  instructions: true,
+  secondaryMuscles: { select: { muscleGroupId: true } },
+  compatibleEquipment: {
+    select: { equipmentTypeId: true, isPreferred: true, notes: true },
+  },
+} satisfies Prisma.ExerciseSelect;
 
 const templateShareInclude = {
   exercises: {
     orderBy: { position: 'asc' as const },
     include: {
-      exercise: {
-        select: {
-          id: true,
-          name: true,
-          source: true,
-          archivedAt: true,
-          measurementType: true,
-        },
-      },
+      exercise: { select: exerciseDefinitionSelect },
       sets: { orderBy: { position: 'asc' as const } },
     },
   },
 } satisfies Prisma.WorkoutTemplateInclude;
+
+/** Exercice personnel résolu chez l’importeur (créé ou réutilisé), par clé de snapshot. */
+type ResolvedPersonalExercises = Map<string, string>;
 
 type TemplateForShare = Prisma.WorkoutTemplateGetPayload<{
   include: typeof templateShareInclude;
@@ -92,7 +120,8 @@ export class TrainingSharesService {
       });
     }
 
-    this.assertNoPersonalExercises(
+    this.assertPersonalExercisesShareable(
+      userId,
       program.workoutTemplates.flatMap((template) => template.exercises),
     );
 
@@ -134,12 +163,40 @@ export class TrainingSharesService {
       });
     }
 
-    this.assertNoPersonalExercises(template.exercises);
+    this.assertPersonalExercisesShareable(userId, template.exercises);
 
     const snapshot = serializeWorkoutTemplateForShare(template);
     parseTrainingShareSnapshot(snapshot);
 
     return this.persistShare(userId, 'WORKOUT_TEMPLATE', snapshot);
+  }
+
+  /** Partage d’un exercice personnel : recréé chez la personne qui l’importe. */
+  async createExerciseShare(
+    userId: string,
+    exerciseId: string,
+  ): Promise<CreateTrainingShareResponse> {
+    const exercise = await this.prisma.exercise.findFirst({
+      where: { id: exerciseId, ownerUserId: userId, source: 'USER' },
+      select: exerciseDefinitionSelect,
+    });
+    if (!exercise) {
+      throw new NotFoundException({
+        code: 'EXERCISE_NOT_FOUND',
+        message: 'Exercice personnel introuvable.',
+      });
+    }
+    if (exercise.archivedAt) {
+      throw new BadRequestException({
+        code: 'TRAINING_SHARE_EXERCISE_ARCHIVED',
+        message: 'Un exercice archivé ne peut pas être partagé.',
+      });
+    }
+
+    const snapshot = serializeExerciseSnapshotForShare(exercise);
+    parseTrainingShareSnapshot(snapshot);
+
+    return this.persistShare(userId, 'EXERCISE', snapshot);
   }
 
   async getPreview(token: string, now: Date = new Date()): Promise<TrainingSharePreviewResponse> {
@@ -167,6 +224,34 @@ export class TrainingSharesService {
 
     await this.validateSnapshotForImport(snapshot);
 
+    if (snapshot.kind === 'EXERCISE') {
+      if (body.destination) {
+        throw new BadRequestException({
+          code: 'TRAINING_SHARE_DESTINATION_UNEXPECTED',
+          message:
+            'Un partage d’exercice ne prend pas de destination : l’exercice est ajouté à ta bibliothèque.',
+        });
+      }
+      const exerciseId = await this.prisma.$transaction(async (tx) => {
+        const resolved = await this.resolvePersonalExercisesForImport(tx, userId, [
+          snapshot.exercise,
+        ]);
+        return resolved.get(snapshot.exercise.key)!;
+      });
+      this.logger.log({
+        event: 'training_share.import',
+        shareId: share.id,
+        kind: 'EXERCISE',
+        expired: false,
+      });
+      return {
+        kind: 'EXERCISE',
+        programId: null,
+        workoutTemplateId: null,
+        exerciseId,
+      };
+    }
+
     if (snapshot.kind === 'PROGRAM') {
       if (body.destination) {
         throw new BadRequestException({
@@ -182,7 +267,12 @@ export class TrainingSharesService {
         kind: 'PROGRAM',
         expired: false,
       });
-      return { kind: 'PROGRAM', programId, workoutTemplateId: null };
+      return {
+        kind: 'PROGRAM',
+        programId,
+        workoutTemplateId: null,
+        exerciseId: null,
+      };
     }
 
     return this.importWorkoutTemplate(userId, share.id, snapshot, body);
@@ -200,7 +290,7 @@ export class TrainingSharesService {
 
   private async persistShare(
     userId: string,
-    kind: 'PROGRAM' | 'WORKOUT_TEMPLATE',
+    kind: 'PROGRAM' | 'WORKOUT_TEMPLATE' | 'EXERCISE',
     snapshot: TrainingShareSnapshot,
   ): Promise<CreateTrainingShareResponse> {
     const token = generateTrainingShareToken();
@@ -234,17 +324,97 @@ export class TrainingSharesService {
     };
   }
 
-  private assertNoPersonalExercises(
-    exercises: Array<{ exercise: { source: string; name: string } }>,
+  /**
+   * Les exercices personnels d’un programme sont embarqués dans le partage.
+   * Ils doivent appartenir à l’auteur et ne pas être archivés.
+   */
+  private assertPersonalExercisesShareable(
+    userId: string,
+    exercises: Array<{
+      exercise: {
+        source: string;
+        ownerUserId: string | null;
+        archivedAt: Date | null;
+      };
+    }>,
   ): void {
-    const personal = exercises.find((item) => item.exercise.source === 'USER');
-    if (personal) {
+    const unavailable = exercises.find(
+      (item) =>
+        item.exercise.source === 'USER' &&
+        (item.exercise.ownerUserId !== userId || item.exercise.archivedAt !== null),
+    );
+    if (unavailable) {
       throw new BadRequestException({
-        code: 'TRAINING_SHARE_PERSONAL_EXERCISE',
+        code: 'TRAINING_SHARE_PERSONAL_EXERCISE_UNAVAILABLE',
         message:
-          'Ce programme contient un exercice personnel. Les exercices personnels ne peuvent pas encore être partagés.',
+          'Ce contenu utilise un exercice personnel archivé ou qui ne t’appartient pas : il ne peut pas être partagé.',
       });
     }
+  }
+
+  /**
+   * Résout chaque exercice personnel du partage chez l’importeur :
+   * réutilise un exercice personnel actif équivalent (même nom normalisé,
+   * même mesure, même catégorie) ou en crée un nouveau.
+   */
+  private async resolvePersonalExercisesForImport(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    definitions: SharedExerciseDefinition[],
+  ): Promise<ResolvedPersonalExercises> {
+    const resolved: ResolvedPersonalExercises = new Map();
+    for (const definition of definitions) {
+      const data = this.parsePersonalExerciseDefinition(definition);
+      await assertExerciseRelations(tx, data);
+
+      const existing = await tx.exercise.findFirst({
+        where: {
+          ownerUserId: userId,
+          source: 'USER',
+          archivedAt: null,
+          normalizedName: normalizeExerciseName(data.name),
+          measurementType: data.measurementType,
+          category: data.category,
+        },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: { id: true },
+      });
+      if (existing) {
+        resolved.set(definition.key, existing.id);
+        continue;
+      }
+
+      const created = await tx.exercise.create({
+        data: buildUserExerciseCreateData(userId, data),
+        select: { id: true },
+      });
+      resolved.set(definition.key, created.id);
+    }
+    return resolved;
+  }
+
+  private parsePersonalExerciseDefinition(
+    definition: SharedExerciseDefinition,
+  ): CreateExerciseInput {
+    const parsed = createExerciseSchema.safeParse({
+      name: definition.name,
+      primaryMuscleGroupId: definition.primaryMuscleGroupId,
+      secondaryMuscleGroupIds: definition.secondaryMuscleGroupIds,
+      measurementType: definition.measurementType,
+      category: definition.category,
+      cardioType: definition.cardioType,
+      defaultEquipmentTypeId: definition.defaultEquipmentTypeId,
+      compatibleEquipmentTypes: definition.compatibleEquipmentTypes,
+      defaultRestSeconds: definition.defaultRestSeconds,
+      instructions: definition.instructions,
+    });
+    if (!parsed.success) {
+      throw new BadRequestException({
+        code: 'TRAINING_SHARE_PERSONAL_EXERCISE_INVALID',
+        message: `L’exercice personnel « ${definition.name} » de ce partage est invalide.`,
+      });
+    }
+    return parsed.data;
   }
 
   private async findShareByTokenOrThrow(token: string) {
@@ -316,7 +486,12 @@ export class TrainingSharesService {
         message: 'Un ou plusieurs exercices de ce partage ne sont plus disponibles.',
       });
     }
-    const measurementById = new Map(exercises.map((item) => [item.id, item.measurementType]));
+    const measurementById = new Map<string, ExerciseMeasurementType>(
+      exercises.map((item) => [item.id, item.measurementType]),
+    );
+    const measurementByPersonalKey = new Map<string, ExerciseMeasurementType>(
+      personalExercisesOfSnapshot(snapshot).map((item) => [item.key, item.measurementType]),
+    );
 
     const equipmentIds = collectEquipmentTypeIdsFromSnapshot(snapshot);
     if (equipmentIds.length > 0) {
@@ -332,10 +507,11 @@ export class TrainingSharesService {
       }
     }
 
-    const workouts = snapshot.kind === 'PROGRAM' ? snapshot.workouts : [snapshot];
-    for (const workout of workouts) {
+    for (const workout of workoutsOfSnapshot(snapshot)) {
       for (const exercise of workout.exercises) {
-        const measurementType = measurementById.get(exercise.exerciseId);
+        const measurementType = exercise.exerciseId
+          ? measurementById.get(exercise.exerciseId)
+          : measurementByPersonalKey.get(exercise.personalExerciseKey ?? '');
         if (!measurementType) continue;
         for (const set of exercise.sets) {
           const validation = validateWorkoutTemplateSetTargets(measurementType, set);
@@ -353,6 +529,10 @@ export class TrainingSharesService {
   private async buildPreview(
     snapshot: TrainingShareSnapshot,
   ): Promise<TrainingSharePreviewResponse['preview']> {
+    if (snapshot.kind === 'EXERCISE') {
+      return this.buildExerciseDefinitionPreview(snapshot.exercise);
+    }
+
     const exerciseIds = collectExerciseIdsFromSnapshot(snapshot);
     const exercises =
       exerciseIds.length > 0
@@ -361,13 +541,19 @@ export class TrainingSharesService {
             select: { id: true, name: true, measurementType: true },
           })
         : [];
-    const nameById = new Map(exercises.map((item) => [item.id, item]));
+    const catalogById = new Map(exercises.map((item) => [item.id, item]));
+    const personalByKey = new Map(
+      personalExercisesOfSnapshot(snapshot).map((item) => [item.key, item]),
+    );
+
+    const mapExercise = (exercise: SharedTemplateExercise) =>
+      this.mapExercisePreview(exercise, catalogById, personalByKey);
 
     const mapWorkout = (workout: SharedWorkoutTemplateBody): TrainingShareWorkoutPreview => ({
       name: workout.name,
       estimatedDurationMinutes: workout.estimatedDurationMinutes,
       exerciseCount: workout.exercises.length,
-      exercises: workout.exercises.map((exercise) => this.mapExercisePreview(exercise, nameById)),
+      exercises: workout.exercises.map(mapExercise),
     });
 
     if (snapshot.kind === 'PROGRAM') {
@@ -387,23 +573,58 @@ export class TrainingSharesService {
       description: snapshot.description,
       estimatedDurationMinutes: snapshot.estimatedDurationMinutes,
       exerciseCount: snapshot.exercises.length,
-      exercises: snapshot.exercises.map((exercise) => this.mapExercisePreview(exercise, nameById)),
+      exercises: snapshot.exercises.map(mapExercise),
+    };
+  }
+
+  private async buildExerciseDefinitionPreview(
+    definition: SharedExerciseDefinition,
+  ): Promise<TrainingShareExerciseDefinitionPreviewPayload> {
+    const muscleIds = [definition.primaryMuscleGroupId, ...definition.secondaryMuscleGroupIds];
+    const [muscles, equipment] = await Promise.all([
+      this.prisma.muscleGroup.findMany({
+        where: { id: { in: muscleIds } },
+        select: { id: true, name: true },
+      }),
+      definition.defaultEquipmentTypeId
+        ? this.prisma.equipmentType.findUnique({
+            where: { id: definition.defaultEquipmentTypeId },
+            select: { name: true },
+          })
+        : Promise.resolve(null),
+    ]);
+    const muscleNameById = new Map(muscles.map((item) => [item.id, item.name]));
+    return {
+      kind: 'EXERCISE',
+      name: definition.name,
+      measurementType: definition.measurementType,
+      category: definition.category,
+      cardioType: definition.cardioType,
+      primaryMuscleGroupName: muscleNameById.get(definition.primaryMuscleGroupId) ?? null,
+      secondaryMuscleGroupNames: definition.secondaryMuscleGroupIds
+        .map((id) => muscleNameById.get(id))
+        .filter((name): name is string => name !== undefined),
+      defaultEquipmentName: equipment?.name ?? null,
+      instructions: definition.instructions,
     };
   }
 
   private mapExercisePreview(
-    exercise: {
-      exerciseId: string;
-      sets: SharedTemplateSet[];
-    },
-    nameById: Map<string, { id: string; name: string; measurementType: string }>,
+    exercise: SharedTemplateExercise,
+    catalogById: Map<string, { id: string; name: string; measurementType: string }>,
+    personalByKey: Map<string, SharedExerciseDefinition>,
   ): TrainingShareExercisePreview {
-    const catalog = nameById.get(exercise.exerciseId);
+    const personal = exercise.personalExerciseKey
+      ? personalByKey.get(exercise.personalExerciseKey)
+      : undefined;
+    const catalog = exercise.exerciseId ? catalogById.get(exercise.exerciseId) : undefined;
+    const source = personal ?? catalog;
     return {
       exerciseId: exercise.exerciseId,
-      name: catalog?.name ?? 'Exercice indisponible',
-      measurementType: catalog?.measurementType ?? 'WEIGHT_REPS',
-      sets: exercise.sets.map((set) => ({
+      name: source?.name ?? 'Exercice indisponible',
+      measurementType: source?.measurementType ?? 'WEIGHT_REPS',
+      isPersonal: personal !== undefined,
+      sets: exercise.sets.map((set: SharedTemplateSet) => ({
         setType: set.setType,
         targetRepMin: set.targetRepMin,
         targetRepMax: set.targetRepMax,
@@ -420,6 +641,11 @@ export class TrainingSharesService {
     snapshot: Extract<TrainingShareSnapshot, { kind: 'PROGRAM' }>,
   ): Promise<string> {
     const program = await this.prisma.$transaction(async (tx) => {
+      const personal = await this.resolvePersonalExercisesForImport(
+        tx,
+        userId,
+        personalExercisesOfSnapshot(snapshot),
+      );
       return tx.program.create({
         data: {
           ownerUserId: userId,
@@ -429,7 +655,7 @@ export class TrainingSharesService {
           status: 'DRAFT',
           workoutTemplates: {
             create: snapshot.workouts.map((workout, workoutIndex) =>
-              this.templateCreateData(userId, workout, workoutIndex),
+              this.templateCreateData(userId, workout, workoutIndex, personal),
             ),
           },
         },
@@ -456,6 +682,11 @@ export class TrainingSharesService {
       const programName =
         body.destination.programName.trim() || suggestProgramNameFromWorkoutTemplate(snapshot.name);
       const result = await this.prisma.$transaction(async (tx) => {
+        const personal = await this.resolvePersonalExercisesForImport(
+          tx,
+          userId,
+          personalExercisesOfSnapshot(snapshot),
+        );
         const program = await tx.program.create({
           data: {
             ownerUserId: userId,
@@ -464,7 +695,7 @@ export class TrainingSharesService {
             goal: 'GENERAL_FITNESS',
             status: 'DRAFT',
             workoutTemplates: {
-              create: [this.templateCreateData(userId, snapshot, 0)],
+              create: [this.templateCreateData(userId, snapshot, 0, personal)],
             },
           },
           include: {
@@ -486,6 +717,7 @@ export class TrainingSharesService {
         kind: 'WORKOUT_TEMPLATE',
         programId: result.programId,
         workoutTemplateId: result.workoutTemplateId,
+        exerciseId: null,
       };
     }
 
@@ -508,6 +740,11 @@ export class TrainingSharesService {
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
+      const personal = await this.resolvePersonalExercisesForImport(
+        tx,
+        userId,
+        personalExercisesOfSnapshot(snapshot),
+      );
       const existing = await tx.workoutTemplate.findMany({
         where: { programId },
         select: { positionInProgram: true },
@@ -515,7 +752,7 @@ export class TrainingSharesService {
       const position = computeNextOrderedPosition(existing.map((item) => item.positionInProgram));
       const template = await tx.workoutTemplate.create({
         data: {
-          ...this.templateCreateData(userId, snapshot, position),
+          ...this.templateCreateData(userId, snapshot, position, personal),
           programId,
         },
         select: { id: true },
@@ -534,6 +771,7 @@ export class TrainingSharesService {
       kind: 'WORKOUT_TEMPLATE',
       programId,
       workoutTemplateId: result,
+      exerciseId: null,
     };
   }
 
@@ -541,6 +779,7 @@ export class TrainingSharesService {
     userId: string,
     workout: SharedWorkoutTemplateBody,
     positionInProgram: number,
+    personal: ResolvedPersonalExercises,
   ) {
     return {
       ownerUserId: userId,
@@ -550,7 +789,7 @@ export class TrainingSharesService {
       positionInProgram,
       exercises: {
         create: workout.exercises.map((exercise, exerciseIndex) => ({
-          exerciseId: exercise.exerciseId,
+          exerciseId: this.resolveImportedExerciseId(exercise, personal),
           position: exerciseIndex,
           equipmentTypeId: exercise.equipmentTypeId,
           notes: exercise.notes,
@@ -573,6 +812,22 @@ export class TrainingSharesService {
         })),
       },
     };
+  }
+
+  private resolveImportedExerciseId(
+    exercise: SharedTemplateExercise,
+    personal: ResolvedPersonalExercises,
+  ): string {
+    if (exercise.exerciseId) return exercise.exerciseId;
+    const resolved = personal.get(exercise.personalExerciseKey ?? '');
+    if (!resolved) {
+      // Garanti par le schéma de snapshot (clés référencées ⇔ décrites).
+      throw new BadRequestException({
+        code: 'TRAINING_SHARE_PERSONAL_EXERCISE_INVALID',
+        message: 'Un exercice personnel de ce partage est introuvable.',
+      });
+    }
+    return resolved;
   }
 }
 
